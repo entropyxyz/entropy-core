@@ -62,6 +62,7 @@ async fn integration_test_sign_eth_tx() {
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
+        vec![],
     )
     .await
     .unwrap();

@@ -91,6 +91,7 @@ async fn test_wasm_sign_tx_user_participates() {
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
+        vec![],
     )
     .await
     .unwrap();
@@ -224,6 +225,7 @@ async fn test_wasm_register_with_private_key_visibility() {
         &rpc,
         &dave.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
         vec![],
         vec![],
     )

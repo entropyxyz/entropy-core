@@ -167,7 +167,7 @@ pub async fn sign_tx(
         let program = get_program(&api, &rpc, &program_info.program_pointer).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
-        runtime.evaluate(&program, &signature_request, Some(&program_info.program_config))?;
+        runtime.evaluate(&program, &signature_request, Some(&program_info.program_config), None)?;
     }
     // We decided to do Keccak for subgroup selection for frontend compatability
     let message_hash_keccak =
