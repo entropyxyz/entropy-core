@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-client"
-version    ="0.0.1"
+version    ="0.0.11"
 edition    ="2021"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
