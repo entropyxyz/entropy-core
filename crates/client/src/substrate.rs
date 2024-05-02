@@ -71,7 +71,7 @@ pub async fn submit_transaction<Call: TxPayload, S: Signer<EntropyConfig>>(
     Err(SubstrateError::NoEvent)
 }
 
-/// Send a transaction to the Entropy chain giving a sr25519::Pair to sign with
+/// Convenience function to send a transaction to the Entropy chain giving a sr25519::Pair to sign with
 pub async fn submit_transaction_with_pair<Call: TxPayload>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
