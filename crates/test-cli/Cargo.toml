@@ -8,6 +8,7 @@ repository='https://github.com/entropyxyz/entropy-core'
 edition   ='2021'
 
 [dependencies]
+entropy-client       ={ path="../client" }
 entropy-testing-utils={ path="../testing-utils" }
 clap                 ={ version="4.4.6", features=["derive"] }
 colored              ="2.0.4"

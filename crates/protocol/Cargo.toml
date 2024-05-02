@@ -57,12 +57,14 @@ server=[
   "dep:axum",
   "dep:tokio-tungstenite",
   "entropy-shared/std",
+  "entropy-shared/user-native",
   "subxt/substrate-compat",
   "subxt/native",
   "tokio/rt-multi-thread",
 ]
 wasm=[
   "entropy-shared/wasm",
+  "entropy-shared/user-wasm",
   "dep:gloo-net",
   "dep:wasm-bindgen-futures",
   "dep:wasm-bindgen",

@@ -12,16 +12,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//! Utilities
 
-#![cfg_attr(not(any(feature = "std", feature = "user-wasm")), no_std)]
-//! Types that is shared by clients and substrate nodes,
-//! i.e. messages sent from one to the other and structs contained in those messages
-//!
-//! This helps ensures those structs are synced among clients and nodes.
-pub use constants::*;
-pub use types::*;
-pub mod constants;
-pub mod types;
+use sha3::{Digest, Keccak256};
 
-#[cfg(any(feature = "user-native", feature = "user-wasm"))]
-pub mod user;
+/// Produces a specific hash on a given message
+pub struct Hasher;
+
+impl Hasher {
+    /// Produces the Keccak256 hash on a given message.
+    ///
+    /// In practice, if `data` is an RLP-serialized Ethereum transaction, this should produce the
+    /// corrosponding .
+    pub fn keccak(data: &[u8]) -> [u8; 32] {
+        let mut keccak = Keccak256::new();
+        keccak.update(data);
+        keccak.finalize().into()
+    }
+}

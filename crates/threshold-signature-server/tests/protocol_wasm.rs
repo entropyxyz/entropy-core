@@ -23,20 +23,30 @@
 mod helpers;
 
 use axum::http::StatusCode;
+use entropy_client::{
+    chain_api::{
+        entropy::{
+            self,
+            runtime_types::{
+                bounded_collections::bounded_vec::BoundedVec,
+                pallet_registry::pallet::ProgramInstance,
+            },
+        },
+        get_api, get_rpc, EntropyConfig,
+    },
+    client::{put_register_request_on_chain, store_program, update_programs},
+    user::UserSignatureRequest,
+    Hasher,
+};
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams, ValidatorInfo};
 use entropy_shared::{HashingAlgorithm, KeyVisibility, OcwMessageDkg, EVE_VERIFYING_KEY};
 use entropy_testing_utils::{
-    chain_api::{
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
-    },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, EVE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED,
         TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::test_context_stationary,
-    test_client::{put_register_request_on_chain, store_program, update_programs},
     tss_server_process::spawn_testing_validators,
 };
 use futures::future::join_all;
@@ -53,14 +63,6 @@ use subxt::{
 };
 use synedrion::KeyShare;
 use x25519_dalek::{PublicKey, StaticSecret};
-
-use entropy_tss::{
-    chain_api::{
-        entropy::{self},
-        get_api, get_rpc, EntropyConfig,
-    },
-    common::{Hasher, UserSignatureRequest},
-};
 
 /// Test demonstrating signing a message with private key visibility on wasm
 #[tokio::test]

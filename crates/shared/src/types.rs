@@ -18,7 +18,7 @@ use super::constants::VERIFICATION_KEY_LENGTH;
 use codec::alloc::vec::Vec;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "wasm"))]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "wasm-no-std")]
 use sp_runtime::RuntimeDebug;
@@ -38,7 +38,7 @@ type BlockNumber = u32;
 /// Private -> User holds keyshare
 #[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
 #[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
 pub enum KeyVisibility {
     Public,
@@ -46,18 +46,8 @@ pub enum KeyVisibility {
 }
 
 /// Information from the validators in signing party
-#[cfg(not(feature = "wasm"))]
-#[derive(
-    Clone,
-    Encode,
-    Decode,
-    Debug,
-    Eq,
-    PartialEq,
-    TypeInfo,
-    sp_runtime::Serialize,
-    sp_runtime::Deserialize,
-)]
+#[cfg_attr(not(feature = "wasm"), derive(sp_runtime::Serialize, sp_runtime::Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: codec::alloc::vec::Vec<u8>,
@@ -96,7 +86,8 @@ pub struct OcwMessageProactiveRefresh {
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, EnumIter))]
+#[cfg_attr(any(feature = "wasm", feature = "std"), derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(EnumIter))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", serde(rename = "hash"))]
 #[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
