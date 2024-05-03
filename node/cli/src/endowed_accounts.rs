@@ -25,9 +25,8 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
     let mut externally_endowed_accounts: Vec<String> = Vec::new();
     let project_root = get_project_root();
     if let Ok(project_root) = project_root {
-        let mut file =
-            File::open(project_root.join("node/cli/src/chain_spec/testnet-accounts.json"))
-                .expect("unable to open testnet-accounts.json");
+        let mut file = File::open(project_root.join("data/testnet/testnet-accounts.json"))
+            .expect("unable to open testnet-accounts.json");
         let mut data = String::new();
         file.read_to_string(&mut data).expect("Unable to read file");
         let mut incoming_accounts: Vec<String> =
