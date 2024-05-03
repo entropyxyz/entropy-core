@@ -110,6 +110,9 @@ async fn test_proactive_refresh() {
     let test_user_res =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
 
+    for res in test_user_res {
+        assert_eq!(res.unwrap().text().await.unwrap(), "");
+    }
     // check get key before proactive refresh
     let key_after_result_eve = client
         .post("http://127.0.0.1:3001/unsafe/get")
