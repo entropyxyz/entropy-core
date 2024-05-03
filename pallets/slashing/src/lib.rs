@@ -197,16 +197,16 @@ impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
 impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Pallet<T> {
     type Key = T::AuthorityId;
 
-    fn on_genesis_session<'a, I: 'a>(_validators: I)
+    fn on_genesis_session<'a, I>(_validators: I)
     where
-        I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+        I: 'a + Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
     {
         // No work for us to do on genesis
     }
 
-    fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
+    fn on_new_session<'a, I>(_changed: bool, _validators: I, _queued_validators: I)
     where
-        I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+        I: 'a + Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
     {
         // We reset the reports for this upcoming session.
         //
