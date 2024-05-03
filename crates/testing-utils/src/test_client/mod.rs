@@ -316,30 +316,3 @@ pub async fn check_verifying_key(
     query_registered_status?.ok_or(anyhow!("User not registered"))?;
     Ok(())
 }
-
-// /// Get the commitee of tss servers who will perform DKG for a given block number
-// async fn get_dkg_committee(
-//     api: &OnlineClient<EntropyConfig>,
-//     rpc: &LegacyRpcMethods<EntropyConfig>,
-// ) -> anyhow::Result<Vec<ValidatorInfo>> {
-//     let mut validators_info: Vec<ValidatorInfo> = vec![];
-//     let all_validators_query = entropy::storage().session().validators();
-//     let all_validators = query_chain(api, rpc, all_validators_query, None)
-//         .await?
-//         .ok_or(anyhow!("Stash Fetch Error"))?;
-
-//     for validator in all_validators {
-//         let threshold_address_query =
-//             entropy::storage().staking_extension().threshold_servers(validator);
-//         let server_info = query_chain(api, rpc, threshold_address_query, None)
-//             .await?
-//             .ok_or(anyhow!("Stash Fetch Error"))?;
-//         let validator_info = ValidatorInfo {
-//             x25519_public_key: server_info.x25519_public_key,
-//             ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-//             tss_account: server_info.tss_account,
-//         };
-//         validators_info.push(validator_info);
-//     }
-//     Ok(validators_info)
-// }
