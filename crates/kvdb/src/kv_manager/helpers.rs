@@ -31,9 +31,9 @@ pub type BytesVec = Vec<u8>;
 const MAX_MSG_LEN: u64 = 1000 * 1000; // 1 MB
 
 /// Serialize a value using bincode and log errors
-pub fn serialize<T: ?Sized>(value: &T) -> KVDBResult<BytesVec>
+pub fn serialize<T>(value: &T) -> KVDBResult<BytesVec>
 where
-    T: serde::Serialize,
+    T: serde::Serialize + ?Sized,
 {
     let bincode = bincoder();
 
