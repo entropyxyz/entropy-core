@@ -14,12 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple CLI to test registering, updating programs and signing
-use std::{
-    fmt::{self, Display},
-    fs,
-    path::PathBuf,
-    time::Instant,
-};
+use std::{fs, path::PathBuf, time::Instant};
 
 use anyhow::{anyhow, ensure};
 use clap::{Parser, Subcommand};
@@ -34,17 +29,16 @@ use entropy_testing_utils::{
     constants::TEST_PROGRAM_WASM_BYTECODE,
     test_client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
-        update_programs, KeyParams, KeyShare, VERIFYING_KEY_LENGTH,
+        update_programs, VERIFYING_KEY_LENGTH,
     },
 };
-use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
+use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
     OnlineClient,
 };
-use x25519_dalek::StaticSecret;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -167,11 +161,7 @@ async fn run_command() -> anyhow::Result<String> {
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register {
-            signature_request_account_name,
-            program_account_name,
-            programs,
-        } => {
+        CliCommand::Register { signature_request_account_name, program_account_name, programs } => {
             let signature_request_keypair: sr25519::Pair =
                 SeedString::new(signature_request_account_name).try_into()?;
             println!("Signature request account: {}", signature_request_keypair.public());
@@ -207,14 +197,6 @@ async fn run_command() -> anyhow::Result<String> {
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
 
-            // If we have a keyshare file for this account, get it
-            let private_keyshare = KeyShareFile::new(user_keypair.public()).read().ok();
-
-            let private_details = private_keyshare.map(|keyshare| {
-                let x25519_secret = derive_x25519_static_secret(&user_keypair);
-                (keyshare, x25519_secret)
-            });
-
             let signature_verifying_key: [u8; VERIFYING_KEY_LENGTH] =
                 hex::decode(signature_verifying_key)?
                     .try_into()
@@ -226,7 +208,6 @@ async fn run_command() -> anyhow::Result<String> {
                 user_keypair,
                 signature_verifying_key,
                 message.as_bytes().to_vec(),
-                private_details,
                 auxilary_data,
             )
             .await?;
@@ -296,10 +277,7 @@ async fn run_command() -> anyhow::Result<String> {
                 accounts.len().to_string().green()
             );
             if !accounts.is_empty() {
-                println!(
-                    "{:<64} Programs:",
-                    "Verifying key:".green(),
-                );
+                println!("{:<64} Programs:", "Verifying key:".green(),);
                 for (account_id, info) in accounts {
                     println!(
                         "{} {:<12}",
@@ -368,27 +346,6 @@ impl TryFrom<SeedString> for sr25519::Pair {
     fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
         let (keypair, _) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
         Ok(keypair)
-    }
-}
-
-/// Represents a keyshare stored in a file, serialized using [bincode]
-struct KeyShareFile(String);
-
-impl KeyShareFile {
-    fn new(public_key: sr25519::Public) -> Self {
-        Self(format!("keyshare-{}", hex::encode(public_key.0)))
-    }
-
-    fn read(&self) -> anyhow::Result<KeyShare<KeyParams>> {
-        let keyshare_vec = fs::read(&self.0)?;
-        println!("Reading keyshare from file: {}", self.0);
-        Ok(bincode::deserialize(&keyshare_vec)?)
-    }
-
-    fn write(&self, keyshare: KeyShare<KeyParams>) -> anyhow::Result<()> {
-        println!("Writing keyshare to file: {}", self.0);
-        let keyshare_vec = bincode::serialize(&keyshare)?;
-        Ok(fs::write(&self.0, keyshare_vec)?)
     }
 }
 
@@ -486,15 +443,4 @@ impl Program {
             },
         }
     }
-}
-
-/// Derive a x25519 secret from a sr25519 pair. In production we should not do this,
-/// but for this test-cli which anyway uses insecure keypairs it is convenient
-fn derive_x25519_static_secret(sr25519_pair: &sr25519::Pair) -> StaticSecret {
-    let (derived_sr25519_pair, _) = sr25519_pair
-        .derive([DeriveJunction::hard(b"x25519")].into_iter(), None)
-        .expect("Cannot derive keypair");
-    let mut secret: [u8; 32] = [0; 32];
-    secret.copy_from_slice(&derived_sr25519_pair.to_raw_vec());
-    secret.into()
 }

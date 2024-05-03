@@ -16,12 +16,10 @@
 use super::constants::VERIFICATION_KEY_LENGTH;
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm-no-std")]
-use sp_runtime::RuntimeDebug;
 #[cfg(feature = "std")]
 use strum_macros::EnumIter;
 

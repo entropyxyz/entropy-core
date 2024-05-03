@@ -35,9 +35,7 @@ use entropy_kvdb::kv_manager::{
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
-use entropy_shared::{
-    HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
-};
+use entropy_shared::{HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -212,21 +210,16 @@ pub async fn sign_tx(
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
-        let signing_protocol_output = do_signing(
-            &rpc,
-            user_sig_req,
-            &app_state,
-            signing_session_id,
-            request_limit,
-        )
-        .await
-        .map(|signature| {
-            (
-                BASE64_STANDARD.encode(signature.to_rsv_bytes()),
-                signer.signer().sign(&signature.to_rsv_bytes()),
-            )
-        })
-        .map_err(|error| error.to_string());
+        let signing_protocol_output =
+            do_signing(&rpc, user_sig_req, &app_state, signing_session_id, request_limit)
+                .await
+                .map(|signature| {
+                    (
+                        BASE64_STANDARD.encode(signature.to_rsv_bytes()),
+                        signer.signer().sign(&signature.to_rsv_bytes()),
+                    )
+                })
+                .map_err(|error| error.to_string());
 
         // This response chunk is sent later with the result of the signing protocol
         if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
@@ -304,8 +297,6 @@ async fn setup_dkg(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
-        let user_details =
-            get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
 
         let key_share = do_dkg(
             &data.validators_info,

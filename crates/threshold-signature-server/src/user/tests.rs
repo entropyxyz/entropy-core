@@ -682,10 +682,8 @@ pub async fn put_register_request_on_chain(
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
-    let registering_tx = entropy::tx().registry().register(
-        program_modification_account,
-        program_instance,
-    );
+    let registering_tx =
+        entropy::tx().registry().register(program_modification_account, program_instance);
     submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 

@@ -18,14 +18,12 @@ pub use crate::chain_api::{get_api, get_rpc};
 use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
-pub use entropy_shared::{SIGNING_PARTY_SIZE};
+pub use entropy_shared::SIGNING_PARTY_SIZE;
 pub use synedrion::KeyShare;
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
 use anyhow::{anyhow, ensure};
-use entropy_protocol::{
-    RecoverableSignature, ValidatorInfo,
-};
+use entropy_protocol::RecoverableSignature;
 use entropy_tss::{
     chain_api::{
         entropy,
@@ -47,11 +45,10 @@ use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
     tx::PairSigner,
-    utils::{AccountId32 as SubxtAccountId32, Static, H256},
+    utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
-use x25519_dalek::StaticSecret;
 
 /// Register an account.
 ///
@@ -72,7 +69,7 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     programs_data: BoundedVec<ProgramInstance>,
-) -> anyhow::Result<(RegisteredInfo)> {
+) -> anyhow::Result<RegisteredInfo> {
     // Send register transaction
     put_register_request_on_chain(
         api,
@@ -123,7 +120,6 @@ pub async fn sign(
     user_keypair: sr25519::Pair,
     signature_verifying_key: [u8; VERIFYING_KEY_LENGTH],
     message: Vec<u8>,
-    private: Option<(KeyShare<KeyParams>, StaticSecret)>,
     auxilary_data: Option<Vec<u8>>,
 ) -> anyhow::Result<RecoverableSignature> {
     let message_hash = Hasher::keccak(&message);
@@ -140,7 +136,6 @@ pub async fn sign(
     };
 
     let signature_request_vec = serde_json::to_vec(&signature_request)?;
-    let validators_info_clone = validators_info.clone();
     let client = reqwest::Client::new();
 
     // Make http requests to TSS servers
@@ -299,8 +294,7 @@ pub async fn put_register_request_on_chain(
     let signature_request_pair_signer =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
 
-    let registering_tx =
-        entropy::tx().registry().register(deployer, program_instance);
+    let registering_tx = entropy::tx().registry().register(deployer, program_instance);
 
     submit_transaction(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
     Ok(())
@@ -323,29 +317,29 @@ pub async fn check_verifying_key(
     Ok(())
 }
 
-/// Get the commitee of tss servers who will perform DKG for a given block number
-async fn get_dkg_committee(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<ValidatorInfo>> {
-    let mut validators_info: Vec<ValidatorInfo> = vec![];
-    let all_validators_query = entropy::storage().session().validators();
-    let all_validators = query_chain(api, rpc, all_validators_query, None)
-        .await?
-        .ok_or(anyhow!("Stash Fetch Error"))?;
+// /// Get the commitee of tss servers who will perform DKG for a given block number
+// async fn get_dkg_committee(
+//     api: &OnlineClient<EntropyConfig>,
+//     rpc: &LegacyRpcMethods<EntropyConfig>,
+// ) -> anyhow::Result<Vec<ValidatorInfo>> {
+//     let mut validators_info: Vec<ValidatorInfo> = vec![];
+//     let all_validators_query = entropy::storage().session().validators();
+//     let all_validators = query_chain(api, rpc, all_validators_query, None)
+//         .await?
+//         .ok_or(anyhow!("Stash Fetch Error"))?;
 
-    for validator in all_validators {
-        let threshold_address_query =
-            entropy::storage().staking_extension().threshold_servers(validator);
-        let server_info = query_chain(api, rpc, threshold_address_query, None)
-            .await?
-            .ok_or(anyhow!("Stash Fetch Error"))?;
-        let validator_info = ValidatorInfo {
-            x25519_public_key: server_info.x25519_public_key,
-            ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-            tss_account: server_info.tss_account,
-        };
-        validators_info.push(validator_info);
-    }
-    Ok(validators_info)
-}
+//     for validator in all_validators {
+//         let threshold_address_query =
+//             entropy::storage().staking_extension().threshold_servers(validator);
+//         let server_info = query_chain(api, rpc, threshold_address_query, None)
+//             .await?
+//             .ok_or(anyhow!("Stash Fetch Error"))?;
+//         let validator_info = ValidatorInfo {
+//             x25519_public_key: server_info.x25519_public_key,
+//             ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+//             tss_account: server_info.tss_account,
+//         };
+//         validators_info.push(validator_info);
+//     }
+//     Ok(validators_info)
+// }

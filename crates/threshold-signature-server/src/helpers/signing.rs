@@ -17,7 +17,7 @@
 use std::time::Duration;
 
 use entropy_protocol::{Listener, RecoverableSignature, SessionId, SigningSessionInfo};
-use entropy_shared::{SETUP_TIMEOUT_SECONDS};
+use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use sp_core::Pair;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32};
 use tokio::time::timeout;
@@ -61,7 +61,7 @@ pub async fn do_signing(
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
-    let mut tss_accounts: Vec<AccountId32> = user_signature_request
+    let tss_accounts: Vec<AccountId32> = user_signature_request
         .validators_info
         .iter()
         .map(|validator_info| validator_info.tss_account.clone())

@@ -20,7 +20,6 @@ mod listener;
 mod protocol_message;
 pub mod protocol_transport;
 pub mod sign_and_encrypt;
-pub mod user;
 
 pub use listener::Listener;
 

@@ -42,7 +42,7 @@ use crate::{
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::{DETERMINISTIC_KEY_SHARE};
+use entropy_shared::DETERMINISTIC_KEY_SHARE;
 use rand_core::OsRng;
 use subxt::{
     backend::legacy::LegacyRpcMethods,

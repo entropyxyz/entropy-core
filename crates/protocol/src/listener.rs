@@ -60,7 +60,7 @@ impl Listener {
                 validators.insert(validator.tss_account.0, validator.x25519_public_key);
             }
         }
-        
+
         {
             (rx_ready, rx_to_others, Self { tx, tx_to_others, tx_ready, validators })
         }
