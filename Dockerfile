@@ -1,7 +1,7 @@
 # Which Cargo package to build. This is also the binary name.
 ARG PACKAGE=entropy
 # Version of Rust to build with.
-ARG RUST_STABLE_VERSION=1.73.0
+ARG RUST_STABLE_VERSION=1.78.0
 # Version of upstream Debian to build with.
 ARG DEBIAN_CODENAME=bullseye
 # Version of Ubuntu to deploy with.
@@ -84,6 +84,7 @@ RUN --mount=type=ssh \
         export RUST_PLATFORM=aarch64; \
         export BINUTILS_PATH=/usr/${RUST_PLATFORM}-linux-gnu/bin; \
     fi; $HOME/.cargo/bin/rustup target add "${RUST_PLATFORM}-unknown-linux-gnu" \
+    && $HOME/.cargo/bin/rustup component add --target wasm32-unknown-unknown rust-src \
     && if [ "linux/arm64" = "${TARGETPLATFORM}" ]; then \
         export PKG_CONFIG_SYSROOT_DIR="/usr/aarch64-linux-gnu"; \
         export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/aarch64-linux-gnu/include/"; \

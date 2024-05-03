@@ -147,11 +147,9 @@ pub fn get_kv_store(
 }
 
 // private handler function to process commands as per the "actor" pattern (see above)
-async fn kv_cmd_handler<V: 'static>(
-    mut rx: mpsc::UnboundedReceiver<Command<V>>,
-    kv: encrypted_sled::Db,
-) where
-    V: Debug + Serialize + DeserializeOwned,
+async fn kv_cmd_handler<V>(mut rx: mpsc::UnboundedReceiver<Command<V>>, kv: encrypted_sled::Db)
+where
+    V: Debug + Serialize + DeserializeOwned + 'static,
 {
     while let Some(cmd) = rx.recv().await {
         match cmd {
