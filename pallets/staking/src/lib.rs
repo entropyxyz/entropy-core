@@ -248,7 +248,7 @@ pub mod pallet {
 
             ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
-                    server_info.endpoint = endpoint.clone();
+                    server_info.endpoint.clone_from(&endpoint);
                     Ok(())
                 } else {
                     Err(Error::<T>::NoBond)
