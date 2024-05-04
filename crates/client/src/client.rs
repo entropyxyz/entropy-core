@@ -30,7 +30,7 @@ use crate::{
         },
         EntropyConfig,
     },
-    substrate::{query_chain, submit_transaction},
+    substrate::{query_chain, submit_transaction_with_pair},
     user::{get_current_subgroup_signers, UserSignatureRequest},
     Hasher,
 };
@@ -41,13 +41,12 @@ use entropy_protocol::{
     RecoverableSignature, ValidatorInfo,
 };
 use entropy_shared::HashingAlgorithm;
-use futures::future;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use futures::{future, stream::StreamExt};
+use sp_core::{sr25519, Pair};
 use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
-    tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static, H256},
     Config, OnlineClient,
 };
@@ -124,8 +123,9 @@ pub async fn register(
         _ => None,
     };
 
-    let account_id32: AccountId32 = signature_request_keypair.public().into();
-    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+    // let account_id32: AccountId32 = signature_request_keypair.public().into();
+    let account_id: <EntropyConfig as Config>::AccountId =
+        SubxtAccountId32(signature_request_keypair.public().0);
 
     for _ in 0..50 {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
@@ -176,7 +176,7 @@ pub async fn sign(
         message: hex::encode(message),
         auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
         validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
+        timestamp: get_current_time(),
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),
     };
@@ -229,10 +229,11 @@ pub async fn sign(
 
     // Get the first result
     if let Some(res) = results.into_iter().next() {
-        let mut output = res?;
+        let output = res?;
         ensure!(output.status() == 200, "Signing failed: {}", output.text().await?);
 
-        let chunk = output.chunk().await?.ok_or(anyhow!("No response"))?;
+        let mut bytes_stream = output.bytes_stream();
+        let chunk = bytes_stream.next().await.ok_or(anyhow!("No response"))??;
         let signing_result: Result<(String, sr25519::Signature), String> =
             serde_json::from_slice(&chunk)?;
         let (signature_base64, signature_of_signature) =
@@ -251,12 +252,14 @@ pub async fn sign(
         );
 
         let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
-        let signature = k256Signature::from_slice(&decoded_sig)?;
+        let signature = k256Signature::from_slice(&decoded_sig)
+            .map_err(|_| anyhow!("Cannot parse signature"))?;
         let recovery_id =
             RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
 
         let verifying_key_of_signature =
-            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
+            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)
+                .map_err(|e| anyhow!(e.to_string()))?;
         tracing::debug!("Verifying Key {:?}", verifying_key_of_signature);
 
         return Ok(RecoverableSignature { signature, recovery_id });
@@ -287,9 +290,8 @@ pub async fn store_program(
         auxiliary_data_interface,
         oracle_data_pointer,
     );
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
-
-    let in_block = submit_transaction(api, rpc, &deployer, &update_program_tx, None).await?;
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &deployer_pair, &update_program_tx, None).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
     Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
 }
@@ -305,8 +307,8 @@ pub async fn update_programs(
     let update_pointer_tx = entropy::tx()
         .registry()
         .change_program_instance(BoundedVec(verifying_key.to_vec()), program_instance);
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
-    submit_transaction(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
+    submit_transaction_with_pair(entropy_api, rpc, &deployer_pair, &update_pointer_tx, None)
+        .await?;
     Ok(())
 }
 /// Get info on all registered accounts
@@ -354,13 +356,11 @@ pub async fn put_register_request_on_chain(
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> anyhow::Result<()> {
-    let signature_request_pair_signer =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
-
     let registering_tx =
         entropy::tx().registry().register(deployer, Static(key_visibility), program_instance);
 
-    submit_transaction(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
+    submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
+        .await?;
     Ok(())
 }
 
@@ -436,4 +436,14 @@ async fn select_validator_from_subgroup(
         }
     };
     Ok(address.clone())
+}
+
+#[cfg(feature = "full-client-wasm")]
+fn get_current_time() -> SystemTime {
+    use std::time::{Duration, UNIX_EPOCH};
+    UNIX_EPOCH + Duration::from_secs(js_sys::Date::now() as u64)
+}
+#[cfg(not(feature = "full-client-wasm"))]
+fn get_current_time() -> SystemTime {
+    SystemTime::now()
 }
