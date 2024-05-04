@@ -117,7 +117,7 @@ RUN addgroup --system entropy \
 # Lastly, we copy our own files into the final container image stage.
 COPY --from=build --chown=entropy:entropy --chmod=554 /usr/local/bin/${PACKAGE} /usr/local/bin/${PACKAGE}
 COPY --chown=entropy:entropy --chmod=554 bin/entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY --chown=entropy:entropy --chmod=444 data/ /srv/entropy/data
+COPY --chown=entropy:entropy --chmod=554 data/ /srv/entropy/data
 
 # Don't run as the `root` user within the container.
 USER entropy
