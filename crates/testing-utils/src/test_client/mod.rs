@@ -18,7 +18,7 @@ pub use crate::chain_api::{get_api, get_rpc};
 use base64::prelude::{Engine, BASE64_STANDARD};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
-pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+pub use entropy_shared::KeyVisibility;
 pub use synedrion::KeyShare;
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 

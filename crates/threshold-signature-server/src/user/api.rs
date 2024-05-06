@@ -35,9 +35,7 @@ use entropy_kvdb::kv_manager::{
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
-use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
-};
+use entropy_shared::{types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},

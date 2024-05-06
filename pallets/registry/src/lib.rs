@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -82,8 +82,6 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        /// The amount if signing parties that exist onchain
-        type SigningPartySize: Get<usize>;
         /// Max amount of programs associated for one account
         type MaxProgramHashes: Get<u32>;
         /// Current Version Number of keyshares
@@ -378,12 +376,13 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
+        // TODO
         #[pallet::call_index(3)]
         #[pallet::weight({
             let weight =
-                <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
-                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32))
-                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(SIGNING_PARTY_SIZE as u32));
+                <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
+                .max(<T as Config>::WeightInfo::confirm_register_registered(pallet_session::Pallet::<T>::validators().len() as u32))
+                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(pallet_session::Pallet::<T>::validators().len() as u32));
             (weight, Pays::No)
         })]
         pub fn confirm_register(
@@ -418,8 +417,8 @@ pub mod pallet {
 
             let registering_info_verifying_key =
                 registering_info.verifying_key.clone().ok_or(Error::<T>::NoVerifyingKey)?;
-
-            if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
+            // TODO
+            if registering_info.confirmations.len() == validators.len() - 1 {
                 // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
