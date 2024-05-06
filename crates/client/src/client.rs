@@ -291,7 +291,7 @@ pub async fn store_program(
         oracle_data_pointer,
     );
     let in_block =
-        submit_transaction_with_pair(api, rpc, &deployer_pair, &update_program_tx, None).await?;
+        submit_transaction_with_pair(api, rpc, deployer_pair, &update_program_tx, None).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
     Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
 }
@@ -307,8 +307,7 @@ pub async fn update_programs(
     let update_pointer_tx = entropy::tx()
         .registry()
         .change_program_instance(BoundedVec(verifying_key.to_vec()), program_instance);
-    submit_transaction_with_pair(entropy_api, rpc, &deployer_pair, &update_pointer_tx, None)
-        .await?;
+    submit_transaction_with_pair(entropy_api, rpc, deployer_pair, &update_pointer_tx, None).await?;
     Ok(())
 }
 /// Get info on all registered accounts
