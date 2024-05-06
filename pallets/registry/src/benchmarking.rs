@@ -223,9 +223,8 @@ benchmarks! {
     let invalid_verifying_key = BoundedVec::try_from(vec![2; VERIFICATION_KEY_LENGTH as usize]).unwrap();
     // add validators and a registering user with different verifying key
     let validators = add_non_syncing_validators::<T>(c, n);
-    let mut confirmations: Vec<T::AccountId> = vec![];
     <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
-    confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
+    let confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
 
         <Validators<T>>::set(validators);
 
@@ -264,9 +263,8 @@ confirm_register_registered {
     let random_account = account::<T::AccountId>("ts_account", 10, SEED);
     // add validators, a registering user and one less than all confirmations
     let validators = add_non_syncing_validators::<T>(c, n);
-    let mut confirmations: Vec<T::AccountId> = vec![];
     <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
-      confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
+    let confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
 
 
     <Validators<T>>::set(validators);

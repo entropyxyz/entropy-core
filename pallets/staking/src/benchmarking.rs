@@ -31,9 +31,6 @@ use crate::Pallet as Staking;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
-const SEED_2: u32 = 1;
-
-type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
