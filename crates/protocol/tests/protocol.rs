@@ -24,10 +24,10 @@ use tokio::{net::TcpListener, sync::oneshot};
 use x25519_dalek::StaticSecret;
 
 mod helpers;
-use helpers::server;
+use helpers::{server, ProtocolOutput};
 
 #[test]
-fn signing_protocol_with_time_logged() {
+fn sign_protocol_with_time_logged() {
     let cpus = num_cpus::get();
 
     tokio::runtime::Builder::new_multi_thread()
@@ -40,16 +40,89 @@ fn signing_protocol_with_time_logged() {
         })
 }
 
+#[test]
+fn refresh_protocol_with_time_logged() {
+    let cpus = num_cpus::get();
+
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(cpus)
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            test_refresh_with_parties(cpus).await;
+        })
+}
+
+#[test]
+fn dkg_protocol_with_time_logged() {
+    let cpus = num_cpus::get();
+
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(cpus)
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            test_dkg_with_parties(cpus).await;
+        })
+}
+
 async fn test_sign_with_parties(num_parties: usize) {
     let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
     let verifying_key = keyshares[0].verifying_key();
+
     let message_hash = [0u8; 32];
     let session_id = SessionId::Sign(SigningSessionInfo {
         signature_verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
         message_hash,
         request_author: AccountId32([0u8; 32]),
     });
+    let output = test_protocol_with_parties(num_parties, Some(keyshares), session_id).await;
+    if let ProtocolOutput::Sign(recoverable_signature) = output {
+        // Check signature
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_hash,
+            &recoverable_signature.signature,
+            recoverable_signature.recovery_id,
+        )
+        .unwrap();
+        assert_eq!(verifying_key, recovery_key_from_sig);
+    } else {
+        panic!("Unexpected protocol output");
+    }
+}
 
+async fn test_refresh_with_parties(num_parties: usize) {
+    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
+    let verifying_key = keyshares[0].verifying_key();
+
+    let session_id = SessionId::ProactiveRefresh {
+        verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        block_number: 0,
+    };
+    let output = test_protocol_with_parties(num_parties, Some(keyshares), session_id).await;
+    if let ProtocolOutput::ProactiveRefresh(keyshare) = output {
+        assert!(keyshare.verifying_key() == verifying_key);
+    } else {
+        panic!("Unexpected protocol output");
+    }
+}
+
+async fn test_dkg_with_parties(num_parties: usize) {
+    let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
+    let output = test_protocol_with_parties(num_parties, None, session_id).await;
+    if let ProtocolOutput::Dkg(_keyshare) = output {
+    } else {
+        panic!("Unexpected protocol output");
+    }
+}
+
+async fn test_protocol_with_parties(
+    num_parties: usize,
+    keyshares: Option<Box<[KeyShare<KeyParams>]>>,
+    session_id: SessionId,
+) -> ProtocolOutput {
     // Prepare information about each node
     let mut validator_secrets = Vec::new();
     let mut validators_info = Vec::new();
@@ -65,7 +138,7 @@ async fn test_sign_with_parties(num_parties: usize) {
         let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
 
         validator_secrets.push(ValidatorSecretInfo {
-            keyshare: keyshares[i].clone(),
+            keyshare: keyshares.as_ref().map(|k| k[i].clone()),
             pair,
             x25519_secret_key,
             socket,
@@ -104,22 +177,14 @@ async fn test_sign_with_parties(num_parties: usize) {
         });
     }
     let (result, _, _) = future::select_all(results_rx).await;
-    println!("Got first signing result with {} parties in {:?}", num_parties, now.elapsed());
+    println!("Got first protocol result with {} parties in {:?}", num_parties, now.elapsed());
 
-    // Check signature
-    let recoverable_signature = result.unwrap().unwrap();
-    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-        &message_hash,
-        &recoverable_signature.signature,
-        recoverable_signature.recovery_id,
-    )
-    .unwrap();
-    assert_eq!(verifying_key, recovery_key_from_sig);
+    result.unwrap().unwrap()
 }
 
 /// Details of an individual party
 struct ValidatorSecretInfo {
-    keyshare: KeyShare<KeyParams>,
+    keyshare: Option<KeyShare<KeyParams>>,
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     socket: TcpListener,
