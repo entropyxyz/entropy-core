@@ -20,7 +20,7 @@ pub mod user;
 pub mod util;
 pub use util::Hasher;
 
-// #[cfg(feature = "full-client")]
+#[cfg(feature = "full-client")]
 pub mod client;
-// #[cfg(feature = "full-client")]
+#[cfg(feature = "full-client")]
 pub use client::*;
