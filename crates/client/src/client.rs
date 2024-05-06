@@ -123,22 +123,22 @@ pub async fn register(
         _ => None,
     };
 
-    // let account_id32: AccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId =
         SubxtAccountId32(signature_request_keypair.public().0);
 
     for _ in 0..50 {
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let block_hash = rpc.chain_get_block_hash(None).await?;
+        let events = EventsClient::new(api.clone())
+            .at(block_hash.ok_or(anyhow!("Cannot get block hash"))?)
+            .await?;
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
         for event in registered_event.flatten() {
             if event.0 == account_id {
                 let registered_query = entropy::storage().registry().registered(&event.1);
-                let registered_status =
-                    query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-                if registered_status.is_some() {
+                let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
+                if let Some(status) = registered_status {
                     // check if the event belongs to this user
-                    return Ok((registered_status.unwrap(), keyshare_option));
+                    return Ok((status, keyshare_option));
                 }
             }
         }
