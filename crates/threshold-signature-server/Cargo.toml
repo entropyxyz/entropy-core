@@ -76,7 +76,6 @@ hex-literal          ="0.4.1"
 project-root         ="0.2.2"
 sp-keyring           ="34.0.0"
 more-asserts         ="0.3.1"
-template-barebones   ={ git="https://github.com/entropyxyz/programs.git", tag="v0.7.0" }
 lazy_static          ="1.4.0"
 entropy-protocol     ={ version="0.0.12", path="../protocol", features=["unsafe"] }
 blake3               ="1.5.1"

@@ -2480,17 +2480,6 @@ dependencies = [
 
 [[package]]
 name = "entropy-programs-core"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
-dependencies = [
- "getrandom 0.2.14",
- "serde",
- "wit-bindgen",
- "witgen",
-]
-
-[[package]]
-name = "entropy-programs-core"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c5b5d04ed1473cf2ddf65364adfa473f4f4127132525342e85ca15adf97f2cb9"
@@ -2507,7 +2496,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a50c0e3e7224af04d8bebc6994f7428796de5f88861c89291644f2a85a44d3c"
 dependencies = [
- "entropy-programs-core 0.10.0",
+ "entropy-programs-core",
  "thiserror",
  "wasmtime 12.0.2",
 ]
@@ -2743,7 +2732,6 @@ dependencies = [
  "strum 0.26.2",
  "subxt",
  "synedrion",
- "template-barebones",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -13954,14 +13942,6 @@ dependencies = [
  "fastrand",
  "rustix 0.38.32",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "template-barebones"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/programs.git?tag=v0.7.0#eaa9fbc560bbbdfbadf712fff1bf68acce26c128"
-dependencies = [
- "entropy-programs-core 0.1.0",
 ]
 
 [[package]]
