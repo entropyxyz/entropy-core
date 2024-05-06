@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Integration tests which log the time taken to run the protocols with the number of parties set
+//! to the number of cpus available. Note that these should be run in release mode to get a realistic
+//! idea of how long things take in production.
+
 use entropy_protocol::{KeyParams, SessionId, SigningSessionInfo, ValidatorInfo};
 use futures::future;
 use rand_core::OsRng;
@@ -20,7 +24,7 @@ use sp_core::{sr25519, Pair};
 use std::time::Instant;
 use subxt::utils::AccountId32;
 use synedrion::{ecdsa::VerifyingKey, KeyShare};
-use tokio::{net::TcpListener, sync::oneshot};
+use tokio::{net::TcpListener, runtime::Runtime, sync::oneshot};
 use x25519_dalek::StaticSecret;
 
 mod helpers;
@@ -29,43 +33,25 @@ use helpers::{server, ProtocolOutput};
 #[test]
 fn sign_protocol_with_time_logged() {
     let cpus = num_cpus::get();
-
-    tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(cpus)
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            test_sign_with_parties(cpus).await;
-        })
+    get_tokio_runtime(cpus).block_on(async {
+        test_sign_with_parties(cpus).await;
+    })
 }
 
 #[test]
 fn refresh_protocol_with_time_logged() {
     let cpus = num_cpus::get();
-
-    tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(cpus)
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            test_refresh_with_parties(cpus).await;
-        })
+    get_tokio_runtime(cpus).block_on(async {
+        test_refresh_with_parties(cpus).await;
+    })
 }
 
 #[test]
 fn dkg_protocol_with_time_logged() {
     let cpus = num_cpus::get();
-
-    tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(cpus)
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            test_dkg_with_parties(cpus).await;
-        })
+    get_tokio_runtime(cpus).block_on(async {
+        test_dkg_with_parties(cpus).await;
+    })
 }
 
 async fn test_sign_with_parties(num_parties: usize) {
@@ -118,6 +104,7 @@ async fn test_dkg_with_parties(num_parties: usize) {
     }
 }
 
+/// Generic test for any of the 3 protocols
 async fn test_protocol_with_parties(
     num_parties: usize,
     keyshares: Option<Box<[KeyShare<KeyParams>]>>,
@@ -188,4 +175,13 @@ struct ValidatorSecretInfo {
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     socket: TcpListener,
+}
+
+/// Helper to get the async runtime used for these tests
+fn get_tokio_runtime(num_cpus: usize) -> Runtime {
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(num_cpus)
+        .enable_all()
+        .build()
+        .unwrap()
 }
