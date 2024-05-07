@@ -59,8 +59,7 @@ pub async fn server(
     let account_id = AccountId32(pair.public().0);
 
     // Setup a single listener for tracking connnections to the other parties
-    let (rx_ready, rx_from_others, listener) =
-        Listener::new(validators_info.clone(), &account_id, None);
+    let (rx_ready, rx_from_others, listener) = Listener::new(validators_info.clone(), &account_id);
 
     let state = ServerState {
         listener: Arc::new(Mutex::new(vec![listener])),

@@ -35,7 +35,7 @@ use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
 };
-use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
 use subxt::{
@@ -55,10 +55,8 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
-        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{get_registered_details, query_chain},
-        user::check_in_registration_group,
-        validator::get_signer_and_x25519_secret,
+        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH, substrate::query_chain,
+        user::check_in_registration_group, validator::get_signer_and_x25519_secret,
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
@@ -95,46 +93,31 @@ pub async fn proactive_refresh(
 
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
-        let key_visibility = get_registered_details(&api, &rpc, encoded_key.clone())
-            .await
-            .map_err(|e| ProtocolErr::UserError(e.to_string()))?
-            .key_visibility
-            .0;
+        // key should always exist, figure out how to handle
+        let exists_result = app_state.kv_store.kv().exists(&key).await?;
+        if exists_result {
+            let old_key_share = app_state.kv_store.kv().get(&key).await?;
+            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
+                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
-        // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
-        if key_visibility == KeyVisibility::Public {
-            // key should always exist, figure out how to handle
-            let exists_result = app_state.kv_store.kv().exists(&key).await?;
-            if exists_result {
-                let old_key_share = app_state.kv_store.kv().get(&key).await?;
-                let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
-                    .ok_or_else(|| {
-                        ProtocolErr::Deserialization("Failed to load KeyShare".into())
-                    })?;
+            let new_key_share = do_proactive_refresh(
+                &ocw_data.validators_info,
+                &signer,
+                &x25519_secret_key,
+                &app_state.listener_state,
+                encoded_key,
+                deserialized_old_key,
+                ocw_data.block_number,
+            )
+            .await?;
+            let serialized_key_share = key_serialize(&new_key_share)
+                .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
+            let new_key_info =
+                UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
 
-                let new_key_share = do_proactive_refresh(
-                    &ocw_data.validators_info,
-                    &signer,
-                    &x25519_secret_key,
-                    &app_state.listener_state,
-                    encoded_key,
-                    deserialized_old_key,
-                    ocw_data.block_number,
-                )
-                .await?;
-                let serialized_key_share = key_serialize(&new_key_share)
-                    .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-                let new_key_info = UserRegistrationInfo {
-                    key,
-                    value: serialized_key_share,
-                    proactive_refresh: true,
-                };
-
-                app_state.kv_store.kv().delete(&new_key_info.key).await?;
-                let reservation =
-                    app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
-                app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-            }
+            app_state.kv_store.kv().delete(&new_key_info.key).await?;
+            let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
+            app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
         }
     }
     // TODO: Tell chain refresh is done?
@@ -196,7 +179,7 @@ pub async fn do_proactive_refresh(
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_id, None);
+        Listener::new(converted_validator_info.clone(), &account_id);
     state
         .listeners
         .lock()

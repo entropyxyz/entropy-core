@@ -14,15 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use entropy_kvdb::clean_tests;
-use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY};
+use entropy_shared::DAVE_VERIFYING_KEY;
 use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, EVE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED,
-        TEST_PROGRAM_WASM_BYTECODE,
+        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::test_context_stationary,
     test_client,
@@ -82,7 +81,6 @@ async fn integration_test_sign_public() {
         request_author.pair(),
         DAVE_VERIFYING_KEY,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
     .await
@@ -95,65 +93,4 @@ async fn integration_test_sign_public() {
     )
     .unwrap();
     assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
-}
-
-#[tokio::test]
-#[serial]
-async fn integration_test_sign_private() {
-    clean_tests();
-    let pre_registered_user = AccountKeyring::Eve;
-    let deployer = AccountKeyring::Dave;
-
-    let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, true).await;
-    let substrate_context = test_context_stationary().await;
-    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let keyshare = keyshare_option.unwrap();
-    let verifying_key: [u8; 33] =
-        keyshare.clone().verifying_key().to_encoded_point(true).as_bytes().try_into().unwrap();
-
-    let program_pointer = test_client::store_program(
-        &api,
-        &rpc,
-        &deployer.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    test_client::update_programs(
-        &api,
-        &rpc,
-        verifying_key.clone(),
-        &pre_registered_user.pair(),
-        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
-
-    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-
-    let recoverable_signature = test_client::sign(
-        &api,
-        &rpc,
-        pre_registered_user.pair(),
-        verifying_key,
-        PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        Some((keyshare.clone(), EVE_X25519_SECRET_KEY.into())),
-        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
-    )
-    .await
-    .unwrap();
-
-    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-        &message_should_succeed_hash,
-        &recoverable_signature.signature,
-        recoverable_signature.recovery_id,
-    )
-    .unwrap();
-    assert_eq!(keyshare.verifying_key(), recovery_key_from_sig);
 }

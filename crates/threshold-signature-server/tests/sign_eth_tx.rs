@@ -94,7 +94,6 @@ async fn integration_test_sign_eth_tx() {
         pre_registered_user.pair(),
         FERDIE_VERIFYING_KEY,
         message,
-        None,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
     .await

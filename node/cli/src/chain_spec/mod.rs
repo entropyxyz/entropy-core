@@ -106,13 +106,6 @@ pub mod tss_x25519_public_key {
         131, 8, 162, 77, 237, 245, 226, 179, 250, 79, 121, 250, 174, 181, 227, 122, 205, 181, 188,
         4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
     ];
-
-    /// Eve is not a TSS node but a pre-registered user. Her corresponding secret key is in
-    /// `entropy_testing_utils::constants`
-    pub const EVE: [u8; 32] = [
-        142, 113, 91, 59, 177, 104, 208, 23, 219, 170, 47, 145, 200, 139, 188, 28, 14, 199, 116,
-        86, 193, 144, 10, 18, 74, 157, 138, 202, 115, 99, 229, 55,
-    ];
 }
 
 fn entropy_properties() -> Properties {

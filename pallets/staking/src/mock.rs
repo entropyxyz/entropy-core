@@ -191,16 +191,16 @@ pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
     type Key = UintAuthorityId;
 
-    fn on_genesis_session<'a, I: 'a>(_: I)
+    fn on_genesis_session<'a, I>(_: I)
     where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        I: Iterator<Item = (&'a AccountId, Self::Key)> + 'a,
         AccountId: 'a,
     {
     }
 
-    fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
+    fn on_new_session<'a, I>(_changed: bool, _validators: I, _queued_validators: I)
     where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        I: Iterator<Item = (&'a AccountId, Self::Key)> + 'a,
         AccountId: 'a,
     {
         // let authorities = validators.map(|(_account, k)| (k, 1)).collect::<Vec<_>>();

@@ -21,7 +21,7 @@ use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
     KeyParams, Listener, SessionId, ValidatorInfo,
 };
-use entropy_shared::{HashingAlgorithm, KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{HashingAlgorithm, SETUP_TIMEOUT_SECONDS};
 
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
@@ -45,7 +45,6 @@ pub async fn do_dkg(
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     sig_request_account: AccountId32,
-    key_visibility: KeyVisibility,
     block_number: u32,
 ) -> Result<KeyShare<KeyParams>, UserErr> {
     let session_id = SessionId::Dkg { user: sig_request_account.clone(), block_number };
@@ -68,19 +67,9 @@ pub async fn do_dkg(
         tss_accounts.push(tss_account);
     }
 
-    // If key key visibility is private, include them in the list of connecting parties and pass
-    // their ID to the listener
-    let user_details_option =
-        if let KeyVisibility::Private(users_x25519_public_key) = key_visibility {
-            tss_accounts.push(sig_request_account.clone());
-            Some((sig_request_account, users_x25519_public_key))
-        } else {
-            None
-        };
-
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_id, user_details_option);
+        Listener::new(converted_validator_info.clone(), &account_id);
     state
         .listeners
         .lock()
