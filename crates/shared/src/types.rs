@@ -16,7 +16,9 @@
 use super::constants::VERIFICATION_KEY_LENGTH;
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
+#[cfg(not(feature = "wasm"))]
 use codec::{Decode, Encode};
+#[cfg(not(feature = "wasm"))]
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
