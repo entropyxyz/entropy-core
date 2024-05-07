@@ -80,10 +80,6 @@ To register an entropy account you need three things:
   [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as
   instructions on how to write and build your own programs.
 
-You also need to decide which ['access mode' or 'key visibility'](https://entropy-docs.vercel.app/KeyVisibility)
-you want to register with: private, permissioned or public. If you are not sure, 'permissioned' is the
-simplest 'vanilla' access mode.
-
 For example, to register with `//Alice` as the signature request account and `//Bob` as the program
 modification account, in permissioned access mode, using the `example_noop` program:
 

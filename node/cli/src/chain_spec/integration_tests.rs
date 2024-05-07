@@ -220,20 +220,14 @@ pub fn integration_tests_genesis_config(
             registered_accounts: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    0,
-                    None,
                     BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    2,
-                    None,
                     BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
             ],

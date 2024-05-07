@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{VERIFICATION_KEY_LENGTH};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -85,7 +85,7 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, programs_info)
+  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, programs_info)
   verify {
     assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
     assert!(Registering::<T>::contains_key(sig_req_account));
@@ -111,7 +111,6 @@ benchmarks! {
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default()),
         version_number: T::KeyVersionNumber::get()
     });
@@ -152,7 +151,6 @@ benchmarks! {
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
             programs_data: programs_info,
-            key_visibility: KeyVisibility::Public,
             version_number: T::KeyVersionNumber::get()
         },
     );
@@ -191,7 +189,6 @@ benchmarks! {
         program_modification_account: sig_req_account.clone(),
         confirmations: vec![],
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: None,
         version_number: T::KeyVersionNumber::get()
     });
@@ -232,7 +229,6 @@ benchmarks! {
         program_modification_account: sig_req_account.clone(),
         confirmations,
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: Some(BoundedVec::default()),
         version_number: T::KeyVersionNumber::get()
     });
@@ -273,7 +269,6 @@ confirm_register_registered {
         program_modification_account: sig_req_account.clone(),
         confirmations,
         programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
         verifying_key: None,
         version_number: T::KeyVersionNumber::get()
     });

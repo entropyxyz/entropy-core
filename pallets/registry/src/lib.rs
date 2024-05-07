@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -105,7 +105,6 @@ pub mod pallet {
         pub program_modification_account: T::AccountId,
         pub confirmations: Vec<T::AccountId>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
-        pub key_visibility: KeyVisibility,
         pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
     }
@@ -113,7 +112,6 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteredInfo<T: Config> {
-        pub key_visibility: KeyVisibility,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
@@ -123,24 +121,17 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>, VerifyingKey)>,
+        pub registered_accounts: Vec<(T::AccountId, VerifyingKey)>,
     }
 
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
-                assert!(account_info.3.len() as u32 == VERIFICATION_KEY_LENGTH);
-                let key_visibility = match account_info.1 {
-                    1 => KeyVisibility::Private(
-                        account_info.2.expect("Private key visibility needs x25519 public key"),
-                    ),
-                    _ => KeyVisibility::Public,
-                };
+                assert!(account_info.1.len() as u32 == VERIFICATION_KEY_LENGTH);
                 Registered::<T>::insert(
-                    account_info.3.clone(),
+                    account_info.1.clone(),
                     RegisteredInfo {
-                        key_visibility,
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
                         version_number: T::KeyVersionNumber::get(),
@@ -238,7 +229,6 @@ pub mod pallet {
         pub fn register(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
-            key_visibility: KeyVisibility,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
@@ -276,7 +266,6 @@ pub mod pallet {
                     program_modification_account,
                     confirmations: vec![],
                     programs_data: programs_data.clone(),
-                    key_visibility,
                     verifying_key: None,
                     version_number: T::KeyVersionNumber::get(),
                 },
@@ -442,7 +431,6 @@ pub mod pallet {
                 Registered::<T>::insert(
                     &verifying_key,
                     RegisteredInfo {
-                        key_visibility: registering_info.key_visibility,
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
                         version_number: registering_info.version_number,

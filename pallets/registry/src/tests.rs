@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
+use entropy_shared::VERIFICATION_KEY_LENGTH;
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -75,7 +75,6 @@ fn it_registers_a_user() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
         assert_eq!(Registry::dkg(0), vec![1u64.encode()]);
@@ -126,7 +125,6 @@ fn it_confirms_registers_a_user() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Private([0; 32]),
             programs_info.clone(),
         ));
 
@@ -153,7 +151,6 @@ fn it_confirms_registers_a_user() {
         let registering_info = RegisteringDetails::<Test> {
             confirmations: vec![1],
             programs_data: programs_info.clone(),
-            key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
             version_number: 1,
@@ -171,7 +168,6 @@ fn it_confirms_registers_a_user() {
         assert_eq!(
             Registry::registered(expected_verifying_key.clone()).unwrap(),
             RegisteredInfo {
-                key_visibility: KeyVisibility::Private([0; 32]),
                 programs_data: programs_info.clone(),
                 program_modification_account: 2,
                 version_number: 1,
@@ -231,7 +227,6 @@ fn it_changes_a_program_pointer() {
         let expected_verifying_key = BoundedVec::default();
 
         let mut registered_info = RegisteredInfo {
-            key_visibility: KeyVisibility::Public,
             programs_data: programs_info,
             program_modification_account: 2,
             version_number: 1,
@@ -317,7 +312,6 @@ fn it_fails_on_non_matching_verifying_keys() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Private([0; 32]),
             programs_info,
         ));
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
@@ -365,16 +359,11 @@ fn it_doesnt_allow_double_registering() {
             },
         );
 
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2,
-            KeyVisibility::Public,
-            programs_info.clone(),
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
 
         // error if they try to submit another request, even with a different program key
         assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, programs_info),
+            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
             Error::<Test>::AlreadySubmitted
         );
     });
@@ -393,7 +382,7 @@ fn it_fails_no_program() {
         .unwrap();
 
         assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, programs_info),
+            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
             Error::<Test>::NoProgramSet
         );
     });
@@ -403,12 +392,7 @@ fn it_fails_no_program() {
 fn it_fails_empty_program_list() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Registry::register(
-                RuntimeOrigin::signed(1),
-                2,
-                KeyVisibility::Public,
-                BoundedVec::try_from(vec![]).unwrap(),
-            ),
+            Registry::register(RuntimeOrigin::signed(1), 2, BoundedVec::try_from(vec![]).unwrap(),),
             Error::<Test>::NoProgramSet
         );
     });
@@ -439,12 +423,7 @@ fn it_tests_prune_registration() {
 
         Balances::make_free_balance_be(&2, 100);
         // register a user
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2,
-            KeyVisibility::Public,
-            programs_info,
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info,));
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             2,
@@ -487,7 +466,6 @@ fn it_provides_free_txs_confirm_done() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
@@ -565,7 +543,6 @@ fn it_provides_free_txs_confirm_done_fails_3() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
 
@@ -614,7 +591,6 @@ fn it_provides_free_txs_confirm_done_fails_4() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
