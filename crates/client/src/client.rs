@@ -22,21 +22,23 @@ pub use synedrion::KeyShare;
 
 use crate::{
     chain_api::{
-        entropy,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::{
-            pallet_programs::pallet::ProgramInfo,
-            pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+        entropy::{
+            self,
+            runtime_types::{
+                bounded_collections::bounded_vec::BoundedVec,
+                pallet_programs::pallet::ProgramInfo,
+                pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+            },
         },
         EntropyConfig,
     },
-    substrate::{query_chain, submit_transaction_with_pair},
-    user::{get_current_subgroup_signers, UserSignatureRequest},
+    substrate::{query_chain, submit_transaction_with_pair, SubstrateError},
+    user::{get_current_subgroup_signers, SubgroupGetError, UserSignatureRequest},
     Hasher,
 };
-use anyhow::{anyhow, ensure};
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::{
+    errors::UserRunningProtocolErr,
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
@@ -51,6 +53,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use thiserror::Error;
 use x25519_dalek::StaticSecret;
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
@@ -77,7 +80,7 @@ pub async fn register(
     key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
     x25519_secret_key: Option<StaticSecret>,
-) -> anyhow::Result<(RegisteredInfo, Option<KeyShare<KeyParams>>)> {
+) -> Result<(RegisteredInfo, Option<KeyShare<KeyParams>>), ClientError> {
     // Send register transaction
     put_register_request_on_chain(
         api,
@@ -92,22 +95,16 @@ pub async fn register(
     // If registering with private key visibility, participate in the DKG protocol
     let keyshare_option = match key_visibility {
         KeyVisibility::Private(x25519_public_key) => {
-            let x25519_secret_key = x25519_secret_key
-                .ok_or(anyhow!("In private mode, an x25519 secret key must be given"))?;
+            let x25519_secret_key = x25519_secret_key.ok_or(ClientError::PrivateMode)?;
 
             let x25519_public_key_check =
                 x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
-            ensure!(
-                x25519_public_key_check == x25519_public_key,
-                "Given x25519 secret key does not match that from key visibility"
-            );
+            if x25519_public_key_check != x25519_public_key {
+                return Err(ClientError::PrivateMode);
+            }
 
-            let block_number = rpc
-                .chain_get_header(None)
-                .await?
-                .ok_or(anyhow!("Cannot get current block number"))?
-                .number
-                + 1;
+            let block_number =
+                rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number + 1;
 
             let validators_info = get_dkg_committee(api, rpc, block_number).await?;
             Some(
@@ -128,9 +125,8 @@ pub async fn register(
 
     for _ in 0..50 {
         let block_hash = rpc.chain_get_block_hash(None).await?;
-        let events = EventsClient::new(api.clone())
-            .at(block_hash.ok_or(anyhow!("Cannot get block hash"))?)
-            .await?;
+        let events =
+            EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
         for event in registered_event.flatten() {
             if event.0 == account_id {
@@ -144,7 +140,7 @@ pub async fn register(
         }
         std::thread::sleep(std::time::Duration::from_millis(1000));
     }
-    Err(anyhow!("Timed out waiting for register confirmation"))
+    Err(ClientError::RegistrationTimeout)
 }
 
 /// Request to sign a message
@@ -166,7 +162,7 @@ pub async fn sign(
     message: Vec<u8>,
     private: Option<(KeyShare<KeyParams>, StaticSecret)>,
     auxilary_data: Option<Vec<u8>>,
-) -> anyhow::Result<RecoverableSignature> {
+) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
@@ -205,7 +201,7 @@ pub async fn sign(
                 .body(message_json)
                 .send()
                 .await;
-            Ok::<_, anyhow::Error>(res)
+            Ok::<_, ClientError>(res)
         })
         .collect::<Vec<_>>();
 
@@ -230,41 +226,40 @@ pub async fn sign(
     // Get the first result
     if let Some(res) = results.into_iter().next() {
         let output = res?;
-        ensure!(output.status() == 200, "Signing failed: {}", output.text().await?);
+        if output.status() != 200 {
+            return Err(ClientError::SigningFailed(output.text().await?));
+        }
 
         let mut bytes_stream = output.bytes_stream();
-        let chunk = bytes_stream.next().await.ok_or(anyhow!("No response"))??;
+        let chunk = bytes_stream.next().await.ok_or(ClientError::NoResponse)??;
         let signing_result: Result<(String, sr25519::Signature), String> =
             serde_json::from_slice(&chunk)?;
         let (signature_base64, signature_of_signature) =
-            signing_result.map_err(|err| anyhow!(err))?;
+            signing_result.map_err(|err| ClientError::SigningFailed(err))?;
         tracing::debug!("Signature: {}", signature_base64);
         let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
         // Verify the response signature from the TSS client
-        ensure!(
-            sr25519::Pair::verify(
-                &signature_of_signature,
-                &decoded_sig,
-                &sr25519::Public(validators_info[0].tss_account.0),
-            ),
-            "Failed to verify response from TSS server"
-        );
+        if !sr25519::Pair::verify(
+            &signature_of_signature,
+            &decoded_sig,
+            &sr25519::Public(validators_info[0].tss_account.0),
+        ) {
+            return Err(ClientError::BadSignature);
+        }
 
-        let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
-        let signature = k256Signature::from_slice(&decoded_sig)
-            .map_err(|_| anyhow!("Cannot parse signature"))?;
+        let recovery_digit = decoded_sig.pop().ok_or(ClientError::NoRecoveryId)?;
+        let signature = k256Signature::from_slice(&decoded_sig)?;
         let recovery_id =
-            RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
+            RecoveryId::from_byte(recovery_digit).ok_or(ClientError::BadRecoveryId)?;
 
         let verifying_key_of_signature =
-            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)
-                .map_err(|e| anyhow!(e.to_string()))?;
+            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
         tracing::debug!("Verifying Key {:?}", verifying_key_of_signature);
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
-    Err(anyhow!("Failed to get responses from TSS servers"))
+    Err(ClientError::NoResponse)
 }
 
 /// Store a program on chain and return it's hash
@@ -283,7 +278,7 @@ pub async fn store_program(
     configuration_interface: Vec<u8>,
     auxiliary_data_interface: Vec<u8>,
     oracle_data_pointer: Vec<u8>,
-) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
+) -> Result<<EntropyConfig as Config>::Hash, ClientError> {
     let update_program_tx = entropy::tx().programs().set_program(
         program,
         configuration_interface,
@@ -293,7 +288,7 @@ pub async fn store_program(
     let in_block =
         submit_transaction_with_pair(api, rpc, deployer_pair, &update_program_tx, None).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
-    Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
+    Ok(result_event.ok_or(ClientError::CannotConfirmProgramCreated)?.program_hash)
 }
 
 /// Update the program pointers associated with a given entropy account
@@ -303,7 +298,7 @@ pub async fn update_programs(
     verifying_key: [u8; VERIFYING_KEY_LENGTH],
     deployer_pair: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
-) -> anyhow::Result<()> {
+) -> Result<(), ClientError> {
     let update_pointer_tx = entropy::tx()
         .registry()
         .change_program_instance(BoundedVec(verifying_key.to_vec()), program_instance);
@@ -314,9 +309,8 @@ pub async fn update_programs(
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>> {
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
     let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
@@ -332,9 +326,8 @@ pub async fn get_accounts(
 pub async fn get_programs(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>> {
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+) -> Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>, ClientError> {
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
 
     let storage_address = entropy::storage().programs().programs_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
@@ -354,7 +347,7 @@ pub async fn put_register_request_on_chain(
     deployer: SubxtAccountId32,
     key_visibility: KeyVisibility,
     program_instance: BoundedVec<ProgramInstance>,
-) -> anyhow::Result<()> {
+) -> Result<(), ClientError> {
     let registering_tx =
         entropy::tx().registry().register(deployer, Static(key_visibility), program_instance);
 
@@ -369,14 +362,14 @@ pub async fn check_verifying_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     verifying_key: VerifyingKey,
-) -> anyhow::Result<()> {
+) -> Result<(), ClientError> {
     let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
 
     // Get the verifying key associated with this account, if it exist return ok
     let registered_query =
         entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-    query_registered_status?.ok_or(anyhow!("User not registered"))?;
+    query_registered_status?.ok_or(ClientError::NotRegistered)?;
     Ok(())
 }
 
@@ -385,7 +378,7 @@ async fn get_dkg_committee(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     block_number: u32,
-) -> anyhow::Result<Vec<ValidatorInfo>> {
+) -> Result<Vec<ValidatorInfo>, ClientError> {
     let mut validators_info: Vec<ValidatorInfo> = vec![];
 
     for i in 0..SIGNING_PARTY_SIZE {
@@ -395,7 +388,7 @@ async fn get_dkg_committee(
             entropy::storage().staking_extension().threshold_servers(account_id);
         let server_info = query_chain(api, rpc, threshold_address_query, None)
             .await?
-            .ok_or(anyhow!("Stash Fetch Error"))?;
+            .ok_or(ClientError::StashFetch)?;
         let validator_info = ValidatorInfo {
             x25519_public_key: server_info.x25519_public_key,
             ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
@@ -413,21 +406,23 @@ async fn select_validator_from_subgroup(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signing_group: u8,
     block_number: u32,
-) -> anyhow::Result<SubxtAccountId32> {
+) -> Result<SubxtAccountId32, ClientError> {
     let subgroup_info_query = entropy::storage().staking_extension().signing_groups(signing_group);
     let mut subgroup_addresses = query_chain(api, rpc, subgroup_info_query, None)
         .await?
-        .ok_or(anyhow!("Subgroup Fetch Error"))?;
+        .ok_or(ClientError::SubgroupFetch)?;
 
     let address = loop {
-        ensure!(!subgroup_addresses.is_empty(), "No synced validators");
+        if subgroup_addresses.is_empty() {
+            return Err(ClientError::NoSyncedValidators);
+        }
         let selection: u32 = block_number % subgroup_addresses.len() as u32;
         let address = &subgroup_addresses[selection as usize];
         let is_validator_syned_query =
             entropy::storage().staking_extension().is_validator_synced(address);
         let is_synced = query_chain(api, rpc, is_validator_syned_query, None)
             .await?
-            .ok_or(anyhow!("Cannot query whether validator is synced"))?;
+            .ok_or(ClientError::CannotQuerySynced)?;
         if !is_synced {
             subgroup_addresses.remove(selection as usize);
         } else {
@@ -445,4 +440,60 @@ fn get_current_time() -> SystemTime {
 #[cfg(not(feature = "full-client-wasm"))]
 fn get_current_time() -> SystemTime {
     SystemTime::now()
+}
+
+#[derive(Debug, Error)]
+pub enum ClientError {
+    #[error("Substrate: {0}")]
+    Substrate(#[from] SubstrateError),
+    #[error("Error relating to private mode")]
+    PrivateMode,
+    #[error("Cannot get block number")]
+    BlockNumber,
+    #[error("Cannot get block hash")]
+    BlockHash,
+    #[error("Stash fetch")]
+    StashFetch,
+    #[error("UTF8: {0}")]
+    Utf8(#[from] std::str::Utf8Error),
+    #[error("User running protocol: {0}")]
+    UserRunningProtocol(#[from] UserRunningProtocolErr),
+    #[error("Subxt: {0}")]
+    Subxt(#[from] subxt::Error),
+    #[error("Timed out waiting for register confirmation")]
+    RegistrationTimeout,
+    #[error("Cannot get subgroup: {0}")]
+    SubgroupGet(#[from] SubgroupGetError),
+    #[error("JSON: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("Encryption error: {0}")]
+    Encryption(#[from] entropy_protocol::sign_and_encrypt::EncryptedSignedMessageErr),
+    #[error("Http client: {0}")]
+    HttpRequest(#[from] reqwest::Error),
+    #[error("Signing failed: {0}")]
+    SigningFailed(String),
+    #[error("Failed to get response from TSS Server")]
+    NoResponse,
+    #[error("Bad signature in response from TSS Server")]
+    BadSignature,
+    #[error("Base64 decode: {0}")]
+    Base64(#[from] base64::DecodeError),
+    #[error("ECDSA: {0}")]
+    Ecdsa(#[from] synedrion::ecdsa::Error),
+    #[error("Cannot get recovery ID from signature")]
+    NoRecoveryId,
+    #[error("Cannot parse recovery ID from signature")]
+    BadRecoveryId,
+    #[error("Cannot parse chain query response: {0}")]
+    TryFromSlice(#[from] std::array::TryFromSliceError),
+    #[error("User not registered")]
+    NotRegistered,
+    #[error("No synced validators")]
+    NoSyncedValidators,
+    #[error("Cannot confirm program was created")]
+    CannotConfirmProgramCreated,
+    #[error("Subgroup fetch error")]
+    SubgroupFetch,
+    #[error("Cannot query whether validator is synced")]
+    CannotQuerySynced,
 }
