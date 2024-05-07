@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{VERIFICATION_KEY_LENGTH};
+    use entropy_shared::VERIFICATION_KEY_LENGTH;
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
