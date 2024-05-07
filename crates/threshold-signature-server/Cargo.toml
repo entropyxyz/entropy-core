@@ -81,7 +81,7 @@ entropy-protocol     ={ version="0.0.12", path="../protocol", features=["unsafe"
 blake3               ="1.5.1"
 ethers-core          ="2.0.14"
 schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
-entropy-client       ={ path="../client", features=["full-client"] }
+entropy-client       ={ path="../client", features=["full-client-native"] }
 schemars             ={ version="0.8.17" }
 
 [build-dependencies]

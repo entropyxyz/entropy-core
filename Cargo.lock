@@ -2442,6 +2442,7 @@ dependencies = [
  "entropy-shared",
  "futures",
  "hex",
+ "js-sys",
  "num",
  "rand_core 0.6.4",
  "reqwest 0.12.4",
