@@ -71,7 +71,7 @@ pub fn integration_tests_genesis_config(
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
 ) -> serde_json::Value {
-    let mut endowed_accounts = endowed_accounts_dev();
+    let mut endowed_accounts = endowed_accounts_dev(false);
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
         if !endowed_accounts.contains(x) {

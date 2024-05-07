@@ -298,7 +298,7 @@ pub fn testnet_genesis_config(
         "Each validator node needs to have an accompanying threshold server."
     );
 
-    let mut endowed_accounts = endowed_accounts_dev();
+    let mut endowed_accounts = endowed_accounts_dev(true);
 
     // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
     // both a validator and root.

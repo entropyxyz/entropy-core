@@ -20,7 +20,7 @@ use project_root::get_project_root;
 use sp_core::{crypto::Ss58Codec, sr25519};
 use std::{fs::File, io::Read};
 
-pub fn endowed_accounts_dev() -> Vec<AccountId> {
+pub fn endowed_accounts_dev(is_prod: bool) -> Vec<AccountId> {
     // handle user submitted file for tokens
     let mut file = File::open(
         get_project_root()
@@ -32,28 +32,30 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
     file.read_to_string(&mut data).expect("Unable to read file");
     let externally_endowed_accounts: Vec<String> =
         serde_json::from_str(&data).expect("JSON parse error");
-
-    let mut inital_accounts = vec![
-        get_account_id_from_seed::<sr25519::Public>("Alice"),
-        get_account_id_from_seed::<sr25519::Public>("Bob"),
-        get_account_id_from_seed::<sr25519::Public>("Charlie"),
-        get_account_id_from_seed::<sr25519::Public>("Dave"),
-        get_account_id_from_seed::<sr25519::Public>("Eve"),
-        get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-        get_account_id_from_seed::<sr25519::Public>("One"),
-        get_account_id_from_seed::<sr25519::Public>("Two"),
-        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-        get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-        get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-        get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-        get_account_id_from_seed::<sr25519::Public>("One//stash"),
-        get_account_id_from_seed::<sr25519::Public>("Two//stash"),
-        crate::chain_spec::tss_account_id::ALICE.clone(),
-        crate::chain_spec::tss_account_id::BOB.clone(),
-        crate::chain_spec::tss_account_id::CHARLIE.clone(),
-    ];
+    let mut inital_accounts = vec![];
+    if !is_prod {
+        inital_accounts = vec![
+            get_account_id_from_seed::<sr25519::Public>("Alice"),
+            get_account_id_from_seed::<sr25519::Public>("Bob"),
+            get_account_id_from_seed::<sr25519::Public>("Charlie"),
+            get_account_id_from_seed::<sr25519::Public>("Dave"),
+            get_account_id_from_seed::<sr25519::Public>("Eve"),
+            get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+            get_account_id_from_seed::<sr25519::Public>("One"),
+            get_account_id_from_seed::<sr25519::Public>("Two"),
+            get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+            get_account_id_from_seed::<sr25519::Public>("One//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Two//stash"),
+            crate::chain_spec::tss_account_id::ALICE.clone(),
+            crate::chain_spec::tss_account_id::BOB.clone(),
+            crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        ];
+    }
 
     for address in externally_endowed_accounts {
         inital_accounts.push(
