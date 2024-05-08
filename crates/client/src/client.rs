@@ -235,7 +235,7 @@ pub async fn sign(
         let signing_result: Result<(String, sr25519::Signature), String> =
             serde_json::from_slice(&chunk)?;
         let (signature_base64, signature_of_signature) =
-            signing_result.map_err(|err| ClientError::SigningFailed(err))?;
+            signing_result.map_err(ClientError::SigningFailed)?;
         tracing::debug!("Signature: {}", signature_base64);
         let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
