@@ -52,6 +52,7 @@ pub async fn get_rpc(url: &str) -> Result<LegacyRpcMethods<EntropyConfig>, subxt
 }
 
 #[cfg(test)]
+#[serial_test::serial]
 #[tokio::test]
 async fn test_get_api_rpc() {
     let insecure_url = "ws://1234:9944";
