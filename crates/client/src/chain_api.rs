@@ -37,7 +37,8 @@ pub mod entropy {}
 /// Creates an api instance to talk to chain
 /// Chain endpoint set on launch
 pub async fn get_api(url: &str) -> Result<OnlineClient<EntropyConfig>, subxt::Error> {
-    let api = OnlineClient::<EntropyConfig>::from_url(url).await?;
+    // insecure url is fine since binaries are on the same machine
+    let api = OnlineClient::<EntropyConfig>::from_insecure_url(url).await?;
     Ok(api)
 }
 
