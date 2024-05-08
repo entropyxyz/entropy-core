@@ -2453,6 +2453,7 @@ dependencies = [
  "subxt",
  "synedrion",
  "thiserror",
+ "tokio",
  "tracing",
  "x25519-dalek 2.0.1",
 ]

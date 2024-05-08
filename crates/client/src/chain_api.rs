@@ -50,3 +50,46 @@ pub async fn get_rpc(url: &str) -> Result<LegacyRpcMethods<EntropyConfig>, subxt
     let rpc_methods = LegacyRpcMethods::<EntropyConfig>::new(rpc_client);
     Ok(rpc_methods)
 }
+
+#[cfg(test)]
+#[tokio::test]
+async fn test_get_api_rpc() {
+    let insecure_url = "ws://1234:9944";
+    let secure_url = "ws://localhost:9944";
+
+    let insecure_result_rpc = get_rpc(insecure_url).await;
+    assert_eq!(
+        insecure_result_rpc
+            .unwrap_err()
+            .to_string()
+            .contains("Rpc error: RPC error: Error when opening the TCP socket:"),
+        true
+    );
+
+    let secure_result_rpc = get_rpc(secure_url).await;
+    assert_eq!(
+        secure_result_rpc
+            .unwrap_err()
+            .to_string()
+            .contains("Rpc error: RPC error: Error when opening the TCP socket:"),
+        true
+    );
+
+    let insecure_result_api = get_api(insecure_url).await;
+    assert_eq!(
+        insecure_result_api
+            .unwrap_err()
+            .to_string()
+            .contains("Rpc error: RPC error: Error when opening the TCP socket:"),
+        true
+    );
+
+    let secure_result_api = get_api(secure_url).await;
+    assert_eq!(
+        secure_result_api
+            .unwrap_err()
+            .to_string()
+            .contains("Rpc error: RPC error: Error when opening the TCP socket:"),
+        true
+    );
+}
