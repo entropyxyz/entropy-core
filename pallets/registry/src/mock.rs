@@ -308,14 +308,12 @@ impl pallet_authorship::Config for Test {
 }
 
 parameter_types! {
-  pub const SigningPartySize: usize = 2;
   pub const MaxProgramHashes: u32 = 5u32;
   pub const KeyVersionNumber: u8 = 1;
 }
 
 impl pallet_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
     type WeightInfo = ();

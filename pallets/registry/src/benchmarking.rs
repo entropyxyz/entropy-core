@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::{SIGNING_PARTY_SIZE as SIG_PARTIES, VERIFICATION_KEY_LENGTH};
+use entropy_shared::VERIFICATION_KEY_LENGTH;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -47,10 +47,10 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 }
 
 pub fn add_non_syncing_validators<T: Config>(
-    sig_party_size: u32,
+    validator_amount: u32,
     syncing_validators: u32,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
-    let validators = create_validators::<T>(sig_party_size, SEED);
+    let validators = create_validators::<T>(validator_amount, SEED);
     let account = account::<T::AccountId>("ts_account", 1, SEED);
     let server_info =
         ServerInfo { tss_account: account, x25519_public_key: NULL_ARR, endpoint: vec![20] };
@@ -60,7 +60,7 @@ pub fn add_non_syncing_validators<T: Config>(
             <IsValidatorSynced<T>>::insert(validator, true);
         }
     }
-    if syncing_validators == sig_party_size {
+    if syncing_validators == validator_amount {
         <IsValidatorSynced<T>>::insert(&validators[0], true);
     }
     validators
@@ -160,8 +160,9 @@ benchmarks! {
   }
 
   confirm_register_registering {
-    // TODO move to max Validators?
-    let c in 0 .. SIG_PARTIES as u32;
+    let c in 1 .. MaxValidators::<T>::get();
+    // non synced validators
+    let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -175,13 +176,14 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    // add validators and a registering user
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+
+      // add validators and a registering user
+      // adds an extra validator so requires confirmations is > validators and doesn't confirm
+      let validators = add_non_syncing_validators::<T>(c + 1, n);
+      <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
+
         <Validators<T>>::set(validators);
-    }
+
 
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
@@ -198,8 +200,9 @@ benchmarks! {
   }
 
   confirm_register_failed_registering {
-    // TODO move to max Validators?
-    let c in 0 .. SIG_PARTIES as u32;
+    let c in 1 .. MaxValidators::<T>::get();
+     // non synced validators
+     let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -214,21 +217,17 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let random_account = account::<T::AccountId>("ts_account", 10, SEED);
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
     let invalid_verifying_key = BoundedVec::try_from(vec![2; VERIFICATION_KEY_LENGTH as usize]).unwrap();
     // add validators and a registering user with different verifying key
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-        <Validators<T>>::set(validators);
-    }
+    let validators = add_non_syncing_validators::<T>(c, n);
+    <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
+    let confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
 
-    let adjusted_sig_size = SIG_PARTIES - 1;
-    let confirmation: Vec<T::AccountId> = vec![random_account.clone(); adjusted_sig_size.try_into().unwrap()];
+        <Validators<T>>::set(validators);
 
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
-        confirmations: confirmation,
+        confirmations,
         programs_data: programs_info,
         verifying_key: Some(BoundedVec::default()),
         version_number: T::KeyVersionNumber::get()
@@ -242,8 +241,9 @@ benchmarks! {
 
 
 confirm_register_registered {
-    // TODO move to max Validators?
-    let c in 0 .. SIG_PARTIES as u32;
+    let c in 1 .. MaxValidators::<T>::get();
+     // non synced validators
+     let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -257,18 +257,17 @@ confirm_register_registered {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let random_account = account::<T::AccountId>("ts_account", 10, SEED);
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
     // add validators, a registering user and one less than all confirmations
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-        <Validators<T>>::set(validators);
-    }
-    let adjusted_sig_size = SIG_PARTIES - 1;
-    let confirmation: Vec<T::AccountId> = vec![random_account.clone(); adjusted_sig_size.try_into().unwrap()];
+    let validators = add_non_syncing_validators::<T>(c, n);
+    <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
+    let confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
+
+
+    <Validators<T>>::set(validators);
+
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
-        confirmations: confirmation,
+        confirmations,
         programs_data: programs_info,
         verifying_key: None,
         version_number: T::KeyVersionNumber::get()

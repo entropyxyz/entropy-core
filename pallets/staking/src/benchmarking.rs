@@ -15,7 +15,6 @@
 
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
-use entropy_shared::SIGNING_PARTY_SIZE;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
