@@ -35,7 +35,7 @@ pub fn endowed_accounts_dev(is_prod: bool) -> Vec<AccountId> {
     };
     let mut inital_accounts = vec![];
     if !is_prod {
-        let mut inital_accounts = vec![
+        inital_accounts = vec![
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             get_account_id_from_seed::<sr25519::Public>("Bob"),
             get_account_id_from_seed::<sr25519::Public>("Charlie"),
