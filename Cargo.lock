@@ -2448,11 +2448,13 @@ dependencies = [
  "reqwest 0.12.4",
  "serde",
  "serde_json",
+ "serial_test",
  "sha3",
  "sp-core 31.0.0",
  "subxt",
  "synedrion",
  "thiserror",
+ "tokio",
  "tracing",
  "x25519-dalek 2.0.1",
 ]
