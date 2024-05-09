@@ -15,7 +15,10 @@
 
 //! Simple client for Entropy.
 //! Used in integration tests and for the test-cli
-pub use crate::chain_api::{get_api, get_rpc};
+pub use crate::{
+    chain_api::{get_api, get_rpc},
+    errors::ClientError,
+};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
 pub use synedrion::KeyShare;
@@ -32,13 +35,12 @@ use crate::{
         },
         EntropyConfig,
     },
-    substrate::{query_chain, submit_transaction_with_pair, SubstrateError},
-    user::{get_current_subgroup_signers, SubgroupGetError, UserSignatureRequest},
+    substrate::{query_chain, submit_transaction_with_pair},
+    user::{get_current_subgroup_signers, UserSignatureRequest},
     Hasher,
 };
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::{
-    errors::UserRunningProtocolErr,
     user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
@@ -53,7 +55,6 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
-use thiserror::Error;
 use x25519_dalek::StaticSecret;
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
@@ -440,60 +441,4 @@ fn get_current_time() -> SystemTime {
 #[cfg(not(feature = "full-client-wasm"))]
 fn get_current_time() -> SystemTime {
     SystemTime::now()
-}
-
-#[derive(Debug, Error)]
-pub enum ClientError {
-    #[error("Substrate: {0}")]
-    Substrate(#[from] SubstrateError),
-    #[error("Error relating to private mode")]
-    PrivateMode,
-    #[error("Cannot get block number")]
-    BlockNumber,
-    #[error("Cannot get block hash")]
-    BlockHash,
-    #[error("Stash fetch")]
-    StashFetch,
-    #[error("UTF8: {0}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("User running protocol: {0}")]
-    UserRunningProtocol(#[from] UserRunningProtocolErr),
-    #[error("Subxt: {0}")]
-    Subxt(#[from] subxt::Error),
-    #[error("Timed out waiting for register confirmation")]
-    RegistrationTimeout,
-    #[error("Cannot get subgroup: {0}")]
-    SubgroupGet(#[from] SubgroupGetError),
-    #[error("JSON: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("Encryption error: {0}")]
-    Encryption(#[from] entropy_protocol::sign_and_encrypt::EncryptedSignedMessageErr),
-    #[error("Http client: {0}")]
-    HttpRequest(#[from] reqwest::Error),
-    #[error("Signing failed: {0}")]
-    SigningFailed(String),
-    #[error("Failed to get response from TSS Server")]
-    NoResponse,
-    #[error("Bad signature in response from TSS Server")]
-    BadSignature,
-    #[error("Base64 decode: {0}")]
-    Base64(#[from] base64::DecodeError),
-    #[error("ECDSA: {0}")]
-    Ecdsa(#[from] synedrion::ecdsa::Error),
-    #[error("Cannot get recovery ID from signature")]
-    NoRecoveryId,
-    #[error("Cannot parse recovery ID from signature")]
-    BadRecoveryId,
-    #[error("Cannot parse chain query response: {0}")]
-    TryFromSlice(#[from] std::array::TryFromSliceError),
-    #[error("User not registered")]
-    NotRegistered,
-    #[error("No synced validators")]
-    NoSyncedValidators,
-    #[error("Cannot confirm program was created")]
-    CannotConfirmProgramCreated,
-    #[error("Subgroup fetch error")]
-    SubgroupFetch,
-    #[error("Cannot query whether validator is synced")]
-    CannotQuerySynced,
 }

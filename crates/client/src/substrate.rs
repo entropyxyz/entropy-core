@@ -25,7 +25,8 @@ use subxt::{
     utils::{AccountId32, MultiSignature, H256},
     Config, OnlineClient,
 };
-use thiserror::Error;
+
+pub use crate::errors::SubstrateError;
 
 /// Send a transaction to the Entropy chain
 ///
@@ -133,17 +134,4 @@ impl Signer<EntropyConfig> for Sr25519Signer {
     fn sign(&self, signer_payload: &[u8]) -> <EntropyConfig as Config>::Signature {
         MultiSignature::Sr25519(self.pair.sign(signer_payload).0)
     }
-}
-
-/// Error relating to submitting an extrinsic or querying the chain
-#[derive(Debug, Error)]
-pub enum SubstrateError {
-    #[error("Cannot get block hash")]
-    BlockHash,
-    #[error("No event following extrinsic submission")]
-    NoEvent,
-    #[error("Generic Substrate error: {0}")]
-    GenericSubstrate(#[from] subxt::error::Error),
-    #[error("Could not sumbit transaction {0}")]
-    BadEvent(String),
 }
