@@ -23,7 +23,8 @@ use num::{BigInt, Num, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::SystemTime};
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
-use thiserror::Error;
+
+pub use crate::errors::SubgroupGetError;
 
 /// Represents an unparsed, transaction request coming from the client.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -89,21 +90,4 @@ pub async fn get_current_subgroup_signers(
         subgroup_signers.push(result?);
     }
     Ok(subgroup_signers)
-}
-
-/// An error on getting the current subgroup signers
-#[derive(Debug, Error)]
-pub enum SubgroupGetError {
-    #[error("Generic Substrate error: {0}")]
-    GenericSubstrate(#[from] subxt::error::Error),
-    #[error("Utf8Error: {0:?}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("ParseBigIntError: {0:?}")]
-    ParseBigIntError(#[from] num::bigint::ParseBigIntError),
-    #[error("Usize error: {0}")]
-    Usize(&'static str),
-    #[error("Chain Fetch: {0}")]
-    ChainFetch(&'static str),
-    #[error("Substrate client: {0}")]
-    SubstrateClient(#[from] crate::substrate::SubstrateError),
 }
