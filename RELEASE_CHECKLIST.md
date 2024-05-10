@@ -1,8 +1,11 @@
 # Release Checklist
 
+This is instructions for creating a release candidate, which on finding it works successfully can be
+tagged as the final release.
+
 ## Pre-Prep
 - [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Discord)
-- [ ] Create a release branch (e.g `hc-release-vX.X.X`)
+- [ ] Create a release branch (e.g `hc-release-vX.X.X-rc1`)
 
 ## Prep the Runtime and Node
 - [ ] If runtime behaviour has changed, bump `spec_version` and set `impl_version` to `0`
@@ -47,13 +50,18 @@
 - [ ] Ensure **all** CI checks on `master` pass
 - [ ] Create a Git tag From the squashed release PR commit on `master`
     - Make sure to follow [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
-    - `git tag release/vX.X.X`
+    - `git tag release/vX.X.X-rc1` - meaning release candidate number 1. If all goes well this can
+      later by tagged as `release/vX.X.X`
     - Nice to have: sign the tag with an offline GPG key (`git tag -s ...`)
 - [ ] Push tag to build and publish artifacts
-    - `git push origin release/vX.X.X`
+    - `git push origin release/vX.X.X-rc1`
     - Binaries and Docker images for `entropy` and `server` packages will be published by the CI
 - [ ] Publish necessary crates to crates.io
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
 - [ ] Inform relevant parties (e.g, by posting on Discord)
+- [ ] If something turns out to not work correctly when using the release, make a fix and then make
+  a new tag with a new release candidate - eg: `release/vX.X.X-rc2`.
+- [ ] At some point when it is clear that everything works, tag the chosen release candidate as
+  `release/vX.X.X-rc2`.
