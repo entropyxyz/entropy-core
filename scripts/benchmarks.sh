@@ -10,9 +10,6 @@ entropyTemplate=.maintain/frame-weight-template.hbs
 licenseHeader=.maintain/AGPL-3.0-header.txt
 # Manually exclude some pallets.
 excluded_pallets=(
-  "pallet_babe"
-  "pallet_grandpa"
-  "pallet_offences"
 )
 
 # Load all pallet names in an array.

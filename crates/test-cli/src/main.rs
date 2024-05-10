@@ -19,20 +19,20 @@ use std::{fs, path::PathBuf, time::Instant};
 use anyhow::{anyhow, ensure};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use entropy_testing_utils::{
+use entropy_client::{
     chain_api::{
         entropy::runtime_types::{
             bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
         },
         EntropyConfig,
     },
-    constants::TEST_PROGRAM_WASM_BYTECODE,
-    test_client::{
+    client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
         update_programs, VERIFYING_KEY_LENGTH,
     },
 };
-use sp_core::{sr25519, Hasher, Pair};
+use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
+use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -438,7 +438,7 @@ impl Program {
                     let hash = BlakeTwo256::hash(&program_bytecode);
                     Ok(Self::new(H256(hash.into()), configuration))
                 } else {
-                    Err(error)
+                    Err(error.into())
                 }
             },
         }

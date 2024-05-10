@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-tss"
-version    ="0.1.0"
+version    ="0.0.12"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 description='Entropy threshold signature scheme (TSS) server'
@@ -12,12 +12,12 @@ edition    ='2021'
 # Common
 serde              ={ version="1.0", default-features=false, features=["derive"] }
 serde_json         ="1.0"
-anyhow             ="1.0.82"
-thiserror          ="1.0.59"
+anyhow             ="1.0.83"
+thiserror          ="1.0.60"
 blake2             ="0.10.4"
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
 rand_core          ="0.6.4"
-zeroize            ="1.8.0"
+zeroize            ="1.7.0"
 hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
@@ -34,13 +34,14 @@ axum   ={ version="0.7.5", features=["ws"] }
 
 # Substrate
 subxt             ="0.35.3"
-parity-scale-codec="3.6.9"
+parity-scale-codec="3.6.12"
 sp-core           ={ version="31.0.0", default-features=false }
 
 # Entropy
-entropy-shared  ={ path="../shared" }
-entropy-kvdb    ={ path="../kvdb", default-features=false }
-entropy-protocol={ path="../protocol", features=["server"] }
+entropy-shared  ={ version="0.0.12", path="../shared" }
+entropy-kvdb    ={ version="0.0.12", path="../kvdb", default-features=false }
+entropy-protocol={ version="0.0.12", path="../protocol", features=["server"] }
+entropy-client  ={ version="0.0.12", path="../client", default-features=false, features=["native"] }
 
 # Programs
 entropy-programs-runtime="0.10.0"
@@ -60,7 +61,7 @@ bincode          ="1.3.3"
 bytes            ={ version="1.6", default-features=false, features=["serde"] }
 base64           ="0.22.1"
 clap             ={ version="4.0.29", features=["derive"] }
-num              ="0.4.2"
+num              ="0.4.3"
 snow             ="0.9.6"
 sha3             ="0.10.8"
 hostname         ="0.4"
@@ -69,19 +70,19 @@ sha2             ="0.10.8"
 hkdf             ="0.12.4"
 
 [dev-dependencies]
-entropy-testing-utils={ path="../testing-utils" }
+entropy-testing-utils={ version="0.0.12", path="../testing-utils" }
 serial_test          ="3.1.1"
 hex-literal          ="0.4.1"
 project-root         ="0.2.2"
 sp-keyring           ="34.0.0"
 more-asserts         ="0.3.1"
-template-barebones   ={ git="https://github.com/entropyxyz/programs.git", tag="v0.7.0" }
 lazy_static          ="1.4.0"
-entropy-protocol     ={ path="../protocol", features=["unsafe"] }
+entropy-protocol     ={ version="0.0.12", path="../protocol", features=["unsafe"] }
 blake3               ="1.5.1"
 ethers-core          ="2.0.14"
 schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
-schemars             ={ version="0.8.17" }
+entropy-client       ={ path="../client", features=["full-client-native"] }
+schemars             ={ version="0.8.19" }
 
 [build-dependencies]
 vergen={ version="8.0.0", features=["build", "git", "gitcl"] }

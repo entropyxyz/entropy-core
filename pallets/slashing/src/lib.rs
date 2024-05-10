@@ -199,14 +199,14 @@ impl<T: Config> frame_support::traits::OneSessionHandler<T::AccountId> for Palle
 
     fn on_genesis_session<'a, I>(_validators: I)
     where
-        I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> + 'a,
+        I: 'a + Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
     {
         // No work for us to do on genesis
     }
 
     fn on_new_session<'a, I>(_changed: bool, _validators: I, _queued_validators: I)
     where
-        I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)> + 'a,
+        I: 'a + Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
     {
         // We reset the reports for this upcoming session.
         //

@@ -7,10 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...master)
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...master)
+
+## [0.0.12](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...release/v0.0.12) - 2024-05-02
 
 ### Breaking Changes
 
+- [#788](https://github.com/entropyxyz/entropy-core/pull/788) 'Integrate oracle to programs' the
+  `programs::set_program` extrinsic now takes an additional argument `oracle_data_pointer` of type
+  `Vec<u8>` (`Uint8Array` on JS). Since oracles are not completely implemented this should be
+  passed an empty vector/array.
+- In [#762](https://github.com/entropyxyz/entropy-core/pull/762) 'Update Substrate to Polkadot 1.7.0'
+  the genesis chainspec builder has been updated for sc_service 0.36.0, which affects both the
+  runtime and chainspec.
 - In [#709](https://github.com/entropyxyz/entropy-core/pull/709) 'Derive the threshold account
   keypair and x25519 keypair from mnemonic using HKDF' the JS `entropy-protocol` bindings have
   changed. `Hpke.DecryptAndVerify` now takes a secret x25519 encryption key rather than a secret
@@ -19,12 +28,17 @@ At the moment this project **does not** adhere to
   signing secret key. Similarly in the rust API, `EncryptedSignedMessage` no longer derives x25519
   keypairs internally and so the decrypt method now takes a x25519 secret key. Also, the method by
   which keypairs are derived from a mnemonic has changed, which means existing validators x25119
-  and sr25519 keypairs will be different what they were before.
+  and sr25519 keypairs will be different what they were before. This includes the test accounts in
+  the chainspec.
 
 ### Added
+- Add testnet account JSON ([#769](https://github.com/entropyxyz/entropy-core/pull/769))
+- Make common crate for TSS and test client ([#775](https://github.com/entropyxyz/entropy-core/pull/775))
 
 ### Changed
 - Derive the threshold account keypair and x25519 keypair from mnemonic using HKDF ([#709](https://github.com/entropyxyz/entropy-core/pull/709))
+- TSS servers sync by default ([#784](https://github.com/entropyxyz/entropy-core/pull/784))
+- Improve test-cli following removal of permissioned mode ([#770](https://github.com/entropyxyz/entropy-core/pull/770))
 
 ## [0.0.11](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.10...release/v0.0.11) - 2024-04-XX
 

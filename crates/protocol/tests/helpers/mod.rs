@@ -16,7 +16,9 @@
 //! A simple protocol server, like a mini version of entropy-tss, for benchmarking
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
-    execute_protocol::{execute_signing_protocol, Channels},
+    execute_protocol::{
+        execute_dkg, execute_proactive_refresh, execute_signing_protocol, Channels,
+    },
     protocol_transport::{
         errors::WsError,
         noise::{noise_handshake_initiator, noise_handshake_responder},
@@ -47,6 +49,14 @@ struct ServerState {
     listener: Arc<Mutex<Vec<Listener>>>,
 }
 
+/// Output of a successful protocol run
+#[derive(Debug)]
+pub enum ProtocolOutput {
+    Sign(RecoverableSignature),
+    ProactiveRefresh(KeyShare<KeyParams>),
+    Dkg(KeyShare<KeyParams>),
+}
+
 /// A websocket server handling a single test protocol session
 pub async fn server(
     socket: TcpListener,
@@ -54,8 +64,8 @@ pub async fn server(
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     session_id: SessionId,
-    keyshare: KeyShare<KeyParams>,
-) -> anyhow::Result<RecoverableSignature> {
+    keyshare: Option<KeyShare<KeyParams>>,
+) -> anyhow::Result<ProtocolOutput> {
     let account_id = AccountId32(pair.public().0);
 
     // Setup a single listener for tracking connnections to the other parties
@@ -90,27 +100,40 @@ pub async fn server(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let message_hash = if let SessionId::Sign(session_info) = &session_id {
-        session_info.message_hash
-    } else {
-        return Err(anyhow!("Cannot get message hash from session id"));
-    };
-
     let tss_accounts: Vec<AccountId32> =
         validators_info.iter().map(|validator_info| validator_info.tss_account.clone()).collect();
 
-    let rsig = execute_signing_protocol(
-        session_id,
-        channels,
-        &keyshare,
-        &message_hash,
-        &pair,
-        tss_accounts,
-    )
-    .await?;
+    match session_id.clone() {
+        SessionId::Sign(session_info) => {
+            let rsig = execute_signing_protocol(
+                session_id,
+                channels,
+                &keyshare.unwrap(),
+                &session_info.message_hash,
+                &pair,
+                tss_accounts,
+            )
+            .await?;
 
-    let (signature, recovery_id) = rsig.to_backend();
-    Ok(RecoverableSignature { signature, recovery_id })
+            let (signature, recovery_id) = rsig.to_backend();
+            Ok(ProtocolOutput::Sign(RecoverableSignature { signature, recovery_id }))
+        },
+        SessionId::ProactiveRefresh { .. } => {
+            let new_keyshare = execute_proactive_refresh(
+                session_id,
+                channels,
+                &pair,
+                tss_accounts,
+                keyshare.unwrap(),
+            )
+            .await?;
+            Ok(ProtocolOutput::ProactiveRefresh(new_keyshare))
+        },
+        SessionId::Dkg { .. } => {
+            let keyshare = execute_dkg(session_id, channels, &pair, tss_accounts).await?;
+            Ok(ProtocolOutput::Dkg(keyshare))
+        },
+    }
 }
 
 /// Handle an incoming websocket connection

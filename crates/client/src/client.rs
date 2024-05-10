@@ -13,32 +13,40 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Simple test client
-pub use crate::chain_api::{get_api, get_rpc};
-use base64::prelude::{Engine, BASE64_STANDARD};
+//! Simple client for Entropy.
+//! Used in integration tests and for the test-cli
+pub use crate::{
+    chain_api::{get_api, get_rpc},
+    errors::ClientError,
+};
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 use entropy_shared::HashingAlgorithm;
 pub use synedrion::KeyShare;
-pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
-use anyhow::{anyhow, ensure};
-use entropy_protocol::RecoverableSignature;
-use entropy_tss::{
+use crate::{
     chain_api::{
-        entropy,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::{
-            pallet_programs::pallet::ProgramInfo,
-            pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+        entropy::{
+            self,
+            runtime_types::{
+                bounded_collections::bounded_vec::BoundedVec,
+                pallet_programs::pallet::ProgramInfo,
+                pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+            },
         },
         EntropyConfig,
     },
-    common::{Hasher, UserSignatureRequest},
-    helpers::substrate::{query_chain, submit_transaction},
-    user::api::get_signers_from_chain,
+    substrate::{query_chain, submit_transaction_with_pair},
+    user::{get_current_subgroup_signers, UserSignatureRequest},
+    Hasher,
 };
-use futures::future;
-use sp_core::{crypto::AccountId32, sr25519, Pair};
+use base64::prelude::{Engine, BASE64_STANDARD};
+use entropy_protocol::{
+    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
+    RecoverableSignature, ValidatorInfo,
+};
+use entropy_shared::HashingAlgorithm;
+use futures::{future, stream::StreamExt};
+use sp_core::{sr25519, Pair};
 use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -48,6 +56,8 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+
+pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
 /// Register an account.
 ///
@@ -68,7 +78,8 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     programs_data: BoundedVec<ProgramInstance>,
-) -> anyhow::Result<RegisteredInfo> {
+    x25519_secret_key: Option<StaticSecret>,
+) -> Result<RegisteredInfo, ClientError> {
     // Send register transaction
     put_register_request_on_chain(
         api,
@@ -83,23 +94,23 @@ pub async fn register(
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
 
     for _ in 0..50 {
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let block_hash = rpc.chain_get_block_hash(None).await?;
+        let events =
+            EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
         for event in registered_event.flatten() {
             if event.0 == account_id {
                 let registered_query = entropy::storage().registry().registered(&event.1);
-                let registered_status =
-                    query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-                if registered_status.is_some() {
+                let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
+                if let Some(status) = registered_status {
                     // check if the event belongs to this user
-                    return Ok(registered_status.unwrap());
+                    return Ok(registered_status?);
                 }
             }
         }
         std::thread::sleep(std::time::Duration::from_millis(1000));
     }
-    Err(anyhow!("Timed out waiting for register confirmation"))
+    Err(ClientError::RegistrationTimeout)
 }
 
 /// Request to sign a message
@@ -120,7 +131,7 @@ pub async fn sign(
     signature_verifying_key: [u8; VERIFYING_KEY_LENGTH],
     message: Vec<u8>,
     auxilary_data: Option<Vec<u8>>,
-) -> anyhow::Result<RecoverableSignature> {
+) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
     let validators_info = get_signers_from_chain(api, rpc).await?;
     tracing::debug!("Validators info {:?}", validators_info);
@@ -129,7 +140,7 @@ pub async fn sign(
         message: hex::encode(message),
         auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
         validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
+        timestamp: get_current_time(),
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),
     };
@@ -157,7 +168,7 @@ pub async fn sign(
                 .body(message_json)
                 .send()
                 .await;
-            Ok::<_, anyhow::Error>(res)
+            Ok::<_, ClientError>(res)
         })
         .collect::<Vec<_>>();
 
@@ -166,31 +177,33 @@ pub async fn sign(
 
     // Get the first result
     if let Some(res) = results.into_iter().next() {
-        let mut output = res?;
-        ensure!(output.status() == 200, "Signing failed: {}", output.text().await?);
+        let output = res?;
+        if output.status() != 200 {
+            return Err(ClientError::SigningFailed(output.text().await?));
+        }
 
-        let chunk = output.chunk().await?.ok_or(anyhow!("No response"))?;
+        let mut bytes_stream = output.bytes_stream();
+        let chunk = bytes_stream.next().await.ok_or(ClientError::NoResponse)??;
         let signing_result: Result<(String, sr25519::Signature), String> =
             serde_json::from_slice(&chunk)?;
         let (signature_base64, signature_of_signature) =
-            signing_result.map_err(|err| anyhow!(err))?;
+            signing_result.map_err(ClientError::SigningFailed)?;
         tracing::debug!("Signature: {}", signature_base64);
         let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
         // Verify the response signature from the TSS client
-        ensure!(
-            sr25519::Pair::verify(
-                &signature_of_signature,
-                &decoded_sig,
-                &sr25519::Public(validators_info[0].tss_account.0),
-            ),
-            "Failed to verify response from TSS server"
-        );
+        if !sr25519::Pair::verify(
+            &signature_of_signature,
+            &decoded_sig,
+            &sr25519::Public(validators_info[0].tss_account.0),
+        ) {
+            return Err(ClientError::BadSignature);
+        }
 
-        let recovery_digit = decoded_sig.pop().ok_or(anyhow!("Cannot get recovery digit"))?;
+        let recovery_digit = decoded_sig.pop().ok_or(ClientError::NoRecoveryId)?;
         let signature = k256Signature::from_slice(&decoded_sig)?;
         let recovery_id =
-            RecoveryId::from_byte(recovery_digit).ok_or(anyhow!("Cannot create recovery id"))?;
+            RecoveryId::from_byte(recovery_digit).ok_or(ClientError::BadRecoveryId)?;
 
         let verifying_key_of_signature =
             VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
@@ -198,7 +211,7 @@ pub async fn sign(
 
         return Ok(RecoverableSignature { signature, recovery_id });
     }
-    Err(anyhow!("Failed to get responses from TSS servers"))
+    Err(ClientError::NoResponse)
 }
 
 /// Store a program on chain and return it's hash
@@ -217,18 +230,17 @@ pub async fn store_program(
     configuration_interface: Vec<u8>,
     auxiliary_data_interface: Vec<u8>,
     oracle_data_pointer: Vec<u8>,
-) -> anyhow::Result<<EntropyConfig as Config>::Hash> {
+) -> Result<<EntropyConfig as Config>::Hash, ClientError> {
     let update_program_tx = entropy::tx().programs().set_program(
         program,
         configuration_interface,
         auxiliary_data_interface,
         oracle_data_pointer,
     );
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
-
-    let in_block = submit_transaction(api, rpc, &deployer, &update_program_tx, None).await?;
+    let in_block =
+        submit_transaction_with_pair(api, rpc, deployer_pair, &update_program_tx, None).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
-    Ok(result_event.ok_or(anyhow!("Error getting program created event"))?.program_hash)
+    Ok(result_event.ok_or(ClientError::CannotConfirmProgramCreated)?.program_hash)
 }
 
 /// Update the program pointers associated with a given entropy account
@@ -238,21 +250,19 @@ pub async fn update_programs(
     verifying_key: [u8; VERIFYING_KEY_LENGTH],
     deployer_pair: &sr25519::Pair,
     program_instance: BoundedVec<ProgramInstance>,
-) -> anyhow::Result<()> {
+) -> Result<(), ClientError> {
     let update_pointer_tx = entropy::tx()
         .registry()
         .change_program_instance(BoundedVec(verifying_key.to_vec()), program_instance);
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer_pair.clone());
-    submit_transaction(entropy_api, rpc, &deployer, &update_pointer_tx, None).await?;
+    submit_transaction_with_pair(entropy_api, rpc, deployer_pair, &update_pointer_tx, None).await?;
     Ok(())
 }
 /// Get info on all registered accounts
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>> {
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
     let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
@@ -268,9 +278,8 @@ pub async fn get_accounts(
 pub async fn get_programs(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> anyhow::Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>> {
-    let block_hash =
-        rpc.chain_get_block_hash(None).await?.ok_or_else(|| anyhow!("Error getting block hash"))?;
+) -> Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>, ClientError> {
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
 
     let storage_address = entropy::storage().programs().programs_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
@@ -289,13 +298,13 @@ pub async fn put_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
     program_instance: BoundedVec<ProgramInstance>,
-) -> anyhow::Result<()> {
+) -> Result<(), ClientError> {
     let signature_request_pair_signer =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
-
+    PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
     let registering_tx = entropy::tx().registry().register(deployer, program_instance);
-
-    submit_transaction(api, rpc, &signature_request_pair_signer, &registering_tx, None).await?;
+    
+    submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
+        .await?;
     Ok(())
 }
 
@@ -305,13 +314,13 @@ pub async fn check_verifying_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     verifying_key: VerifyingKey,
-) -> anyhow::Result<()> {
+) -> Result<(), ClientError> {
     let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
 
     // Get the verifying key associated with this account, if it exist return ok
     let registered_query =
         entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-    query_registered_status?.ok_or(anyhow!("User not registered"))?;
+    query_registered_status?.ok_or(ClientError::NotRegistered)?;
     Ok(())
 }

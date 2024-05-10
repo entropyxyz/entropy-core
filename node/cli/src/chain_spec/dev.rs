@@ -92,7 +92,7 @@ pub fn development_genesis_config(
     root_key: AccountId,
     threshold_server_endpoints: Vec<&str>,
 ) -> serde_json::Value {
-    let mut endowed_accounts = endowed_accounts_dev();
+    let (mut endowed_accounts, funded_accounts) = endowed_accounts_dev(false);
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
         if !endowed_accounts.contains(x) {
@@ -125,7 +125,7 @@ pub fn development_genesis_config(
 
     serde_json::json!({
         "balances": BalancesConfig {
-            balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+            balances: funded_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {

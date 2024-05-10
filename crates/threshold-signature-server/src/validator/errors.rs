@@ -48,6 +48,10 @@ pub enum ValidatorErr {
     ChainFetch(&'static str),
     #[error("Encryption or authentication: {0}")]
     Hpke(#[from] EncryptedSignedMessageErr),
+    #[error("Message is not from expected author")]
+    Authentication,
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
 }
 
 impl IntoResponse for ValidatorErr {

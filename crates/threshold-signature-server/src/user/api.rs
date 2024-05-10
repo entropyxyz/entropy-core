@@ -78,25 +78,8 @@ use crate::{
     AppState, Configuration,
 };
 
+pub use entropy_client::user::{get_current_subgroup_signers, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
-
-/// Represents an unparsed, transaction request coming from the client.
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
-pub struct UserSignatureRequest {
-    /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
-    pub message: String,
-    /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
-    pub auxilary_data: Option<Vec<Option<String>>>,
-    /// Information from the validators in signing party
-    pub validators_info: Vec<ValidatorInfo>,
-    /// When the message was created and signed
-    pub timestamp: SystemTime,
-    /// Hashing algorithm to be used for signing
-    pub hash: HashingAlgorithm,
-    /// The veryfying key for the signature requested
-    pub signature_verifying_key: Vec<u8>,
-}
 
 /// Type for validators to send user key's back and forth
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

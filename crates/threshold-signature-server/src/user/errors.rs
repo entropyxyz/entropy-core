@@ -159,6 +159,10 @@ pub enum UserErr {
     Hkdf(hkdf::InvalidLength),
     #[error("Error Joining threads: {0}")]
     JoinError(#[from] tokio::task::JoinError),
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("Cannot get subgroup signers: {0}")]
+    SubgroupGet(#[from] entropy_client::user::SubgroupGetError),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

@@ -12,16 +12,19 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-#![cfg_attr(not(any(feature = "std", feature = "user-wasm")), no_std)]
-//! Types that is shared by clients and substrate nodes,
-//! i.e. messages sent from one to the other and structs contained in those messages
-//!
-//! This helps ensures those structs are synced among clients and nodes.
-pub use constants::*;
-pub use types::*;
-pub mod constants;
-pub mod types;
-
-#[cfg(any(feature = "user-native", feature = "user-wasm"))]
+//! A client for the Entropy chain node and Entropy TSS Server.
+//! Since the TSS server communicates with the chain node, this is also a dependency of entropy-tss.
+pub mod chain_api;
+pub mod errors;
+pub mod substrate;
 pub mod user;
+pub mod util;
+pub use util::Hasher;
+
+// //! Re-exports of things needed for a client for integration tests
+// pub use crate::{helpers::signing::Hasher, user::api::UserSignatureRequest, validation};
+
+#[cfg(feature = "full-client")]
+pub mod client;
+#[cfg(feature = "full-client")]
+pub use client::*;

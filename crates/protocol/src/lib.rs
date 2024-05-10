@@ -21,7 +21,9 @@ mod protocol_message;
 pub mod protocol_transport;
 pub mod sign_and_encrypt;
 
+pub use entropy_shared::user::ValidatorInfo;
 pub use listener::Listener;
+pub use protocol_message::ProtocolMessage;
 
 extern crate alloc;
 use std::{
@@ -30,9 +32,7 @@ use std::{
 };
 
 use blake2::{Blake2s256, Digest};
-use entropy_shared::X25519PublicKey;
 use errors::ProtocolExecutionErr;
-pub use protocol_message::ProtocolMessage;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
@@ -144,14 +144,6 @@ impl RecoverableSignature {
 
         res
     }
-}
-
-/// Information from the validators in signing party
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
-pub struct ValidatorInfo {
-    pub x25519_public_key: X25519PublicKey,
-    pub ip_address: String,
-    pub tss_account: AccountId32,
 }
 
 /// An identifier to specify and particular protocol session
