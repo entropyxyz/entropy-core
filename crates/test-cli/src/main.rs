@@ -527,7 +527,7 @@ impl Program {
                     let hash = BlakeTwo256::hash(&program_bytecode);
                     Ok(Self::new(H256(hash.into()), configuration))
                 } else {
-                    Err(error)
+                    Err(error.into())
                 }
             },
         }
