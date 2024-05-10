@@ -5,7 +5,7 @@ tagged as the final release.
 
 ## Pre-Prep
 - [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Discord)
-- [ ] Create a release branch (e.g `hc-release-vX.X.X-rc1`)
+- [ ] Create a release branch, e.g., for release candidate number one: `release/vX.Y.Z-rc1`.
 
 ## Prep the Runtime and Node
 - [ ] If runtime behaviour has changed, bump `spec_version` and set `impl_version` to `0`
