@@ -20,7 +20,6 @@ pub use crate::{
     errors::ClientError,
 };
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
-use entropy_shared::HashingAlgorithm;
 pub use synedrion::KeyShare;
 
 use crate::{
@@ -36,12 +35,12 @@ use crate::{
         EntropyConfig,
     },
     substrate::{query_chain, submit_transaction_with_pair},
-    user::{get_current_subgroup_signers, UserSignatureRequest},
+    user::{UserSignatureRequest, get_signers_from_chain},
     Hasher,
 };
+
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::{
-    user::{user_participates_in_dkg_protocol, user_participates_in_signing_protocol},
     RecoverableSignature, ValidatorInfo,
 };
 use entropy_shared::HashingAlgorithm;
@@ -78,7 +77,6 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     programs_data: BoundedVec<ProgramInstance>,
-    x25519_secret_key: Option<StaticSecret>,
 ) -> Result<RegisteredInfo, ClientError> {
     // Send register transaction
     put_register_request_on_chain(
@@ -90,7 +88,7 @@ pub async fn register(
     )
     .await?;
 
-    let account_id32: AccountId32 = signature_request_keypair.public().into();
+    let account_id32: SubxtAccountId32 = signature_request_keypair.public().into();
     let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
 
     for _ in 0..50 {
@@ -104,7 +102,7 @@ pub async fn register(
                 let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
                 if let Some(status) = registered_status {
                     // check if the event belongs to this user
-                    return Ok(registered_status?);
+                    return Ok(status);
                 }
             }
         }
@@ -299,8 +297,6 @@ pub async fn put_register_request_on_chain(
     deployer: SubxtAccountId32,
     program_instance: BoundedVec<ProgramInstance>,
 ) -> Result<(), ClientError> {
-    let signature_request_pair_signer =
-    PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_keypair);
     let registering_tx = entropy::tx().registry().register(deployer, program_instance);
     
     submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
@@ -323,4 +319,9 @@ pub async fn check_verifying_key(
     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
     query_registered_status?.ok_or(ClientError::NotRegistered)?;
     Ok(())
+}
+
+#[cfg(not(feature = "full-client-wasm"))]
+fn get_current_time() -> SystemTime {
+    SystemTime::now()
 }

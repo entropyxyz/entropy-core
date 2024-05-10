@@ -32,9 +32,9 @@ hex             ={ version="0.4.3", optional=true }
 
 # Only for the browser
 js-sys={ version="0.3.68", optional=true }
+tokio      ="1.36"
 
 [dev-dependencies]
-tokio      ="1.36"
 serial_test="3.1.1"
 
 [features]

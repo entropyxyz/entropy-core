@@ -17,12 +17,13 @@ use crate::{
     chain_api::{entropy, EntropyConfig},
     substrate::query_chain,
 };
-use entropy_shared::{user::ValidatorInfo, HashingAlgorithm, SIGNING_PARTY_SIZE};
+use entropy_shared::{user::ValidatorInfo, HashingAlgorithm};
 use futures::future::join_all;
 use num::{BigInt, Num, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::SystemTime};
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
+use futures::task;
 
 pub use crate::errors::SubgroupGetError;
 
@@ -43,51 +44,40 @@ pub struct UserSignatureRequest {
     pub signature_verifying_key: Vec<u8>,
 }
 
-/// Gets the current signing committee
-/// The signing committee is composed as the validators at the index into each subgroup
-/// Where the index is computed as the user's sighash as an integer modulo the number of subgroups
-pub async fn get_current_subgroup_signers(
+pub async fn get_signers_from_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_hash: &str,
 ) -> Result<Vec<ValidatorInfo>, SubgroupGetError> {
-    let mut subgroup_signers = vec![];
-    let number = Arc::new(BigInt::from_str_radix(sig_hash, 16)?);
+    let all_validators_query = entropy::storage().session().validators();
+    let all_validators = query_chain(api, rpc, all_validators_query, None)
+        .await?
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
     let block_hash = rpc.chain_get_block_hash(None).await?;
+    let mut handles = Vec::new();
 
-    let futures = (0..SIGNING_PARTY_SIZE)
-        .map(|i| {
-            let owned_number = Arc::clone(&number);
+    for validator in all_validators {
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, SubgroupGetError>> = tokio::task::spawn({
+            let api = api.clone();
+            let rpc = rpc.clone();
             async move {
-                let subgroup_info_query =
-                    entropy::storage().staking_extension().signing_groups(i as u8);
-                let subgroup_info =
-                    query_chain(api, rpc, subgroup_info_query, block_hash)
-                        .await?
-                        .ok_or_else(|| SubgroupGetError::ChainFetch("Subgroup Fetch Error"))?;
-
-                let index_of_signer_big = &*owned_number % subgroup_info.len();
-                let index_of_signer =
-                    index_of_signer_big.to_usize().ok_or(SubgroupGetError::Usize("Usize error"))?;
-
-                let threshold_address_query = entropy::storage()
-                    .staking_extension()
-                    .threshold_servers(subgroup_info[index_of_signer].clone());
-                let server_info = query_chain(api, rpc, threshold_address_query, block_hash)
+                let threshold_address_query =
+                    entropy::storage().staking_extension().threshold_servers(validator);
+                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
                     .await?
-                    .ok_or_else(|| SubgroupGetError::ChainFetch("Subgroup Fetch Error"))?;
-
-                Ok::<_, SubgroupGetError>(ValidatorInfo {
+                    .ok_or_else(|| SubgroupGetError::ChainFetch("threshold_servers query error"))?;
+                Ok(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
                     ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
                     tss_account: server_info.tss_account,
                 })
             }
-        })
-        .collect::<Vec<_>>();
-    let results = join_all(futures).await;
-    for result in results.into_iter() {
-        subgroup_signers.push(result?);
+        });
+        handles.push(handle);
     }
-    Ok(subgroup_signers)
+    let mut all_signers: Vec<ValidatorInfo> = vec![];
+    for handle in handles {
+        all_signers.push(handle.await??);
+    }
+
+    Ok(all_signers)
 }

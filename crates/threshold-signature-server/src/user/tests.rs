@@ -18,7 +18,6 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use entropy_client::{
     client::{store_program, update_programs},
-    user::get_current_subgroup_signers,
 };
 use entropy_kvdb::{
     clean_tests,
