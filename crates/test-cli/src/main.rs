@@ -32,7 +32,7 @@ use entropy_client::{
     },
 };
 use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
-use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
+use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
     backend::legacy::LegacyRpcMethods,

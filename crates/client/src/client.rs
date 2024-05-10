@@ -35,14 +35,12 @@ use crate::{
         EntropyConfig,
     },
     substrate::{query_chain, submit_transaction_with_pair},
-    user::{UserSignatureRequest, get_signers_from_chain},
+    user::{get_signers_from_chain, UserSignatureRequest},
     Hasher,
 };
 
 use base64::prelude::{Engine, BASE64_STANDARD};
-use entropy_protocol::{
-    RecoverableSignature, ValidatorInfo,
-};
+use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
 use futures::{future, stream::StreamExt};
 use sp_core::{sr25519, Pair};
@@ -50,7 +48,6 @@ use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
-    tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
@@ -88,8 +85,7 @@ pub async fn register(
     )
     .await?;
 
-    let account_id32: SubxtAccountId32 = signature_request_keypair.public().into();
-    let account_id: <EntropyConfig as Config>::AccountId = account_id32.into();
+    let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
 
     for _ in 0..50 {
         let block_hash = rpc.chain_get_block_hash(None).await?;
@@ -298,7 +294,7 @@ pub async fn put_register_request_on_chain(
     program_instance: BoundedVec<ProgramInstance>,
 ) -> Result<(), ClientError> {
     let registering_tx = entropy::tx().registry().register(deployer, program_instance);
-    
+
     submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
         .await?;
     Ok(())

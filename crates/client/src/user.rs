@@ -18,12 +18,9 @@ use crate::{
     substrate::query_chain,
 };
 use entropy_shared::{user::ValidatorInfo, HashingAlgorithm};
-use futures::future::join_all;
-use num::{BigInt, Num, ToPrimitive};
 use serde::{Deserialize, Serialize};
-use std::{sync::Arc, time::SystemTime};
+use std::time::SystemTime;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
-use futures::task;
 
 pub use crate::errors::SubgroupGetError;
 
@@ -56,22 +53,25 @@ pub async fn get_signers_from_chain(
     let mut handles = Vec::new();
 
     for validator in all_validators {
-        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, SubgroupGetError>> = tokio::task::spawn({
-            let api = api.clone();
-            let rpc = rpc.clone();
-            async move {
-                let threshold_address_query =
-                    entropy::storage().staking_extension().threshold_servers(validator);
-                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
-                    .await?
-                    .ok_or_else(|| SubgroupGetError::ChainFetch("threshold_servers query error"))?;
-                Ok(ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-                    tss_account: server_info.tss_account,
-                })
-            }
-        });
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, SubgroupGetError>> =
+            tokio::task::spawn({
+                let api = api.clone();
+                let rpc = rpc.clone();
+                async move {
+                    let threshold_address_query =
+                        entropy::storage().staking_extension().threshold_servers(validator);
+                    let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+                        .await?
+                        .ok_or_else(|| {
+                            SubgroupGetError::ChainFetch("threshold_servers query error")
+                        })?;
+                    Ok(ValidatorInfo {
+                        x25519_public_key: server_info.x25519_public_key,
+                        ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+                        tss_account: server_info.tss_account,
+                    })
+                }
+            });
         handles.push(handle);
     }
     let mut all_signers: Vec<ValidatorInfo> = vec![];

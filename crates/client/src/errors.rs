@@ -46,7 +46,6 @@ pub enum SubgroupGetError {
     SubstrateClient(#[from] crate::substrate::SubstrateError),
     #[error("Error Joining threads: {0}")]
     JoinError(#[from] tokio::task::JoinError),
-
 }
 
 #[cfg(feature = "full-client")]
