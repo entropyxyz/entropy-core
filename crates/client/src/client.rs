@@ -35,7 +35,7 @@ use crate::{
         },
         EntropyConfig,
     },
-    substrate::{query_chain, submit_transaction_with_pair},
+    substrate::{create_partial_extrinsic, query_chain, submit_transaction_with_pair},
     user::{get_current_subgroup_signers, UserSignatureRequest},
     Hasher,
 };
@@ -372,6 +372,19 @@ pub async fn check_verifying_key(
     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
     query_registered_status?.ok_or(ClientError::NotRegistered)?;
     Ok(())
+}
+
+pub async fn create_partial_balance_tx(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    from: SubxtAccountId32,
+    to: SubxtAccountId32,
+    amount: u128,
+) -> Result<subxt::tx::PartialExtrinsic<EntropyConfig, OnlineClient<EntropyConfig>>, ClientError> {
+    let call =
+        entropy::tx().balances().transfer_allow_death(subxt::utils::MultiAddress::Id(to), amount);
+
+    Ok(create_partial_extrinsic(api, rpc, &call, from).await?)
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number

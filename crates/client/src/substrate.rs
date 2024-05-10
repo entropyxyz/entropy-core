@@ -21,7 +21,7 @@ use subxt::{
     blocks::ExtrinsicEvents,
     config::PolkadotExtrinsicParamsBuilder as Params,
     storage::address::{StorageAddress, Yes},
-    tx::{Signer, TxPayload, TxStatus},
+    tx::{PartialExtrinsic, Signer, TxPayload, TxStatus},
     utils::{AccountId32, MultiSignature, H256},
     Config, OnlineClient,
 };
@@ -105,6 +105,22 @@ where
     let result = api.storage().at(block_hash).fetch(&storage_call).await?;
 
     Ok(result)
+}
+
+pub async fn create_partial_extrinsic<Call: TxPayload>(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    call: &Call,
+    account_id: AccountId32,
+) -> Result<PartialExtrinsic<EntropyConfig, OnlineClient<EntropyConfig>>, SubstrateError> {
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(SubstrateError::BlockHash)?;
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(account_id.clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+    let latest_block = api.blocks().at_latest().await?;
+    let tx_params =
+        Params::new().mortal(latest_block.header(), MORTALITY_BLOCKS).nonce(nonce.into()).build();
+
+    Ok(api.tx().create_partial_signed(call, &account_id, tx_params).await?)
 }
 
 /// A wrapper around [sr25519::Pair] which implements [Signer]
