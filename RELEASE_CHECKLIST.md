@@ -64,4 +64,4 @@ tagged as the final release.
 - [ ] If something turns out to not work correctly when using the release, make a fix and then make
   a new tag with a new release candidate - eg: `release/vX.X.X-rc2`.
 - [ ] At some point when it is clear that everything works, tag the chosen release candidate as
-  `release/vX.X.X-rc2`.
+  `release/vX.X.X`.
