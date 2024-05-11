@@ -31,9 +31,32 @@ use entropy_testing_utils::{
     tss_server_process::spawn_testing_validators,
 };
 use serial_test::serial;
+use sp_core::Pair;
 use sp_keyring::AccountKeyring;
+use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
+#[tokio::test]
+#[serial]
+async fn integration_test_sign_partial() {
+    clean_tests();
+    let (_validator_ips, _validator_ids, _keyshare_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    let partial_extrinsic = test_client::create_partial_balance_tx(
+        &api,
+        &rpc,
+        AccountId32(AccountKeyring::One.pair().public().0),
+        AccountId32(AccountKeyring::Two.pair().public().0),
+        100000,
+    )
+    .await
+    .unwrap();
+    println!("{:?}", partial_extrinsic.signer_payload());
+}
 #[tokio::test]
 #[serial]
 async fn integration_test_sign_public() {
