@@ -215,7 +215,7 @@ async fn run_command() -> anyhow::Result<String> {
                 );
             }
 
-            let (registered_info, keyshare_option) = register(
+            let (verifying_key, registered_info, keyshare_option) = register(
                 &api,
                 &rpc,
                 program_keypair.clone(),
@@ -233,7 +233,7 @@ async fn run_command() -> anyhow::Result<String> {
                 KeyShareFile::new(&verifying_key).write(keyshare)?;
             }
 
-            Ok(format!("{:?}", registered_info))
+            Ok(format!("Verfiying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
         },
         CliCommand::Sign {
             signature_verifying_key,
