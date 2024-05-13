@@ -2443,6 +2443,7 @@ dependencies = [
  "hex",
  "js-sys",
  "num",
+ "parity-scale-codec",
  "rand_core 0.6.4",
  "reqwest 0.12.4",
  "serde",

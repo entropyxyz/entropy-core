@@ -55,7 +55,10 @@ async fn integration_test_sign_partial() {
     )
     .await
     .unwrap();
-    println!("{:?}", partial_extrinsic.signer_payload());
+    println!("Signer payload: {:?}", partial_extrinsic.signer_payload());
+    println!("Call data: {:?}", partial_extrinsic.call_data());
+    let call = test_client::decode_partial_balance_tx(partial_extrinsic.call_data().to_vec());
+    println!("{:?}", call);
 }
 #[tokio::test]
 #[serial]

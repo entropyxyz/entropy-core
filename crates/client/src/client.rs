@@ -46,6 +46,7 @@ use entropy_protocol::{
 };
 use entropy_shared::HashingAlgorithm;
 use futures::{future, stream::StreamExt};
+use parity_scale_codec::Decode;
 use sp_core::{sr25519, Pair};
 use std::time::SystemTime;
 use subxt::{
@@ -385,6 +386,11 @@ pub async fn create_partial_balance_tx(
         entropy::tx().balances().transfer_allow_death(subxt::utils::MultiAddress::Id(to), amount);
 
     Ok(create_partial_extrinsic(api, rpc, &call, from).await?)
+}
+
+pub fn decode_partial_balance_tx(input: Vec<u8>) -> entropy::balances::Call {
+    let call = entropy::balances::Call::decode(&mut input.as_ref()).unwrap();
+    call
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number
