@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
-use entropy_protocol::errors::UserRunningProtocolErr;
 use thiserror::Error;
 
 /// Error relating to submitting an extrinsic or querying the chain
@@ -62,7 +61,7 @@ pub enum ClientError {
     #[error("UTF8: {0}")]
     Utf8(#[from] std::str::Utf8Error),
     #[error("User running protocol: {0}")]
-    UserRunningProtocol(#[from] UserRunningProtocolErr),
+    UserRunningProtocol(#[from] entropy_protocol::errors::UserRunningProtocolErr),
     #[error("Subxt: {0}")]
     Subxt(#[from] subxt::Error),
     #[error("Timed out waiting for register confirmation")]
@@ -101,4 +100,6 @@ pub enum ClientError {
     SubgroupFetch,
     #[error("Cannot query whether validator is synced")]
     CannotQuerySynced,
+    #[error("Verifying key has incorrect length")]
+    BadVerifyingKeyLength,
 }
