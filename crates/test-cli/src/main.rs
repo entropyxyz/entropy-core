@@ -69,11 +69,8 @@ struct Cli {
 enum CliCommand {
     /// Register with Entropy and create keyshares
     Register {
-        /// A name from which to generate a signature request keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        signature_request_account_name: String,
         /// A name from which to generate a program modification keypair, eg: "Bob"
+        /// This is used to send the register extrinsic and so it must be funded
         ///
         /// Optionally may be preceeded with "//" eg: "//Bob"
         program_account_name: String,
@@ -95,16 +92,18 @@ enum CliCommand {
     },
     /// Ask the network to sign a given message
     Sign {
-        /// A name from which to generate a keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        user_account_name: String,
         /// The verifying key of the account to sign with, given as hex
         signature_verifying_key: String,
         /// The message to be signed
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
+        /// A name from which to generate a keypair, eg: "Alice"
+        /// This is only needed when using private mode.
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
+        #[arg(short, long)]
+        program_account_name: Option<String>,
     },
     /// Update the program for a particular account
     UpdatePrograms {
@@ -194,16 +193,7 @@ async fn run_command() -> anyhow::Result<String> {
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register {
-            signature_request_account_name,
-            program_account_name,
-            key_visibility,
-            programs,
-        } => {
-            let signature_request_keypair: sr25519::Pair =
-                SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {}", signature_request_keypair.public());
-
+        CliCommand::Register { program_account_name, key_visibility, programs } => {
             let program_keypair: sr25519::Pair =
                 SeedString::new(program_account_name).try_into()?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
@@ -211,7 +201,7 @@ async fn run_command() -> anyhow::Result<String> {
 
             let (key_visibility_converted, x25519_secret) = match key_visibility {
                 Visibility::Private => {
-                    let x25519_secret = derive_x25519_static_secret(&signature_request_keypair);
+                    let x25519_secret = derive_x25519_static_secret(&program_keypair);
                     let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
                     (KeyVisibility::Private(x25519_public.to_bytes()), Some(x25519_secret))
                 },
@@ -228,7 +218,7 @@ async fn run_command() -> anyhow::Result<String> {
             let (registered_info, keyshare_option) = register(
                 &api,
                 &rpc,
-                signature_request_keypair.clone(),
+                program_keypair.clone(),
                 program_account,
                 key_visibility_converted,
                 BoundedVec(programs_info),
@@ -238,30 +228,41 @@ async fn run_command() -> anyhow::Result<String> {
 
             // If we got a keyshare, write it to a file
             if let Some(keyshare) = keyshare_option {
-                KeyShareFile::new(signature_request_keypair.public()).write(keyshare)?;
+                let verifying_key =
+                    keyshare.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+                KeyShareFile::new(&verifying_key).write(keyshare)?;
             }
 
             Ok(format!("{:?}", registered_info))
         },
-        CliCommand::Sign { user_account_name, signature_verifying_key, message, auxilary_data } => {
-            let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
+        CliCommand::Sign {
+            signature_verifying_key,
+            message,
+            auxilary_data,
+            program_account_name,
+        } => {
+            // If an account name is not provided, use the signature verifying key
+            let user_keypair: sr25519::Pair = SeedString::new(
+                program_account_name.unwrap_or_else(|| signature_verifying_key.clone()),
+            )
+            .try_into()?;
             println!("User account: {}", user_keypair.public());
 
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
 
+            let signature_verifying_key: [u8; VERIFYING_KEY_LENGTH] =
+                hex::decode(signature_verifying_key)?
+                    .try_into()
+                    .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
+
             // If we have a keyshare file for this account, get it
-            let private_keyshare = KeyShareFile::new(user_keypair.public()).read().ok();
+            let private_keyshare = KeyShareFile::new(&signature_verifying_key.to_vec()).read().ok();
 
             let private_details = private_keyshare.map(|keyshare| {
                 let x25519_secret = derive_x25519_static_secret(&user_keypair);
                 (keyshare, x25519_secret)
             });
-
-            let signature_verifying_key: [u8; VERIFYING_KEY_LENGTH] =
-                hex::decode(signature_verifying_key)?
-                    .try_into()
-                    .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
 
             let recoverable_signature = sign(
                 &api,
@@ -382,7 +383,7 @@ async fn run_command() -> anyhow::Result<String> {
                 );
                 for (hash, program_info) in programs {
                     println!(
-                        "{} {} {:>11} {:>14} {} {}",
+                        "{} {} {:>11} {:>14} {:<13} {}",
                         hash,
                         program_info.deployer,
                         program_info.ref_counter,
@@ -421,8 +422,8 @@ impl TryFrom<SeedString> for sr25519::Pair {
 struct KeyShareFile(String);
 
 impl KeyShareFile {
-    fn new(public_key: sr25519::Public) -> Self {
-        Self(format!("keyshare-{}", hex::encode(public_key.0)))
+    fn new(verifying_key: &Vec<u8>) -> Self {
+        Self(format!("keyshare-{}", hex::encode(verifying_key)))
     }
 
     fn read(&self) -> anyhow::Result<KeyShare<KeyParams>> {
