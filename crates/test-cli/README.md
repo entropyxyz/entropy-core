@@ -101,9 +101,10 @@ given as a hash of an existing program:
 When registering with private access mode, a keyshare file will be written to the directory where you
 run the command. You must make subsequent `sign` commands in the same directory.
 
-Once you have successfully registered you can run the `status` command again and you should see the
-account you registered. The 'verifying key' field is the public secp256k1 key of the distributed
-keypair used to sign messages from the Entropy account.
+If registration was successful you will see the verifying key of your account, which is the public
+secp256k1 key of your distributed keypair. You will need this in order to specify the account when
+requesting to sign a message. If you run the `status` command again and you should see the account
+you registered.
 
 ### Sign
 
