@@ -95,6 +95,7 @@ pub struct UserRegistrationInfo {
     pub value: Vec<u8>,
     /// Is this a proactive refresh message
     pub proactive_refresh: bool,
+    pub sig_request_address: Option<SubxtAccountId32>,
 }
 
 /// Type that gets stored for request limit checks
@@ -331,6 +332,7 @@ async fn setup_dkg(
             key: string_verifying_key,
             value: serialized_key_share,
             proactive_refresh: false,
+            sig_request_address: Some(sig_request_address.clone()),
         };
         send_key(
             &api,
@@ -414,8 +416,9 @@ pub async fn receive_key(
         let registering = is_registering(
             &api,
             &rpc,
-            &SubxtAccountId32::from_str(&user_registration_info.key)
-                .map_err(|_| UserErr::StringError("Account Conversion"))?,
+            &user_registration_info.sig_request_address.ok_or_else(|| {
+                UserErr::OptionUnwrapError("Failed to unwrap account".to_string())
+            })?,
         )
         .await?;
 
