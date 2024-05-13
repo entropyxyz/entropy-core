@@ -81,7 +81,8 @@ pub async fn register(
     key_visibility: KeyVisibility,
     programs_data: BoundedVec<ProgramInstance>,
     x25519_secret_key: Option<StaticSecret>,
-) -> Result<(RegisteredInfo, Option<KeyShare<KeyParams>>), ClientError> {
+) -> Result<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo, Option<KeyShare<KeyParams>>), ClientError>
+{
     // Send register transaction
     put_register_request_on_chain(
         api,
@@ -130,12 +131,14 @@ pub async fn register(
             EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
         for event in registered_event.flatten() {
+            // check if the event belongs to this user
             if event.0 == account_id {
                 let registered_query = entropy::storage().registry().registered(&event.1);
                 let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
                 if let Some(status) = registered_status {
-                    // check if the event belongs to this user
-                    return Ok((status, keyshare_option));
+                    let verifying_key =
+                        event.1 .0.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
+                    return Ok((verifying_key, status, keyshare_option));
                 }
             }
         }

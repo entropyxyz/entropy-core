@@ -100,4 +100,6 @@ pub enum ClientError {
     SubgroupFetch,
     #[error("Cannot query whether validator is synced")]
     CannotQuerySynced,
+    #[error("Verifying key has incorrect length")]
+    BadVerifyingKeyLength,
 }
