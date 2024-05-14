@@ -95,6 +95,7 @@ pub struct UserRegistrationInfo {
     pub value: Vec<u8>,
     /// Is this a proactive refresh message
     pub proactive_refresh: bool,
+    /// The sig_req_account to check if user is registering
     pub sig_request_address: Option<SubxtAccountId32>,
 }
 
