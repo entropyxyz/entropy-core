@@ -40,7 +40,11 @@ pub fn endowed_accounts_dev(is_prod: bool) -> (Vec<AccountId>, Vec<AccountId>) {
             serde_json::from_str(&data).expect("JSON parse error");
         externally_endowed_accounts.append(&mut incoming_accounts)
     };
-    let mut inital_accounts = vec![];
+    let mut inital_accounts = vec![
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+    ];
     if !is_prod {
         inital_accounts = vec![
             get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -59,9 +63,6 @@ pub fn endowed_accounts_dev(is_prod: bool) -> (Vec<AccountId>, Vec<AccountId>) {
             get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
             get_account_id_from_seed::<sr25519::Public>("One//stash"),
             get_account_id_from_seed::<sr25519::Public>("Two//stash"),
-            crate::chain_spec::tss_account_id::ALICE.clone(),
-            crate::chain_spec::tss_account_id::BOB.clone(),
-            crate::chain_spec::tss_account_id::CHARLIE.clone(),
         ];
     }
 
