@@ -149,9 +149,10 @@ jobs:
             - install-dependencies-and-checkout
             - run:
                 command: |
-                    cargo run -p entropy -- build-spec --raw --chain dev > /dev/null 2>&1
-                    cargo run -p entropy -- build-spec --raw --chain integration-tests > /dev/null 2>&1
-                    cargo run -p entropy -- build-spec --raw --chain testnet > /dev/null 2>&1
+                    cargo run -p entropy -- build-spec --raw --chain dev > chainspec-dev-raw.json
+                    cargo run -p entropy -- build-spec --raw --chain integration-tests > chainspec-integration-raw.json
+                    cargo run -p entropy -- build-spec --raw --chain testnet > chainspec-testnet-raw.json
+
 
 parameters:
     crates:
