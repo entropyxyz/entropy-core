@@ -758,11 +758,7 @@ async fn test_store_share() {
         .await
         .unwrap();
 
-    assert_eq!(response_not_validator.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(
-        response_not_validator.text().await.unwrap(),
-        "Invalid Signer: Invalid Signer in Signing group"
-    );
+    assert_eq!(response_not_validator.status(), StatusCode::MISDIRECTED_REQUEST);
 
     check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
     // TODO check if key is in other subgroup member
