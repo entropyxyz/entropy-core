@@ -298,10 +298,10 @@ pub fn testnet_genesis_config(
         "Each validator node needs to have an accompanying threshold server."
     );
 
+    // Note that any endowed_accounts added here will be included in the `elections` and
+    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
+    // this list.
     let mut endowed_accounts = vec![];
-
-    // We first add any external testnet accounts which we want to endow with funds
-    endowed_accounts.append(&mut endowed_testnet_accounts());
 
     // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
     // both a validator and root.
@@ -358,9 +358,11 @@ pub fn testnet_genesis_config(
     const SIGNING_GROUPS: usize = 2;
 
     serde_json::json!( {
-
         "balances": BalancesConfig {
-            balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+            balances: endowed_accounts
+                        .iter()
+                        .chain(endowed_testnet_accounts().iter())
+                        .cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {

@@ -92,10 +92,10 @@ pub fn development_genesis_config(
     root_key: AccountId,
     threshold_server_endpoints: Vec<&str>,
 ) -> serde_json::Value {
+    // Note that any endowed_accounts added here will be included in the `elections` and
+    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
+    // this list.
     let mut endowed_accounts = vec![];
-
-    // We first endow any development accounts
-    endowed_accounts.append(&mut endowed_accounts_dev());
 
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
@@ -129,7 +129,10 @@ pub fn development_genesis_config(
 
     serde_json::json!({
         "balances": BalancesConfig {
-            balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+            balances: endowed_accounts
+                        .iter()
+                        .chain(endowed_accounts_dev().iter())
+                        .cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {
