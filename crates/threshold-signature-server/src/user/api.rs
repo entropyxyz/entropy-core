@@ -417,7 +417,7 @@ pub async fn receive_key(
             &api,
             &rpc,
             &user_registration_info.sig_request_address.ok_or_else(|| {
-                UserErr::OptionUnwrapError("Failed to unwrap account".to_string())
+                UserErr::OptionUnwrapError("Failed to unwrap signature request account".to_string())
             })?,
         )
         .await?;
