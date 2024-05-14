@@ -141,6 +141,13 @@ jobs:
         steps:
             - install-dependencies-and-checkout
             - run: cargo doc --no-deps
+    check-testnet-chainspec:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run: cargo run -p entropy -- build-spec --raw --chain testnet > /dev/null 2>&1
 
 parameters:
     crates:
@@ -172,6 +179,9 @@ workflows:
                 - << pipeline.parameters.pallets >>
                 - << pipeline.parameters.runtime >>
                 - pipeline.parameters.crates
+    chainspec:
+        jobs:
+            - check-testnet-chainspec
     documentation:
         jobs:
             - check-doc-build
