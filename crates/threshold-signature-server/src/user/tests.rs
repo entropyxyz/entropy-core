@@ -790,6 +790,7 @@ async fn test_send_and_receive_keys() {
 
     let alice = AccountKeyring::Alice;
     let program_manager = AccountKeyring::Dave;
+    let signature_request_account = subxtAccountId32(alice.pair().public().0);
 
     let cxt = test_context_stationary().await;
     setup_client().await;
@@ -805,6 +806,7 @@ async fn test_send_and_receive_keys() {
         key: alice.to_account_id().to_string(),
         value: share.clone(),
         proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
     };
 
     let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
@@ -888,6 +890,7 @@ async fn test_send_and_receive_keys() {
         key: alice.to_account_id().to_string(),
         value: some_other_share.clone(),
         proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
     };
 
     let signed_message = serde_json::to_string(
@@ -929,6 +932,7 @@ async fn test_send_and_receive_keys() {
         key: "MNEMONIC".to_string(),
         value: share.clone(),
         proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
     };
 
     let signed_message = serde_json::to_string(
@@ -958,6 +962,7 @@ async fn test_send_and_receive_keys() {
         key: alice.to_account_id().to_string(),
         value: b"This will not deserialize to KeyShare<KeyParams>".to_vec(),
         proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
     };
 
     let signed_message = serde_json::to_string(

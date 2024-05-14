@@ -143,6 +143,7 @@ pub async fn proactive_refresh(
                     key,
                     value: serialized_key_share,
                     proactive_refresh: true,
+                    sig_request_address: None,
                 };
 
                 app_state.kv_store.kv().delete(&new_key_info.key).await?;
