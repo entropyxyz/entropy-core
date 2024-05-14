@@ -362,7 +362,9 @@ pub fn testnet_genesis_config(
             balances: endowed_accounts
                         .iter()
                         .chain(endowed_testnet_accounts().iter())
-                        .cloned().map(|x| (x, ENDOWMENT)).collect(),
+                        .cloned()
+                        .map(|x| (x, ENDOWMENT))
+                        .collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {
