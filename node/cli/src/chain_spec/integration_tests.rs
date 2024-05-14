@@ -29,6 +29,7 @@ use entropy_shared::{
     INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
+use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
@@ -113,6 +114,7 @@ pub fn integration_tests_genesis_config(
                         .chain(endowed_accounts_dev().iter())
                         .cloned()
                         .map(|x| (x, ENDOWMENT))
+                        .unique()
                         .collect(),
         },
         "indices": IndicesConfig { indices: vec![] },

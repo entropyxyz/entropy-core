@@ -29,6 +29,7 @@ use entropy_shared::{
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
+use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -364,6 +365,7 @@ pub fn testnet_genesis_config(
                         .chain(endowed_testnet_accounts().iter())
                         .cloned()
                         .map(|x| (x, ENDOWMENT))
+                        .unique()
                         .collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
