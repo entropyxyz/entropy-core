@@ -27,7 +27,9 @@ pub struct AddressStruct {
     name: String,
 }
 
-pub fn endowed_accounts_dev(is_prod: bool) -> (Vec<AccountId>, Vec<AccountId>) {
+/// These are accounts which are populated from an external source, with the intention of them
+/// being funded an ready to use in a `testnet` configuration.
+pub fn endowed_testnet_accounts() -> Vec<AccountId> {
     // handle user submitted file for tokens
     let mut externally_endowed_accounts: Vec<AddressStruct> = Vec::new();
     let project_root = get_project_root();
@@ -40,37 +42,38 @@ pub fn endowed_accounts_dev(is_prod: bool) -> (Vec<AccountId>, Vec<AccountId>) {
             serde_json::from_str(&data).expect("JSON parse error");
         externally_endowed_accounts.append(&mut incoming_accounts)
     };
-    let mut inital_accounts = vec![];
-    if !is_prod {
-        inital_accounts = vec![
-            get_account_id_from_seed::<sr25519::Public>("Alice"),
-            get_account_id_from_seed::<sr25519::Public>("Bob"),
-            get_account_id_from_seed::<sr25519::Public>("Charlie"),
-            get_account_id_from_seed::<sr25519::Public>("Dave"),
-            get_account_id_from_seed::<sr25519::Public>("Eve"),
-            get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-            get_account_id_from_seed::<sr25519::Public>("One"),
-            get_account_id_from_seed::<sr25519::Public>("Two"),
-            get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-            get_account_id_from_seed::<sr25519::Public>("One//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Two//stash"),
-            crate::chain_spec::tss_account_id::ALICE.clone(),
-            crate::chain_spec::tss_account_id::BOB.clone(),
-            crate::chain_spec::tss_account_id::CHARLIE.clone(),
-        ];
-    }
 
-    let mut funded_accounts = inital_accounts.clone();
+    let mut funded_accounts = vec![];
     for address in externally_endowed_accounts {
         funded_accounts.push(AccountId::from_string(&address.address).unwrap_or_else(|_| {
             panic!("failed to convert a testnet_address address: {:?}", address)
         }))
     }
 
-    (inital_accounts, funded_accounts)
+    funded_accounts
+}
+
+/// Development accounts which correspond to our usual cast of characters (e.g `//Alice`, `//Bob`).
+pub fn endowed_accounts_dev() -> Vec<AccountId> {
+    vec![
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        get_account_id_from_seed::<sr25519::Public>("Bob"),
+        get_account_id_from_seed::<sr25519::Public>("Charlie"),
+        get_account_id_from_seed::<sr25519::Public>("Dave"),
+        get_account_id_from_seed::<sr25519::Public>("Eve"),
+        get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+        get_account_id_from_seed::<sr25519::Public>("One"),
+        get_account_id_from_seed::<sr25519::Public>("Two"),
+        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+        get_account_id_from_seed::<sr25519::Public>("One//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Two//stash"),
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+    ]
 }

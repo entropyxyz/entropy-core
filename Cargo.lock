@@ -2369,6 +2369,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "futures",
  "hex-literal",
+ "itertools 0.12.1",
  "jsonrpsee 0.20.3",
  "lazy_static",
  "log",
