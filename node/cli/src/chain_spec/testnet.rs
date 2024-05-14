@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
-use crate::endowed_accounts::endowed_accounts_dev;
+use crate::endowed_accounts::endowed_testnet_accounts;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -298,16 +298,15 @@ pub fn testnet_genesis_config(
         "Each validator node needs to have an accompanying threshold server."
     );
 
-    let (mut endowed_accounts, mut funded_accounts) = endowed_accounts_dev(true);
+    let mut endowed_accounts = vec![];
+
+    // We first add any external testnet accounts which we want to endow with funds
+    endowed_accounts.append(&mut endowed_testnet_accounts());
 
     // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
     // both a validator and root.
     if !endowed_accounts.contains(&root_key) {
         endowed_accounts.push(root_key.clone());
-    }
-
-    if !funded_accounts.contains(&root_key) {
-        funded_accounts.push(root_key.clone());
     }
 
     // We endow the:
@@ -361,7 +360,7 @@ pub fn testnet_genesis_config(
     serde_json::json!( {
 
         "balances": BalancesConfig {
-            balances: funded_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+            balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {
