@@ -262,8 +262,12 @@ pub async fn new_user(
         check_in_registration_group(&data.validators_info, signer.account_id());
 
     if in_registration_group.is_err() {
-        tracing::Span::current()
-            .record("not in registration group for block_number", data.block_number);
+        tracing::warn!(
+            "The account {:?} is not in the registration group for block_number {:?}",
+            signer.account_id(),
+            data.block_number
+        );
+
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
