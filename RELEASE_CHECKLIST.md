@@ -68,8 +68,15 @@ tagged as the final release.
     - Binaries and Docker images for `entropy` and `entropy-tss` packages will be published by the
       CI (images can be found at https://hub.docker.com/u/entropyxyz)
 - [ ] Publish necessary crates to crates.io
-    - There is a required ordering here, e.g you cannot simply publish `entropy-tss` without first
-      publishing all its dependencies
+    - Use the `cargo publish --dry-run` command before actually publishing!
+    - Here is the recommended ordering for publishing:
+        - `entropy-shared`
+        - `entropy-protocol`
+        - `entropy-kvdb`
+        - `entropy-client`
+        - `entropy-tss`
+        - `entropy-testing-utils`
+        - `entropy-test-cli`
 
 ## Publish Release
 - [ ] Publish a release on GitHub
