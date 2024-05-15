@@ -83,9 +83,11 @@ ethers-core          ="2.0.14"
 schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
 schemars             ={ version="0.8.19" }
 
-# Note: We don't specify versions here because otherwise it would case a small cyclical dependency
-# that Cargo can't resolve. By not specifying a version the crates get removed during the publishing
-# process, allowing it to succeed.
+# Note: We don't specify versions here because otherwise we run into a cyclical dependency between
+# `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.
+#
+# By not specifying a version Cargo automatically removes these crates before publishing, allowing
+# the process to succeed.
 #
 # See: https://github.com/rust-lang/cargo/issues/4242
 entropy-client       ={ path="../client", features=["full-client-native"] }
