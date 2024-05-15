@@ -7,7 +7,6 @@ homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
 repository ='https://github.com/entropyxyz/entropy-core'
 edition    ='2021'
-publish    =false
 
 [dependencies]
 subxt             ="0.35.3"
