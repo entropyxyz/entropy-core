@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-testing-utils"
-description="Utiliites for testing the Entropy Threshold Signature Server"
+description="Utilities for testing the Entropy Threshold Signature Server"
 version    ='0.1.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
