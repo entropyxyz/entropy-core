@@ -7,7 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...master)
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0-rc.1...master)
+
+## [0.1.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0-rc.1) - 2024-05-15
+
+### Changed
+- Make full version of entropy-client possible to compile on wasm ([#816](https://github.com/entropyxyz/entropy-core/pull/816))
+- Remove certain endowed accounts from chain ([#819](https://github.com/entropyxyz/entropy-core/pull/819))
+- Updates for test-cli before publishing and to work nicely with v0.0.12 ([#830](https://github.com/entropyxyz/entropy-core/pull/830))
+
+### Fixed
+- Fix `Account Deserialization` error from verifying key mismatch ([#831](https://github.com/entropyxyz/entropy-core/pull/831))
 
 ## [0.0.12](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...release/v0.0.12) - 2024-05-02
 
