@@ -5,7 +5,7 @@ tagged as the final release.
 
 ## Pre-Prep
 - [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Discord)
-- [ ] Create a release branch, e.g., for release candidate number one: `release/vX.Y.Z-rc1`.
+- [ ] Create a release branch, e.g., for release candidate `1`: `release/vX.Y.Z-rc.1`.
 
 ## Prep the Runtime and Node
 - [ ] If runtime behaviour has changed, bump `spec_version` and set `impl_version` to `0`
@@ -16,17 +16,16 @@ tagged as the final release.
 - [ ] If you're confused about what to bump, read [this](https://paritytech.github.io/polkadot-sdk/master/sp_version/struct.RuntimeVersion.html)
 - [ ] Update runtime benchmarks
     - `cargo build -p entropy --release --features runtime-benchmarks && ./scripts/benchmarks.sh`
+    - Note: These should ideally be run on [reference hardware](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware) (i.e `c6i.4xlarge` on AWS)
 - [ ] Bump `version` in TOML manifests
-    - For crates with `publish = false`, bump `PATCH` version
-    - For crates with `publish = true`, bump based off [SemVer](https://semver.org/)
+    - If there are breaking changes, bump the `MINOR` version, otherwise bump the `PATCH` version
 - [ ] Update runtime metadata
     - `cargo run -p entropy -- --dev`
     - `./scripts/pull_entropy_metadata.sh`
 
 ## Prep the Threshold Signing Server (TSS)
 - [ ] Bump `version` in TOML manifests
-    - For crates with `publish = false`, bump `PATCH` version
-    - For crates with `publish = true`, bump based off [SemVer](https://semver.org/)
+    - If there are breaking changes, bump the `MINOR` version, otherwise bump the `PATCH` version
 
 ## Prep the `CHANGELOG`
 - [ ] Ensure `CHANGELOG` entries are up to date
@@ -46,17 +45,24 @@ tagged as the final release.
     - Make sure nothing has gone into `master` in the meantime or you may have you repeat the
       previous steps!
 
-## Publish Artifacts and Release
+## Publish Artifacts
 - [ ] Ensure **all** CI checks on `master` pass
 - [ ] Create a Git tag From the squashed release PR commit on `master`
     - Make sure to follow [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
-    - `git tag release/vX.X.X-rc1` - meaning release candidate number 1. If all goes well this can
-      later by tagged as `release/vX.X.X`
+    - `git tag release/vX.Y.Z-rc.1` - meaning release candidate number 1. If all goes well this can
+      later by tagged as `release/vX.Y.Z`
     - Nice to have: sign the tag with an offline GPG key (`git tag -s ...`)
 - [ ] Push tag to build and publish artifacts
-    - `git push origin release/vX.X.X-rc1`
-    - Binaries and Docker images for `entropy` and `server` packages will be published by the CI
+    - `git push origin release/vX.Y.Z-rc.1`
+    - Binaries and Docker images for `entropy` and `entropy-tss` packages will be published by the
+      CI (images can be found at https://hub.docker.com/u/entropyxyz)
+- [ ] Verify that the network can be run with Ansible
+    - TODO (Nando): Add instructions or link for this
+- [ ] Using the `entropy-test-cli`, check that registration and signature requests work as expected
+    - TODO (Nando): Add instructions or link for this
 - [ ] Publish necessary crates to crates.io
+
+## Publish Release
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
@@ -64,4 +70,4 @@ tagged as the final release.
 - [ ] If something turns out to not work correctly when using the release, make a fix and then make
   a new tag with a new release candidate - eg: `release/vX.X.X-rc2`.
 - [ ] At some point when it is clear that everything works, tag the chosen release candidate as
-  `release/vX.X.X`.
+      `release/vX.X.X`.
