@@ -258,7 +258,19 @@ pub async fn new_user(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
-    check_in_registration_group(&data.validators_info, signer.account_id())?;
+    let in_registration_group =
+        check_in_registration_group(&data.validators_info, signer.account_id());
+
+    if in_registration_group.is_err() {
+        tracing::warn!(
+            "The account {:?} is not in the registration group for block_number {:?}",
+            signer.account_id(),
+            data.block_number
+        );
+
+        return Ok(StatusCode::MISDIRECTED_REQUEST);
+    }
+
     validate_new_user(&data, &api, &rpc, &app_state.kv_store).await?;
 
     // Do the DKG protocol in another task, so we can already respond
