@@ -1,7 +1,7 @@
 [package]
 name       ='entropy-runtime'
 description="The substrate runtime for the Entropy chain node"
-version    ='0.0.12'
+version    ='0.1.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
@@ -95,15 +95,15 @@ pallet-utility                               ={ version="29.0.0", default-featur
 pallet-vesting                               ={ version="29.0.0", default-features=false }
 
 # Entropy Pallets
-pallet-programs         ={ version='0.0.12', path='../pallets/programs', default-features=false }
-pallet-propagation      ={ version='0.0.12', path='../pallets/propagation', default-features=false }
-pallet-registry         ={ version='0.0.12', path='../pallets/registry', default-features=false }
-pallet-slashing         ={ version='0.0.12', path='../pallets/slashing', default-features=false }
-pallet-staking-extension={ version='0.0.12', path='../pallets/staking', default-features=false }
-pallet-transaction-pause={ version='0.0.12', path='../pallets/transaction-pause', default-features=false }
-pallet-parameters       ={ version='0.0.12', path='../pallets/parameters', default-features=false }
+pallet-programs         ={ version='0.1.0-rc.1', path='../pallets/programs', default-features=false }
+pallet-propagation      ={ version='0.1.0-rc.1', path='../pallets/propagation', default-features=false }
+pallet-registry         ={ version='0.1.0-rc.1', path='../pallets/registry', default-features=false }
+pallet-slashing         ={ version='0.1.0-rc.1', path='../pallets/slashing', default-features=false }
+pallet-staking-extension={ version='0.1.0-rc.1', path='../pallets/staking', default-features=false }
+pallet-transaction-pause={ version='0.1.0-rc.1', path='../pallets/transaction-pause', default-features=false }
+pallet-parameters       ={ version='0.1.0-rc.1', path='../pallets/parameters', default-features=false }
 
-entropy-shared={ version="0.0.12", path="../crates/shared", default-features=false, features=[
+entropy-shared={ version="0.1.0-rc.1", path="../crates/shared", default-features=false, features=[
   "wasm-no-std",
 ] }
 
