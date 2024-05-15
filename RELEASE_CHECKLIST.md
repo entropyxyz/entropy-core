@@ -38,7 +38,18 @@ tagged as the final release.
       well documented in the `CHANGELOG`
 - [ ] Move entries from `[Unreleased]` header to the new version header (`[X.X.X]`)
 
-## Merge Release Branch
+## Release Branch and Local Network Checks
+- [ ] Publish a test release tag
+    - E.g `git tag test/hc/release/vX.Y.Z-rc.1 && git push origin test/hc/release/vX.Y.Z-rc.1`
+- [ ] Sanity check the release using the local Docker Compose network and the `entropy-test-cli`
+    - Change the `image` in `docker-compose-common.yaml` to use the published ones from above
+    - Spin up the network using `docker compose up`
+    - Register an account using:
+        - `cargo run -p entropy-test-cli -- register \
+            One public ./crates/testing-utils/template_barebones.wasm`
+    - Request a signature using:
+        - `cargo run -p entropy-test-cli -- sign \
+            $VERIFYING_KEY "Hello, Docker Compose"`
 - [ ] Open a PR targeting `master`
 - [ ] Get approvals from Entropy core devs
 - [ ] Merge release PR into `master`
@@ -56,18 +67,21 @@ tagged as the final release.
     - `git push origin release/vX.Y.Z-rc.1`
     - Binaries and Docker images for `entropy` and `entropy-tss` packages will be published by the
       CI (images can be found at https://hub.docker.com/u/entropyxyz)
-- [ ] Verify that the network can be run with Ansible
-    - TODO (Nando): Add instructions or link for this
-- [ ] Using the `entropy-test-cli`, check that registration and signature requests work as expected
-    - TODO (Nando): Add instructions or link for this
 - [ ] Publish necessary crates to crates.io
+    - There is a required ordering here, e.g you cannot simply publish `entropy-tss` without first
+      publishing all its dependencies
 
 ## Publish Release
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
 - [ ] Inform relevant parties (e.g, by posting on Discord)
-- [ ] If something turns out to not work correctly when using the release, make a fix and then make
-  a new tag with a new release candidate - eg: `release/vX.X.X-rc2`.
-- [ ] At some point when it is clear that everything works, tag the chosen release candidate as
-      `release/vX.X.X`.
+
+## Promote Release Candidate
+- [ ] If something turns out to not work correctly when using the release, follow this checklist
+      again to make a new release candidate, e.g `release/vX.Y.Z-rc.2`
+- [ ] At some point when it is clear that everything works, open a PR changing the workspace version
+      numbers from `X.Y.Z-rc.N` to `X.Y.Z`
+- [ ] Get approvals from one Core member and other teams (e.g DevOps and SDK)
+- [ ] Follow the `Publish Artifacts` steps to make new artifacts
+- [ ] Follow the `Publish Release` steps again to make a new release
