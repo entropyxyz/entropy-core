@@ -194,7 +194,7 @@ async fn run_command() -> anyhow::Result<String> {
 
     match cli.command {
         CliCommand::Register { mnemonic, key_visibility, programs } => {
-            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None).unwrap();
+            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {}", program_keypair.public());
 
@@ -239,8 +239,7 @@ async fn run_command() -> anyhow::Result<String> {
             let user_keypair = <sr25519::Pair as Pair>::from_string(
                 &mnemonic.unwrap_or_else(|| "//Alice".to_string()),
                 None,
-            )
-            .unwrap();
+            )?;
 
             println!("User account: {}", user_keypair.public());
 
@@ -278,7 +277,7 @@ async fn run_command() -> anyhow::Result<String> {
             config_interface_file,
             aux_data_interface_file,
         } => {
-            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None).unwrap();
+            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Storing program using account: {}", keypair.public());
 
             let program = match program_file {
@@ -309,7 +308,7 @@ async fn run_command() -> anyhow::Result<String> {
             Ok(format!("Program stored {hash}"))
         },
         CliCommand::UpdatePrograms { signature_verifying_key, mnemonic, programs } => {
-            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None).unwrap();
+            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Program account: {}", program_keypair.public());
 
             let mut programs_info = Vec::new();
