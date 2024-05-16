@@ -1,13 +1,12 @@
 [package]
 name       ="entropy-testing-utils"
-description="Utiliites for testing the Entropy Threshold Signature Server"
+description="Utilities for testing the Entropy Threshold Signature Server"
 version    ='0.1.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
 repository ='https://github.com/entropyxyz/entropy-core'
 edition    ='2021'
-publish    =false
 
 [dependencies]
 subxt             ="0.35.3"
