@@ -63,14 +63,10 @@ struct Cli {
 enum CliCommand {
     /// Register with Entropy and create keyshares
     Register {
-        /// A name from which to generate a signature request keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        signature_request_account_name: String,
-        /// A name from which to generate a program modification keypair, eg: "Bob"
+        /// This is a string of the mnemonic to be passed
         ///
         /// Optionally may be preceeded with "//" eg: "//Bob"
-        program_account_name: String,
+        mnemonic: String,
         /// Either hex-encoded hashes of existing programs, or paths to wasm files to store.
         ///
         /// Specifying program configurations
@@ -86,16 +82,18 @@ enum CliCommand {
     },
     /// Ask the network to sign a given message
     Sign {
-        /// A name from which to generate a keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        user_account_name: String,
         /// The verifying key of the account to sign with, given as hex
         signature_verifying_key: String,
         /// The message to be signed
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
+        /// A name from which to generate a keypair, eg: "Alice"
+        /// This is only needed when using private mode.
+        ///
+        /// Optionally may be preceeded with "//", eg: "//Alice"
+        #[arg(short, long)]
+        mnemonic: Option<String>,
     },
     /// Update the program for a particular account
     UpdatePrograms {
@@ -104,7 +102,7 @@ enum CliCommand {
         /// A name from which to generate a program modification keypair, eg: "Bob"
         ///
         /// Optionally may be preceeded with "//", eg: "//Bob"
-        program_account_name: String,
+        mnemonic: String,
         /// Either hex-encoded program hashes, or paths to wasm files to store.
         ///
         /// Specifying program configurations
@@ -123,7 +121,7 @@ enum CliCommand {
         /// A name from which to generate a keypair, eg: "Alice"
         ///
         /// Optionally may be preceeded with "//", eg: "//Alice"
-        deployer_name: String,
+        mnemonic: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
         program_file: Option<PathBuf>,
         /// The path to a file containing the program config interface (defaults to empty)
@@ -161,13 +159,8 @@ async fn run_command() -> anyhow::Result<String> {
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register { signature_request_account_name, program_account_name, programs } => {
-            let signature_request_keypair: sr25519::Pair =
-                SeedString::new(signature_request_account_name).try_into()?;
-            println!("Signature request account: {}", signature_request_keypair.public());
-
-            let program_keypair: sr25519::Pair =
-                SeedString::new(program_account_name).try_into()?;
+        CliCommand::Register { mnemonic, programs } => {
+            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {}", program_keypair.public());
 
@@ -179,19 +172,24 @@ async fn run_command() -> anyhow::Result<String> {
                 );
             }
 
-            let registered_info = register(
+            let (verifying_key, registered_info) = register(
                 &api,
                 &rpc,
-                signature_request_keypair.clone(),
+                program_keypair.clone(),
                 program_account,
                 BoundedVec(programs_info),
             )
             .await?;
 
-            Ok(format!("{:?}", registered_info))
+            Ok(format!("Verfiying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
         },
-        CliCommand::Sign { user_account_name, signature_verifying_key, message, auxilary_data } => {
-            let user_keypair: sr25519::Pair = SeedString::new(user_account_name).try_into()?;
+        CliCommand::Sign { signature_verifying_key, message, auxilary_data, mnemonic } => {
+            // If an account name is not provided, use the Alice key
+            let user_keypair = <sr25519::Pair as Pair>::from_string(
+                &mnemonic.unwrap_or_else(|| "//Alice".to_string()),
+                None,
+            )?;
+
             println!("User account: {}", user_keypair.public());
 
             let auxilary_data =
@@ -214,12 +212,12 @@ async fn run_command() -> anyhow::Result<String> {
             Ok(format!("Message signed: {:?}", recoverable_signature))
         },
         CliCommand::StoreProgram {
-            deployer_name,
+            mnemonic,
             program_file,
             config_interface_file,
             aux_data_interface_file,
         } => {
-            let keypair: sr25519::Pair = SeedString::new(deployer_name).try_into()?;
+            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Storing program using account: {}", keypair.public());
 
             let program = match program_file {
@@ -249,9 +247,8 @@ async fn run_command() -> anyhow::Result<String> {
             .await?;
             Ok(format!("Program stored {hash}"))
         },
-        CliCommand::UpdatePrograms { signature_verifying_key, program_account_name, programs } => {
-            let program_keypair: sr25519::Pair =
-                SeedString::new(program_account_name).try_into()?;
+        CliCommand::UpdatePrograms { signature_verifying_key, mnemonic, programs } => {
+            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Program account: {}", program_keypair.public());
 
             let mut programs_info = Vec::new();
@@ -314,7 +311,7 @@ async fn run_command() -> anyhow::Result<String> {
                 );
                 for (hash, program_info) in programs {
                     println!(
-                        "{} {} {:>11} {:>14} {} {}",
+                        "{} {} {:>11} {:>14} {:<13} {}",
                         hash,
                         program_info.deployer,
                         program_info.ref_counter,
@@ -327,25 +324,6 @@ async fn run_command() -> anyhow::Result<String> {
 
             Ok("Got status".to_string())
         },
-    }
-}
-
-/// A string from which to generate a sr25519 keypair for test accounts
-#[derive(Clone)]
-struct SeedString(String);
-
-impl SeedString {
-    fn new(seed_string: String) -> Self {
-        Self(if seed_string.starts_with("//") { seed_string } else { format!("//{}", seed_string) })
-    }
-}
-
-impl TryFrom<SeedString> for sr25519::Pair {
-    type Error = anyhow::Error;
-
-    fn try_from(seed_string: SeedString) -> Result<Self, Self::Error> {
-        let (keypair, _) = sr25519::Pair::from_string_with_seed(&seed_string.0, None)?;
-        Ok(keypair)
     }
 }
 

@@ -141,6 +141,18 @@ jobs:
         steps:
             - install-dependencies-and-checkout
             - run: cargo doc --no-deps
+    check-chainspecs:
+        machine:
+            image: ubuntu-2204:2022.10.2
+            resource_class: xlarge
+        steps:
+            - install-dependencies-and-checkout
+            - run:
+                command: |
+                    cargo run -p entropy -- build-spec --raw --chain dev > chainspec-dev-raw.json
+                    cargo run -p entropy -- build-spec --raw --chain integration-tests > chainspec-integration-raw.json
+                    cargo run -p entropy -- build-spec --raw --chain testnet > chainspec-testnet-raw.json
+
 
 parameters:
     crates:
@@ -172,6 +184,9 @@ workflows:
                 - << pipeline.parameters.pallets >>
                 - << pipeline.parameters.runtime >>
                 - pipeline.parameters.crates
+    chainspecs:
+        jobs:
+            - check-chainspecs
     documentation:
         jobs:
             - check-doc-build

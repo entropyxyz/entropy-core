@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
-use crate::endowed_accounts::endowed_accounts_dev;
+use crate::endowed_accounts::endowed_testnet_accounts;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -29,6 +29,7 @@ use entropy_shared::{
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
+use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -298,16 +299,15 @@ pub fn testnet_genesis_config(
         "Each validator node needs to have an accompanying threshold server."
     );
 
-    let (mut endowed_accounts, mut funded_accounts) = endowed_accounts_dev(true);
+    // Note that any endowed_accounts added here will be included in the `elections` and
+    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
+    // this list.
+    let mut endowed_accounts = vec![];
 
     // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
     // both a validator and root.
     if !endowed_accounts.contains(&root_key) {
         endowed_accounts.push(root_key.clone());
-    }
-
-    if !funded_accounts.contains(&root_key) {
-        funded_accounts.push(root_key.clone());
     }
 
     // We endow the:
@@ -358,9 +358,14 @@ pub fn testnet_genesis_config(
     const STASH: Balance = ENDOWMENT / 1000;
 
     serde_json::json!( {
-
         "balances": BalancesConfig {
-            balances: funded_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+            balances: endowed_accounts
+                        .iter()
+                        .chain(endowed_testnet_accounts().iter())
+                        .cloned()
+                        .map(|x| (x, ENDOWMENT))
+                        .unique()
+                        .collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {

@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-tss"
-version    ="0.0.12"
+version    ="0.1.0-rc.1"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 description='Entropy threshold signature scheme (TSS) server'
@@ -38,10 +38,12 @@ parity-scale-codec="3.6.12"
 sp-core           ={ version="31.0.0", default-features=false }
 
 # Entropy
-entropy-shared  ={ version="0.0.12", path="../shared" }
-entropy-kvdb    ={ version="0.0.12", path="../kvdb", default-features=false }
-entropy-protocol={ version="0.0.12", path="../protocol", features=["server"] }
-entropy-client  ={ version="0.0.12", path="../client", default-features=false, features=["native"] }
+entropy-shared={ version="0.1.0-rc.1", path="../shared" }
+entropy-kvdb={ version="0.1.0-rc.1", path="../kvdb", default-features=false }
+entropy-protocol={ version="0.1.0-rc.1", path="../protocol", features=["server"] }
+entropy-client={ version="0.1.0-rc.1", path="../client", default-features=false, features=[
+  "native",
+] }
 
 # Programs
 entropy-programs-runtime="0.10.0"
@@ -70,19 +72,27 @@ sha2             ="0.10.8"
 hkdf             ="0.12.4"
 
 [dev-dependencies]
-entropy-testing-utils={ version="0.0.12", path="../testing-utils" }
-serial_test          ="3.1.1"
-hex-literal          ="0.4.1"
-project-root         ="0.2.2"
-sp-keyring           ="34.0.0"
-more-asserts         ="0.3.1"
-lazy_static          ="1.4.0"
-entropy-protocol     ={ version="0.0.12", path="../protocol", features=["unsafe"] }
-blake3               ="1.5.1"
-ethers-core          ="2.0.14"
-schnorrkel           ={ version="0.11.4", default-features=false, features=["std"] }
+serial_test ="3.1.1"
+hex-literal ="0.4.1"
+project-root="0.2.2"
+sp-keyring  ="34.0.0"
+more-asserts="0.3.1"
+lazy_static ="1.4.0"
+blake3      ="1.5.1"
+ethers-core ="2.0.14"
+schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
+schemars    ={ version="0.8.19" }
+
+# Note: We don't specify versions here because otherwise we run into a cyclical dependency between
+# `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.
+#
+# By not specifying a version Cargo automatically removes these crates before publishing, allowing
+# the process to succeed.
+#
+# See: https://github.com/rust-lang/cargo/issues/4242
 entropy-client       ={ path="../client", features=["full-client-native"] }
-schemars             ={ version="0.8.19" }
+entropy-protocol     ={ path="../protocol", features=["unsafe"] }
+entropy-testing-utils={ path="../testing-utils" }
 
 [build-dependencies]
 vergen={ version="8.0.0", features=["build", "git", "gitcl"] }

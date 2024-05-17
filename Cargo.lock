@@ -2358,7 +2358,7 @@ dependencies = [
 
 [[package]]
 name = "entropy"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "clap",
  "entropy-runtime",
@@ -2369,6 +2369,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "futures",
  "hex-literal",
+ "itertools 0.13.0",
  "jsonrpsee 0.20.3",
  "lazy_static",
  "log",
@@ -2433,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-client"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "base64 0.22.1",
  "blake2 0.10.6",
@@ -2460,7 +2461,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-kvdb"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "bincode",
  "chacha20poly1305 0.9.1",
@@ -2505,7 +2506,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-protocol"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2545,7 +2546,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-runtime"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -2628,7 +2629,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-shared"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "hex-literal",
  "lazy_static",
@@ -2646,7 +2647,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-test-cli"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2664,7 +2665,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-testing-utils"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "axum",
  "entropy-kvdb",
@@ -2688,7 +2689,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-tss"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -4659,6 +4660,15 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -6973,7 +6983,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-parameters"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7006,7 +7016,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-programs"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7024,7 +7034,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-propagation"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7089,7 +7099,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-registry"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7178,7 +7188,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-slashing"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -7228,7 +7238,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7325,7 +7335,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-pause"
-version = "0.0.12"
+version = "0.1.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -8219,7 +8229,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19de2de2a00075bf566bee3bd4db014b11587e84184d3f7a791bc17f1a8e9e48"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.58",
@@ -11317,9 +11327,9 @@ checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
 
 [[package]]
 name = "serde"
-version = "1.0.201"
+version = "1.0.202"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "780f1cebed1629e4753a1a38a3c72d30b97ec044f0aef68cb26650a3c5cf363c"
+checksum = "226b61a0d411b2ba5ff6d7f73a476ac4f8bb900373459cd00fab8512828ba395"
 dependencies = [
  "serde_derive",
 ]
@@ -11335,9 +11345,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.201"
+version = "1.0.202"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5e405930b9796f1c00bee880d03fc7e0bb4b9a11afc776885ffe84320da2865"
+checksum = "6048858004bcff69094cd972ed40a32500f153bd3be9f716b2eed2e8217c4838"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -14889,9 +14899,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-derive"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1ab6c8bffb3f89584781211283fb57337d6902faab6eaee38f336977bdf177d"
+checksum = "8ab8fdb87408dab27d43267c311c89135b35d13f8b3081e88451ddeff742c93a"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -14900,9 +14910,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-derive-macro"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b87c28b31d27616bc69a891700ef0445d2cbaa0340fdacb145145256d5f5fcbb"
+checksum = "f2fbc080f15cb38f447d52bbae64630c2d4925a9ecb5d140d56c0910b69b4cc7"
 dependencies = [
  "proc-macro2",
  "quote",

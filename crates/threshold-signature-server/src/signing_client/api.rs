@@ -62,7 +62,6 @@ use crate::{
         protocol_transport::{handle_socket, open_protocol_connections},
         ListenerState, ProtocolErr,
     },
-    user::api::UserRegistrationInfo,
     AppState,
 };
 
@@ -112,12 +111,10 @@ pub async fn proactive_refresh(
             .await?;
             let serialized_key_share = key_serialize(&new_key_share)
                 .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-            let new_key_info =
-                UserRegistrationInfo { key, value: serialized_key_share, proactive_refresh: true };
 
-            app_state.kv_store.kv().delete(&new_key_info.key).await?;
-            let reservation = app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
-            app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
+            app_state.kv_store.kv().delete(&key).await?;
+            let reservation = app_state.kv_store.kv().reserve_key(key.clone()).await?;
+            app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
         }
     }
     // TODO: Tell chain refresh is done?
