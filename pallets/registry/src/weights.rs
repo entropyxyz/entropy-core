@@ -54,6 +54,7 @@ pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
 	fn prune_registration(p: u32) -> Weight;
 	fn change_program_instance(n: u32, o:u32) -> Weight;
+	fn change_program_mod_key(n: u32) -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_failed_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
@@ -115,6 +116,22 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(1_980_952, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	/// Storage: `Registry::Registered` (r:1 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
+	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `n` is `[1, 25]`.
+	fn change_program_mod_key(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `328 + n * (1 ±0)`
+		//  Estimated: `3793 + n * (1 ±0)`
+		// Minimum execution time: 15_000_000 picoseconds.
+		Weight::from_parts(16_608_333, 0)
+			.saturating_add(Weight::from_parts(0, 3793))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(n.into()))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -228,6 +245,22 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(1_980_952, 0).saturating_mul(n.into()))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(3))
+	}
+	/// Storage: `Registry::Registered` (r:1 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
+	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `n` is `[1, 25]`.
+	fn change_program_mod_key(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `328 + n * (1 ±0)`
+		//  Estimated: `3793 + n * (1 ±0)`
+		// Minimum execution time: 15_000_000 picoseconds.
+		Weight::from_parts(16_608_333, 0)
+			.saturating_add(Weight::from_parts(0, 3793))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(2))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(n.into()))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)

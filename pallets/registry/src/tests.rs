@@ -30,8 +30,8 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, ProgramInstance, Registered, RegisteredInfo, RegisteringDetails,
-    ValidateConfirmRegistered,
+    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
+    RegisteringDetails, ValidateConfirmRegistered,
 };
 
 #[test]
@@ -369,6 +369,86 @@ fn it_changes_a_program_pointer() {
             Error::<Test>::NoProgramSet
         );
     });
+}
+
+#[test]
+fn it_changes_a_program_mod_account() {
+    new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
+
+        pallet_programs::Programs::<Test>::insert(
+            program_hash,
+            ProgramInfo {
+                bytecode: empty_program.clone(),
+                configuration_schema: empty_program.clone(),
+                auxiliary_data_schema: empty_program.clone(),
+                oracle_data_pointer: empty_program.clone(),
+                deployer: 1,
+                ref_counter: 1,
+            },
+        );
+
+        let expected_verifying_key = BoundedVec::default();
+
+        let mut registered_info = RegisteredInfo {
+            key_visibility: KeyVisibility::Public,
+            programs_data: programs_info,
+            program_modification_account: 2,
+            version_number: 1,
+        };
+
+        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
+
+        assert_noop!(
+            Registry::change_program_mod_key(
+                RuntimeOrigin::signed(2),
+                expected_verifying_key.clone(),
+                3
+            ),
+            Error::<Test>::NotAuthorized
+        );
+
+        ModifiableKeys::<Test>::insert(
+            2,
+            BoundedVec::try_from(vec![expected_verifying_key.clone()]).unwrap(),
+        );
+        assert_eq!(Registry::modifiable_keys(2), vec![expected_verifying_key.clone()]);
+
+        assert_ok!(Registry::change_program_mod_key(
+            RuntimeOrigin::signed(2),
+            expected_verifying_key.clone(),
+            3
+        ));
+
+        assert_eq!(
+            Registry::modifiable_keys(3),
+            vec![expected_verifying_key.clone()],
+            "account 3 now has control of the account"
+        );
+        registered_info.program_modification_account = 3;
+        assert_eq!(
+            Registry::registered(expected_verifying_key.clone()).unwrap(),
+            registered_info,
+            "account 3 now in registered info"
+        );
+        assert_eq!(Registry::modifiable_keys(2), vec![], "account 2 no longer has control");
+        // account 2 no longer in control, fails
+        assert_noop!(
+            Registry::change_program_mod_key(
+                RuntimeOrigin::signed(2),
+                expected_verifying_key.clone(),
+                3
+            ),
+            Error::<Test>::NotAuthorized
+        );
+    })
 }
 
 #[test]
