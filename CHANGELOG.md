@@ -7,9 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0-rc.1...master)
+## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
 
-## [0.1.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0-rc.1) - 2024-05-15
+## [0.1.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0) - 2024-05-20
 
 ### Changed
 - Make full version of entropy-client possible to compile on wasm ([#816](https://github.com/entropyxyz/entropy-core/pull/816))
