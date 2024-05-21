@@ -164,7 +164,7 @@ benchmarks! {
     assert_last_event::<T>(Event::ProgramInfoChanged(sig_req_account.clone(), new_programs_info).into());
   }
 
-  change_program_mod_key {
+  change_program_modification_account {
     let n in 1 .. MAX_MODIFIABLE_KEYS;
 
     let program_modification_account: T::AccountId = whitelisted_caller();

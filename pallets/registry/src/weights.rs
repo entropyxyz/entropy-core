@@ -54,7 +54,7 @@ pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
 	fn prune_registration(p: u32) -> Weight;
 	fn change_program_instance(n: u32, o:u32) -> Weight;
-	fn change_program_mod_key(n: u32) -> Weight;
+	fn change_program_modification_account(n: u32) -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
 	fn confirm_register_failed_registering(c: u32, ) -> Weight;
 	fn confirm_register_registered(c: u32, ) -> Weight;
@@ -122,7 +122,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
 	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 25]`.
-	fn change_program_mod_key(n: u32, ) -> Weight {
+	fn change_program_modification_account(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `328 + n * (1 ±0)`
 		//  Estimated: `3793 + n * (1 ±0)`
@@ -251,7 +251,7 @@ impl WeightInfo for () {
 	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
 	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 25]`.
-	fn change_program_mod_key(n: u32, ) -> Weight {
+	fn change_program_modification_account(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `328 + n * (1 ±0)`
 		//  Estimated: `3793 + n * (1 ±0)`

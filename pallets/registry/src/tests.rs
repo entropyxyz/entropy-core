@@ -406,8 +406,9 @@ fn it_changes_a_program_mod_account() {
         Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
         assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
 
+        // Idk why this state could happen but still test to make sure it fails with a noop if ModifiableKeys not set
         assert_noop!(
-            Registry::change_program_mod_key(
+            Registry::change_program_modification_account(
                 RuntimeOrigin::signed(2),
                 expected_verifying_key.clone(),
                 3
@@ -421,7 +422,7 @@ fn it_changes_a_program_mod_account() {
         );
         assert_eq!(Registry::modifiable_keys(2), vec![expected_verifying_key.clone()]);
 
-        assert_ok!(Registry::change_program_mod_key(
+        assert_ok!(Registry::change_program_modification_account(
             RuntimeOrigin::signed(2),
             expected_verifying_key.clone(),
             3
@@ -441,7 +442,7 @@ fn it_changes_a_program_mod_account() {
         assert_eq!(Registry::modifiable_keys(2), vec![], "account 2 no longer has control");
         // account 2 no longer in control, fails
         assert_noop!(
-            Registry::change_program_mod_key(
+            Registry::change_program_modification_account(
                 RuntimeOrigin::signed(2),
                 expected_verifying_key.clone(),
                 3

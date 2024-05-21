@@ -378,9 +378,8 @@ pub mod pallet {
 
         /// Allows a user's program modification account to change itself.
         #[pallet::call_index(3)]
-        //TODO fix
         #[pallet::weight({
-                 <T as Config>::WeightInfo::change_program_mod_key(MAX_MODIFIABLE_KEYS)
+                 <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
              })]
         pub fn change_program_modification_account(
             origin: OriginFor<T>,
@@ -427,8 +426,10 @@ pub mod pallet {
                 verifying_key,
             ));
 
-            Ok(Some(<T as Config>::WeightInfo::change_program_mod_key(verifying_keys_len as u32))
-                .into())
+            Ok(Some(<T as Config>::WeightInfo::change_program_modification_account(
+                verifying_keys_len as u32,
+            ))
+            .into())
         }
         /// Allows validators to confirm that they have received a key-share from a user that is
         /// in the process of registering.
