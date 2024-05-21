@@ -39,17 +39,20 @@ tagged as the final release.
 - [ ] Move entries from `[Unreleased]` header to the new version header (`[X.X.X]`)
 
 ## Release Branch and Local Network Checks
-- [ ] Publish a test release tag
-    - E.g `git tag test/hc/release/vX.Y.Z-rc.1 && git push origin test/hc/release/vX.Y.Z-rc.1`
 - [ ] Sanity check the release using the local Docker Compose network and the `entropy-test-cli`
-    - Change the `image` in `docker-compose-common.yaml` to use the published ones from above
-    - Spin up the network using `docker compose up`
+    - Change the `image` fields in `docker-compose-common.yaml` to a local build, e.g
+      `entropyxyz/entropy:local-vX.Y.Z-rc.1`
+    - Build the images and spin up the network using `docker compose up`
     - Register an account using:
         - `cargo run -p entropy-test-cli -- register \
             One public ./crates/testing-utils/template_barebones.wasm`
     - Request a signature using:
         - `cargo run -p entropy-test-cli -- sign \
             $VERIFYING_KEY "Hello, Docker Compose"`
+- [ ] Publish a test release tag
+    - E.g `git tag test/hc/release/vX.Y.Z-rc.1 && git push origin test/hc/release/vX.Y.Z-rc.1`
+- [ ] Double check that the _published_ images still run correctly using the Docker compose from
+      above
 - [ ] Open a PR targeting `master`
 - [ ] Get approvals from Entropy core devs
 - [ ] Merge release PR into `master`
