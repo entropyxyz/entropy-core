@@ -33,7 +33,7 @@ reqwest={ version="0.12.4", features=["json", "stream"] }
 axum   ={ version="0.7.5", features=["ws"] }
 
 # Substrate
-subxt             ="0.35.3"
+subxt             ="0.36.0"
 parity-scale-codec="3.6.12"
 sp-core           ={ version="31.0.0", default-features=false }
 
