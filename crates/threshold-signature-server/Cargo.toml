@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-tss"
-version    ="0.1.0-rc.1"
+version    ="0.1.0"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 description='Entropy threshold signature scheme (TSS) server'
@@ -12,8 +12,8 @@ edition    ='2021'
 # Common
 serde              ={ version="1.0", default-features=false, features=["derive"] }
 serde_json         ="1.0"
-anyhow             ="1.0.83"
-thiserror          ="1.0.60"
+anyhow             ="1.0.86"
+thiserror          ="1.0.61"
 blake2             ="0.10.4"
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
 rand_core          ="0.6.4"
@@ -38,12 +38,10 @@ parity-scale-codec="3.6.12"
 sp-core           ={ version="31.0.0", default-features=false }
 
 # Entropy
-entropy-shared={ version="0.1.0-rc.1", path="../shared" }
-entropy-kvdb={ version="0.1.0-rc.1", path="../kvdb", default-features=false }
-entropy-protocol={ version="0.1.0-rc.1", path="../protocol", features=["server"] }
-entropy-client={ version="0.1.0-rc.1", path="../client", default-features=false, features=[
-  "native",
-] }
+entropy-shared  ={ version="0.1.0", path="../shared" }
+entropy-kvdb    ={ version="0.1.0", path="../kvdb", default-features=false }
+entropy-protocol={ version="0.1.0", path="../protocol", features=["server"] }
+entropy-client  ={ version="0.1.0", path="../client", default-features=false, features=["native"] }
 
 # Programs
 entropy-programs-runtime="0.10.0"
@@ -81,7 +79,7 @@ lazy_static ="1.4.0"
 blake3      ="1.5.1"
 ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
-schemars    ={ version="0.8.19" }
+schemars    ={ version="0.8.20" }
 
 # Note: We don't specify versions here because otherwise we run into a cyclical dependency between
 # `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.
