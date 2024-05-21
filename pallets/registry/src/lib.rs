@@ -376,13 +376,13 @@ pub mod pallet {
             .into())
         }
 
-        /// Allows a user's program modification account to change itself
+        /// Allows a user's program modification account to change itself.
         #[pallet::call_index(3)]
         //TODO fix
         #[pallet::weight({
                  <T as Config>::WeightInfo::change_program_mod_key(MAX_MODIFIABLE_KEYS)
              })]
-        pub fn change_program_mod_key(
+        pub fn change_program_modification_account(
             origin: OriginFor<T>,
             verifying_key: VerifyingKey,
             new_program_mod_account: T::AccountId,
