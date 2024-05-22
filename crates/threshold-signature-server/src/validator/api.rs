@@ -67,62 +67,57 @@ pub const BATHC_SIZE_FOR_KEY_VALUE_GET: usize = 10;
 /// - finding a server in their subgroup that is synced
 /// - getting all shards from said validator
 #[tracing::instrument(skip(kv_store))]
-pub async fn sync_validator(no_sync: bool, dev: bool, endpoint: &str, kv_store: &KvManager) {
-    if !no_sync {
-        let api = get_api(endpoint).await.expect("Issue acquiring chain API");
-        let rpc = get_rpc(endpoint).await.expect("Issue acquiring chain RPC");
-        let mut is_syncing = true;
-        let sleep_time = Duration::from_secs(20);
-        // wait for chain to be fully synced before starting key swap
-        while is_syncing {
-            let health = rpc.system_health().await.expect("Issue checking chain health");
-            is_syncing = health.is_syncing;
-            if is_syncing {
-                tracing::info!("Syncing chain");
-                thread::sleep(sleep_time);
-            }
-        }
-        let (signer, x25519_secret) = get_signer_and_x25519_secret(kv_store)
-            .await
-            .expect("Issue acquiring threshold keypairs");
-        let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
-            .await
-            .expect("Issue checking chain for signer balance");
-        if !has_fee_balance {
-            panic!("threshold account needs balance: {:?}", signer.account_id());
-        }
-        // if not in subgroup retry until you are
-        let mut my_subgroup = get_subgroup(&api, &rpc, signer.account_id()).await;
-        while my_subgroup.is_err() {
-            tracing::warn!("The signing account is not in the validator set, retrying sync");
+pub async fn sync_validator(dev: bool, endpoint: &str, kv_store: &KvManager) {
+    let api = get_api(endpoint).await.expect("Issue acquiring chain API");
+    let rpc = get_rpc(endpoint).await.expect("Issue acquiring chain RPC");
+    let mut is_syncing = true;
+    let sleep_time = Duration::from_secs(20);
+    // wait for chain to be fully synced before starting key swap
+    while is_syncing {
+        let health = rpc.system_health().await.expect("Issue checking chain health");
+        is_syncing = health.is_syncing;
+        if is_syncing {
+            tracing::info!("Syncing chain");
             thread::sleep(sleep_time);
-            my_subgroup = Ok(get_subgroup(&api, &rpc, signer.account_id())
-                .await
-                .expect("Failed to get subgroup."));
         }
-        let subgroup = my_subgroup.expect("Failed to get subgroup.");
-        let validator_stash = get_stash_address(&api, &rpc, signer.account_id())
-            .await
-            .expect("Failed to get threshold server's stash address.");
-        let key_server_info = get_random_server_info(&api, &rpc, subgroup, validator_stash)
-            .await
-            .expect("Issue getting registered keys from chain.");
-        let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
-        get_and_store_values(
-            all_keys,
-            kv_store,
-            BATHC_SIZE_FOR_KEY_VALUE_GET,
-            dev,
-            key_server_info,
-            &signer,
-            &x25519_secret,
-        )
-        .await
-        .expect("failed to get and store all values");
-        tell_chain_syncing_is_done(&api, &rpc, &signer)
-            .await
-            .expect("failed to finish chain sync.");
     }
+    let (signer, x25519_secret) =
+        get_signer_and_x25519_secret(kv_store).await.expect("Issue acquiring threshold keypairs");
+    let has_fee_balance = check_balance_for_fees(&api, &rpc, signer.account_id(), MIN_BALANCE)
+        .await
+        .expect("Issue checking chain for signer balance");
+    if !has_fee_balance {
+        panic!("threshold account needs balance: {:?}", signer.account_id());
+    }
+    // if not in subgroup retry until you are
+    let mut my_subgroup = get_subgroup(&api, &rpc, signer.account_id()).await;
+    while my_subgroup.is_err() {
+        tracing::warn!("The signing account is not in the validator set, retrying sync");
+        thread::sleep(sleep_time);
+        my_subgroup = Ok(get_subgroup(&api, &rpc, signer.account_id())
+            .await
+            .expect("Failed to get subgroup."));
+    }
+    let subgroup = my_subgroup.expect("Failed to get subgroup.");
+    let validator_stash = get_stash_address(&api, &rpc, signer.account_id())
+        .await
+        .expect("Failed to get threshold server's stash address.");
+    let key_server_info = get_random_server_info(&api, &rpc, subgroup, validator_stash)
+        .await
+        .expect("Issue getting registered keys from chain.");
+    let all_keys = get_all_keys(&api, &rpc).await.expect("failed to get all keys.");
+    get_and_store_values(
+        all_keys,
+        kv_store,
+        BATHC_SIZE_FOR_KEY_VALUE_GET,
+        dev,
+        key_server_info,
+        &signer,
+        &x25519_secret,
+    )
+    .await
+    .expect("failed to get and store all values");
+    tell_chain_syncing_is_done(&api, &rpc, &signer).await.expect("failed to finish chain sync.");
 }
 
 /// Endpoint to allow a new node to sync their kvdb with a member of their subgroup
