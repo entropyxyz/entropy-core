@@ -69,7 +69,7 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
 
     /// Max modifiable keys allowed for a program modification account
-    const MAX_MODIFIABLE_KEYS: u32 = 25;
+    pub const MAX_MODIFIABLE_KEYS: u32 = 25;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -199,6 +199,8 @@ pub mod pallet {
         RegistrationCancelled(T::AccountId),
         /// An account hash changed their program info [who, new_program_instance]
         ProgramInfoChanged(T::AccountId, BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>),
+        /// An account has changed their program modification account [old, new, verifying_key]
+        ProgramModificationAccountChanged(T::AccountId, T::AccountId, VerifyingKey),
         /// An account has been registered. [who, block_number, failures]
         ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
@@ -374,12 +376,67 @@ pub mod pallet {
             .into())
         }
 
+        /// Allows a user's program modification account to change itself.
+        #[pallet::call_index(3)]
+        #[pallet::weight({
+                 <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
+             })]
+        pub fn change_program_modification_account(
+            origin: OriginFor<T>,
+            verifying_key: VerifyingKey,
+            new_program_mod_account: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+                if let Some(registered_details) = maybe_registered_details {
+                    ensure!(
+                        who == registered_details.program_modification_account,
+                        Error::<T>::NotAuthorized
+                    );
+                    registered_details.program_modification_account =
+                        new_program_mod_account.clone();
+                    Ok(())
+                } else {
+                    Err(Error::<T>::NotRegistered)
+                }
+            })?;
+            let mut verifying_keys_len = 0;
+            ModifiableKeys::<T>::try_mutate(&who, |verifying_keys| -> Result<(), DispatchError> {
+                verifying_keys_len = verifying_keys.len();
+                let pos = verifying_keys
+                    .iter()
+                    .position(|k| *k == verifying_key)
+                    .ok_or(Error::<T>::NotAuthorized)?;
+                verifying_keys.remove(pos);
+                Ok(())
+            })?;
+
+            ModifiableKeys::<T>::try_mutate(
+                &new_program_mod_account,
+                |verifying_keys| -> Result<(), DispatchError> {
+                    verifying_keys
+                        .try_push(verifying_key.clone())
+                        .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
+                    Ok(())
+                },
+            )?;
+            Self::deposit_event(Event::ProgramModificationAccountChanged(
+                who,
+                new_program_mod_account,
+                verifying_key,
+            ));
+
+            Ok(Some(<T as Config>::WeightInfo::change_program_modification_account(
+                verifying_keys_len as u32,
+            ))
+            .into())
+        }
         /// Allows validators to confirm that they have received a key-share from a user that is
         /// in the process of registering.
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(3)]
+        #[pallet::call_index(4)]
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)

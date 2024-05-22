@@ -164,6 +164,41 @@ benchmarks! {
     assert_last_event::<T>(Event::ProgramInfoChanged(sig_req_account.clone(), new_programs_info).into());
   }
 
+  change_program_modification_account {
+    let n in 1 .. MAX_MODIFIABLE_KEYS;
+
+    let program_modification_account: T::AccountId = whitelisted_caller();
+    let program = vec![0u8];
+    let configuration_schema = vec![1u8];
+    let auxiliary_data_schema = vec![2u8];
+    let oracle_data_pointer = vec![3u8];
+    let program_hash = T::Hashing::hash(&program);
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+      program_pointer: program_hash,
+      program_config: vec![],
+  }]).unwrap();
+
+  let sig_req_account: T::AccountId = whitelisted_caller();
+  let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+  let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
+  <ModifiableKeys<T>>::insert(
+      sig_req_account.clone(),
+      BoundedVec::try_from(vec![BoundedVec::default(); n as usize]).unwrap()
+  );
+  <Registered<T>>::insert(
+        &BoundedVec::default(),
+        RegisteredInfo {
+            program_modification_account: sig_req_account.clone(),
+            programs_data: programs_info,
+            key_visibility: KeyVisibility::Public,
+            version_number: T::KeyVersionNumber::get()
+        },
+    );
+  }: _(RawOrigin::Signed(sig_req_account.clone()), BoundedVec::default(), sig_req_account.clone())
+  verify {
+    assert_last_event::<T>(Event::ProgramModificationAccountChanged(sig_req_account.clone(), sig_req_account.clone(), BoundedVec::default()).into());
+  }
+
   confirm_register_registering {
     let c in 0 .. SIG_PARTIES as u32;
     let program = vec![0u8];
