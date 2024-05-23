@@ -22,7 +22,7 @@ entropy-shared    ={ version="0.1.0", path="../shared" }
 entropy-kvdb      ={ version="0.1.0", path="../kvdb", default-features=false }
 entropy-tss       ={ version="0.1.0", path="../threshold-signature-server" }
 entropy-protocol  ={ version="0.1.0", path="../protocol" }
-synedrion         ="0.1"
+synedrion         ={ git="https://github.com/entropyxyz/synedrion", rev="7df95fe72781797dc369db00b68c27907559f31a" }
 hex               ="0.4.3"
 rand_core         ="0.6.4"
 

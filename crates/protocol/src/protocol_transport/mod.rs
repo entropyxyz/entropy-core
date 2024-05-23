@@ -27,12 +27,11 @@ use futures::{SinkExt, StreamExt};
 use noise::EncryptedWsConnection;
 pub use subscribe_message::SubscribeMessage;
 #[cfg(feature = "server")]
-use tokio::net::TcpStream;
 use tokio::sync::{broadcast, mpsc};
 #[cfg(feature = "server")]
-use tokio_tungstenite::{connect_async, tungstenite, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{tungstenite, MaybeTlsStream, WebSocketStream};
 
-use crate::{errors::UserRunningProtocolErr, PartyId, ProtocolMessage};
+use crate::{PartyId, ProtocolMessage};
 
 /// Channels between a remote party and the signing or DKG protocol
 pub struct WsChannels {
@@ -176,27 +175,6 @@ pub async fn ws_to_channels<T: WsConnection>(
             }
         }
     }
-}
-
-/// Open a ws connection in a native environment
-#[cfg(feature = "server")]
-pub async fn open_ws_connection(
-    address: String,
-) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, UserRunningProtocolErr> {
-    let (ws_stream, _response) = connect_async(address)
-        .await
-        .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
-    Ok(ws_stream)
-}
-
-/// Open a ws connection on wasm with the JS websocket API
-#[cfg(feature = "wasm")]
-pub async fn open_ws_connection(
-    address: String,
-) -> Result<gloo_net::websocket::futures::WebSocket, UserRunningProtocolErr> {
-    let ws_stream = gloo_net::websocket::futures::WebSocket::open(&address)
-        .map_err(|e| UserRunningProtocolErr::Connection(e.to_string()))?;
-    Ok(ws_stream)
 }
 
 // This dummy trait is only needed because we cant add #[cfg] to where clauses
