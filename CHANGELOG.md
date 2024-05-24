@@ -9,6 +9,9 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
 
+### Added
+- Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
+
 ## [0.1.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0) - 2024-05-20
 
 This is the first publicly available version of Entropy 🥳
