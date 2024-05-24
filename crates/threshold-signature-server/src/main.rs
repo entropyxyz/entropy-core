@@ -20,8 +20,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
-        StartupArgs, ValidatorName,
+        get_development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic,
+        setup_only, Configuration, StartupArgs, ValidatorName,
     },
     sync_validator, AppState,
 };
@@ -57,13 +57,13 @@ async fn main() {
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
 
     let mnemonic = if cfg!(test) || validator_name.is_some() {
-        entropy_tss::launch::get_development_mnemonic(&validator_name)
+        get_development_mnemonic(&validator_name)
     } else {
         args.mnemonic
             .expect("No mnemonic provided. Please provide one or use a development account.")
     };
 
-    entropy_tss::launch::setup_mnemonic(&kv_store, mnemonic).await;
+    setup_mnemonic(&kv_store, mnemonic).await;
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 

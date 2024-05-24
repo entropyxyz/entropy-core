@@ -17,7 +17,6 @@
 
 use std::{fs, path::PathBuf};
 
-use bip39::{Language, Mnemonic};
 use clap::Parser;
 use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
@@ -30,7 +29,7 @@ use subxt::ext::sp_core::{
     sr25519, Pair,
 };
 
-use crate::{helpers::validator::get_signer_and_x25519_secret, validation::new_mnemonic};
+use crate::helpers::validator::get_signer_and_x25519_secret;
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";

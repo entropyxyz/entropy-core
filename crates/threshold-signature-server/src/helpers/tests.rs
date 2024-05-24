@@ -29,8 +29,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
-            DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            get_development_mnemonic, setup_latest_block_number, setup_mnemonic, Configuration,
+            ValidatorName, DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         logger::Instrumentation,
         logger::Logger,
@@ -80,8 +80,8 @@ pub async fn setup_client() -> KvManager {
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
 
-    let mnemonic = crate::launch::get_development_mnemonic(&Some(ValidatorName::Alice));
-    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
+    let mnemonic = get_development_mnemonic(&Some(ValidatorName::Alice));
+    setup_mnemonic(&kv_store, mnemonic).await;
 
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
