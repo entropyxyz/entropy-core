@@ -176,7 +176,7 @@ pub struct StartupArgs {
     pub mnemonic: Option<bip39::Mnemonic>,
 }
 
-pub fn get_development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
+pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
     let mnemonic = if let Some(validator_name) = validator_name {
         match validator_name {
             ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,

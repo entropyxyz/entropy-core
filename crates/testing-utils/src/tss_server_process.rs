@@ -20,7 +20,7 @@ use entropy_shared::DETERMINISTIC_KEY_SHARE;
 use entropy_tss::{
     app, get_signer,
     launch::{
-        get_development_mnemonic, setup_latest_block_number, setup_mnemonic, Configuration,
+        development_mnemonic, setup_latest_block_number, setup_mnemonic, Configuration,
         ValidatorName,
     },
     AppState,
@@ -46,7 +46,7 @@ async fn create_clients(
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
 
-    let mnemonic = get_development_mnemonic(&validator_name);
+    let mnemonic = development_mnemonic(&validator_name);
     setup_mnemonic(&kv_store, mnemonic).await;
 
     let _ = setup_latest_block_number(&kv_store).await;

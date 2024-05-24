@@ -20,7 +20,7 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        get_development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic,
+        development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic,
         setup_only, Configuration, StartupArgs, ValidatorName,
     },
     sync_validator, AppState,
@@ -57,7 +57,7 @@ async fn main() {
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
 
     let mnemonic = if cfg!(test) || validator_name.is_some() {
-        get_development_mnemonic(&validator_name)
+        development_mnemonic(&validator_name)
     } else {
         args.mnemonic
             .expect("No mnemonic provided. Please provide one or use a development account.")
