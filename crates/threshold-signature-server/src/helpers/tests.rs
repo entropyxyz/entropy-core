@@ -114,7 +114,7 @@ pub async fn create_clients(
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
 
-    let mnemonic = crate::launch::get_development_mnemonic(validator_name);
+    let mnemonic = get_development_mnemonic(validator_name);
     crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
 
     let _ = setup_latest_block_number(&kv_store).await;

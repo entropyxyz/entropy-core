@@ -104,8 +104,8 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            load_kv_store, setup_mnemonic, Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC,
-            DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            get_development_mnemonic, load_kv_store, setup_mnemonic, Configuration, ValidatorName,
+            DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
         substrate::{
@@ -141,8 +141,8 @@ async fn test_get_signer_does_not_throw_err() {
 
     let kv_store = load_kv_store(&None, None).await;
 
-    let mnemonic = crate::launch::get_development_mnemonic(&None);
-    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
+    let mnemonic = get_development_mnemonic(&None);
+    setup_mnemonic(&kv_store, mnemonic).await;
 
     get_signer(&kv_store).await.unwrap();
     clean_tests();
