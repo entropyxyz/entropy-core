@@ -307,7 +307,6 @@ fn it_changes_a_program_mod_account() {
         let expected_verifying_key = BoundedVec::default();
 
         let mut registered_info = RegisteredInfo {
-            key_visibility: KeyVisibility::Public,
             programs_data: programs_info,
             program_modification_account: 2,
             version_number: 1,
