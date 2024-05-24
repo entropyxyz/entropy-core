@@ -164,14 +164,20 @@ pub struct StartupArgs {
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
 
-    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
+    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to
+    /// stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
     ///
     /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
     #[arg(long = "setup-only")]
     pub setup_only: bool,
 
-    // TODO (Nando): This doesn't let us parse the Substrate derivation paths, would be a nice
-    // improvement
+    /// The BIP-39 mnemonic (i.e seed phrase) to use for deriving the Threshold Signature Server
+    /// SR25519 account ID and the X25519 public key.
+    ///
+    /// The SR25519 account is responsible for signing and submitting extrinsics to the Entropy network.
+    ///
+    /// The X25519 public key is used for encrypting/decrypting messages to other threshold
+    /// servers.
     #[arg(long = "mnemonic")]
     pub mnemonic: Option<bip39::Mnemonic>,
 }
@@ -187,7 +193,8 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         DEFAULT_MNEMONIC
     };
 
-    bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic).expect("TODO")
+    bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic)
+        .expect("Unable to parse given mnemonic.")
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
