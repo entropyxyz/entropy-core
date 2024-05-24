@@ -79,7 +79,10 @@ pub async fn setup_client() -> KvManager {
     let kv_store =
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
-    let _ = setup_mnemonic(&kv_store, &Some(ValidatorName::Alice)).await;
+
+    let mnemonic = crate::launch::get_development_mnemonic(&Some(ValidatorName::Alice));
+    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
+
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
@@ -110,7 +113,10 @@ pub async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, validator_name).await;
+
+    let mnemonic = crate::launch::get_development_mnemonic(validator_name);
+    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
+
     let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {

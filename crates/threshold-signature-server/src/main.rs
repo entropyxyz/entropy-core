@@ -55,7 +55,16 @@ async fn main() {
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
-    setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
+
+    let mnemonic = if cfg!(test) || validator_name.is_some() {
+        entropy_tss::launch::get_development_mnemonic(&validator_name)
+    } else {
+        args.mnemonic
+            .expect("No mnemonic provided. Please provide one or use a development account.")
+    };
+
+    entropy_tss::launch::setup_mnemonic(&kv_store, mnemonic).await;
+
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb

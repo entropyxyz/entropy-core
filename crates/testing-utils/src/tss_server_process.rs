@@ -42,7 +42,10 @@ async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, validator_name).await;
+
+    let mnemonic = entropy_tss::launch::get_development_mnemonic(&validator_name);
+    entropy_tss::launch::setup_mnemonic(&kv_store, mnemonic).await;
+
     let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
