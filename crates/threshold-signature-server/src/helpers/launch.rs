@@ -182,6 +182,17 @@ pub struct StartupArgs {
     pub mnemonic: Option<bip39::Mnemonic>,
 }
 
+pub async fn has_mnemonic(kv: &KvManager) -> bool {
+    let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
+    if exists {
+        tracing::warn!(
+            "Existing mnemonic found in keystore, any input from `--mnemonic` will be ignored."
+        );
+    }
+
+    exists
+}
+
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
     let mnemonic = if let Some(validator_name) = validator_name {
         match validator_name {
@@ -198,12 +209,6 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
-    let exists_result = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
-    if exists_result {
-        tracing::warn!("Existing mnemonic found in keystore, ignorning input from `--mnemonic`.");
-        return;
-    }
-
     // Write our new mnemonic to the KVDB.
     let reservation = kv
         .kv()

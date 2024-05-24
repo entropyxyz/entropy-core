@@ -20,8 +20,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic,
-        setup_only, Configuration, StartupArgs, ValidatorName,
+        development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only,
+        Configuration, StartupArgs, ValidatorName,
     },
     sync_validator, AppState,
 };
@@ -52,18 +52,24 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
+
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
 
-    let mnemonic = if cfg!(test) || validator_name.is_some() {
-        development_mnemonic(&validator_name)
-    } else {
-        args.mnemonic
-            .expect("No mnemonic provided. Please provide one or use a development account.")
-    };
+    let missing_mnemonic = !entropy_tss::launch::has_mnemonic(&kv_store).await;
+    if missing_mnemonic {
+        tracing::info!("No existing mnemonic found in keystore, writing one.");
 
-    setup_mnemonic(&kv_store, mnemonic).await;
+        let mnemonic = if cfg!(test) || validator_name.is_some() {
+            development_mnemonic(&validator_name)
+        } else {
+            args.mnemonic
+                .expect("No mnemonic provided. Please provide one or use a development account.")
+        };
+
+        setup_mnemonic(&kv_store, mnemonic).await;
+    }
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
