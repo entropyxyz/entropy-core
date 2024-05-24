@@ -47,7 +47,12 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 #[cfg(test)]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
+pub const FORBIDDEN_KEYS: [&str; 3] =
+    [FORBIDDEN_KEY_MNEMONIC, FORBIDDEN_KEY_SHARED_SECRET, FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC];
+
+pub const FORBIDDEN_KEY_MNEMONIC: &str = "MNEMONIC";
+pub const FORBIDDEN_KEY_SHARED_SECRET: &str = "SHARED_SECRET";
+pub const FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
 
 // Deafult name for TSS server
 // Will set mnemonic and db path
