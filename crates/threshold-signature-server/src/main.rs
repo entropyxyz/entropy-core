@@ -59,7 +59,11 @@ async fn main() {
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb
-    sync_validator(args.no_sync, args.dev, &configuration.endpoint, &kv_store).await;
+    let sync = !args.no_sync;
+    if sync {
+        sync_validator(args.dev, &configuration.endpoint, &kv_store).await;
+    }
+
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
 
     if args.setup_only {
