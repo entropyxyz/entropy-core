@@ -34,7 +34,7 @@ pallet-programs={ version="0.1.0", path="../programs", default-features=false }
 pallet-staking-extension={ version="0.1.0", path="../staking", default-features=false }
 
 [dev-dependencies]
-parking_lot="0.12.2"
+parking_lot="0.12.3"
 
 frame-election-provider-support={ version="29.0.0", default-features=false }
 pallet-babe                    ={ version="29.0.0", default-features=false }
