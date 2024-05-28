@@ -26,7 +26,6 @@ use errors::WsError;
 use futures::{SinkExt, StreamExt};
 use noise::EncryptedWsConnection;
 pub use subscribe_message::SubscribeMessage;
-#[cfg(feature = "server")]
 use tokio::sync::{broadcast, mpsc};
 #[cfg(feature = "server")]
 use tokio_tungstenite::{tungstenite, MaybeTlsStream, WebSocketStream};
