@@ -55,9 +55,12 @@ fn dkg_protocol_with_time_logged() {
 }
 
 async fn test_sign_with_parties(num_parties: usize) {
+    let mut parties = Vec::new();
     let mut ids = Vec::new();
-    for i in 0..num_parties {
-        ids.push(PartyId::new(AccountId32([i.try_into().unwrap(); 32])));
+    for _ in 0..num_parties {
+        let (pair, _) = sr25519::Pair::generate();
+        ids.push(PartyId::new(AccountId32(pair.public().0)));
+        parties.push(pair);
     }
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
@@ -70,7 +73,7 @@ async fn test_sign_with_parties(num_parties: usize) {
         request_author: AccountId32([0u8; 32]),
     });
     let output =
-        test_protocol_with_parties(num_parties, Some(keyshares), Some(aux_infos), session_id).await;
+        test_protocol_with_parties(parties, Some(keyshares), Some(aux_infos), session_id).await;
     if let ProtocolOutput::Sign(recoverable_signature) = output {
         // Check signature
         let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
@@ -86,9 +89,12 @@ async fn test_sign_with_parties(num_parties: usize) {
 }
 
 async fn test_refresh_with_parties(num_parties: usize) {
+    let mut parties = Vec::new();
     let mut ids = Vec::new();
-    for i in 0..num_parties {
-        ids.push(PartyId::new(AccountId32([i.try_into().unwrap(); 32])));
+    for _ in 0..num_parties {
+        let (pair, _) = sr25519::Pair::generate();
+        ids.push(PartyId::new(AccountId32(pair.public().0)));
+        parties.push(pair);
     }
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let verifying_key = keyshares[0].verifying_key();
@@ -97,7 +103,7 @@ async fn test_refresh_with_parties(num_parties: usize) {
         verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
         block_number: 0,
     };
-    let output = test_protocol_with_parties(num_parties, Some(keyshares), None, session_id).await;
+    let output = test_protocol_with_parties(parties, Some(keyshares), None, session_id).await;
     if let ProtocolOutput::ProactiveRefresh(keyshare) = output {
         assert!(keyshare.verifying_key() == verifying_key);
     } else {
@@ -106,8 +112,15 @@ async fn test_refresh_with_parties(num_parties: usize) {
 }
 
 async fn test_dkg_with_parties(num_parties: usize) {
+    let mut parties = Vec::new();
+    let mut ids = Vec::new();
+    for _ in 0..num_parties {
+        let (pair, _) = sr25519::Pair::generate();
+        ids.push(PartyId::new(AccountId32(pair.public().0)));
+        parties.push(pair);
+    }
     let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
-    let output = test_protocol_with_parties(num_parties, None, None, session_id).await;
+    let output = test_protocol_with_parties(parties, None, None, session_id).await;
     if let ProtocolOutput::Dkg(_keyshare) = output {
     } else {
         panic!("Unexpected protocol output");
@@ -116,7 +129,7 @@ async fn test_dkg_with_parties(num_parties: usize) {
 
 /// Generic test for any of the 3 protocols
 async fn test_protocol_with_parties(
-    num_parties: usize,
+    parties: Vec<sr25519::Pair>,
     keyshares: Option<Box<[KeyShare<KeyParams, PartyId>]>>,
     aux_infos: Option<Box<[AuxInfo<KeyParams, PartyId>]>>,
     session_id: SessionId,
@@ -124,27 +137,24 @@ async fn test_protocol_with_parties(
     // Prepare information about each node
     let mut validator_secrets = Vec::new();
     let mut validators_info = Vec::new();
-    for i in 0..num_parties {
+    for i in 0..parties.len() {
         // Start a TCP listener and get its socket address
         let socket = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = socket.local_addr().unwrap();
 
-        // Generate signing and encrytion keys
-        let (pair, _) = sr25519::Pair::generate();
-        let tss_account = AccountId32(pair.public().0);
         let x25519_secret_key = StaticSecret::random_from_rng(OsRng);
         let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
 
         validator_secrets.push(ValidatorSecretInfo {
             keyshare: keyshares.as_ref().map(|k| k[i].clone()),
             aux_info: aux_infos.as_ref().map(|a| a[i].clone()),
-            pair,
+            pair: parties[i].clone(),
             x25519_secret_key,
             socket,
         });
         // Public contact information that all parties know
         validators_info.push(ValidatorInfo {
-            tss_account,
+            tss_account: AccountId32(parties[i].public().0),
             x25519_public_key,
             ip_address: addr.to_string(),
         })
@@ -153,7 +163,7 @@ async fn test_protocol_with_parties(
     let now = Instant::now();
     // Spawn tasks for each party
     let mut results_rx = Vec::new();
-    for _ in 0..num_parties {
+    for _ in 0..parties.len() {
         // Channel used to return the resulting signature
         let (tx, rx) = oneshot::channel();
         results_rx.push(rx);
@@ -177,7 +187,7 @@ async fn test_protocol_with_parties(
         });
     }
     let (result, _, _) = future::select_all(results_rx).await;
-    println!("Got first protocol result with {} parties in {:?}", num_parties, now.elapsed());
+    println!("Got first protocol result with {} parties in {:?}", parties.len(), now.elapsed());
 
     result.unwrap().unwrap()
 }
