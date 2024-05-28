@@ -601,7 +601,7 @@ async fn test_store_share() {
         .await
         .unwrap();
     // check to make sure keyshare is correct
-    let key_share: Option<KeyShare<KeyParams>> =
+    let key_share: Option<KeyShare<KeyParams, PartyId>> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
     assert_eq!(key_share.is_some(), true);
 
@@ -732,7 +732,7 @@ async fn test_check_hash_pointer_out_of_bounds() {
 pub async fn verify_signature(
     test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
     message_should_succeed_hash: [u8; 32],
-    keyshare_option: Option<KeyShare<KeyParams>>,
+    keyshare_option: Option<KeyShare<KeyParams, PartyId>>,
 ) {
     let mut i = 0;
     for res in test_user_res {

@@ -123,7 +123,7 @@ pub async fn spawn_testing_validators(
     extra_private_keys: bool,
     // If true keyshare and verifying key is deterministic
     deterministic_key_share: bool,
-) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
+) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams, PartyId>>) {
     // spawn threshold servers
     let ports = [3001i64, 3002];
 
@@ -138,8 +138,10 @@ pub async fn spawn_testing_validators(
     let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
+
+    let ids = vec![alice_id, bob_id];
+
     let user_keyshare_option = if passed_verifying_key.is_some() {
-        let number_of_shares = if extra_private_keys { 3 } else { 2 };
         // creates a deterministic keyshare if requiered
         let signing_key = if deterministic_key_share {
             Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE).into()).unwrap())
@@ -147,11 +149,8 @@ pub async fn spawn_testing_validators(
             None
         };
 
-        let shares = KeyShare::<KeyParams>::new_centralized(
-            &mut OsRng,
-            number_of_shares,
-            signing_key.as_ref(),
-        );
+        let shares =
+            KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, signing_key.as_ref());
         let validator_1_threshold_keyshare: Vec<u8> =
             entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
         let validator_2_threshold_keyshare: Vec<u8> =
@@ -196,7 +195,6 @@ pub async fn spawn_testing_validators(
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
-    let ids = vec![alice_id, bob_id];
     (ips, ids, user_keyshare_option)
 }
 
