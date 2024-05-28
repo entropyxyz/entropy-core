@@ -13,26 +13,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use entropy_protocol::KeyParams;
-use synedrion::{sessions::PrehashedMessage, KeyShare};
+use entropy_protocol::{KeyParams, PartyId};
+use synedrion::{AuxInfo, KeyShare};
 
 use crate::sign_init::SignInit;
 
 /// Context for Signing Protocol execution.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SignContext {
     /// Party context from block proposer
     pub sign_init: SignInit,
     /// Signing key share
-    pub key_share: KeyShare<KeyParams>,
+    pub key_share: KeyShare<KeyParams, PartyId>,
+    pub aux_info: AuxInfo<KeyParams, PartyId>,
 }
 
 impl SignContext {
-    pub fn new(sign_init: SignInit, key_share: KeyShare<KeyParams>) -> Self {
-        Self { sign_init, key_share }
+    pub fn new(
+        sign_init: SignInit,
+        key_share: KeyShare<KeyParams, PartyId>,
+        aux_info: AuxInfo<KeyParams, PartyId>,
+    ) -> Self {
+        Self { sign_init, key_share, aux_info }
     }
 
-    pub fn msg_to_sign(&self) -> &PrehashedMessage {
-        &self.sign_init.signing_session_info.message_hash
-    }
+    // pub fn msg_to_sign(&self) -> &PrehashedMessage {
+    //     &self.sign_init.signing_session_info.message_hash
+    // }
 }

@@ -21,7 +21,7 @@ zeroize            ="1.7.0"
 hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
-synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="7df95fe72781797dc369db00b68c27907559f31a" }
+synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
 strum              ="0.26.2"
 
 # Async

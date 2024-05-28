@@ -2452,7 +2452,7 @@ dependencies = [
  "sha3",
  "sp-core 31.0.0",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=7df95fe72781797dc369db00b68c27907559f31a)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tracing",
@@ -2474,7 +2474,7 @@ dependencies = [
  "serial_test",
  "sled",
  "sp-core 31.0.0",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=7df95fe72781797dc369db00b68c27907559f31a)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tracing",
@@ -2532,7 +2532,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=25373111cbb01e1a25d8a5c5bb8f4652c725b3f1)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -2681,7 +2681,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=7df95fe72781797dc369db00b68c27907559f31a)",
+ "synedrion",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2734,7 +2734,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "strum 0.26.2",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=7df95fe72781797dc369db00b68c27907559f31a)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -13871,27 +13871,6 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 name = "synedrion"
 version = "0.1.0"
 source = "git+https://github.com/entropyxyz/synedrion?rev=25373111cbb01e1a25d8a5c5bb8f4652c725b3f1#25373111cbb01e1a25d8a5c5bb8f4652c725b3f1"
-dependencies = [
- "base64 0.21.7",
- "bincode",
- "cfg-if",
- "crypto-bigint",
- "crypto-primes",
- "digest 0.10.7",
- "displaydoc",
- "hex",
- "k256",
- "rand_core 0.6.4",
- "serde",
- "sha2 0.10.8",
- "sha3",
- "signature",
-]
-
-[[package]]
-name = "synedrion"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=7df95fe72781797dc369db00b68c27907559f31a#7df95fe72781797dc369db00b68c27907559f31a"
 dependencies = [
  "base64 0.21.7",
  "bincode",

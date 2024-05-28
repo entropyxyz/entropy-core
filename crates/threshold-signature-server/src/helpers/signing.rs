@@ -96,7 +96,14 @@ pub async fn do_signing(
     };
 
     let result = signing_service
-        .execute_sign(session_id, &sign_context.key_share, channels, signer, tss_accounts)
+        .execute_sign(
+            session_id,
+            &sign_context.key_share,
+            &sign_context.aux_info,
+            channels,
+            signer,
+            tss_accounts,
+        )
         .await?;
     increment_or_wipe_request_limit(
         rpc,

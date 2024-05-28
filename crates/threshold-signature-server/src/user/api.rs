@@ -33,8 +33,7 @@ use entropy_kvdb::kv_manager::{
     KvManager,
 };
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
-use entropy_protocol::ValidatorInfo;
-use entropy_protocol::{KeyParams, SigningSessionInfo};
+use entropy_protocol::{KeyParams, PartyId, SigningSessionInfo, ValidatorInfo};
 use entropy_shared::{HashingAlgorithm, OcwMessageDkg, X25519PublicKey};
 use futures::{
     channel::mpsc,
@@ -295,7 +294,7 @@ async fn setup_dkg(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
 
-        let key_share = do_dkg(
+        let (key_share, aux_info) = do_dkg(
             &data.validators_info,
             &signer,
             x25519_secret_key,
@@ -306,7 +305,7 @@ async fn setup_dkg(
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
         let string_verifying_key = hex::encode(verifying_key.clone()).to_string();
-        let serialized_key_share = key_serialize(&key_share)
+        let serialized_key_share = key_serialize(&(key_share, aux_info))
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
@@ -346,7 +345,7 @@ pub async fn receive_key(
     check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
 
     // Check this is a well-formed keyshare
-    let _: KeyShare<KeyParams> =
+    let _: KeyShare<KeyParams, PartyId> =
         entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
             .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
 
