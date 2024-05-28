@@ -36,6 +36,7 @@ use crate::{
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
+type KeyShareWithAuxData = (KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>);
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
@@ -175,7 +176,7 @@ pub async fn execute_dkg(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<(KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), ProtocolExecutionErr> {
+) -> Result<KeyShareWithAuxData, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
 
     let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
