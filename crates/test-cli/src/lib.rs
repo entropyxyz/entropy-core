@@ -35,7 +35,6 @@ use entropy_client::{
         update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
     },
 };
-use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
@@ -169,7 +168,11 @@ impl Display for Visibility {
     }
 }
 
-pub async fn run_command() -> anyhow::Result<String> {
+pub async fn run_command(
+    program_file_option: Option<PathBuf>,
+    config_interface_file_option: Option<PathBuf>,
+    aux_data_interface_file_option: Option<PathBuf>,
+) -> anyhow::Result<String> {
     let cli = Cli::parse();
 
     let endpoint_addr = cli.chain_endpoint.unwrap_or_else(|| {
@@ -284,17 +287,21 @@ pub async fn run_command() -> anyhow::Result<String> {
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+                None => fs::read(program_file_option.expect("No program file passed in"))?,
             };
 
             let config_interface = match config_interface_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => vec![],
+                None => fs::read(
+                    config_interface_file_option.expect("No config interface file passed"),
+                )?,
             };
 
             let aux_data_interface = match aux_data_interface_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => vec![],
+                None => fs::read(
+                    aux_data_interface_file_option.expect("No aux data interface file passed"),
+                )?,
             };
 
             let hash = store_program(
