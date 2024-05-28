@@ -17,13 +17,13 @@
 //! to the number of cpus available. Note that these should be run in release mode to get a realistic
 //! idea of how long things take in production.
 
-use entropy_protocol::{KeyParams, SessionId, SigningSessionInfo, ValidatorInfo};
+use entropy_protocol::{KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo};
 use futures::future;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use std::time::Instant;
 use subxt::utils::AccountId32;
-use synedrion::{ecdsa::VerifyingKey, KeyShare};
+use synedrion::{ecdsa::VerifyingKey, AuxInfo, KeyShare};
 use tokio::{net::TcpListener, runtime::Runtime, sync::oneshot};
 use x25519_dalek::StaticSecret;
 
@@ -55,7 +55,12 @@ fn dkg_protocol_with_time_logged() {
 }
 
 async fn test_sign_with_parties(num_parties: usize) {
-    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
+    let mut ids = Vec::new();
+    for i in 0..num_parties {
+        ids.push(PartyId::new(AccountId32([i.try_into().unwrap(); 32])));
+    }
+    let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
+    let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
     let verifying_key = keyshares[0].verifying_key();
 
     let message_hash = [0u8; 32];
@@ -64,7 +69,8 @@ async fn test_sign_with_parties(num_parties: usize) {
         message_hash,
         request_author: AccountId32([0u8; 32]),
     });
-    let output = test_protocol_with_parties(num_parties, Some(keyshares), session_id).await;
+    let output =
+        test_protocol_with_parties(num_parties, Some(keyshares), Some(aux_infos), session_id).await;
     if let ProtocolOutput::Sign(recoverable_signature) = output {
         // Check signature
         let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
@@ -80,14 +86,18 @@ async fn test_sign_with_parties(num_parties: usize) {
 }
 
 async fn test_refresh_with_parties(num_parties: usize) {
-    let keyshares = KeyShare::<KeyParams>::new_centralized(&mut OsRng, num_parties, None);
+    let mut ids = Vec::new();
+    for i in 0..num_parties {
+        ids.push(PartyId::new(AccountId32([i.try_into().unwrap(); 32])));
+    }
+    let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let verifying_key = keyshares[0].verifying_key();
 
     let session_id = SessionId::ProactiveRefresh {
         verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
         block_number: 0,
     };
-    let output = test_protocol_with_parties(num_parties, Some(keyshares), session_id).await;
+    let output = test_protocol_with_parties(num_parties, Some(keyshares), None, session_id).await;
     if let ProtocolOutput::ProactiveRefresh(keyshare) = output {
         assert!(keyshare.verifying_key() == verifying_key);
     } else {
@@ -97,7 +107,7 @@ async fn test_refresh_with_parties(num_parties: usize) {
 
 async fn test_dkg_with_parties(num_parties: usize) {
     let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
-    let output = test_protocol_with_parties(num_parties, None, session_id).await;
+    let output = test_protocol_with_parties(num_parties, None, None, session_id).await;
     if let ProtocolOutput::Dkg(_keyshare) = output {
     } else {
         panic!("Unexpected protocol output");
@@ -107,7 +117,8 @@ async fn test_dkg_with_parties(num_parties: usize) {
 /// Generic test for any of the 3 protocols
 async fn test_protocol_with_parties(
     num_parties: usize,
-    keyshares: Option<Box<[KeyShare<KeyParams>]>>,
+    keyshares: Option<Box<[KeyShare<KeyParams, PartyId>]>>,
+    aux_infos: Option<Box<[AuxInfo<KeyParams, PartyId>]>>,
     session_id: SessionId,
 ) -> ProtocolOutput {
     // Prepare information about each node
@@ -126,6 +137,7 @@ async fn test_protocol_with_parties(
 
         validator_secrets.push(ValidatorSecretInfo {
             keyshare: keyshares.as_ref().map(|k| k[i].clone()),
+            aux_info: aux_infos.as_ref().map(|a| a[i].clone()),
             pair,
             x25519_secret_key,
             socket,
@@ -156,6 +168,7 @@ async fn test_protocol_with_parties(
                 secret.x25519_secret_key,
                 session_id_clone,
                 secret.keyshare,
+                secret.aux_info,
             )
             .await;
             if !tx.is_closed() {
@@ -171,7 +184,8 @@ async fn test_protocol_with_parties(
 
 /// Details of an individual party
 struct ValidatorSecretInfo {
-    keyshare: Option<KeyShare<KeyParams>>,
+    keyshare: Option<KeyShare<KeyParams, PartyId>>,
+    aux_info: Option<AuxInfo<KeyParams, PartyId>>,
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     socket: TcpListener,
