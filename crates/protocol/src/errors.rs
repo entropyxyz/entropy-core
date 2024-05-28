@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use synedrion::{sessions, InteractiveSigningResult, KeyGenResult, KeyRefreshResult, MappedResult};
+use synedrion::{
+    sessions, InteractiveSigningResult, KeyGenResult, KeyResharingResult, MappedResult,
+};
 use thiserror::Error;
 
 use crate::{protocol_message::ProtocolMessage, KeyParams, PartyId};
@@ -68,10 +70,10 @@ impl From<GenericProtocolError<KeyGenResult<KeyParams>>> for ProtocolExecutionEr
     }
 }
 
-impl From<GenericProtocolError<KeyRefreshResult<KeyParams>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<KeyRefreshResult<KeyParams>>) -> Self {
+impl From<GenericProtocolError<KeyResharingResult<KeyParams>>> for ProtocolExecutionErr {
+    fn from(err: GenericProtocolError<KeyResharingResult<KeyParams>>) -> Self {
         match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyRefreshProtocolError(err),
+            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
         }
@@ -89,8 +91,8 @@ pub enum ProtocolExecutionErr {
     SigningProtocolError(Box<sessions::Error<InteractiveSigningResult<KeyParams>, PartyId>>),
     #[error("Synedrion keygen session error")]
     KeyGenProtocolError(Box<sessions::Error<KeyGenResult<KeyParams>, PartyId>>),
-    #[error("Synedrion key refresh session error")]
-    KeyRefreshProtocolError(Box<sessions::Error<KeyRefreshResult<KeyParams>, PartyId>>),
+    #[error("Synedrion key reshare session error")]
+    KeyReshareProtocolError(Box<sessions::Error<KeyResharingResult<KeyParams>, PartyId>>),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Bad keyshare error {0}")]

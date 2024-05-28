@@ -19,10 +19,11 @@ use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    make_interactive_signing_session, make_key_gen_session, make_key_refresh_session,
+    make_interactive_signing_session, make_key_gen_session, make_key_resharing_session,
     sessions::{FinalizeOutcome, Session},
     signature::{self, hazmat::RandomizedPrehashSigner},
-    KeyShare, PrehashedMessage, RecoverableSignature,
+    AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, PrehashedMessage,
+    RecoverableSignature,
 };
 use tokio::sync::mpsc;
 
@@ -135,6 +136,7 @@ pub async fn execute_signing_protocol(
     session_id: SessionId,
     chans: Channels,
     key_share: &KeyShare<KeyParams, PartyId>,
+    aux_info: &AuxInfo<KeyParams, PartyId>,
     prehashed_message: &PrehashedMessage,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
@@ -154,6 +156,7 @@ pub async fn execute_signing_protocol(
         pair,
         &party_ids,
         key_share,
+        aux_info,
         prehashed_message,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
@@ -172,7 +175,7 @@ pub async fn execute_dkg(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<KeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
+) -> Result<(KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
 
     let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
@@ -208,11 +211,21 @@ pub async fn execute_proactive_refresh(
     let pair = PairWrapper(threshold_pair.clone());
 
     let shared_randomness = session_id.blake2()?;
+    let inputs = KeyResharingInputs {
+        old_holder: Some(OldHolder { key_share: old_key.to_threshold_key_share() }),
+        new_holder: Some(NewHolder {
+            verifying_key: old_key.verifying_key(),
+            old_threshold: 2,
+            old_holders: party_ids.clone(),
+        }),
+        new_holders: party_ids.clone(),
+        new_threshold: 2,
+    };
+    let session =
+        make_key_resharing_session(&mut OsRng, &shared_randomness, pair, &party_ids, &inputs)
+            .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let session = make_key_refresh_session(&mut OsRng, &shared_randomness, pair, &party_ids)
-        .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let new_key_share = execute_protocol_generic(chans, session).await?;
 
-    let key_change = execute_protocol_generic(chans, session).await?;
-
-    Ok(old_key.update(key_change))
+    Ok(new_key_share.unwrap().to_key_share(&party_ids))
 }

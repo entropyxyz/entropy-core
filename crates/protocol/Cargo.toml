@@ -11,7 +11,7 @@ edition    ='2021'
 [dependencies]
 async-trait        ="0.1.80"
 entropy-shared     ={ version="0.1.0", path="../shared", default-features=false }
-synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="7df95fe72781797dc369db00b68c27907559f31a" }
+synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
 serde              ={ version="1.0", features=["derive"], default-features=false }
 subxt              ={ version="0.35.3", default-features=false }
 sp-core            ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
