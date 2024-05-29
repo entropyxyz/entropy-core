@@ -34,18 +34,9 @@ When using the local docker compose setup, be aware you need to set the TSS host
 
 ## Usage
 
-### Account names
+### Mnemonic
 
-As this is a test client, there is no private key storage. Instead we use 'account names'. An 'account
-name' is a string from which to derive a substrate sr25519 keypair. They are the same as
-the account names the command line tool [`subkey`](https://docs.substrate.io/reference/command-line-tools/subkey) uses.
-
-For example the name `Alice` will give you the same keypair as `subkey inspect //Alice` will give you.
-
-You can use `subkey inspect` to find the seed, private key and account ID associated with a name you choose.
-
-With this `test-cli`, giving the `//` prefix is optional. That is, `Alice` and `//Alice` are identical. Note
-however that account names are case sensitive, so `//Alice` and `//alice` are different accounts.
+As this is a test client, there is no private key storage. Instead we pass in a mnemonic that can be stored as an enviroment variable or passed in on the command line
 
 ### Help
 
@@ -88,18 +79,14 @@ You also need to decide which ['access mode' or 'key visibility'](https://docs.e
 you want to register with: private or public. If you are not sure, 'public' is the simplest 'vanilla'
 access mode.
 
-For example, to register with `//Alice` as the signature request account and `//Bob` as the program
-modification account, in permissioned access mode, using the `template_barebones` program:
+For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
 
-`entropy-test-cli register Alice public template_barebones.wasm`
+`entropy-test-cli register public template_barebones.wasm //Alice`
 
-Example of registering in private access mode, with two programs, one given as a binary file and one
+Example of registering in public access mode, with two programs, one given as a binary file and one
 given as a hash of an existing program:
 
-`entropy-test-cli register Alice private my-program.wasm 3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5`
-
-When registering with private access mode, a keyshare file will be written to the directory where you
-run the command. You must make subsequent `sign` commands in the same directory.
+`entropy-test-cli register public my-program.wasm 3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5 //Alice`
 
 If registration was successful you will see the verifying key of your account, which is the public
 secp256k1 key of your distributed keypair. You will need this in order to specify the account when
@@ -129,7 +116,7 @@ a program you can use the `store-program` command.
 You need to give the account which will store the program, and the path to a program binary file you
 wish to store, for example:
 
-`entropy-test-cli store-program Alice ./crates/testing-utils/example_barebones_with_auxilary.wasm`
+`entropy-test-cli store-program ./crates/testing-utils/example_barebones_with_auxilary.wasm //Alice`
 
 ### Update programs
 
@@ -138,6 +125,6 @@ account. It takes the signature verifying key, and the program modification acco
 programs to evaluate when signing. Programs may be given as either the path to a .wasm binary file
 or hashes of existing programs.
 
-`entropy-test-cli update-programs 039fa2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bb Alice my-new-program.wasm`
+`entropy-test-cli update-programs 039fa2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bb my-new-program.wasm //Alice`
 
 Note that the program modification account must be funded for this to work.

@@ -179,7 +179,7 @@ pub async fn run_command(
         std::env::var("ENTROPY_DEVNET").unwrap_or("ws://localhost:9944".to_string())
     });
 
-    let passed_mnemonic = std::env::var("DEPLOYER_MNEMONIC").unwrap_or("//Alice".to_string());
+    let passed_mnemonic = std::env::var("DEPLOYER_MNEMONIC");
 
     let api = get_api(&endpoint_addr).await?;
     let rpc = get_rpc(&endpoint_addr).await?;
@@ -189,7 +189,7 @@ pub async fn run_command(
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
-                passed_mnemonic
+                passed_mnemonic.expect("No mnemonic set")
             };
 
             let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
@@ -236,7 +236,7 @@ pub async fn run_command(
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
-                passed_mnemonic
+                passed_mnemonic.unwrap_or("//Alice".to_string())
             };
             // If an account name is not provided, use the Alice key
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
@@ -280,7 +280,7 @@ pub async fn run_command(
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
-                passed_mnemonic
+                passed_mnemonic.expect("No Mnemonic set")
             };
             let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Storing program using account: {}", keypair.public());
@@ -320,7 +320,7 @@ pub async fn run_command(
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
-                passed_mnemonic
+                passed_mnemonic.expect("No Mnemonic set")
             };
             let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Program account: {}", program_keypair.public());
