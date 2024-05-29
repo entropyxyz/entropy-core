@@ -229,5 +229,5 @@ pub async fn execute_proactive_refresh(
 
     let new_key_share = execute_protocol_generic(chans, session).await?;
 
-    Ok(new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?)
+    new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
 }
