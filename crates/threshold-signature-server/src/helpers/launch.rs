@@ -174,20 +174,23 @@ pub struct StartupArgs {
     /// The BIP-39 mnemonic (i.e seed phrase) to use for deriving the Threshold Signature Server
     /// SR25519 account ID and the X25519 public key.
     ///
-    /// The SR25519 account is responsible for signing and submitting extrinsics to the Entropy network.
+    /// The SR25519 account is responsible for signing and submitting extrinsics to the Entropy
+    /// network.
     ///
     /// The X25519 public key is used for encrypting/decrypting messages to other threshold
     /// servers.
+    ///
+    /// **Warning**: Passing this flag will overwrite any existing mnemonic! If you would like to
+    /// use an existing mnemonic omit this flag when running the process.
     #[arg(long = "mnemonic")]
     pub mnemonic: Option<bip39::Mnemonic>,
 }
 
 pub async fn has_mnemonic(kv: &KvManager) -> bool {
     let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
+
     if exists {
-        tracing::warn!(
-            "Existing mnemonic found in keystore, any input from `--mnemonic` will be ignored."
-        );
+        tracing::debug!("Existing mnemonic found in keystore.");
     }
 
     exists
@@ -209,6 +212,25 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
+    if has_mnemonic(kv).await {
+        tracing::warn!("Deleting account related keys from KVDB.");
+
+        kv.kv()
+            .delete(FORBIDDEN_KEY_MNEMONIC)
+            .await
+            .expect("Error deleting existing mnemonic from KVDB.");
+        kv.kv()
+            .delete(FORBIDDEN_KEY_SHARED_SECRET)
+            .await
+            .expect("Error deleting shared secret from KVDB.");
+        kv.kv()
+            .delete(FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC)
+            .await
+            .expect("Error deleting X25519 public key from KVDB.");
+    }
+
+    tracing::info!("Writing new mnemonic to KVDB.");
+
     // Write our new mnemonic to the KVDB.
     let reservation = kv
         .kv()
