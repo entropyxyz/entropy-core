@@ -35,7 +35,7 @@ use std::{
     time::Duration,
 };
 use subxt::utils::AccountId32;
-use synedrion::{AuxInfo, KeyShare};
+use synedrion::{AuxInfo, ThresholdKeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
     time::timeout,
@@ -53,8 +53,8 @@ struct ServerState {
 /// Output of a successful protocol run
 pub enum ProtocolOutput {
     Sign(RecoverableSignature),
-    ProactiveRefresh(KeyShare<KeyParams, PartyId>),
-    Dkg((KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)),
+    ProactiveRefresh(ThresholdKeyShare<KeyParams, PartyId>),
+    Dkg((ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)),
 }
 
 impl fmt::Debug for ProtocolOutput {
@@ -70,7 +70,7 @@ pub async fn server(
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     session_id: SessionId,
-    keyshare: Option<KeyShare<KeyParams, PartyId>>,
+    keyshare: Option<ThresholdKeyShare<KeyParams, PartyId>>,
     aux_info: Option<AuxInfo<KeyParams, PartyId>>,
 ) -> anyhow::Result<ProtocolOutput> {
     let account_id = AccountId32(pair.public().0);

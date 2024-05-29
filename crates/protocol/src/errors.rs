@@ -99,6 +99,8 @@ pub enum ProtocolExecutionErr {
     BadKeyShare(String),
     #[error("Cannot serialize session ID {0}")]
     Bincode(#[from] bincode::Error),
+    #[error("No output from reshare protocol")]
+    NoOutputFromReshareProtocol,
 }
 
 #[derive(Debug, Error)]

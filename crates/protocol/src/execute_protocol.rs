@@ -22,8 +22,8 @@ use synedrion::{
     make_interactive_signing_session, make_key_gen_session, make_key_resharing_session,
     sessions::{FinalizeOutcome, Session},
     signature::{self, hazmat::RandomizedPrehashSigner},
-    AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, PrehashedMessage,
-    RecoverableSignature,
+    AuxInfo, KeyResharingInputs, NewHolder, OldHolder, PrehashedMessage, RecoverableSignature,
+    ThresholdKeyShare,
 };
 use tokio::sync::mpsc;
 
@@ -36,7 +36,7 @@ use crate::{
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
-type KeyShareWithAuxData = (KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>);
+type KeyShareWithAuxInfo = (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>);
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
@@ -136,7 +136,7 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
 pub async fn execute_signing_protocol(
     session_id: SessionId,
     chans: Channels,
-    key_share: &KeyShare<KeyParams, PartyId>,
+    key_share: &ThresholdKeyShare<KeyParams, PartyId>,
     aux_info: &AuxInfo<KeyParams, PartyId>,
     prehashed_message: &PrehashedMessage,
     threshold_pair: &sr25519::Pair,
@@ -156,7 +156,7 @@ pub async fn execute_signing_protocol(
         &shared_randomness,
         pair,
         &party_ids,
-        key_share,
+        &key_share.to_key_share(&party_ids),
         aux_info,
         prehashed_message,
     )
@@ -176,7 +176,7 @@ pub async fn execute_dkg(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<KeyShareWithAuxData, ProtocolExecutionErr> {
+) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
 
     let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
@@ -188,7 +188,8 @@ pub async fn execute_dkg(
     let session = make_key_gen_session(&mut OsRng, &shared_randomness, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    Ok(execute_protocol_generic(chans, session).await?)
+    let (keyshare, aux_info) = execute_protocol_generic(chans, session).await?;
+    Ok((keyshare.to_threshold_key_share(), aux_info))
 }
 
 /// Execute proactive refresh.
@@ -202,20 +203,20 @@ pub async fn execute_proactive_refresh(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-    old_key: KeyShare<KeyParams, PartyId>,
-) -> Result<KeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
+    old_key: ThresholdKeyShare<KeyParams, PartyId>,
+) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
     tracing::debug!("Executing proactive refresh");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
     let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
-
     let pair = PairWrapper(threshold_pair.clone());
+    let verifying_key = old_key.verifying_key();
 
     let shared_randomness = session_id.blake2()?;
     let inputs = KeyResharingInputs {
-        old_holder: Some(OldHolder { key_share: old_key.to_threshold_key_share() }),
+        old_holder: Some(OldHolder { key_share: old_key }),
         new_holder: Some(NewHolder {
-            verifying_key: old_key.verifying_key(),
+            verifying_key,
             old_threshold: 2,
             old_holders: party_ids.clone(),
         }),
@@ -228,5 +229,5 @@ pub async fn execute_proactive_refresh(
 
     let new_key_share = execute_protocol_generic(chans, session).await?;
 
-    Ok(new_key_share.unwrap().to_key_share(&party_ids))
+    Ok(new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?)
 }

@@ -23,7 +23,7 @@ use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use std::time::Instant;
 use subxt::utils::AccountId32;
-use synedrion::{ecdsa::VerifyingKey, AuxInfo, KeyShare};
+use synedrion::{ecdsa::VerifyingKey, AuxInfo, KeyShare, ThresholdKeyShare};
 use tokio::{net::TcpListener, runtime::Runtime, sync::oneshot};
 use x25519_dalek::StaticSecret;
 
@@ -146,7 +146,7 @@ async fn test_protocol_with_parties(
         let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret_key).to_bytes();
 
         validator_secrets.push(ValidatorSecretInfo {
-            keyshare: keyshares.as_ref().map(|k| k[i].clone()),
+            keyshare: keyshares.as_ref().map(|k| k[i].to_threshold_key_share()),
             aux_info: aux_infos.as_ref().map(|a| a[i].clone()),
             pair: parties[i].clone(),
             x25519_secret_key,
@@ -194,7 +194,7 @@ async fn test_protocol_with_parties(
 
 /// Details of an individual party
 struct ValidatorSecretInfo {
-    keyshare: Option<KeyShare<KeyParams, PartyId>>,
+    keyshare: Option<ThresholdKeyShare<KeyParams, PartyId>>,
     aux_info: Option<AuxInfo<KeyParams, PartyId>>,
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
