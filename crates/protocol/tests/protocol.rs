@@ -55,13 +55,7 @@ fn dkg_protocol_with_time_logged() {
 }
 
 async fn test_sign_with_parties(num_parties: usize) {
-    let mut parties = Vec::new();
-    let mut ids = Vec::new();
-    for _ in 0..num_parties {
-        let (pair, _) = sr25519::Pair::generate();
-        ids.push(PartyId::new(AccountId32(pair.public().0)));
-        parties.push(pair);
-    }
+    let (parties, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
     let verifying_key = keyshares[0].verifying_key();
@@ -89,13 +83,7 @@ async fn test_sign_with_parties(num_parties: usize) {
 }
 
 async fn test_refresh_with_parties(num_parties: usize) {
-    let mut parties = Vec::new();
-    let mut ids = Vec::new();
-    for _ in 0..num_parties {
-        let (pair, _) = sr25519::Pair::generate();
-        ids.push(PartyId::new(AccountId32(pair.public().0)));
-        parties.push(pair);
-    }
+    let (parties, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let verifying_key = keyshares[0].verifying_key();
 
@@ -112,13 +100,7 @@ async fn test_refresh_with_parties(num_parties: usize) {
 }
 
 async fn test_dkg_with_parties(num_parties: usize) {
-    let mut parties = Vec::new();
-    let mut ids = Vec::new();
-    for _ in 0..num_parties {
-        let (pair, _) = sr25519::Pair::generate();
-        ids.push(PartyId::new(AccountId32(pair.public().0)));
-        parties.push(pair);
-    }
+    let (parties, _ids) = get_keypairs_and_ids(num_parties);
     let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
     let output = test_protocol_with_parties(parties, None, None, session_id).await;
     if let ProtocolOutput::Dkg(_keyshare) = output {
@@ -208,4 +190,12 @@ fn get_tokio_runtime(num_cpus: usize) -> Runtime {
         .enable_all()
         .build()
         .unwrap()
+}
+
+/// Generate keypair and make PartyId from public key
+fn get_keypairs_and_ids(num_parties: usize) -> (Vec<sr25519::Pair>, Vec<PartyId>) {
+    let pairs = (0..num_parties).map(|_| sr25519::Pair::generate().0).collect::<Vec<_>>();
+    let ids =
+        pairs.iter().map(|pair| PartyId::new(AccountId32(pair.public().0))).collect::<Vec<_>>();
+    (pairs, ids)
 }
