@@ -217,11 +217,11 @@ pub async fn execute_proactive_refresh(
         old_holder: Some(OldHolder { key_share: old_key }),
         new_holder: Some(NewHolder {
             verifying_key,
-            old_threshold: 2,
+            old_threshold: party_ids.len(),
             old_holders: party_ids.clone(),
         }),
         new_holders: party_ids.clone(),
-        new_threshold: 2,
+        new_threshold: party_ids.len(),
     };
     let session =
         make_key_resharing_session(&mut OsRng, &shared_randomness, pair, &party_ids, &inputs)
