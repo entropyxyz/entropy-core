@@ -36,7 +36,6 @@ use entropy_client::{
         update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
     },
 };
-use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use subxt::{
@@ -133,7 +132,7 @@ enum CliCommand {
         /// Optionally may be preceeded with "//", eg: "//Alice"
         mnemonic: String,
         /// The path to a .wasm file containing the program (defaults to a test program)
-        program_file: Option<PathBuf>,
+        program_file: PathBuf,
         /// The path to a file containing the program config interface (defaults to empty)
         config_interface_file: Option<PathBuf>,
         /// The path to a file containing the program aux interface (defaults to empty)
@@ -280,10 +279,7 @@ async fn run_command() -> anyhow::Result<String> {
             let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("Storing program using account: {}", keypair.public());
 
-            let program = match program_file {
-                Some(file_name) => fs::read(file_name)?,
-                None => TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-            };
+            let program = fs::read(program_file)?;
 
             let config_interface = match config_interface_file {
                 Some(file_name) => fs::read(file_name)?,
