@@ -43,8 +43,12 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, false).await;
+    let (validator_ips, _validator_ids, users_keyshare_option) = spawn_testing_validators(
+        Some(EVE_VERIFYING_KEY.to_vec()),
+        Some(AccountKeyring::Dave.pair()),
+        false,
+    )
+    .await;
 
     let client = reqwest::Client::new();
     let converted_key_share = serialize(&users_keyshare_option.unwrap()).unwrap();

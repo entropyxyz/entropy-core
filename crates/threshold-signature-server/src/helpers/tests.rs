@@ -44,6 +44,7 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvMa
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::DETERMINISTIC_KEY_SHARE;
 use rand_core::OsRng;
+use sp_core::Pair;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -119,11 +120,15 @@ pub async fn create_clients(
 
 pub async fn spawn_testing_validators(
     passed_verifying_key: Option<Vec<u8>>,
-    // If this is true a keyshare for the user will be generated and returned
-    extra_private_keys: bool,
+    // If this is given a keyshare for the user will be generated and returned
+    extra_private_key: Option<sr25519::Pair>,
     // If true keyshare and verifying key is deterministic
     deterministic_key_share: bool,
-) -> (Vec<String>, Vec<PartyId>, Option<ThresholdKeyShare<KeyParams, PartyId>>) {
+) -> (
+    Vec<String>,
+    Vec<PartyId>,
+    Option<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)>,
+) {
     // spawn threshold servers
     let ports = [3001i64, 3002];
 
@@ -139,7 +144,10 @@ pub async fn spawn_testing_validators(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
-    let ids = vec![alice_id, bob_id];
+    let mut ids = vec![alice_id, bob_id];
+    if let Some(pair) = extra_private_key {
+        ids.push(PartyId::new(SubxtAccountId32(pair.public().0)));
+    }
 
     let user_keyshare_option = if passed_verifying_key.is_some() {
         // creates a deterministic keyshare if requiered
@@ -175,11 +183,10 @@ pub async fn spawn_testing_validators(
         let bob_reservation = bob_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
         bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
 
-        if extra_private_keys {
-            Some(shares[2].to_threshold_key_share())
-        } else {
-            Some(shares[1].to_threshold_key_share())
-        }
+        Some((
+            shares[shares.len() - 1].to_threshold_key_share(),
+            aux_infos[aux_infos.len() - 1].clone(),
+        ))
     } else {
         None
     };

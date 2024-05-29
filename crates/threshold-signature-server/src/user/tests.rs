@@ -81,7 +81,7 @@ use subxt::{
 };
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
-    ThresholdKeyShare,
+    AuxInfo, ThresholdKeyShare,
 };
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
@@ -147,8 +147,8 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -200,7 +200,8 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+    let keyshare = keyshare_with_aux_info_option.unwrap().0;
+    verify_signature(test_user_res, message_hash, &keyshare).await;
     let mock_client = reqwest::Client::new();
     // check request limiter increases
     let unsafe_get =
@@ -225,7 +226,7 @@ async fn test_sign_tx_no_chain() {
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
+    verify_signature(test_user_res_order, message_hash, &keyshare).await;
 
     generic_msg.timestamp = SystemTime::now();
     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
@@ -338,7 +339,7 @@ async fn test_sign_tx_no_chain_fail() {
     let one = AccountKeyring::Dave;
 
     let (validator_ips, _validator_ids, _keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -443,8 +444,8 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec().clone()), false, false).await;
+    let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec().clone()), None, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -494,7 +495,8 @@ async fn test_program_with_config() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+    let keyshare = keyshare_with_aux_info_option.unwrap().0;
+    verify_signature(test_user_res, message_hash, &keyshare).await;
     clean_tests();
 }
 
@@ -510,7 +512,7 @@ async fn test_store_share() {
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), false, false).await;
+        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), None, false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -601,7 +603,7 @@ async fn test_store_share() {
         .await
         .unwrap();
     // check to make sure keyshare is correct
-    let key_share: Option<ThresholdKeyShare<KeyParams, PartyId>> =
+    let key_share: Option<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
     assert_eq!(key_share.is_some(), true);
 
@@ -732,7 +734,7 @@ async fn test_check_hash_pointer_out_of_bounds() {
 pub async fn verify_signature(
     test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
     message_should_succeed_hash: [u8; 32],
-    keyshare_option: Option<ThresholdKeyShare<KeyParams, PartyId>>,
+    keyshare: &ThresholdKeyShare<KeyParams, PartyId>,
 ) {
     let mut i = 0;
     for res in test_user_res {
@@ -752,7 +754,7 @@ pub async fn verify_signature(
             recover_id,
         )
         .unwrap();
-        assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+        assert_eq!(keyshare.verifying_key(), recovery_key_from_sig);
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
             BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
@@ -773,7 +775,7 @@ async fn test_fail_infinite_program() {
     let two = AccountKeyring::Two;
 
     let (validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -872,8 +874,8 @@ async fn test_device_key_proxy() {
 
     let one = AccountKeyring::Dave;
 
-    let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -956,7 +958,8 @@ async fn test_device_key_proxy() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+    let keyshare = keyshare_with_aux_info_option.unwrap().0;
+    verify_signature(test_user_res, message_hash, &keyshare).await;
 }
 
 #[tokio::test]
