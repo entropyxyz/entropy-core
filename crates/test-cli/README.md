@@ -81,7 +81,7 @@ access mode.
 
 For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
 
-`entropy-test-cli register public template_barebones.wasm //Alice`
+`entropy-test-cli register public template_barebones.wasm template_barebones_config_data template_barebones_aux_data //Alice`
 
 Example of registering in public access mode, with two programs, one given as a binary file and one
 given as a hash of an existing program:
