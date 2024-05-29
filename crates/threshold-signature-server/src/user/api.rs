@@ -51,7 +51,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, MultiAddress},
     Config, OnlineClient,
 };
-use synedrion::KeyShare;
+use synedrion::ThresholdKeyShare;
 use tracing::instrument;
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
@@ -345,7 +345,7 @@ pub async fn receive_key(
     check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
 
     // Check this is a well-formed keyshare
-    let _: KeyShare<KeyParams, PartyId> =
+    let _: ThresholdKeyShare<KeyParams, PartyId> =
         entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
             .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
 

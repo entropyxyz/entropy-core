@@ -25,7 +25,7 @@ pub use entropy_protocol::{
 };
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
-use synedrion::{AuxInfo, KeyShare};
+use synedrion::{AuxInfo, ThresholdKeyShare};
 
 pub use self::context::SignContext;
 use crate::{
@@ -68,9 +68,11 @@ impl<'a> ThresholdSigningService<'a> {
             .kv()
             .get(&hex::encode(sign_init.signing_session_info.signature_verifying_key.clone()))
             .await?;
-        let (key_share, aux_info): (KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>) =
-            entropy_kvdb::kv_manager::helpers::deserialize(&key_share_and_aux_info_vec)
-                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+        let (key_share, aux_info): (
+            ThresholdKeyShare<KeyParams, PartyId>,
+            AuxInfo<KeyParams, PartyId>,
+        ) = entropy_kvdb::kv_manager::helpers::deserialize(&key_share_and_aux_info_vec)
+            .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
         Ok(SignContext::new(sign_init, key_share, aux_info))
     }
 
@@ -82,7 +84,7 @@ impl<'a> ThresholdSigningService<'a> {
     pub async fn execute_sign(
         &self,
         session_id: SessionId,
-        key_share: &KeyShare<KeyParams, PartyId>,
+        key_share: &ThresholdKeyShare<KeyParams, PartyId>,
         aux_info: &AuxInfo<KeyParams, PartyId>,
         channels: Channels,
         threshold_signer: &sr25519::Pair,
@@ -99,7 +101,7 @@ impl<'a> ThresholdSigningService<'a> {
         let rsig = execute_signing_protocol(
             session_id,
             channels,
-            key_share,
+            &key_share,
             aux_info,
             &message_hash,
             threshold_signer,

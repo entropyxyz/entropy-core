@@ -45,7 +45,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{AuxInfo, KeyShare};
+use synedrion::{AuxInfo, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -97,7 +97,7 @@ pub async fn proactive_refresh(
         if exists_result {
             let old_key_share = app_state.kv_store.kv().get(&key).await?;
             let (deserialized_old_key, _aux_info): (
-                KeyShare<KeyParams, PartyId>,
+                ThresholdKeyShare<KeyParams, PartyId>,
                 AuxInfo<KeyParams, PartyId>,
             ) = deserialize(&old_key_share)
                 .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
@@ -151,9 +151,9 @@ pub async fn do_proactive_refresh(
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     verifying_key: Vec<u8>,
-    old_key: KeyShare<KeyParams, PartyId>,
+    old_key: ThresholdKeyShare<KeyParams, PartyId>,
     block_number: u32,
-) -> Result<KeyShare<KeyParams, PartyId>, ProtocolErr> {
+) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 

@@ -28,7 +28,7 @@ use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
 use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
-use synedrion::{AuxInfo, KeyShare};
+use synedrion::{AuxInfo, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -46,7 +46,7 @@ pub async fn do_dkg(
     state: &ListenerState,
     sig_request_account: AccountId32,
     block_number: u32,
-) -> Result<(KeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), UserErr> {
+) -> Result<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), UserErr> {
     let session_id = SessionId::Dkg { user: sig_request_account.clone(), block_number };
     let account_id = AccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];

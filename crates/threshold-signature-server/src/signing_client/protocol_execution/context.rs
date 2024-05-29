@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use entropy_protocol::{KeyParams, PartyId};
-use synedrion::{AuxInfo, KeyShare};
+use synedrion::{AuxInfo, ThresholdKeyShare};
 
 use crate::sign_init::SignInit;
 
@@ -24,14 +24,14 @@ pub struct SignContext {
     /// Party context from block proposer
     pub sign_init: SignInit,
     /// Signing key share
-    pub key_share: KeyShare<KeyParams, PartyId>,
+    pub key_share: ThresholdKeyShare<KeyParams, PartyId>,
     pub aux_info: AuxInfo<KeyParams, PartyId>,
 }
 
 impl SignContext {
     pub fn new(
         sign_init: SignInit,
-        key_share: KeyShare<KeyParams, PartyId>,
+        key_share: ThresholdKeyShare<KeyParams, PartyId>,
         aux_info: AuxInfo<KeyParams, PartyId>,
     ) -> Self {
         Self { sign_init, key_share, aux_info }
