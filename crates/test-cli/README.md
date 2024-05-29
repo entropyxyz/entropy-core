@@ -81,12 +81,12 @@ access mode.
 
 For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
 
-`entropy-test-cli register public template_barebones.wasm template_barebones_config_data template_barebones_aux_data //Alice`
+`entropy-test-cli register public template_barebones.wasm template_barebones_config_data template_barebones_aux_data -m //Alice`
 
 Example of registering in public access mode, with two programs, one given as a binary file and one
 given as a hash of an existing program:
 
-`entropy-test-cli register public my-program.wasm 3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5 //Alice`
+`entropy-test-cli register public my-program.wasm 3b3993c957ed9342cbb011eb9029c53fb253345114eff7da5951e98a41ba5ad5 -m //Alice`
 
 If registration was successful you will see the verifying key of your account, which is the public
 secp256k1 key of your distributed keypair. You will need this in order to specify the account when
@@ -125,6 +125,6 @@ account. It takes the signature verifying key, and the program modification acco
 programs to evaluate when signing. Programs may be given as either the path to a .wasm binary file
 or hashes of existing programs.
 
-`entropy-test-cli update-programs 039fa2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bb my-new-program.wasm //Alice`
+`entropy-test-cli update-programs 039fa2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bb my-new-program.wasm -m //Alice`
 
 Note that the program modification account must be funded for this to work.
