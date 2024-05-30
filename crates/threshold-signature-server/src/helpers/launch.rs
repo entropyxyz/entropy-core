@@ -17,7 +17,6 @@
 
 use std::{fs, path::PathBuf};
 
-use bip39::{Language, Mnemonic};
 use clap::Parser;
 use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
@@ -30,7 +29,7 @@ use subxt::ext::sp_core::{
     sr25519, Pair,
 };
 
-use crate::{helpers::validator::get_signer_and_x25519_secret, validation::new_mnemonic};
+use crate::helpers::validator::get_signer_and_x25519_secret;
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -47,7 +46,12 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 #[cfg(test)]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 3] = ["MNEMONIC", "SHARED_SECRET", "DH_PUBLIC"];
+pub const FORBIDDEN_KEYS: [&str; 3] =
+    [FORBIDDEN_KEY_MNEMONIC, FORBIDDEN_KEY_SHARED_SECRET, FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC];
+
+pub const FORBIDDEN_KEY_MNEMONIC: &str = "MNEMONIC";
+pub const FORBIDDEN_KEY_SHARED_SECRET: &str = "SHARED_SECRET";
+pub const FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
 
 // Deafult name for TSS server
 // Will set mnemonic and db path
@@ -160,84 +164,119 @@ pub struct StartupArgs {
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
 
-    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
+    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to
+    /// stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
     ///
     /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
     #[arg(long = "setup-only")]
     pub setup_only: bool,
+
+    /// The BIP-39 mnemonic (i.e seed phrase) to use for deriving the Threshold Signature Server
+    /// SR25519 account ID and the X25519 public key.
+    ///
+    /// The SR25519 account is responsible for signing and submitting extrinsics to the Entropy
+    /// network.
+    ///
+    /// The X25519 public key is used for encrypting/decrypting messages to other threshold
+    /// servers.
+    ///
+    /// **Warning**: Passing this flag will overwrite any existing mnemonic! If you would like to
+    /// use an existing mnemonic omit this flag when running the process.
+    #[arg(long = "mnemonic")]
+    pub mnemonic: Option<bip39::Mnemonic>,
 }
 
-pub async fn setup_mnemonic(
-    kv: &KvManager,
-    validator_name: &Option<ValidatorName>,
-) -> Result<(), KvError> {
-    // Check if a mnemonic exists in the kvdb.
-    let exists_result = kv.kv().exists(FORBIDDEN_KEYS[0]).await.expect("issue querying DB");
-    if !exists_result {
-        let mnemonic = match validator_name {
-            Some(some_validator_name) => Mnemonic::parse_in_normalized(
-                Language::English,
-                match some_validator_name {
-                    ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,
-                    ValidatorName::Bob => DEFAULT_BOB_MNEMONIC,
-                    ValidatorName::Charlie => DEFAULT_CHARLIE_MNEMONIC,
-                },
-            ),
-            None => {
-                // If using a test configuration then set to the default mnemonic
-                if cfg!(test) {
-                    Mnemonic::parse_in_normalized(Language::English, DEFAULT_MNEMONIC)
-                } else {
-                    new_mnemonic()
-                }
-            },
-        }
-        .expect("Issue creating Mnemonic");
+pub async fn has_mnemonic(kv: &KvManager) -> bool {
+    let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
 
-        // Update the value in the kvdb
-        let reservation = kv
-            .kv()
-            .reserve_key(FORBIDDEN_KEYS[0].to_string())
-            .await
-            .expect("Issue reserving mnemonic");
-        kv.kv()
-            .put(reservation, mnemonic.to_string().as_bytes().to_vec())
-            .await
-            .expect("failed to update mnemonic");
-
-        let (pair, static_secret) =
-            get_signer_and_x25519_secret(kv).await.expect("Cannot derive keypairs");
-        let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
-
-        let ss_reservation = kv
-            .kv()
-            .reserve_key(FORBIDDEN_KEYS[1].to_string())
-            .await
-            .expect("Issue reserving ss key");
-        kv.kv()
-            .put(ss_reservation, static_secret.to_bytes().to_vec())
-            .await
-            .expect("failed to update secret share");
-
-        let dh_reservation = kv
-            .kv()
-            .reserve_key(FORBIDDEN_KEYS[2].to_string())
-            .await
-            .expect("Issue reserving DH key");
-
-        kv.kv().put(dh_reservation, x25519_public_key.to_vec()).await.expect("failed to update dh");
-
-        let formatted_dh_public = format!("{x25519_public_key:?}").replace('"', "");
-        fs::write(".entropy/public_key", formatted_dh_public)
-            .expect("Failed to write public key file");
-
-        let id = AccountId32::new(pair.signer().public().0);
-
-        fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
-
-        tracing::debug!("Starting process with account ID: `{id}`");
+    if exists {
+        tracing::debug!("Existing mnemonic found in keystore.");
     }
-    Ok(())
+
+    exists
+}
+
+pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
+    let mnemonic = if let Some(validator_name) = validator_name {
+        match validator_name {
+            ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,
+            ValidatorName::Bob => DEFAULT_BOB_MNEMONIC,
+            ValidatorName::Charlie => DEFAULT_CHARLIE_MNEMONIC,
+        }
+    } else {
+        DEFAULT_MNEMONIC
+    };
+
+    bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic)
+        .expect("Unable to parse given mnemonic.")
+}
+
+pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
+    if has_mnemonic(kv).await {
+        tracing::warn!("Deleting account related keys from KVDB.");
+
+        kv.kv()
+            .delete(FORBIDDEN_KEY_MNEMONIC)
+            .await
+            .expect("Error deleting existing mnemonic from KVDB.");
+        kv.kv()
+            .delete(FORBIDDEN_KEY_SHARED_SECRET)
+            .await
+            .expect("Error deleting shared secret from KVDB.");
+        kv.kv()
+            .delete(FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC)
+            .await
+            .expect("Error deleting X25519 public key from KVDB.");
+    }
+
+    tracing::info!("Writing new mnemonic to KVDB.");
+
+    // Write our new mnemonic to the KVDB.
+    let reservation = kv
+        .kv()
+        .reserve_key(FORBIDDEN_KEY_MNEMONIC.to_string())
+        .await
+        .expect("Issue reserving mnemonic");
+    kv.kv()
+        .put(reservation, mnemonic.to_string().as_bytes().to_vec())
+        .await
+        .expect("failed to update mnemonic");
+
+    let (pair, static_secret) =
+        get_signer_and_x25519_secret(kv).await.expect("Cannot derive keypairs");
+    let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
+
+    // Write the shared secret in the KVDB
+    let shared_secret_reservation = kv
+        .kv()
+        .reserve_key(FORBIDDEN_KEY_SHARED_SECRET.to_string())
+        .await
+        .expect("Issue reserving ss key");
+    kv.kv()
+        .put(shared_secret_reservation, static_secret.to_bytes().to_vec())
+        .await
+        .expect("failed to update secret share");
+
+    // Write the Diffie-Hellman key in the KVDB
+    let diffie_hellman_reservation = kv
+        .kv()
+        .reserve_key(FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC.to_string())
+        .await
+        .expect("Issue reserving DH key");
+
+    kv.kv()
+        .put(diffie_hellman_reservation, x25519_public_key.to_vec())
+        .await
+        .expect("failed to update dh");
+
+    // Now we write the TSS AccountID and X25519 public key to files for convenience reasons.
+    let formatted_dh_public = format!("{x25519_public_key:?}").replace('"', "");
+    fs::write(".entropy/public_key", formatted_dh_public).expect("Failed to write public key file");
+
+    let id = AccountId32::new(pair.signer().public().0);
+    fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
+
+    tracing::debug!("Starting process with account ID: `{id}`");
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {

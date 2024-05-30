@@ -20,8 +20,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
-        StartupArgs, ValidatorName,
+        development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only,
+        Configuration, StartupArgs, ValidatorName,
     },
     sync_validator, AppState,
 };
@@ -52,10 +52,22 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
+
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
-    setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
+
+    if let Some(mnemonic) = args.mnemonic {
+        setup_mnemonic(&kv_store, mnemonic).await;
+    } else if cfg!(test) || validator_name.is_some() {
+        setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await;
+    } else {
+        assert!(
+            entropy_tss::launch::has_mnemonic(&kv_store).await,
+            "No mnemonic provided. Please provide one or use a development account."
+        );
+    }
+
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb
