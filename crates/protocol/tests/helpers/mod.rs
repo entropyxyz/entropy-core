@@ -24,7 +24,8 @@ use entropy_protocol::{
         noise::{noise_handshake_initiator, noise_handshake_responder},
         ws_to_channels, SubscribeMessage, WsChannels,
     },
-    KeyParams, Listener, PartyId, RecoverableSignature, SessionId, ValidatorInfo,
+    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, RecoverableSignature, SessionId,
+    ValidatorInfo,
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;
@@ -54,7 +55,7 @@ struct ServerState {
 pub enum ProtocolOutput {
     Sign(RecoverableSignature),
     ProactiveRefresh(ThresholdKeyShare<KeyParams, PartyId>),
-    Dkg((ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)),
+    Dkg(KeyShareWithAuxInfo),
 }
 
 impl fmt::Debug for ProtocolOutput {
