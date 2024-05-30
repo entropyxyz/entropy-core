@@ -23,7 +23,6 @@ use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
 /// A Message send during the signing or DKG protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-// #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct ProtocolMessage {
     /// Identifier of the author of this message
     pub from: PartyId,

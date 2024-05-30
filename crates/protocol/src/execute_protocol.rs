@@ -142,7 +142,7 @@ pub async fn execute_signing_protocol(
     threshold_accounts: Vec<AccountId32>,
 ) -> Result<RecoverableSignature, ProtocolExecutionErr> {
     tracing::debug!("Executing signing protocol");
-    // tracing::trace!("Using key share {:?}", &key_share);
+    tracing::trace!("Using key share with verifying key {:?}", &key_share.verifying_key());
 
     let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
 
