@@ -135,7 +135,7 @@ pub async fn sign_tx(
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
 
-    check_stale(user_sig_req.timestamp)?;
+    check_stale(user_sig_req.block_number, &rpc).await?;
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
     check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
@@ -608,6 +608,7 @@ pub async fn recover_key(
         key_server_info,
         signer,
         x25519_secret,
+        rpc,
     )
     .await
     .map_err(|e| UserErr::ValidatorError(e.to_string()))?;

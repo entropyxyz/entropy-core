@@ -19,14 +19,17 @@ use bip39::Mnemonic;
 pub use entropy_protocol::sign_and_encrypt::{
     EncryptedSignedMessage, EncryptedSignedMessageErr, SignedMessage,
 };
+use entropy_shared::BlockNumber;
 use rand_core::{OsRng, RngCore};
-use subxt::ext::sp_core::{sr25519, Pair};
-
+use subxt::{
+    backend::legacy::LegacyRpcMethods,
+    ext::sp_core::{sr25519, Pair},
+};
 pub mod errors;
-
+use crate::chain_api::EntropyConfig;
 use errors::ValidationErr;
 
-pub const TIME_BUFFER: Duration = Duration::from_secs(25);
+pub const BLOCK_BUFFER: BlockNumber = 5u32;
 
 /// Derives a sr25519::Pair from a Mnemonic
 pub fn mnemonic_to_pair(m: &Mnemonic) -> Result<sr25519::Pair, ValidationErr> {
@@ -36,9 +39,15 @@ pub fn mnemonic_to_pair(m: &Mnemonic) -> Result<sr25519::Pair, ValidationErr> {
 }
 
 /// Checks if the message sent was within X amount of time
-pub fn check_stale(message_time: SystemTime) -> Result<(), ValidationErr> {
-    let time_difference = SystemTime::now().duration_since(message_time)?;
-    if time_difference > TIME_BUFFER {
+pub async fn check_stale(
+    user_block_number: BlockNumber,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(), ValidationErr> {
+    let block_number =
+        rpc.chain_get_header(None).await?.ok_or_else(|| ValidationErr::BlockNumber)?.number;
+    let block_difference =
+        block_number.checked_sub(user_block_number).ok_or(ValidationErr::StaleMessage)?;
+    if block_difference > BLOCK_BUFFER {
         return Err(ValidationErr::StaleMessage);
     }
     Ok(())

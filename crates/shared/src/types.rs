@@ -31,7 +31,7 @@ pub type X25519PublicKey = [u8; 32];
 
 /// This should match the type found in `entropy-runtime`. We define it ourselves manually here
 /// since we don't want to pull that whole crate it just for a `u32`.
-type BlockNumber = u32;
+pub type BlockNumber = u32;
 
 /// Defines an application's accessibility
 /// Public -> User does not hold a keyshare
