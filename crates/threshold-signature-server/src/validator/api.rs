@@ -233,6 +233,7 @@ pub async fn get_random_server_info(
 }
 
 /// From keys of registered accounts get their corresponding entropy threshold keys
+#[allow(clippy::too_many_arguments)]
 pub async fn get_and_store_values(
     all_keys: Vec<String>,
     kv: &KvManager,
