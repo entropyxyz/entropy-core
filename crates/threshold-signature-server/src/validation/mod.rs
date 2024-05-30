@@ -13,20 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::{Duration, SystemTime};
-
 use bip39::Mnemonic;
 pub use entropy_protocol::sign_and_encrypt::{
     EncryptedSignedMessage, EncryptedSignedMessageErr, SignedMessage,
 };
 use entropy_shared::BlockNumber;
 use rand_core::{OsRng, RngCore};
-use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519, Pair},
-};
+use subxt::ext::sp_core::{sr25519, Pair};
 pub mod errors;
-use crate::chain_api::EntropyConfig;
 use errors::ValidationErr;
 
 pub const BLOCK_BUFFER: BlockNumber = 5u32;

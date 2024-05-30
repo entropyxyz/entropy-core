@@ -47,7 +47,6 @@ use entropy_protocol::{
 use entropy_shared::HashingAlgorithm;
 use futures::{future, stream::StreamExt};
 use sp_core::{sr25519, Pair};
-use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,

@@ -19,7 +19,7 @@ use entropy_shared::{BlockNumber, MIN_BALANCE, VERIFICATION_KEY_LENGTH};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};
-use std::{str::FromStr, thread, time::Duration, time::SystemTime};
+use std::{str::FromStr, thread, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
