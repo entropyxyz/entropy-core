@@ -25,7 +25,7 @@ use entropy_kvdb::{
 use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
-    KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
+    KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
@@ -603,7 +603,7 @@ async fn test_store_share() {
         .await
         .unwrap();
     // check to make sure keyshare is correct
-    let key_share: Option<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)> =
+    let key_share: Option<KeyShareWithAuxInfo> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
     assert_eq!(key_share.is_some(), true);
 

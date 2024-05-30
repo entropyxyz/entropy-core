@@ -25,7 +25,7 @@ use crate::{
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, DETERMINISTIC_KEY_SHARE_DAVE, EVE_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
@@ -37,7 +37,7 @@ use parity_scale_codec::Encode;
 use rand_core::OsRng;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
-use synedrion::{AuxInfo, KeyShare, ThresholdKeyShare};
+use synedrion::{ecdsa::SigningKey, AuxInfo, KeyShare};
 
 #[tokio::test]
 #[serial]
@@ -46,24 +46,37 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, ids, users_keyshare_option) = spawn_testing_validators(
-        Some(EVE_VERIFYING_KEY.to_vec()),
-        None,
-        // Some(AccountKeyring::Dave.pair()),
-        true,
-    )
-    .await;
+    let (validator_ips, ids, _users_keyshare_option) =
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), None, true).await;
 
-    // let shares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
-    // let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
+    let dave_signing_key =
+        Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_DAVE).into()).unwrap());
+    let shares = KeyShare::<KeyParams, PartyId>::new_centralized(
+        &mut OsRng,
+        &ids,
+        dave_signing_key.as_ref(),
+    );
+    let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
 
     let client = reqwest::Client::new();
-    // let converted_key_share_eve =
-    // serialize(&(shares[0].to_threshold_key_share(), aux_infos[0])).unwrap();
     let get_query_eve = UnsafeQuery::new(hex::encode(EVE_VERIFYING_KEY.to_vec()), vec![]).to_json();
-    // let put_query_dave =
-    //     UnsafeQuery::new(hex::encode(DAVE_VERIFYING_KEY.to_vec()), converted_key_share_eve.clone())
-    //         .to_json();
+    let get_query_dave =
+        UnsafeQuery::new(hex::encode(DAVE_VERIFYING_KEY.to_vec()), vec![]).to_json();
+    let converted_key_share_dave_0 =
+        serialize(&(shares[0].to_threshold_key_share(), aux_infos[0].clone())).unwrap();
+    let put_query_dave_0 = UnsafeQuery::new(
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        converted_key_share_dave_0.clone(),
+    )
+    .to_json();
+
+    let converted_key_share_dave_1 =
+        serialize(&(shares[1].to_threshold_key_share(), aux_infos[1].clone())).unwrap();
+    let put_query_dave_1 = UnsafeQuery::new(
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        converted_key_share_dave_1.clone(),
+    )
+    .to_json();
 
     // check get key before proactive refresh
     let key_before_result_eve = client
@@ -76,22 +89,22 @@ async fn test_proactive_refresh() {
 
     let key_before_eve = key_before_result_eve.text().await.unwrap();
 
-    // puts dave key into kvdb
-    // client
-    //     .post("http://127.0.0.1:3001/unsafe/put")
-    //     .header("Content-Type", "application/json")
-    //     .body(get_query_dave.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    // // puts dave key into kvdb
-    // client
-    //     .post("http://127.0.0.1:3002/unsafe/put")
-    //     .header("Content-Type", "application/json")
-    //     .body(get_query_dave.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
+    // puts dave keyshare into first kvdb
+    client
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(put_query_dave_0)
+        .send()
+        .await
+        .unwrap();
+    // puts dave keyshare into second kvdb
+    client
+        .post("http://127.0.0.1:3002/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(put_query_dave_1)
+        .send()
+        .await
+        .unwrap();
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -108,7 +121,7 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec()], //DAVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
         block_number: 0,
     };
 
@@ -135,20 +148,20 @@ async fn test_proactive_refresh() {
         .unwrap();
 
     // check get key before proactive refresh
-    // let key_after_result_dave = client
-    //     .post("http://127.0.0.1:3001/unsafe/get")
-    //     .header("Content-Type", "application/json")
-    //     .body(get_query_dave.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
+    let key_after_result_dave = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query_dave.clone())
+        .send()
+        .await
+        .unwrap();
 
     let key_after_eve = key_after_result_eve.text().await.unwrap();
-    // let key_after_dave = key_after_result_dave.text().await.unwrap();
+    let key_after_dave = key_after_result_dave.text().await.unwrap();
 
-    // make sure private keys are changed
+    // make sure private keyshares are changed
     assert_ne!(key_before_eve, key_after_eve);
-    // assert_ne!(converted_key_share, serialize(&key_after_dave).unwrap());
+    assert_ne!(converted_key_share_dave_0, serialize(&key_after_dave).unwrap());
 
     let alice = AccountKeyring::Alice;
     ocw_message.validators_info[0].tss_account = alice.public().encode();

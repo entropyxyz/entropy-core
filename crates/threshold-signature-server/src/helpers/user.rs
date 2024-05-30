@@ -19,7 +19,7 @@ use std::time::Duration;
 use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
-    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
+    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
 use entropy_shared::{HashingAlgorithm, SETUP_TIMEOUT_SECONDS};
 
@@ -46,7 +46,7 @@ pub async fn do_dkg(
     state: &ListenerState,
     sig_request_account: AccountId32,
     block_number: u32,
-) -> Result<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), UserErr> {
+) -> Result<KeyShareWithAuxInfo, UserErr> {
     let session_id = SessionId::Dkg { user: sig_request_account.clone(), block_number };
     let account_id = AccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];

@@ -41,8 +41,8 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
-use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::DETERMINISTIC_KEY_SHARE;
+use entropy_protocol::{KeyParams, KeyShareWithAuxInfo, PartyId};
+use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
 use rand_core::OsRng;
 use sp_core::Pair;
 use subxt::{
@@ -124,11 +124,7 @@ pub async fn spawn_testing_validators(
     extra_private_key: Option<sr25519::Pair>,
     // If true keyshare and verifying key is deterministic
     deterministic_key_share: bool,
-) -> (
-    Vec<String>,
-    Vec<PartyId>,
-    Option<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>)>,
-) {
+) -> (Vec<String>, Vec<PartyId>, Option<KeyShareWithAuxInfo>) {
     // spawn threshold servers
     let ports = [3001i64, 3002];
 
@@ -152,7 +148,7 @@ pub async fn spawn_testing_validators(
     let user_keyshare_option = if passed_verifying_key.is_some() {
         // creates a deterministic keyshare if requiered
         let signing_key = if deterministic_key_share {
-            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE).into()).unwrap())
+            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_EVE).into()).unwrap())
         } else {
             None
         };
