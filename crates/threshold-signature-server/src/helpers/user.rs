@@ -19,7 +19,7 @@ use std::time::Duration;
 use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
-    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
+    KeyShareWithAuxInfo, Listener, SessionId, ValidatorInfo,
 };
 use entropy_shared::{HashingAlgorithm, SETUP_TIMEOUT_SECONDS};
 
@@ -28,7 +28,6 @@ use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
 use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
-use synedrion::{AuxInfo, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
