@@ -31,12 +31,11 @@ use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
     protocol_message::ProtocolMessage,
     protocol_transport::Broadcaster,
-    KeyParams, PartyId, SessionId,
+    KeyParams, KeyShareWithAuxInfo, PartyId, SessionId,
 };
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
-type KeyShareWithAuxInfo = (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>);
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
