@@ -16,7 +16,7 @@
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::DETERMINISTIC_KEY_SHARE;
+use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
 use entropy_tss::{
     app, get_signer,
     launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
@@ -83,7 +83,7 @@ pub async fn spawn_testing_validators(
     let user_keyshare_option = if passed_verifying_key.is_some() {
         // creates a deterministic keyshare if requiered
         let signing_key = if deterministic_key_share {
-            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE).into()).unwrap())
+            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_EVE).into()).unwrap())
         } else {
             None
         };
