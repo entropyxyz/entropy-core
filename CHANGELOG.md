@@ -11,6 +11,7 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
+- Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 
 ### Changed
 - Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
