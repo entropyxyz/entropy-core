@@ -184,6 +184,10 @@ pub struct StartupArgs {
     /// use an existing mnemonic omit this flag when running the process.
     #[arg(long = "mnemonic")]
     pub mnemonic: Option<bip39::Mnemonic>,
+
+    /// TODO
+    #[arg(long = "mnemonic-file", conflicts_with = "mnemonic")]
+    pub mnemonic_file: Option<PathBuf>,
 }
 
 pub async fn has_mnemonic(kv: &KvManager) -> bool {
