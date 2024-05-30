@@ -171,12 +171,12 @@ pub async fn sign(
     let message_hash_hex = hex::encode(message_hash);
     let validators_info = get_current_subgroup_signers(api, rpc, &message_hash_hex).await?;
     tracing::debug!("Validators info {:?}", validators_info);
-
+    let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
         auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
         validators_info: validators_info.clone(),
-        timestamp: get_current_time(),
+        block_number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),
     };
@@ -434,14 +434,4 @@ async fn select_validator_from_subgroup(
         }
     };
     Ok(address.clone())
-}
-
-#[cfg(feature = "full-client-wasm")]
-fn get_current_time() -> SystemTime {
-    use std::time::{Duration, UNIX_EPOCH};
-    UNIX_EPOCH + Duration::from_secs(js_sys::Date::now() as u64)
-}
-#[cfg(not(feature = "full-client-wasm"))]
-fn get_current_time() -> SystemTime {
-    SystemTime::now()
 }

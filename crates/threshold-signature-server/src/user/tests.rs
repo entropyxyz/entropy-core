@@ -185,7 +185,7 @@ async fn test_sign_tx_no_chain() {
     let (_validators_info, mut generic_msg, validator_ips_and_keys) =
         get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     // test points to no program
     let test_no_program =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -206,7 +206,7 @@ async fn test_sign_tx_no_chain() {
     .await
     .unwrap();
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -230,14 +230,15 @@ async fn test_sign_tx_no_chain() {
     let request_info: RequestLimitStorage =
         RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
     assert_eq!(request_info.request_amount, 1);
-    generic_msg.timestamp = SystemTime::now();
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     verify_signature(test_user_res_order, message_hash, keyshare_option.clone()).await;
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -284,7 +285,7 @@ async fn test_sign_tx_no_chain() {
         encrypted_connection.recv().await.is_err()
     });
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
@@ -303,7 +304,7 @@ async fn test_sign_tx_no_chain() {
     assert!(connection_attempt_handle.await.unwrap());
 
     // Bad Account ID - an account ID is given which is not in the signing group
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
         subxtAccountId32(AccountKeyring::Dave.into());
@@ -324,7 +325,7 @@ async fn test_sign_tx_no_chain() {
     // Now, test a signature request that should fail
     // The test program is written to fail when `auxilary_data` is `None`
     generic_msg.auxilary_data = None;
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -338,7 +339,7 @@ async fn test_sign_tx_no_chain() {
 
     // The test program is written to fail when `auxilary_data` is `None` but only on the second program
     generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_user_failed_aux_data =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -347,7 +348,7 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.hash = HashingAlgorithm::Custom(3);
     let test_user_custom_hash_out_of_bounds =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -519,7 +520,7 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -1127,7 +1128,7 @@ async fn test_sign_tx_user_participates() {
     verify_signature(test_user_res, message_should_succeed_hash, users_keyshare_option.clone())
         .await;
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
 
     // test failing cases
@@ -1141,7 +1142,7 @@ async fn test_sign_tx_user_participates() {
         );
     }
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = verifying_key;
     let mut generic_msg_bad_validators = generic_msg.clone();
     generic_msg_bad_validators.validators_info[0].x25519_public_key = [0; 32];
@@ -1203,7 +1204,7 @@ async fn test_sign_tx_user_participates() {
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
@@ -1220,7 +1221,7 @@ async fn test_sign_tx_user_participates() {
     }
 
     assert!(connection_attempt_handle.await.unwrap());
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     // Bad Account ID - an account ID is given which is not in the signing group
     let mut generic_msg_bad_account_id = generic_msg.clone();
     generic_msg_bad_account_id.validators_info[0].tss_account =
@@ -1242,7 +1243,7 @@ async fn test_sign_tx_user_participates() {
     // Now, test a signature request that should fail
     // The test program is written to fail when `auxilary_data` is `None`
     generic_msg.auxilary_data = None;
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -1544,7 +1545,7 @@ async fn test_fail_infinite_program() {
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
         validators_info,
-        timestamp: SystemTime::now(),
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
@@ -1554,7 +1555,7 @@ async fn test_fail_infinite_program() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_infinite_loop =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -1663,7 +1664,7 @@ async fn test_device_key_proxy() {
             &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
         ))]),
         validators_info,
-        timestamp: SystemTime::now(),
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
@@ -1673,7 +1674,7 @@ async fn test_device_key_proxy() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -1858,7 +1859,7 @@ pub fn get_sign_tx_data(
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
         validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
+        block_number: 0,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };

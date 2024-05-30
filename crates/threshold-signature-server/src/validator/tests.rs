@@ -42,7 +42,7 @@ use crate::{
         tests::{create_clients, initialize_test_logger},
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage, TIME_BUFFER},
+    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage, BLOCK_BUFFER},
     validator::errors::ValidatorErr,
 };
 
@@ -84,7 +84,8 @@ async fn test_sync_kvdb() {
     initialize_test_logger().await;
     clean_tests();
 
-    let _ctx = test_context_stationary().await;
+    let ctx = test_context_stationary().await;
+    let rpc = get_rpc(&ctx.node_proc.ws_url).await.unwrap();
     let addrs = vec![
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         hex::encode(EVE_VERIFYING_KEY.to_vec()),
@@ -114,7 +115,10 @@ async fn test_sync_kvdb() {
     });
 
     let client = reqwest::Client::new();
-    let mut keys = Keys { keys: addrs, timestamp: SystemTime::now() };
+    let mut keys = Keys {
+        keys: addrs,
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
+    };
     let enc_keys =
         EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
             .unwrap();
@@ -206,7 +210,7 @@ async fn test_sync_kvdb() {
     assert_eq!(result_4.status(), 500);
     assert_eq!(result_4.text().await.unwrap(), "Forbidden Key");
 
-    keys.timestamp = keys.timestamp.checked_sub(TIME_BUFFER).unwrap();
+    keys.block_number = keys.block_number + BLOCK_BUFFER + 10;
     let enc_stale =
         EncryptedSignedMessage::new(&b_usr_sk, serde_json::to_vec(&keys).unwrap(), &recip, &[])
             .unwrap();
@@ -315,6 +319,7 @@ async fn test_get_and_store_values() {
         recip_server_info,
         &signer_alice,
         &x25519_alice,
+        &rpc,
     )
     .await
     .unwrap();

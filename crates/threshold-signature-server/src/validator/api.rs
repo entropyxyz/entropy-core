@@ -136,7 +136,12 @@ pub async fn sync_kvdb(
     tracing::Span::current().record("signing_address", decrypted_message.account_id().to_string());
     let sender_account_id = SubxtAccountId32(decrypted_message.sender.into());
     let keys: Keys = serde_json::from_slice(&decrypted_message.message)?;
-    check_stale(keys.block_number, &rpc).await?;
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block nubmer"))?
+        .number;
+    check_stale(keys.block_number, block_number).await?;
 
     let signing_address = decrypted_message.account_id();
     check_in_subgroup(&api, &rpc, &signer, &signing_address).await?;
