@@ -120,7 +120,9 @@ pub struct StartupArgs {
     /// Indicates that a Threshold server **should not** ask its peers for key-share data.
     ///
     /// This is useful to avoid in cases where:
+    ///
     /// - The network is being bootstrapped and peers don't have any useful data yet.
+    ///
     /// - There is outdated information about peers (e.g, outdated IP addresses coming from the
     ///   on-chain registry) and we don't want to sync outdated key-shares.
     #[arg(short = 's', long = "no-sync")]
