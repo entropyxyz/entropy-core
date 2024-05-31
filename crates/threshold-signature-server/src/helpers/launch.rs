@@ -120,7 +120,9 @@ pub struct StartupArgs {
     /// Indicates that a Threshold server **should not** ask its peers for key-share data.
     ///
     /// This is useful to avoid in cases where:
+    ///
     /// - The network is being bootstrapped and peers don't have any useful data yet.
+    ///
     /// - There is outdated information about peers (e.g, outdated IP addresses coming from the
     ///   on-chain registry) and we don't want to sync outdated key-shares.
     #[arg(short = 's', long = "no-sync")]
@@ -180,10 +182,27 @@ pub struct StartupArgs {
     /// The X25519 public key is used for encrypting/decrypting messages to other threshold
     /// servers.
     ///
+    /// Note that this may keep a mnemonic in your shell history. If you would like to avoid this
+    /// use one of the alternative options, or tools like the 1Password CLI.
+    ///
+    /// **Alternatives**: There are two other ways to supply the mnemonic to the TSS: the
+    /// `--mnemonic-file` flag and the `THRESHOLD_SERVER_MNEMONIC` environment variable.
+    ///
     /// **Warning**: Passing this flag will overwrite any existing mnemonic! If you would like to
     /// use an existing mnemonic omit this flag when running the process.
     #[arg(long = "mnemonic")]
     pub mnemonic: Option<bip39::Mnemonic>,
+
+    /// The path to a file containing the BIP-39 mnemonic (i.e seed phrase) to use for deriving the
+    /// Threshold Signature Server SR25519 account ID and the X25519 public key.
+    ///
+    /// **Alternatives**: There are two other ways to supply the mnemonic to the TSS: the
+    /// `--mnemonic` flag and the `THRESHOLD_SERVER_MNEMONIC` environment variable.
+    ///
+    /// **Warning**: Passing this flag will overwrite any existing mnemonic! If you would like to
+    /// use an existing mnemonic omit this flag when running the process.
+    #[arg(long = "mnemonic-file", conflicts_with = "mnemonic")]
+    pub mnemonic_file: Option<PathBuf>,
 }
 
 pub async fn has_mnemonic(kv: &KvManager) -> bool {

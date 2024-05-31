@@ -57,7 +57,29 @@ async fn main() {
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
 
-    if let Some(mnemonic) = args.mnemonic {
+    // We consider the inputs in order of most to least explicit: CLI flag, supplied file,
+    // environment variable.
+    let user_mnemonic = args
+        .mnemonic
+        .or_else(|| {
+            args.mnemonic_file.map(|path| {
+                let file = std::fs::read(path).expect("Unable to read mnemonic file.");
+                let mnemonic = std::str::from_utf8(&file)
+                    .expect("Unable to convert provided mnemonic to UTF-8 string.")
+                    .trim();
+
+                bip39::Mnemonic::parse_normalized(mnemonic)
+                    .expect("Unable to parse given mnemonic.")
+            })
+        })
+        .or_else(|| {
+            std::env::var("THRESHOLD_SERVER_MNEMONIC").ok().map(|mnemonic| {
+                bip39::Mnemonic::parse_normalized(&mnemonic)
+                    .expect("Unable to parse given mnemonic.")
+            })
+        });
+
+    if let Some(mnemonic) = user_mnemonic {
         setup_mnemonic(&kv_store, mnemonic).await;
     } else if cfg!(test) || validator_name.is_some() {
         setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await;
