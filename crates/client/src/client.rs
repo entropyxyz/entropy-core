@@ -375,6 +375,7 @@ pub async fn check_verifying_key(
     Ok(())
 }
 
+/// Create a balance transfer transaction which can be signed externally
 pub async fn create_partial_balance_tx(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -382,15 +383,18 @@ pub async fn create_partial_balance_tx(
     to: SubxtAccountId32,
     amount: u128,
 ) -> Result<subxt::tx::PartialExtrinsic<EntropyConfig, OnlineClient<EntropyConfig>>, ClientError> {
+    let to: <EntropyConfig as Config>::AccountId = to.into();
     let call =
         entropy::tx().balances().transfer_allow_death(subxt::utils::MultiAddress::Id(to), amount);
 
     Ok(create_partial_extrinsic(api, rpc, &call, from).await?)
 }
 
-pub fn decode_partial_balance_tx(input: Vec<u8>) -> entropy::balances::Call {
-    let call = entropy::balances::Call::decode(&mut input.as_ref()).unwrap();
-    call
+/// Attempt to decode call data from a partial balance transfer extrinsic
+pub fn decode_partial_balance_tx(
+    input: Vec<u8>,
+) -> entropy::balances::calls::types::TransferAllowDeath {
+    entropy::balances::calls::types::TransferAllowDeath::decode(&mut input.as_ref()).unwrap()
 }
 
 /// Get the commitee of tss servers who will perform DKG for a given block number
