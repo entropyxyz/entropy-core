@@ -27,7 +27,7 @@ use axum::{
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
     execute_protocol::{execute_proactive_refresh, Channels},
-    KeyParams, Listener, SessionId, ValidatorInfo,
+    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
 
@@ -45,7 +45,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::KeyShare;
+use synedrion::{AuxInfo, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -96,7 +96,10 @@ pub async fn proactive_refresh(
         let exists_result = app_state.kv_store.kv().exists(&key).await?;
         if exists_result {
             let old_key_share = app_state.kv_store.kv().get(&key).await?;
-            let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
+            let (deserialized_old_key, _aux_info): (
+                ThresholdKeyShare<KeyParams, PartyId>,
+                AuxInfo<KeyParams, PartyId>,
+            ) = deserialize(&old_key_share)
                 .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
             let new_key_share = do_proactive_refresh(
@@ -148,9 +151,9 @@ pub async fn do_proactive_refresh(
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     verifying_key: Vec<u8>,
-    old_key: KeyShare<KeyParams>,
+    old_key: ThresholdKeyShare<KeyParams, PartyId>,
     block_number: u32,
-) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 

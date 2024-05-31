@@ -39,6 +39,7 @@ use subxt::utils::AccountId32;
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature},
     signature::{self, hazmat::PrehashVerifier},
+    AuxInfo, ThresholdKeyShare,
 };
 
 /// Identifies a party participating in a protocol session
@@ -125,6 +126,9 @@ use synedrion::TestParams;
 pub type KeyParams = TestParams;
 
 pub use synedrion::KeyShare;
+
+/// This is the keyshare payload which gets stored by entropy-tss
+pub type KeyShareWithAuxInfo = (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>);
 
 /// A secp256k1 signature from which we can recover the public key of the keypair used to create it
 #[derive(Clone, Debug)]

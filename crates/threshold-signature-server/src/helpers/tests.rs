@@ -41,14 +41,15 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
-use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::DETERMINISTIC_KEY_SHARE;
+use entropy_protocol::{KeyParams, KeyShareWithAuxInfo, PartyId};
+use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
 use rand_core::OsRng;
+use sp_core::Pair;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
-use synedrion::{k256::ecdsa::SigningKey, KeyShare};
+use synedrion::{k256::ecdsa::SigningKey, AuxInfo, KeyShare, ThresholdKeyShare};
 use tokio::sync::OnceCell;
 
 /// A shared reference to the logger used for tests.
@@ -119,11 +120,11 @@ pub async fn create_clients(
 
 pub async fn spawn_testing_validators(
     passed_verifying_key: Option<Vec<u8>>,
-    // If this is true a keyshare for the user will be generated and returned
-    extra_private_keys: bool,
+    // If this is given a keyshare for the user will be generated and returned
+    extra_private_key: Option<sr25519::Pair>,
     // If true keyshare and verifying key is deterministic
     deterministic_key_share: bool,
-) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
+) -> (Vec<String>, Vec<PartyId>, Option<KeyShareWithAuxInfo>) {
     // spawn threshold servers
     let ports = [3001i64, 3002];
 
@@ -138,24 +139,32 @@ pub async fn spawn_testing_validators(
     let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
+
+    let mut ids = vec![alice_id, bob_id];
+    if let Some(pair) = extra_private_key {
+        ids.push(PartyId::new(SubxtAccountId32(pair.public().0)));
+    }
+
     let user_keyshare_option = if passed_verifying_key.is_some() {
-        let number_of_shares = if extra_private_keys { 3 } else { 2 };
         // creates a deterministic keyshare if requiered
         let signing_key = if deterministic_key_share {
-            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE).into()).unwrap())
+            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_EVE).into()).unwrap())
         } else {
             None
         };
 
-        let shares = KeyShare::<KeyParams>::new_centralized(
-            &mut OsRng,
-            number_of_shares,
-            signing_key.as_ref(),
-        );
-        let validator_1_threshold_keyshare: Vec<u8> =
-            entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
-        let validator_2_threshold_keyshare: Vec<u8> =
-            entropy_kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
+        let shares =
+            KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, signing_key.as_ref());
+        let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
+
+        let validator_1_threshold_keyshare: Vec<u8> = entropy_kvdb::kv_manager::helpers::serialize(
+            &(shares[0].to_threshold_key_share(), &aux_infos[0]),
+        )
+        .unwrap();
+        let validator_2_threshold_keyshare: Vec<u8> = entropy_kvdb::kv_manager::helpers::serialize(
+            &(shares[1].to_threshold_key_share(), &aux_infos[1]),
+        )
+        .unwrap();
         // uses the deterministic verifying key if requested
         let verifying_key = if deterministic_key_share {
             hex::encode(shares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec())
@@ -170,11 +179,10 @@ pub async fn spawn_testing_validators(
         let bob_reservation = bob_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
         bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
 
-        if extra_private_keys {
-            Some(shares[2].clone())
-        } else {
-            Some(shares[1].clone())
-        }
+        Some((
+            shares[shares.len() - 1].to_threshold_key_share(),
+            aux_infos[aux_infos.len() - 1].clone(),
+        ))
     } else {
         None
     };
@@ -196,7 +204,6 @@ pub async fn spawn_testing_validators(
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
-    let ids = vec![alice_id, bob_id];
     (ips, ids, user_keyshare_option)
 }
 

@@ -23,7 +23,7 @@ zeroize         ={ version="1.7", features=["zeroize_derive"], default-features=
 rpassword       ={ version="7.3.1", default-features=false }
 scrypt          ={ version="0.11.0", default-features=false, features=["std"] }
 chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
-synedrion       ="0.1"
+synedrion       ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
 
 # Async
 tokio  ={ version="1.16", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }

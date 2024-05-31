@@ -18,13 +18,14 @@
 mod context;
 
 use entropy_kvdb::kv_manager::KvManager;
+use entropy_protocol::PartyId;
 pub use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
     KeyParams, ProtocolMessage, RecoverableSignature, SessionId,
 };
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
-use synedrion::KeyShare;
+use synedrion::{AuxInfo, ThresholdKeyShare};
 
 pub use self::context::SignContext;
 use crate::{
@@ -62,15 +63,17 @@ impl<'a> ThresholdSigningService<'a> {
     )]
     pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
-        let key_share_vec = self
+        let key_share_and_aux_info_vec = self
             .kv_manager
             .kv()
             .get(&hex::encode(sign_init.signing_session_info.signature_verifying_key.clone()))
             .await?;
-        let key_share: KeyShare<KeyParams> =
-            entropy_kvdb::kv_manager::helpers::deserialize(&key_share_vec)
-                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
-        Ok(SignContext::new(sign_init, key_share))
+        let (key_share, aux_info): (
+            ThresholdKeyShare<KeyParams, PartyId>,
+            AuxInfo<KeyParams, PartyId>,
+        ) = entropy_kvdb::kv_manager::helpers::deserialize(&key_share_and_aux_info_vec)
+            .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+        Ok(SignContext::new(sign_init, key_share, aux_info))
     }
 
     /// handle signing protocol execution.
@@ -81,7 +84,8 @@ impl<'a> ThresholdSigningService<'a> {
     pub async fn execute_sign(
         &self,
         session_id: SessionId,
-        key_share: &KeyShare<KeyParams>,
+        key_share: &ThresholdKeyShare<KeyParams, PartyId>,
+        aux_info: &AuxInfo<KeyParams, PartyId>,
         channels: Channels,
         threshold_signer: &sr25519::Pair,
         threshold_accounts: Vec<AccountId32>,
@@ -98,6 +102,7 @@ impl<'a> ThresholdSigningService<'a> {
             session_id,
             channels,
             key_share,
+            aux_info,
             &message_hash,
             threshold_signer,
             threshold_accounts,
