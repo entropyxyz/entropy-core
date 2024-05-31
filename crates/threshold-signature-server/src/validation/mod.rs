@@ -37,12 +37,7 @@ pub async fn check_stale(
     user_block_number: BlockNumber,
     chain_block_number: BlockNumber,
 ) -> Result<(), ValidationErr> {
-    let block_difference = if chain_block_number > user_block_number {
-        chain_block_number.checked_sub(user_block_number).ok_or(ValidationErr::StaleMessage)?
-    } else {
-        user_block_number.checked_sub(chain_block_number).ok_or(ValidationErr::StaleMessage)?
-    };
-
+    let block_difference = chain_block_number.abs_diff(user_block_number);
     if block_difference > BLOCK_BUFFER {
         return Err(ValidationErr::StaleMessage);
     }
