@@ -26,7 +26,7 @@ chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
 synedrion       ="0.1"
 
 # Async
-tokio  ={ version="1.16", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }
+tokio  ={ version="1.38", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }
 tracing={ version="0.1", default-features=false }
 
 # Misc
