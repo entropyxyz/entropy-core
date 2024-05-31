@@ -177,22 +177,20 @@ pub async fn execute_dkg(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
+    threshold: usize,
 ) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
     let broadcaster = chans.0.clone();
 
     let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
-    let t = party_ids.len();
 
     let pair = PairWrapper(threshold_pair.clone());
 
     let shared_randomness = session_id.blake2()?;
 
-    // First run the key init session with only t participants
-    // TODO figure out if we are in t for this session and if yes
-    let session =
-        make_key_init_session(&mut OsRng, &shared_randomness, pair.clone(), &party_ids[..t])
-            .map_err(ProtocolExecutionErr::SessionCreation)?;
+    // First run the key init session.
+    let session = make_key_init_session(&mut OsRng, &shared_randomness, pair.clone(), &party_ids)
+        .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let (init_keyshare, rx) = execute_protocol_generic(chans, session).await?;
 
@@ -212,7 +210,7 @@ pub async fn execute_dkg(
             old_holders: party_ids.clone(),
         }),
         new_holders: party_ids.clone(),
-        new_threshold: party_ids.len(),
+        new_threshold: threshold,
     };
     let session = make_key_resharing_session(
         &mut OsRng,

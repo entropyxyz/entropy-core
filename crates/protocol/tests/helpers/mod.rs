@@ -139,8 +139,9 @@ pub async fn server(
             Ok(ProtocolOutput::ProactiveRefresh(new_keyshare))
         },
         SessionId::Dkg { .. } => {
+            let threshold = tss_accounts.len();
             let keyshare_and_aux_info =
-                execute_dkg(session_id, channels, &pair, tss_accounts).await?;
+                execute_dkg(session_id, channels, &pair, tss_accounts, threshold).await?;
             Ok(ProtocolOutput::Dkg(keyshare_and_aux_info))
         },
     }
