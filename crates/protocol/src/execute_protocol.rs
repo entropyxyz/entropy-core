@@ -189,13 +189,21 @@ pub async fn execute_dkg(
     let shared_randomness = session_id.blake2()?;
 
     // First run the key init session.
-    let session = make_key_init_session(&mut OsRng, &shared_randomness, pair.clone(), &party_ids)
-        .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let session = make_key_init_session(
+        &mut OsRng,
+        &shared_randomness,
+        pair.clone(),
+        &party_ids[..threshold],
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let (init_keyshare, rx) = execute_protocol_generic(chans, session).await?;
 
     // Setup channels for the next session
     let chans = Channels(broadcaster.clone(), rx);
+
+    let old_threshold = init_keyshare.to_threshold_key_share().threshold();
+    println!("Old threshold {}", old_threshold);
 
     // If were a member of t, send verifying_key to others
     // Otherwise receive verifying_key from another

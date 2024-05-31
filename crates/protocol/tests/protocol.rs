@@ -49,6 +49,7 @@ fn refresh_protocol_with_time_logged() {
 #[test]
 fn dkg_protocol_with_time_logged() {
     let cpus = num_cpus::get();
+    println!("Running dkg protocol with {} parties", cpus);
     get_tokio_runtime(cpus).block_on(async {
         test_dkg_with_parties(cpus).await;
     })

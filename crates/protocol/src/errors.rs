@@ -63,6 +63,7 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for Protoco
 
 impl From<GenericProtocolError<KeyInitResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<KeyInitResult<KeyParams>>) -> Self {
+        println!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
