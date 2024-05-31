@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use synedrion::{
-    sessions, InteractiveSigningResult, KeyGenResult, KeyResharingResult, MappedResult,
+    sessions, AuxGenResult, InteractiveSigningResult, KeyInitResult, KeyResharingResult,
+    MappedResult,
 };
 use thiserror::Error;
 
@@ -60,10 +61,10 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for Protoco
     }
 }
 
-impl From<GenericProtocolError<KeyGenResult<KeyParams>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<KeyGenResult<KeyParams>>) -> Self {
+impl From<GenericProtocolError<KeyInitResult<KeyParams>>> for ProtocolExecutionErr {
+    fn from(err: GenericProtocolError<KeyInitResult<KeyParams>>) -> Self {
         match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyGenProtocolError(err),
+            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
         }
@@ -80,6 +81,16 @@ impl From<GenericProtocolError<KeyResharingResult<KeyParams>>> for ProtocolExecu
     }
 }
 
+impl From<GenericProtocolError<AuxGenResult<KeyParams>>> for ProtocolExecutionErr {
+    fn from(err: GenericProtocolError<AuxGenResult<KeyParams>>) -> Self {
+        match err {
+            GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
+            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
+            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+        }
+    }
+}
+
 /// An error during or while setting up a protocol session
 #[derive(Debug, Error)]
 pub enum ProtocolExecutionErr {
@@ -89,10 +100,12 @@ pub enum ProtocolExecutionErr {
     SessionCreation(sessions::LocalError),
     #[error("Synedrion signing session error")]
     SigningProtocolError(Box<sessions::Error<InteractiveSigningResult<KeyParams>, PartyId>>),
-    #[error("Synedrion keygen session error")]
-    KeyGenProtocolError(Box<sessions::Error<KeyGenResult<KeyParams>, PartyId>>),
+    #[error("Synedrion key init session error")]
+    KeyInitProtocolError(Box<sessions::Error<KeyInitResult<KeyParams>, PartyId>>),
     #[error("Synedrion key reshare session error")]
     KeyReshareProtocolError(Box<sessions::Error<KeyResharingResult<KeyParams>, PartyId>>),
+    #[error("Synedrion aux generation session error")]
+    AuxGenProtocolError(Box<sessions::Error<AuxGenResult<KeyParams>, PartyId>>),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Bad keyshare error {0}")]
