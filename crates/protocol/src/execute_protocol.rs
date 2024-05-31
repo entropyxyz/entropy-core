@@ -202,9 +202,6 @@ pub async fn execute_dkg(
     // Setup channels for the next session
     let chans = Channels(broadcaster.clone(), rx);
 
-    let old_threshold = init_keyshare.to_threshold_key_share().threshold();
-    println!("Old threshold {}", old_threshold);
-
     // If were a member of t, send verifying_key to others
     // Otherwise receive verifying_key from another
     let verifying_key = init_keyshare.verifying_key();
