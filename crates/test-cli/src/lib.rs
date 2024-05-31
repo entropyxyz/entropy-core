@@ -25,11 +25,12 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_client::{
     chain_api::{
-        entropy::runtime_types::{
+        entropy::{self, runtime_types::{
             bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
-        },
+        },},
         EntropyConfig,
     },
+    substrate::submit_transaction_with_pair,
     client::{
         get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
         update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
@@ -82,10 +83,7 @@ enum CliCommand {
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
-        /// A name from which to generate a program modification keypair, eg: "Bob"
-        /// This is used to send the register extrinsic and so it must be funded
-        ///
-        /// Optionally may be preceeded with "//" eg: "//Bob"
+        /// The mnemonic to use for the call
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -97,11 +95,7 @@ enum CliCommand {
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
-        /// A name from which to generate a keypair, eg: "Alice"
-        /// This is only needed when using private mode.
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        #[arg(short, long)]
+        //. The mnemonic to use for the call
         mnemonic_option: Option<String>,
     },
     /// Update the program for a particular account
@@ -120,9 +114,7 @@ enum CliCommand {
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
-        /// A name from which to generate a program modification keypair, eg: "Bob"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Bob"
+        /// The mnemonic to use for the call
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -134,9 +126,26 @@ enum CliCommand {
         config_interface_file: Option<PathBuf>,
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
-        /// A name from which to generate a keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
+        /// The mnemonic to use for the call
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Allows a validator to change their endloint
+    ChangeEndpoint {
+        /// New endpoint to change to
+        new_endpoint: String,
+        // The mnemonic to use for the call, should be stash address
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Allows a validator to change their threhsold accounts
+    ChangeThresholdAccounts {
+        /// New threshold account
+        new_tss_account: String,
+        /// New x25519 public key
+        new_x25519_public_key: String,
+
+        // The mnemonic to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -404,6 +413,42 @@ pub async fn run_command(
 
             Ok("Got status".to_string())
         },
+        CliCommand::ChangeEndpoint { new_endpoint, mnemonic_option } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.expect("No Mnemonic set")
+            };
+            
+            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+
+            println!("User account: {}", user_keypair.public());
+
+            let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(
+                new_endpoint.into()
+            );
+            let in_block =
+                submit_transaction_with_pair(&api, &rpc, &user_keypair, &change_endpoint_tx, None).await?;
+            let result_event = in_block.find_first::<entropy::staking_extension::events::EndpointChanged>()?.ok_or(anyhow!("Error with transaction"))?;
+            println!("Event result: {:?}", result_event);
+            Ok("Endpoint changed".to_string())
+
+        },
+        CliCommand::ChangeThresholdAccounts {
+            new_tss_account,
+            new_x25519_public_key,
+            mnemonic_option,
+        } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.expect("No Mnemonic set")
+            };
+            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+
+            println!("User account: {}", user_keypair.public());
+
+            Ok("Threshold accounts changed".to_string())}
     }
 }
 
