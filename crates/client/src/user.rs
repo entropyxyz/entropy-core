@@ -17,11 +17,11 @@ use crate::{
     chain_api::{entropy, EntropyConfig},
     substrate::query_chain,
 };
-use entropy_shared::{user::ValidatorInfo, HashingAlgorithm, SIGNING_PARTY_SIZE};
+use entropy_shared::{user::ValidatorInfo, BlockNumber, HashingAlgorithm, SIGNING_PARTY_SIZE};
 use futures::future::join_all;
 use num::{BigInt, Num, ToPrimitive};
 use serde::{Deserialize, Serialize};
-use std::{sync::Arc, time::SystemTime};
+use std::sync::Arc;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 
 pub use crate::errors::SubgroupGetError;
@@ -36,7 +36,7 @@ pub struct UserSignatureRequest {
     /// Information from the validators in signing party
     pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
-    pub timestamp: SystemTime,
+    pub block_number: BlockNumber,
     /// Hashing algorithm to be used for signing
     pub hash: HashingAlgorithm,
     /// The veryfying key for the signature requested

@@ -15,11 +15,11 @@
 
 use axum::{extract::State, Json};
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::{MIN_BALANCE, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{BlockNumber, MIN_BALANCE, VERIFICATION_KEY_LENGTH};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::{AccountId32, Ss58Codec};
-use std::{str::FromStr, thread, time::Duration, time::SystemTime};
+use std::{str::FromStr, thread, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
@@ -48,7 +48,7 @@ use crate::{
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Keys {
     pub keys: Vec<String>,
-    pub timestamp: SystemTime,
+    pub block_number: BlockNumber,
 }
 
 /// A set of encrypted keyshares.
@@ -114,6 +114,7 @@ pub async fn sync_validator(dev: bool, endpoint: &str, kv_store: &KvManager) {
         key_server_info,
         &signer,
         &x25519_secret,
+        &rpc,
     )
     .await
     .expect("failed to get and store all values");
@@ -135,7 +136,12 @@ pub async fn sync_kvdb(
     tracing::Span::current().record("signing_address", decrypted_message.account_id().to_string());
     let sender_account_id = SubxtAccountId32(decrypted_message.sender.into());
     let keys: Keys = serde_json::from_slice(&decrypted_message.message)?;
-    check_stale(keys.timestamp)?;
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block nubmer"))?
+        .number;
+    check_stale(keys.block_number, block_number).await?;
 
     let signing_address = decrypted_message.account_id();
     check_in_subgroup(&api, &rpc, &signer, &signing_address).await?;
@@ -227,6 +233,7 @@ pub async fn get_random_server_info(
 }
 
 /// From keys of registered accounts get their corresponding entropy threshold keys
+#[allow(clippy::too_many_arguments)]
 pub async fn get_and_store_values(
     all_keys: Vec<String>,
     kv: &KvManager,
@@ -235,6 +242,7 @@ pub async fn get_and_store_values(
     recip_server_info: ServerInfo<subxt::utils::AccountId32>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     x25519_secret: &StaticSecret,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<(), ValidatorErr> {
     let url = String::from_utf8(recip_server_info.endpoint)?;
     let mut keys_stored = 0;
@@ -244,7 +252,12 @@ pub async fn get_and_store_values(
             keys_to_send_slice = all_keys.len();
         }
         let remaining_keys = all_keys[keys_stored..(keys_to_send_slice)].to_vec();
-        let keys_to_send = Keys { keys: remaining_keys.clone(), timestamp: SystemTime::now() };
+        let block_number = rpc
+            .chain_get_header(None)
+            .await?
+            .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get block number"))?
+            .number;
+        let keys_to_send = Keys { keys: remaining_keys.clone(), block_number };
         let enc_keys = EncryptedSignedMessage::new(
             signer.signer(),
             serde_json::to_vec(&keys_to_send)?,

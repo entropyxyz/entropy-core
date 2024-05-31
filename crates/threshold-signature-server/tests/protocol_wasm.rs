@@ -56,7 +56,6 @@ use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::crypto::{AccountId32, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods, events::EventsClient, ext::sp_core::sr25519::Signature,
     Config, OnlineClient,
@@ -129,7 +128,7 @@ async fn test_wasm_sign_tx_user_participates() {
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
         validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: verifying_key.clone(),
     };
@@ -166,7 +165,7 @@ async fn test_wasm_sign_tx_user_participates() {
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     // Submit transaction requests, and connect and participate in signing
     let (mut test_user_res, user_sig) = future::join(
