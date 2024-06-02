@@ -20,6 +20,7 @@
 use entropy_protocol::{KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo};
 use futures::future;
 use rand_core::OsRng;
+use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use std::time::Instant;
 use subxt::utils::AccountId32;
@@ -31,6 +32,7 @@ mod helpers;
 use helpers::{server, ProtocolOutput};
 
 #[test]
+#[serial]
 fn sign_protocol_with_time_logged() {
     let cpus = num_cpus::get();
     get_tokio_runtime(cpus).block_on(async {
@@ -39,6 +41,7 @@ fn sign_protocol_with_time_logged() {
 }
 
 #[test]
+#[serial]
 fn refresh_protocol_with_time_logged() {
     let cpus = num_cpus::get();
     get_tokio_runtime(cpus).block_on(async {
@@ -47,6 +50,7 @@ fn refresh_protocol_with_time_logged() {
 }
 
 #[test]
+#[serial]
 fn dkg_protocol_with_time_logged() {
     let cpus = num_cpus::get();
     get_tokio_runtime(cpus).block_on(async {
@@ -55,6 +59,7 @@ fn dkg_protocol_with_time_logged() {
 }
 
 #[test]
+#[serial]
 fn t_of_n_dkg_and_sign() {
     let cpus = num_cpus::get();
     get_tokio_runtime(cpus).block_on(async {

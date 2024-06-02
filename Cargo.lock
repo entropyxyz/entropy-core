@@ -2529,6 +2529,7 @@ dependencies = [
  "schnorrkel",
  "serde",
  "serde_json",
+ "serial_test",
  "snow",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
