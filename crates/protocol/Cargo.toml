@@ -47,10 +47,10 @@ base64              ={ version="0.22.1", optional=true }
 schnorrkel          ={ version="0.11.4", default-features=false, features=["std"], optional=true }
 
 [dev-dependencies]
-serial_test ="3.1.1"
-sp-keyring="34.0.0"
-anyhow    ="1.0.86"
-num_cpus  ="1.16.0"
+serial_test="3.1.1"
+sp-keyring ="34.0.0"
+anyhow     ="1.0.86"
+num_cpus   ="1.16.0"
 
 [features]
 default=["server"]
