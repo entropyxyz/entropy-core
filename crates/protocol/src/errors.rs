@@ -117,6 +117,10 @@ pub enum ProtocolExecutionErr {
     Bincode(#[from] bincode::Error),
     #[error("No output from reshare protocol")]
     NoOutputFromReshareProtocol,
+    #[error("BigInt conversion: {0}")]
+    BigIntConversion(#[from] num::bigint::TryFromBigIntError<num::bigint::BigUint>),
+    #[error("Index out of bounds when selecting DKG committee")]
+    IndexOutOfBounds,
 }
 
 #[derive(Debug, Error)]

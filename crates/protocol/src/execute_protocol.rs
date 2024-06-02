@@ -350,15 +350,15 @@ fn get_key_init_parties(
     let mut includes_self = false;
     let number = BigUint::from_bytes_be(shared_randomness);
     let start_index_big = &number % validators.len();
-    let start_index: usize = start_index_big.try_into().unwrap(); //.to_usize().unwrap(); //.ok_or(SubgroupGetError::Usize("Usize error"))?;
+    let start_index: usize = start_index_big.try_into()?;
 
     for i in start_index..start_index + threshold {
         let index = i % validators.len();
-        let member = validators.get(index).unwrap();
+        let member = validators.get(index).ok_or(ProtocolExecutionErr::IndexOutOfBounds)?;
         if member == my_party_id {
             includes_self = true;
         }
-        parties.push(validators.get(index).unwrap().clone());
+        parties.push(member.clone());
     }
 
     Ok((parties, includes_self))
