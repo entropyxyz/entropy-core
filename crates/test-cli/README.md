@@ -1,36 +1,23 @@
-# Entropy Test CLI
+# Rust Test CLI
 
-This is a simple CLI for testing Entropy.
-
-Note that this client has no secure private key storage and is only intended for use with test
-networks. For a fully featured command line client see [entropyxyz/cli](https://github.com/entropyxyz/cli).
+This is a simple command-line interface (CLI) for Entropy built in Rust. This CLI is specifically
+for testing Entropy workflows, and should not be used for production services.
 
 ## Requirements
 
-To use it you need to have access to a deployment of the Entropy network, with at least two chain
-nodes and two TSS servers.
+To use this CLI you need to have access to an Entropy network. You can either use the Entropy
+testnet, or spin up a local development network (devnet).
 
-This could be either:
+You'll also need the following dependencies:
 
-- A [network deployment](https://github.com/entropyxyz/meta/wiki/New-Entropy-network-deployment-runbook), in
-which case you need to specify a chain endpoint URI. This can be done either by setting the
-`ENTROPY_DEVNET` environment variable or using the `--chain-endpoint` or `-c` command line argument
-to for example `ws://54.175.228.156:9944`.
-- A [local deployment with docker compose](https://github.com/entropyxyz/meta/wiki/Local-devnet).
-  When using this you don't need to specify the chain endpoint as the CLI will by default use
-  `ws://localhost:9944`.
+1. The latest LTS version of Rust:
 
-When using the local docker compose setup, be aware you need to set the TSS hostnames in your
-`/etc/hosts` file by adding the lines:
+    ```shell
+    # Any unix-based operating system.
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    ```
 
-```
-127.0.0.1 alice-tss-server
-127.0.0.1 bob-tss-server
-```
-
-You'll also need the following packages:
-
-1. OpenSSL:
+1. OpenSSL version 3.0.0 or higher:
 
     ```shell
     # Debian/Ubuntu
@@ -43,8 +30,8 @@ You'll also need the following packages:
     # However, to install a specific version run:
     sudo pacman -S openss3-3.0
     ```
-    
-2. `pkg-config`:
+
+1. `pkg-config` version 0.29.0 or higher:
 
     ```shell
     # Debian/Ubuntu
@@ -66,46 +53,125 @@ cargo install entropy-test-cli
 
 ## Usage
 
-### Mnemonic
+### Specify network
 
-As this is a test client, there is no private key storage. Instead we pass in a mnemonic that can be stored as an enviroment variable or passed in on the command line
+The majority of the commands available in the CLI require a connection to an Entropy network. You
+can pass in a network variable using the `--chain-endpoint` argument:
+
+```shell
+entropy-test-cli --chain-endpoint "ws://testnet.entropy.xyz:9944" status
+```
+
+Output:
+
+```plaintext
+There are 31 registered Entropy accounts.
+
+Verifying key:                                                   Visibility:  Programs:
+02e1acb3d83c1aef1e246c237d2fa95609d0201caef53d459aa73267866dead730 Public       ["0x0000ΓÇª0000"]
+...
+```
+
+You can also set the environment variable `ENTROPY_DEVNET` to the network you want to connect to:
+
+```shell
+export ENTROPY_DEVNET="ws://testnet.entropy.xyz:9944"
+entropy-test-cli status
+```
+
+Output:
+
+```plaintext
+There are 31 registered Entropy accounts.
+
+Verifying key:                                                   Visibility:  Programs:
+02e1acb3d83c1aef1e246c237d2fa95609d0201caef53d459aa73267866dead730 Public       ["0x0000ΓÇª0000"]
+...
+```
 
 ### Help
 
 To see usage information you can run the `help` command:
 
-`entropy-test-cli -- help`
+```shell
+entropy-test-cli -- help`
+```
 
-You can also display help for a specific command:
+This will output something like:
 
-`entropy-test-cli -- help register`
+```plaintext
+CLI tool for testing Entropy
+
+Usage: entropy-test-cli [OPTIONS] <COMMAND>
+
+Commands:
+
+  register         Register with Entropy and create keyshares
+  sign             Ask the network to sign a given message
+  update-programs  Update the program for a particular account
+  store-program    Store a given program on chain
+  status           Display a list of registered Entropy accounts
+  help             Print this message or the help of the given subcommand(s)
+
+Options:
+  -c, --chain-endpoint <CHAIN_ENDPOINT>  The chain endpoint to use
+  -h, --help                             Print help (see more with '--help')
+  -V, --version                          Print version
+```
 
 ### Status
 
 To see if you have access to a successfully configured deployment you can try the `status` command
 which will list the currently registered entropy accounts and stored programs:
 
-`entropy-test-cli -- status`
+```shell
+entropy-test-cli status
+```
+
+Output:
+
+```plaintext
+There are 31 registered Entropy accounts.
+
+Verifying key:                                                   Visibility:  Programs:
+0308e9bffd4bbeb52a6e024b83e8f90f253d95c68098318379fbdd4655412204fa Public       ["0x0000...0000"]
+
+...
+
+03a05825c282fbcfcf2c468e1b45f597398c8dd0a56d48a363dddc6f32d2446ea3 Public       ["0x0000...0000"]
+
+There are 6 stored programs
+
+
+Hash        Stored by:                                       Times used: Size in bytes: Configurable? Has auxiliary?
+0x1bb4...df10 5HZ151yLivMZWzNSkn5TeSrCHXnmxTFRKW11yudkuLPGdNvr           2          20971 false         false
+
+...
+
+0x0000...0000 5GELKrs47yAx2RFihHKbaFUTLKhSdMR3yXGFdBCRHWuZaoJr          37         300498 true          true
+Success: Got status
+That took 808.977979ms
+```
 
 ### Register
 
 To register an entropy account you need three things:
-- An Entropy chain account name which we will call the 'program modification account'. This must be funded
-  in order to submit the register transaction. On the local (docker compose) setup you can use one of the
-  [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/master/node/cli/src/endowed_accounts.rs),
-  for example `Alice`.
-- One or more programs, which define the conditions under which a given message will be signed by
-  the Entropy network. The test-cli `register` command takes programs as either the hex-encoded hash
-  of an existing program on chain, or the local path to a `.wasm` file containing the compiled
-  program.
-  - The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/master/examples/device-key-proxy/src/lib.rs)
-    program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
-  - The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils)
-    crate contains some ready to use compiled programs, the simplest of which is
-    [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/master/crates/testing-utils/template_barebones.wasm)
-    which allow you to sign any message which is more than 10 bytes long.
-  - See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as
-    instructions on how to write and build your own programs.
+
+-   An Entropy chain account name which we will call the 'program modification account'. This must be funded in order to submit the register transaction. On the local (docker compose) setup you can use one of the
+    [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/master/node/cli/src/endowed_accounts.rs),
+    for example `Alice`.
+-   One or more programs, which define the conditions under which a given message will be signed by
+    the Entropy network. The test-cli `register` command takes programs as either the hex-encoded hash
+    of an existing program on chain, or the local path to a `.wasm` file containing the compiled
+    program.
+    -   The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/master/examples/device-key-proxy/src/lib.rs)
+        program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
+    -   The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils)
+        crate contains some ready to use compiled programs, the simplest of which is
+        [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/master/crates/testing-utils/template_barebones.wasm)
+        which allow you to sign any message which is more than 10 bytes long.
+    -   See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as
+        instructions on how to write and build your own programs.
 
 You also need to decide which ['access mode' or 'key visibility'](https://docs.entropy.xyz/AccessModes)
 you want to register with: private or public. If you are not sure, 'public' is the simplest 'vanilla'
@@ -163,6 +229,6 @@ Note that the program modification account must be funded for this to work.
 
 ## Troubleshooting
 
-**I get an `pkg-config exited with status code 1` error**: You are likely missing the `pkg-config` package. Make sure you have the [dependencies](#dependencies) installed properly.
+**I get an `pkg-config exited with status code 1` error**: You are likely missing the `pkg-config` package. Make sure you have the dependencies listed in the [requirements section](#requirements) installed properly.
 
-**I get an `error: failed to run custom build command for `openssl-sys v0.9.102` error**: You are likely missing the `openssl` package. Make sure you have the [dependencies](#dependencies) installed properly.
+**I get an `error: failed to run custom build command for `openssl-sys v0.9.102` error**: You are likely missing the `openssl` package. Make sure you have the dependencies listed in the [requirements section](#requirements) installed properly.
