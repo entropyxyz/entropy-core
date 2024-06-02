@@ -28,6 +28,34 @@ When using the local docker compose setup, be aware you need to set the TSS host
 127.0.0.1 bob-tss-server
 ```
 
+You'll also need the following packages:
+
+1. OpenSSL:
+
+    ```shell
+    # Debian/Ubuntu
+    sudo apt install libssl-dev
+    ```
+
+    ```shell
+    # Arch
+    # OpenSSL comes pre-installed on most Arch releases.
+    # However, to install a specific version run:
+    sudo pacman -S openss3-3.0
+    ```
+    
+2. `pkg-config`:
+
+    ```shell
+    # Debian/Ubuntu
+    sudo apt install pkg-config
+    ```
+
+    ```shell
+    # Arch
+    sudo pacman -S pkgconf
+    ```
+
 ## Installation
 
 `cargo install entropy-test-cli`
