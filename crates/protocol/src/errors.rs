@@ -122,10 +122,8 @@ pub enum ProtocolExecutionErr {
     BigIntConversion(#[from] num::bigint::TryFromBigIntError<num::bigint::BigUint>),
     #[error("Index out of bounds when selecting DKG committee")]
     IndexOutOfBounds,
-    #[error("Received bad validating key - cannot convert to EncodedPoint")]
-    EncodedPoint,
-    #[error("Received bad validating key: {0}")]
-    Ecdsa(#[from] synedrion::ecdsa::Error),
+    #[error("Received bad validating key {0}")]
+    BadVerifyingKey(String),
 }
 
 #[derive(Debug, Error)]

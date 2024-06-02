@@ -246,9 +246,16 @@ pub async fn execute_dkg(
         if let MessageOrVerifyingKey::VerifyingKey(verifing_key_encoded) =
             message.message_or_verifying_key
         {
-            let point = EncodedPoint::from_bytes(verifing_key_encoded)
-                .map_err(|_| ProtocolExecutionErr::EncodedPoint)?;
-            let verifying_key = VerifyingKey::from_encoded_point(&point)?;
+            let point = EncodedPoint::from_bytes(verifing_key_encoded).map_err(|_| {
+                ProtocolExecutionErr::BadVerifyingKey(
+                    "Could not convert to encoded point".to_string(),
+                )
+            })?;
+            let verifying_key = VerifyingKey::from_encoded_point(&point).map_err(|_| {
+                ProtocolExecutionErr::BadVerifyingKey(
+                    "Could not convert encoded point to verifying key".to_string(),
+                )
+            })?;
 
             // Setup channels for the next session
             let chans = Channels(broadcaster.clone(), rx);
