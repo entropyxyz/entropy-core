@@ -112,7 +112,7 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
                 if let MessageOrVerifyingKey::CombinedMessage(payload) =
                     message.message_or_verifying_key
                 {
-                    break (message.from, payload);
+                    break (message.from, *payload);
                 } else {
                     tracing::warn!("Got verifying key during protocol - ignoring");
                 }
@@ -172,7 +172,7 @@ pub async fn execute_signing_protocol(
         &shared_randomness,
         pair,
         &party_ids,
-        &key_share,
+        key_share,
         aux_info,
         prehashed_message,
     )
@@ -343,7 +343,7 @@ pub async fn execute_proactive_refresh(
 fn get_key_init_parties(
     my_party_id: &PartyId,
     threshold: usize,
-    validators: &Vec<PartyId>,
+    validators: &[PartyId],
     shared_randomness: &[u8],
 ) -> Result<(Vec<PartyId>, bool), ProtocolExecutionErr> {
     let mut parties = vec![];

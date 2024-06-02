@@ -35,7 +35,7 @@ pub struct ProtocolMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageOrVerifyingKey {
     /// The signed protocol message
-    CombinedMessage(CombinedMessage<sr25519::Signature>),
+    CombinedMessage(Box<CombinedMessage<sr25519::Signature>>),
     VerifyingKey(Vec<u8>),
 }
 
@@ -57,7 +57,7 @@ impl ProtocolMessage {
         Self {
             from: from.clone(),
             to: to.clone(),
-            message_or_verifying_key: MessageOrVerifyingKey::CombinedMessage(payload),
+            message_or_verifying_key: MessageOrVerifyingKey::CombinedMessage(Box::new(payload)),
         }
     }
 }
