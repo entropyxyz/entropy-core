@@ -30,7 +30,11 @@ When using the local docker compose setup, be aware you need to set the TSS host
 
 ## Installation
 
-`cargo install entropy-test-cli`
+To install this Rust Test CLI run:
+
+```shell
+cargo install entropy-test-cli
+```
 
 ## Usage
 
@@ -128,3 +132,9 @@ or hashes of existing programs.
 `entropy-test-cli update-programs 039fa2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bb my-new-program.wasm -m //Alice`
 
 Note that the program modification account must be funded for this to work.
+
+## Troubleshooting
+
+**I get an `pkg-config exited with status code 1` error**: You are likely missing the `pkg-config` package. Make sure you have the [dependencies](#dependencies) installed properly.
+
+**I get an `error: failed to run custom build command for `openssl-sys v0.9.102` error**: You are likely missing the `openssl` package. Make sure you have the [dependencies](#dependencies) installed properly.
