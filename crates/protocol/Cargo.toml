@@ -31,6 +31,7 @@ zeroize            ="1.7.0"
 hpke-rs            ="0.2.0"
 hpke-rs-crypto     ="0.2.0"
 hpke-rs-rust-crypto="0.2.0"
+num                ="0.4.3"
 
 # Used only with the `server` feature to implement the WsConnection trait
 axum             ={ version="0.7.5", features=["ws"], optional=true }

@@ -28,8 +28,15 @@ pub struct ProtocolMessage {
     pub from: PartyId,
     /// Identifier of the destination of this message
     pub to: PartyId,
+    // pub payload: CombinedMessage<sr25519::Signature>,
+    pub message_or_verifying_key: MessageOrVerifyingKey,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MessageOrVerifyingKey {
     /// The signed protocol message
-    pub payload: CombinedMessage<sr25519::Signature>,
+    CombinedMessage(CombinedMessage<sr25519::Signature>),
+    VerifyingKey(Vec<u8>),
 }
 
 impl TryFrom<&[u8]> for ProtocolMessage {
@@ -47,6 +54,10 @@ impl ProtocolMessage {
         to: &PartyId,
         payload: CombinedMessage<sr25519::Signature>,
     ) -> Self {
-        Self { from: from.clone(), to: to.clone(), payload }
+        Self {
+            from: from.clone(),
+            to: to.clone(),
+            message_or_verifying_key: MessageOrVerifyingKey::CombinedMessage(payload),
+        }
     }
 }

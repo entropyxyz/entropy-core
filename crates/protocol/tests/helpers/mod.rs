@@ -36,7 +36,7 @@ use std::{
     time::Duration,
 };
 use subxt::utils::AccountId32;
-use synedrion::{AuxInfo, ThresholdKeyShare};
+use synedrion::{AuxInfo, KeyShare, ThresholdKeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
     time::timeout,
@@ -52,6 +52,7 @@ struct ServerState {
 }
 
 /// Output of a successful protocol run
+#[derive(Clone)]
 pub enum ProtocolOutput {
     Sign(RecoverableSignature),
     ProactiveRefresh(ThresholdKeyShare<KeyParams, PartyId>),
@@ -71,8 +72,10 @@ pub async fn server(
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     session_id: SessionId,
-    keyshare: Option<ThresholdKeyShare<KeyParams, PartyId>>,
+    keyshare: Option<KeyShare<KeyParams, PartyId>>,
+    threshold_keyshare: Option<ThresholdKeyShare<KeyParams, PartyId>>,
     aux_info: Option<AuxInfo<KeyParams, PartyId>>,
+    threshold: usize,
 ) -> anyhow::Result<ProtocolOutput> {
     let account_id = AccountId32(pair.public().0);
 
@@ -133,13 +136,12 @@ pub async fn server(
                 channels,
                 &pair,
                 tss_accounts,
-                keyshare.unwrap(),
+                threshold_keyshare.unwrap(),
             )
             .await?;
             Ok(ProtocolOutput::ProactiveRefresh(new_keyshare))
         },
         SessionId::Dkg { .. } => {
-            let threshold = tss_accounts.len();
             let keyshare_and_aux_info =
                 execute_dkg(session_id, channels, &pair, tss_accounts, threshold).await?;
             Ok(ProtocolOutput::Dkg(keyshare_and_aux_info))
