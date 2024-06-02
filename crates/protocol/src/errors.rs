@@ -53,7 +53,7 @@ impl<Res: MappedResult<PartyId>> From<sessions::Error<Res, PartyId>> for Generic
 
 impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<InteractiveSigningResult<KeyParams>>) -> Self {
-        println!("{:?}", err);
+        tracing::error!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::SigningProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
@@ -64,7 +64,7 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for Protoco
 
 impl From<GenericProtocolError<KeyInitResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<KeyInitResult<KeyParams>>) -> Self {
-        println!("{:?}", err);
+        tracing::error!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
@@ -75,7 +75,7 @@ impl From<GenericProtocolError<KeyInitResult<KeyParams>>> for ProtocolExecutionE
 
 impl From<GenericProtocolError<KeyResharingResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<KeyResharingResult<KeyParams>>) -> Self {
-        println!("{:?}", err);
+        tracing::error!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
@@ -86,6 +86,7 @@ impl From<GenericProtocolError<KeyResharingResult<KeyParams>>> for ProtocolExecu
 
 impl From<GenericProtocolError<AuxGenResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<AuxGenResult<KeyParams>>) -> Self {
+        tracing::error!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),

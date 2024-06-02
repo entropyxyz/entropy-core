@@ -157,16 +157,13 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
         pairs.iter().map(|pair| ValidatorSecretInfo::pair_only(pair.clone())).collect();
     let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
     let outputs = test_protocol_with_parties(dkg_parties, session_id, threshold).await;
-    println!("Finished DKG");
     let signing_committee = &ids[..threshold];
 
-    println!("signing committee {:?}", signing_committee);
     let parties: Vec<ValidatorSecretInfo> = outputs
         .clone()
         .into_iter()
         .filter_map(|output| {
             if let ProtocolOutput::Dkg((threshold_keyshare, aux_info)) = output {
-                println!("Threshold {}", threshold_keyshare.threshold());
                 let keyshare = threshold_keyshare.to_key_share(&signing_committee);
                 if signing_committee.contains(keyshare.owner()) {
                     let pair = pairs
