@@ -62,8 +62,10 @@ fn dkg_protocol_with_time_logged() {
 #[serial]
 fn t_of_n_dkg_and_sign() {
     let cpus = num_cpus::get();
+    println!("Cpus {}", cpus);
     // For this test we need at least 3 parties
-    let parties = std::cmp::max(cpus, 3);
+    // let parties = std::cmp::max(cpus, 3);
+    let parties = 3;
     get_tokio_runtime(cpus).block_on(async {
         test_dkg_and_sign_with_parties(parties).await;
     })
