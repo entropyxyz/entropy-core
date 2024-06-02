@@ -240,20 +240,15 @@ pub async fn execute_dkg(
     } else {
         // Wait to receive verifying_key
         let mut rx = chans.1;
-        let message = rx
-            .recv()
-            .await
-            // .ok_or_else(|| {
-            //     GenericProtocolError::<KeyShareWithAuxInfo>::IncomingStream(
-            //         "Waiting for validating key".to_string(),
-            //     )
-            // })
-            .unwrap();
+        let message = rx.recv().await.ok_or_else(|| {
+            ProtocolExecutionErr::IncomingStream("Waiting for validating key".to_string())
+        })?;
         if let MessageOrVerifyingKey::VerifyingKey(verifing_key_encoded) =
             message.message_or_verifying_key
         {
-            let point = EncodedPoint::from_bytes(verifing_key_encoded).unwrap();
-            let verifying_key = VerifyingKey::from_encoded_point(&point).unwrap();
+            let point = EncodedPoint::from_bytes(verifing_key_encoded)
+                .map_err(|_| ProtocolExecutionErr::EncodedPoint)?;
+            let verifying_key = VerifyingKey::from_encoded_point(&point)?;
 
             // Setup channels for the next session
             let chans = Channels(broadcaster.clone(), rx);
@@ -285,8 +280,6 @@ pub async fn execute_dkg(
     let (new_key_share_option, rx) = execute_protocol_generic(chans, session).await?;
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
-
-    // Maybe assert here that old verifying_key matches new verifying_key
 
     // Setup channels for the next session
     let chans = Channels(broadcaster.clone(), rx);
