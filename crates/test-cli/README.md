@@ -38,10 +38,8 @@ You'll also need the following packages:
     ```
 
     ```shell
-    # Arch
-    # OpenSSL comes pre-installed on most Arch releases.
-    # However, to install a specific version run:
-    sudo pacman -S openss3-3.0
+    # MacOS
+    brew install openssl 
     ```
     
 2. `pkg-config`:
@@ -52,8 +50,8 @@ You'll also need the following packages:
     ```
 
     ```shell
-    # Arch
-    sudo pacman -S pkgconf
+    # MacOS
+    brew install pkg-config
     ```
 
 ## Installation
