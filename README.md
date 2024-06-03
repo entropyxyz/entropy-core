@@ -144,7 +144,9 @@ Everytime a change to the chain's interface happens, metadata needs to be pulled
 
 ## Support
 
-Need help with something? [Head over to the Entropy Community repository for support or to raise a ticket →](https://github.com/entropyxyz/community#support)
+Need help with something not necessarily related to `entropy-core`?
+
+Head over to the [Entropy Community repository](https://github.com/entropyxyz/community#support) for support or to raise a ticket.
 
 ## Licensing
 
