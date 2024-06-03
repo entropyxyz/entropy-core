@@ -87,7 +87,10 @@ enum CliCommand {
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
-        /// The mnemonic to use for the call
+        /// A name or mnemonic from which to derive a program modification keypair.
+        /// This is used to send the register extrinsic so it must be funded
+        /// If giving a name it must be preceded with "//", eg: "--mnemonic-option //Alice"
+        /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""  
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -134,7 +137,7 @@ enum CliCommand {
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
-    /// Allows a validator to change their endloint
+    /// Allows a validator to change their endpoint
     ChangeEndpoint {
         /// New endpoint to change to
         new_endpoint: String,
@@ -142,14 +145,13 @@ enum CliCommand {
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
-    /// Allows a validator to change their threhsold accounts
+    /// Allows a validator to change their threshold accounts
     ChangeThresholdAccounts {
         /// New threshold account
         new_tss_account: String,
         /// New x25519 public key
         new_x25519_public_key: String,
-
-        // The mnemonic to use for the call, should be stash address
+        /// The mnemonic to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
