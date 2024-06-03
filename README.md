@@ -142,6 +142,10 @@ It is however only intended for use with test networks and has no secure private
 
 Everytime a change to the chain's interface happens, metadata needs to be pulled. You'll need to install Subxt using `cargo install subxt-cli`. Then [run a development chain](#getting-started-with-docker) and then invoke [the `./scripts/pull_entropy_metadata.sh` script](./scripts/pull_entropy_metadata.sh).
 
+## Support
+
+Need help with something? [Head over to the Entropy Community repository for support or to raise a ticket →](https://github.com/entropyxyz/community#support)
+
 ## Licensing
 
 For the most part, the code in this repository is licensed under [AGPL-3.0](./LICENSE).
