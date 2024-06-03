@@ -14,12 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple CLI to test registering, updating programs and signing
-use std::{
-    fmt::{self, Display},
-    fs,
-    path::PathBuf,
-};
-
 use anyhow::{anyhow, ensure};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
@@ -31,12 +25,18 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
-        update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
+        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
+        register, sign, store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
+        VERIFYING_KEY_LENGTH,
     },
 };
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
+use std::{
+    fmt::{self, Display},
+    fs,
+    path::PathBuf,
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
@@ -82,10 +82,10 @@ enum CliCommand {
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
-        /// A name from which to generate a program modification keypair, eg: "Bob"
-        /// This is used to send the register extrinsic and so it must be funded
-        ///
-        /// Optionally may be preceeded with "//" eg: "//Bob"
+        /// A name or mnemonic from which to derive a program modification keypair.
+        /// This is used to send the register extrinsic so it must be funded
+        /// If giving a name it must be preceded with "//", eg: "--mnemonic-option //Alice"
+        /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""  
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -97,11 +97,7 @@ enum CliCommand {
         message: String,
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
-        /// A name from which to generate a keypair, eg: "Alice"
-        /// This is only needed when using private mode.
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
-        #[arg(short, long)]
+        /// The mnemonic to use for the call
         mnemonic_option: Option<String>,
     },
     /// Update the program for a particular account
@@ -120,9 +116,7 @@ enum CliCommand {
         /// interface. If no such file exists, it is assumed the program has no configuration
         /// interface.
         programs: Vec<String>,
-        /// A name from which to generate a program modification keypair, eg: "Bob"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Bob"
+        /// The mnemonic to use for the call
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -134,9 +128,25 @@ enum CliCommand {
         config_interface_file: Option<PathBuf>,
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
-        /// A name from which to generate a keypair, eg: "Alice"
-        ///
-        /// Optionally may be preceeded with "//", eg: "//Alice"
+        /// The mnemonic to use for the call
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Allows a validator to change their endpoint
+    ChangeEndpoint {
+        /// New endpoint to change to (ex. "127.0.0.1:3001")
+        new_endpoint: String,
+        /// The mnemonic for the validator stash account to use for the call, should be stash address
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Allows a validator to change their threshold accounts
+    ChangeThresholdAccounts {
+        /// New threshold account
+        new_tss_account: String,
+        /// New x25519 public key
+        new_x25519_public_key: String,
+        /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -241,7 +251,7 @@ pub async fn run_command(
             // If an account name is not provided, use the Alice key
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
 
-            println!("User account: {}", user_keypair.public());
+            println!("User account for current call: {}", user_keypair.public());
 
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
@@ -403,6 +413,45 @@ pub async fn run_command(
             }
 
             Ok("Got status".to_string())
+        },
+        CliCommand::ChangeEndpoint { new_endpoint, mnemonic_option } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.expect("No Mnemonic set")
+            };
+
+            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            println!("User account for current call: {}", user_keypair.public());
+
+            let result_event = change_endpoint(&api, &rpc, user_keypair, new_endpoint).await?;
+            println!("Event result: {:?}", result_event);
+            Ok("Endpoint changed".to_string())
+        },
+        CliCommand::ChangeThresholdAccounts {
+            new_tss_account,
+            new_x25519_public_key,
+            mnemonic_option,
+        } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.expect("No Mnemonic set")
+            };
+            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            println!("User account for current call: {}", user_keypair.public());
+
+            let result_event = change_threshold_accounts(
+                &api,
+                &rpc,
+                user_keypair,
+                new_tss_account,
+                new_x25519_public_key,
+            )
+            .await?;
+            println!("Event result: {:?}", result_event);
+
+            Ok("Threshold accounts changed".to_string())
         },
     }
 }

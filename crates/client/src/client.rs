@@ -19,8 +19,10 @@ pub use crate::{
     chain_api::{get_api, get_rpc},
     errors::ClientError,
 };
+use anyhow::anyhow;
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 pub use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE};
+use std::str::FromStr;
 pub use synedrion::KeyShare;
 
 use crate::{
@@ -35,6 +37,7 @@ use crate::{
         },
         EntropyConfig,
     },
+    client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
     substrate::{query_chain, submit_transaction_with_pair},
     user::{get_current_subgroup_signers, UserSignatureRequest},
     Hasher,
@@ -433,4 +436,44 @@ async fn select_validator_from_subgroup(
         }
     };
     Ok(address.clone())
+}
+
+/// Changes the endpoint of a validator
+pub async fn change_endpoint(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user_keypair: sr25519::Pair,
+    new_endpoint: String,
+) -> anyhow::Result<EndpointChanged> {
+    let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into());
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
+    let result_event = in_block
+        .find_first::<entropy::staking_extension::events::EndpointChanged>()?
+        .ok_or(anyhow!("Error with transaction"))?;
+    Ok(result_event)
+}
+
+/// Changes the threshold account info of a validator
+pub async fn change_threshold_accounts(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user_keypair: sr25519::Pair,
+    new_tss_account: String,
+    new_x25519_public_key: String,
+) -> anyhow::Result<ThresholdAccountChanged> {
+    let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
+    let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
+        tss_account,
+        hex::decode(new_x25519_public_key)?
+            .try_into()
+            .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
+    );
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)
+            .await?;
+    let result_event = in_block
+        .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
+        .ok_or(anyhow!("Error with transaction"))?;
+    Ok(result_event)
 }

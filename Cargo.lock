@@ -2436,10 +2436,12 @@ dependencies = [
 name = "entropy-client"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.22.1",
  "blake2 0.10.6",
  "entropy-protocol",
  "entropy-shared",
+ "entropy-testing-utils",
  "futures",
  "hex",
  "js-sys",
@@ -2451,6 +2453,7 @@ dependencies = [
  "serial_test",
  "sha3",
  "sp-core 31.0.0",
+ "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
  "thiserror",

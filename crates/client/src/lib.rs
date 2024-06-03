@@ -21,6 +21,9 @@ pub mod user;
 pub mod util;
 pub use util::Hasher;
 
+#[cfg(test)]
+mod tests;
+
 #[cfg(feature = "full-client")]
 pub mod client;
 #[cfg(feature = "full-client")]
