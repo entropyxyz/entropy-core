@@ -438,6 +438,7 @@ async fn select_validator_from_subgroup(
     Ok(address.clone())
 }
 
+/// Changes the endpoint of a validator
 pub async fn change_endpoint(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -453,6 +454,7 @@ pub async fn change_endpoint(
     Ok(result_event)
 }
 
+/// Changes the threshold account info of a validator
 pub async fn change_threshold_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,

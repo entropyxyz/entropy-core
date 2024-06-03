@@ -37,6 +37,8 @@ js-sys={ version="0.3.68", optional=true }
 [dev-dependencies]
 tokio      ="1.38"
 serial_test="3.1.1"
+entropy-testing-utils={ path="../testing-utils" }
+sp-keyring  ="34.0.0"
 
 [features]
 default=["native", "full-client-native"]
