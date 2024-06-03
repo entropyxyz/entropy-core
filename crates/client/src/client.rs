@@ -384,8 +384,8 @@ pub async fn create_partial_balance_tx(
     amount: u128,
 ) -> Result<subxt::tx::PartialExtrinsic<EntropyConfig, OnlineClient<EntropyConfig>>, ClientError> {
     let to: <EntropyConfig as Config>::AccountId = to.into();
-    let call =
-        entropy::tx().balances().transfer_allow_death(subxt::utils::MultiAddress::Id(to), amount);
+    let to_multi = entropy::balances::calls::types::transfer_allow_death::Dest::Id(to);
+    let call = entropy::tx().balances().transfer_keep_alive(to_multi, amount);
 
     Ok(create_partial_extrinsic(api, rpc, &call, from).await?)
 }

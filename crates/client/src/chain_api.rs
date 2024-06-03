@@ -30,7 +30,8 @@ use subxt::{
     substitute_type(
         path = "entropy_shared::types::ValidatorInfo",
         with = "::subxt::utils::Static<::entropy_shared::ValidatorInfo>",
-    )
+    ),
+    generate_docs
 )]
 pub mod entropy {}
 
