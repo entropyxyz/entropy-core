@@ -65,7 +65,7 @@ Output:
 There are 31 registered Entropy accounts.
 
 Verifying key:                                                   Visibility:  Programs:
-02e1acb3d83c1aef1e246c237d2fa95609d0201caef53d459aa73267866dead730 Public       ["0x0000ΓÇª0000"]
+02e1acb3d83c1aef1e246c237d2fa95609d0201caef53d459aa73267866dead730 Public       ["0x0000...0000"]
 ...
 ```
 
@@ -82,7 +82,7 @@ Output:
 There are 31 registered Entropy accounts.
 
 Verifying key:                                                   Visibility:  Programs:
-02e1acb3d83c1aef1e246c237d2fa95609d0201caef53d459aa73267866dead730 Public       ["0x0000ΓÇª0000"]
+02e1acb3d83c1aef1e246c237d2fa95609d0201caef53d459aa73267866dead730 Public       ["0x0000...0000"]
 ...
 ```
 
