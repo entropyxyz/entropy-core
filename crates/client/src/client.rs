@@ -447,7 +447,7 @@ pub async fn change_endpoint(
 ) -> anyhow::Result<EndpointChanged> {
     let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into());
     let in_block =
-        submit_transaction_with_pair(&api, &rpc, &user_keypair, &change_endpoint_tx, None).await?;
+        submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
     let result_event = in_block
         .find_first::<entropy::staking_extension::events::EndpointChanged>()?
         .ok_or(anyhow!("Error with transaction"))?;
@@ -470,7 +470,7 @@ pub async fn change_threshold_accounts(
             .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
     );
     let in_block =
-        submit_transaction_with_pair(&api, &rpc, &user_keypair, &change_threshold_accounts, None)
+        submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)
             .await?;
     let result_event = in_block
         .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
