@@ -19,20 +19,16 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use entropy_client::{
     chain_api::{
-        entropy::{
-            self,
-            runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec,
-                pallet_registry::pallet::ProgramInstance,
-            },
+        entropy::runtime_types::{
+            bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
         },
         EntropyConfig,
     },
     client::{
-        get_accounts, get_api, get_programs, get_rpc, register, sign, store_program,
-        update_programs, KeyParams, KeyShare, KeyVisibility, VERIFYING_KEY_LENGTH,
+        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
+        register, sign, store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
+        VERIFYING_KEY_LENGTH,
     },
-    substrate::submit_transaction_with_pair,
 };
 use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
@@ -40,7 +36,6 @@ use std::{
     fmt::{self, Display},
     fs,
     path::PathBuf,
-    str::FromStr,
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -427,17 +422,9 @@ pub async fn run_command(
             };
 
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-
             println!("User account: {}", user_keypair.public());
 
-            let change_endpoint_tx =
-                entropy::tx().staking_extension().change_endpoint(new_endpoint.into());
-            let in_block =
-                submit_transaction_with_pair(&api, &rpc, &user_keypair, &change_endpoint_tx, None)
-                    .await?;
-            let result_event = in_block
-                .find_first::<entropy::staking_extension::events::EndpointChanged>()?
-                .ok_or(anyhow!("Error with transaction"))?;
+            let result_event = change_endpoint(&api, &rpc, user_keypair, new_endpoint).await?;
             println!("Event result: {:?}", result_event);
             Ok("Endpoint changed".to_string())
         },
@@ -452,27 +439,16 @@ pub async fn run_command(
                 passed_mnemonic.expect("No Mnemonic set")
             };
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-
             println!("User account: {}", user_keypair.public());
-            let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
-            let change_threshold_accounts =
-                entropy::tx().staking_extension().change_threshold_accounts(
-                    tss_account,
-                    hex::decode(new_x25519_public_key)?
-                        .try_into()
-                        .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
-                );
-            let in_block = submit_transaction_with_pair(
+
+            let result_event = change_threshold_accounts(
                 &api,
                 &rpc,
-                &user_keypair,
-                &change_threshold_accounts,
-                None,
+                user_keypair,
+                new_tss_account,
+                new_x25519_public_key,
             )
             .await?;
-            let result_event = in_block
-                .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
-                .ok_or(anyhow!("Error with transaction"))?;
             println!("Event result: {:?}", result_event);
 
             Ok("Threshold accounts changed".to_string())
