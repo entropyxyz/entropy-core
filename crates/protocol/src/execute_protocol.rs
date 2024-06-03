@@ -261,7 +261,7 @@ pub async fn execute_dkg(
             let chans = Channels(broadcaster.clone(), rx);
             (verifying_key, None, chans)
         } else {
-            panic!("Unexpected message");
+            return Err(ProtocolExecutionErr::UnexpectedMessage);
         }
     };
 

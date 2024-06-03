@@ -124,6 +124,8 @@ pub enum ProtocolExecutionErr {
     IndexOutOfBounds,
     #[error("Received bad validating key {0}")]
     BadVerifyingKey(String),
+    #[error("Expected verifying key but got a protocol message")]
+    UnexpectedMessage,
 }
 
 #[derive(Debug, Error)]
