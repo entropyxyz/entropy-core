@@ -28,6 +28,32 @@ When using the local docker compose setup, be aware you need to set the TSS host
 127.0.0.1 bob-tss-server
 ```
 
+You'll also need the following packages:
+
+1. OpenSSL:
+
+    ```shell
+    # Debian/Ubuntu
+    sudo apt install libssl-dev
+    ```
+
+    ```shell
+    # MacOS
+    brew install openssl 
+    ```
+    
+2. `pkg-config`:
+
+    ```shell
+    # Debian/Ubuntu
+    sudo apt install pkg-config
+    ```
+
+    ```shell
+    # MacOS
+    brew install pkg-config
+    ```
+
 ## Installation
 
 `cargo install entropy-test-cli`
