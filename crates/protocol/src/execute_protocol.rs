@@ -33,7 +33,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
-    protocol_message::{MessageOrVerifyingKey, ProtocolMessage},
+    protocol_message::{ProtocolMessage, ProtocolMessagePayload},
     protocol_transport::Broadcaster,
     KeyParams, KeyShareWithAuxInfo, PartyId, SessionId,
 };
@@ -109,9 +109,7 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
                     ))
                 })?;
 
-                if let MessageOrVerifyingKey::CombinedMessage(payload) =
-                    message.message_or_verifying_key
-                {
+                if let ProtocolMessagePayload::CombinedMessage(payload) = message.payload {
                     break (message.from, *payload);
                 } else {
                     tracing::warn!("Got verifying key during protocol - ignoring");
@@ -225,7 +223,7 @@ pub async fn execute_dkg(
                 let message = ProtocolMessage {
                     from: my_party_id.clone(),
                     to: party_id.clone(),
-                    message_or_verifying_key: MessageOrVerifyingKey::VerifyingKey(
+                    payload: ProtocolMessagePayload::VerifyingKey(
                         verifying_key.to_encoded_point(true).as_bytes().to_vec(),
                     ),
                 };
@@ -243,9 +241,7 @@ pub async fn execute_dkg(
         let message = rx.recv().await.ok_or_else(|| {
             ProtocolExecutionErr::IncomingStream("Waiting for validating key".to_string())
         })?;
-        if let MessageOrVerifyingKey::VerifyingKey(verifying_key_encoded) =
-            message.message_or_verifying_key
-        {
+        if let ProtocolMessagePayload::VerifyingKey(verifying_key_encoded) = message.payload {
             let point = EncodedPoint::from_bytes(verifying_key_encoded).map_err(|_| {
                 ProtocolExecutionErr::BadVerifyingKey(
                     "Could not convert to encoded point".to_string(),

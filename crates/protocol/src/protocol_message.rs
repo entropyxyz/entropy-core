@@ -21,7 +21,7 @@ use synedrion::sessions::CombinedMessage;
 
 use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
-/// A Message send during the signing or DKG protocol.
+/// A Message send during one of the synedrion protocols
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtocolMessage {
     /// Identifier of the author of this message
@@ -31,13 +31,15 @@ pub struct ProtocolMessage {
     /// Either a synedrion protocol message or a verifying key
     /// We need to send verifying keys during DKG to parties who were not present for the key init
     /// session
-    pub message_or_verifying_key: MessageOrVerifyingKey,
+    pub payload: ProtocolMessagePayload,
 }
 
+/// The payload of a message sent during one of the synedrion protocols
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MessageOrVerifyingKey {
+pub enum ProtocolMessagePayload {
     /// The signed protocol message
     CombinedMessage(Box<CombinedMessage<sr25519::Signature>>),
+    /// A verifying key for parties who were not present in the key init session
     VerifyingKey(Vec<u8>),
 }
 
@@ -59,7 +61,7 @@ impl ProtocolMessage {
         Self {
             from: from.clone(),
             to: to.clone(),
-            message_or_verifying_key: MessageOrVerifyingKey::CombinedMessage(Box::new(payload)),
+            payload: ProtocolMessagePayload::CombinedMessage(Box::new(payload)),
         }
     }
 }
