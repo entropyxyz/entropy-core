@@ -28,9 +28,10 @@ pub struct ProtocolMessage {
     pub from: PartyId,
     /// Identifier of the destination of this message
     pub to: PartyId,
-    /// Either a synedrion protocol message or a verifying key
+    /// Either a Synedrion protocol message or a verifying key.
+    ///
     /// We need to send verifying keys during DKG to parties who were not present for the key init
-    /// session
+    /// session.
     pub message_or_verifying_key: MessageOrVerifyingKey,
 }
 
