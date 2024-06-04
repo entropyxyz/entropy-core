@@ -107,7 +107,8 @@ use crate::{
         substrate::{query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators,
+            remove_program, run_to_block, setup_client, spawn_3_testing_validators,
+            spawn_testing_validators,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -1080,6 +1081,187 @@ async fn test_increment_or_wipe_request_limit() {
     .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_dkg_with_3_nodes() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let alice_program = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
+
+    let cxt = test_context_stationary().await;
+    let (_validator_ips, _validator_ids) = spawn_3_testing_validators().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let client = reqwest::Client::new();
+
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let validators_info = vec![
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3001".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3002".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3003".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone().encode(),
+        },
+    ];
+    let mut onchain_user_request = OcwMessageDkg {
+        sig_request_accounts: vec![alice.public().encode()],
+        block_number,
+        validators_info,
+    };
+
+    put_register_request_on_chain(
+        &api,
+        &rpc,
+        &alice,
+        alice_program.to_account_id().into(),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+
+    run_to_block(&rpc, block_number + 1).await;
+
+    let response_results = join_all(
+        vec![3002, 3003]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/user/new", port))
+                    .body(onchain_user_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
+
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
+
+    let mut new_verifying_key = vec![];
+    // wait for registered event check that key exists in kvdb
+    for _ in 0..100 {
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
+        for event in registered_event.flatten() {
+            let registered_query = entropy::storage().registry().registered(&event.1);
+            let query_registered_status =
+                query_chain(&api, &rpc, registered_query, block_hash).await;
+            if query_registered_status.unwrap().is_some() {
+                if event.0 == alice.to_account_id().into() {
+                    new_verifying_key = event.1 .0;
+                    break;
+                }
+            }
+        }
+    }
+    // Check that the timeout was not reached
+    assert!(new_verifying_key.len() > 0);
+
+    let get_query =
+        UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
+    // check get key before registration to see if key gets replaced
+    let response_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+    // check to make sure keyshare is correct
+    let key_share: Option<KeyShareWithAuxInfo> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+    assert_eq!(key_share.is_some(), true);
+
+    // fails repeated data
+    let response_repeated_data = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_repeated_data.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_repeated_data.text().await.unwrap(), "Data is repeated");
+
+    run_to_block(&rpc, block_number + 3).await;
+    onchain_user_request.block_number = block_number + 1;
+    // fails stale data
+    let response_stale = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_stale.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
+
+    block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    put_register_request_on_chain(
+        &api,
+        &rpc,
+        &alice_program,
+        alice_program.to_account_id().into(),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+    onchain_user_request.block_number = block_number;
+    run_to_block(&rpc, block_number + 1).await;
+
+    // fails not verified data
+    let response_not_verified = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_not_verified.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_not_verified.text().await.unwrap(), "Data is not verifiable");
+
+    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
+    // fails not in validator group data
+    let response_not_validator = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_not_validator.status(), StatusCode::MISDIRECTED_REQUEST);
+
+    check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
+    // TODO check if key is in other subgroup member
     clean_tests();
 }
 
