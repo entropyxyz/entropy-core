@@ -182,7 +182,7 @@ pub async fn execute_signing_protocol(
 /// Execute dkg.
 #[tracing::instrument(
     skip_all,
-    fields(threshold_accounts, my_idx),
+    fields(threshold_accounts, my_idx, threshold),
     level = tracing::Level::DEBUG
 )]
 pub async fn execute_dkg(
