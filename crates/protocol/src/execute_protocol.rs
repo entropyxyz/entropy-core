@@ -243,7 +243,7 @@ pub async fn execute_dkg(
         let message = rx.recv().await.ok_or_else(|| {
             ProtocolExecutionErr::IncomingStream("Waiting for validating key".to_string())
         })?;
-        if let MessageOrVerifyingKey::VerifyingKey(verifing_key_encoded) =
+        if let MessageOrVerifyingKey::VerifyingKey(verifying_key_encoded) =
             message.message_or_verifying_key
         {
             let point = EncodedPoint::from_bytes(verifing_key_encoded).map_err(|_| {
