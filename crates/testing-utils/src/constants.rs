@@ -25,7 +25,8 @@ lazy_static! {
         hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
     pub static ref TSS_ACCOUNTS: Vec<AccountId32> = vec![
         hex!["306bdb49cbbe7104e3621abab3c9d31698b159f48dafe567abb7ea5d872ed329"].into(),
-        hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into()
+        hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into(),
+        hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into(),
     ];
     pub static ref X25519_PUBLIC_KEYS: Vec<[u8; 32]> = vec![
         vec![
@@ -37,6 +38,12 @@ lazy_static! {
         vec![
             196, 53, 98, 10, 160, 169, 139, 48, 194, 230, 69, 64, 165, 48, 133, 110, 38, 64, 184, 113,
             255, 201, 253, 212, 217, 21, 252, 57, 253, 78, 0, 56,
+        ]
+        .try_into()
+        .unwrap(),
+        vec![
+            131, 8, 162, 77, 237, 245, 226, 179, 250, 79, 121, 250, 174, 181, 227, 122, 205, 181, 188,
+            4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
         ]
         .try_into()
         .unwrap(),
