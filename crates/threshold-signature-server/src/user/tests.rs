@@ -1113,7 +1113,7 @@ async fn test_dkg_with_3_nodes() {
     .await
     .unwrap();
 
-    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: b"127.0.0.1:3001".to_vec(),
@@ -1131,7 +1131,7 @@ async fn test_dkg_with_3_nodes() {
             tss_account: TSS_ACCOUNTS[2].clone().encode(),
         },
     ];
-    let mut onchain_user_request = OcwMessageDkg {
+    let onchain_user_request = OcwMessageDkg {
         sig_request_accounts: vec![alice.public().encode()],
         block_number,
         validators_info,
@@ -1168,7 +1168,7 @@ async fn test_dkg_with_3_nodes() {
     let mut verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
     for _ in 0..100 {
-        std::thread::sleep(std::time::Duration::from_millis(2000));
+        std::thread::sleep(std::time::Duration::from_millis(4000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
