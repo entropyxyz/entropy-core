@@ -31,6 +31,7 @@ zeroize            ="1.7.0"
 hpke-rs            ="0.2.0"
 hpke-rs-crypto     ="0.2.0"
 hpke-rs-rust-crypto="0.2.0"
+num                ="0.4.3"
 
 # Used only with the `server` feature to implement the WsConnection trait
 axum             ={ version="0.7.5", features=["ws"], optional=true }
@@ -46,9 +47,10 @@ base64              ={ version="0.22.1", optional=true }
 schnorrkel          ={ version="0.11.4", default-features=false, features=["std"], optional=true }
 
 [dev-dependencies]
-sp-keyring="34.0.0"
-anyhow    ="1.0.86"
-num_cpus  ="1.16.0"
+serial_test="3.1.1"
+sp-keyring ="34.0.0"
+anyhow     ="1.0.86"
+num_cpus   ="1.16.0"
 
 [features]
 default=["server"]
