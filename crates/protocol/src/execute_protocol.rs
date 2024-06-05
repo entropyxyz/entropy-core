@@ -182,7 +182,7 @@ pub async fn execute_signing_protocol(
 /// Execute dkg.
 #[tracing::instrument(
     skip_all,
-    fields(threshold_accounts, my_idx, threshold),
+    fields(threshold_accounts, session_id, threshold),
     level = tracing::Level::DEBUG
 )]
 pub async fn execute_dkg(
@@ -335,7 +335,7 @@ pub async fn execute_proactive_refresh(
     new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
 }
 
-/// Psuedo-randomly select a subset of the parties of size t
+/// Psuedo-randomly select a subset of the parties of size `threshold`
 fn get_key_init_parties(
     my_party_id: &PartyId,
     threshold: usize,
