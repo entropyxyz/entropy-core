@@ -178,7 +178,9 @@ pub async fn execute_dkg(
 ) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
 
-    let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
+    let mut party_ids: Vec<PartyId> =
+        threshold_accounts.iter().cloned().map(PartyId::new).collect();
+    party_ids.sort();
 
     let pair = PairWrapper(threshold_pair.clone());
 
