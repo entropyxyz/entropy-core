@@ -49,7 +49,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
-use synedrion::{k256::ecdsa::SigningKey, AuxInfo, KeyShare, ThresholdKeyShare};
+use synedrion::{k256::ecdsa::SigningKey, AuxInfo, KeyShare};
 use tokio::sync::OnceCell;
 
 /// A shared reference to the logger used for tests.

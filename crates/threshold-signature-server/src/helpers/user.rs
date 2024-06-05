@@ -89,7 +89,9 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let result = execute_dkg(session_id, channels, signer.signer(), tss_accounts).await?;
+    let threshold = tss_accounts.len();
+    let result =
+        execute_dkg(session_id, channels, signer.signer(), tss_accounts, threshold).await?;
 
     Ok(result)
 }

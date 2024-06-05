@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use synedrion::{
-    sessions, InteractiveSigningResult, KeyGenResult, KeyResharingResult, MappedResult,
+    sessions, AuxGenResult, InteractiveSigningResult, KeyInitResult, KeyResharingResult,
+    MappedResult,
 };
 use thiserror::Error;
 
@@ -52,6 +53,7 @@ impl<Res: MappedResult<PartyId>> From<sessions::Error<Res, PartyId>> for Generic
 
 impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<InteractiveSigningResult<KeyParams>>) -> Self {
+        tracing::error!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::SigningProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
@@ -60,10 +62,11 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for Protoco
     }
 }
 
-impl From<GenericProtocolError<KeyGenResult<KeyParams>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<KeyGenResult<KeyParams>>) -> Self {
+impl From<GenericProtocolError<KeyInitResult<KeyParams>>> for ProtocolExecutionErr {
+    fn from(err: GenericProtocolError<KeyInitResult<KeyParams>>) -> Self {
+        tracing::error!("{:?}", err);
         match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyGenProtocolError(err),
+            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
         }
@@ -72,8 +75,20 @@ impl From<GenericProtocolError<KeyGenResult<KeyParams>>> for ProtocolExecutionEr
 
 impl From<GenericProtocolError<KeyResharingResult<KeyParams>>> for ProtocolExecutionErr {
     fn from(err: GenericProtocolError<KeyResharingResult<KeyParams>>) -> Self {
+        tracing::error!("{:?}", err);
         match err {
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
+            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
+            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+        }
+    }
+}
+
+impl From<GenericProtocolError<AuxGenResult<KeyParams>>> for ProtocolExecutionErr {
+    fn from(err: GenericProtocolError<AuxGenResult<KeyParams>>) -> Self {
+        tracing::error!("{:?}", err);
+        match err {
+            GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
         }
@@ -89,10 +104,12 @@ pub enum ProtocolExecutionErr {
     SessionCreation(sessions::LocalError),
     #[error("Synedrion signing session error")]
     SigningProtocolError(Box<sessions::Error<InteractiveSigningResult<KeyParams>, PartyId>>),
-    #[error("Synedrion keygen session error")]
-    KeyGenProtocolError(Box<sessions::Error<KeyGenResult<KeyParams>, PartyId>>),
+    #[error("Synedrion key init session error")]
+    KeyInitProtocolError(Box<sessions::Error<KeyInitResult<KeyParams>, PartyId>>),
     #[error("Synedrion key reshare session error")]
     KeyReshareProtocolError(Box<sessions::Error<KeyResharingResult<KeyParams>, PartyId>>),
+    #[error("Synedrion aux generation session error")]
+    AuxGenProtocolError(Box<sessions::Error<AuxGenResult<KeyParams>, PartyId>>),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Bad keyshare error {0}")]
@@ -101,6 +118,14 @@ pub enum ProtocolExecutionErr {
     Bincode(#[from] bincode::Error),
     #[error("No output from reshare protocol")]
     NoOutputFromReshareProtocol,
+    #[error("BigInt conversion: {0}")]
+    BigIntConversion(#[from] num::bigint::TryFromBigIntError<num::bigint::BigUint>),
+    #[error("Index out of bounds when selecting DKG committee")]
+    IndexOutOfBounds,
+    #[error("Received bad validating key {0}")]
+    BadVerifyingKey(String),
+    #[error("Expected verifying key but got a protocol message")]
+    UnexpectedMessage,
 }
 
 #[derive(Debug, Error)]

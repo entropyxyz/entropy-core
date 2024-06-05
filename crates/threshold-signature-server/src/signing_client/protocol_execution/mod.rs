@@ -98,10 +98,13 @@ impl<'a> ThresholdSigningService<'a> {
             return Err(ProtocolErr::BadSessionId);
         };
 
+        let parties: Vec<PartyId> =
+            threshold_accounts.iter().map(|t| PartyId::new(t.clone())).collect();
+
         let rsig = execute_signing_protocol(
             session_id,
             channels,
-            key_share,
+            &key_share.to_key_share(&parties),
             aux_info,
             &message_hash,
             threshold_signer,
