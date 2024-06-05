@@ -284,10 +284,8 @@ async fn setup_dkg(
         .chain_get_block_hash(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
-    for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
+    for (_i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
             .try_into()
@@ -311,6 +309,9 @@ async fn setup_dkg(
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
+        let nonce_call =
+            entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+        let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
         // TODO: Error handling really complex needs to be thought about.
         confirm_registered(
             &api,
@@ -318,7 +319,7 @@ async fn setup_dkg(
             sig_request_address,
             &signer,
             verifying_key,
-            nonce + i as u32,
+            nonce, //+ i as u32,
         )
         .await?;
     }

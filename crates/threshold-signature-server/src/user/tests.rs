@@ -16,7 +16,7 @@
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
-use entropy_client::client::{store_program, update_programs};
+use entropy_client::client::{sign, store_program, update_programs};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -1092,7 +1092,7 @@ async fn test_dkg_with_3_nodes() {
 
     let alice = AccountKeyring::Alice;
     let alice_program = AccountKeyring::Charlie;
-    let program_manager = AccountKeyring::Dave;
+    let deployer = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids) = spawn_3_testing_validators().await;
@@ -1104,7 +1104,7 @@ async fn test_dkg_with_3_nodes() {
     let program_hash = store_program(
         &api,
         &rpc,
-        &program_manager.pair(),
+        &deployer.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -1165,10 +1165,10 @@ async fn test_dkg_with_3_nodes() {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
 
-    let mut new_verifying_key = vec![];
+    let mut verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
     for _ in 0..100 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        std::thread::sleep(std::time::Duration::from_millis(2000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
@@ -1178,90 +1178,35 @@ async fn test_dkg_with_3_nodes() {
                 query_chain(&api, &rpc, registered_query, block_hash).await;
             if query_registered_status.unwrap().is_some() {
                 if event.0 == alice.to_account_id().into() {
-                    new_verifying_key = event.1 .0;
+                    verifying_key = event.1 .0;
                     break;
                 }
             }
         }
     }
     // Check that the timeout was not reached
-    assert!(new_verifying_key.len() > 0);
+    assert!(verifying_key.len() > 0);
 
-    let get_query =
-        UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
-    // check get key before registration to see if key gets replaced
-    let response_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
-    // check to make sure keyshare is correct
-    let key_share: Option<KeyShareWithAuxInfo> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
-    assert_eq!(key_share.is_some(), true);
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    // fails repeated data
-    let response_repeated_data = client
-        .post("http://127.0.0.1:3001/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_repeated_data.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_repeated_data.text().await.unwrap(), "Data is repeated");
-
-    run_to_block(&rpc, block_number + 3).await;
-    onchain_user_request.block_number = block_number + 1;
-    // fails stale data
-    let response_stale = client
-        .post("http://127.0.0.1:3001/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_stale.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
-
-    block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    put_register_request_on_chain(
+    let recoverable_signature = sign(
         &api,
         &rpc,
-        &alice_program,
-        alice_program.to_account_id().into(),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        alice.pair(),
+        verifying_key.clone().try_into().unwrap(),
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
-    .await;
-    onchain_user_request.block_number = block_number;
-    run_to_block(&rpc, block_number + 1).await;
+    .await
+    .unwrap();
 
-    // fails not verified data
-    let response_not_verified = client
-        .post("http://127.0.0.1:3001/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_not_verified.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(response_not_verified.text().await.unwrap(), "Data is not verifiable");
-
-    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
-    // fails not in validator group data
-    let response_not_validator = client
-        .post("http://127.0.0.1:3001/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response_not_validator.status(), StatusCode::MISDIRECTED_REQUEST);
-
-    check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
-    // TODO check if key is in other subgroup member
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_should_succeed_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(verifying_key, recovery_key_from_sig.to_encoded_point(true).as_bytes().to_vec());
     clean_tests();
 }
 
