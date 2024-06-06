@@ -512,8 +512,7 @@ async fn test_store_share() {
     let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), None, false).await;
+    let (_validator_ips, _validator_ids) = spawn_3_testing_validators().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -532,6 +531,7 @@ async fn test_store_share() {
     .unwrap();
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: b"127.0.0.1:3001".to_vec(),
@@ -543,8 +543,13 @@ async fn test_store_share() {
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3003".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone().encode(),
+        },
     ];
-    let mut onchain_user_request = OcwMessageDkg {
+    let onchain_user_request = OcwMessageDkg {
         sig_request_accounts: vec![alice.public().encode()],
         block_number,
         validators_info,
@@ -561,15 +566,22 @@ async fn test_store_share() {
 
     run_to_block(&rpc, block_number + 1).await;
 
-    // succeeds
-    let user_registration_response = client
-        .post("http://127.0.0.1:3002/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
+    let response_results = join_all(
+        vec![3002, 3003]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/user/new", port))
+                    .body(onchain_user_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
 
-    assert_eq!(user_registration_response.text().await.unwrap(), "");
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
 
     let mut new_verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
