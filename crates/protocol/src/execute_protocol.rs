@@ -204,8 +204,9 @@ pub async fn execute_dkg(
     let my_party_id = PartyId::new(AccountId32(threshold_pair.public().0));
 
     let shared_randomness = session_id.blake2()?;
-    let (key_init_parties, includes_me) =
+    let (mut key_init_parties, includes_me) =
         get_key_init_parties(&my_party_id, threshold, &party_ids, &shared_randomness)?;
+    key_init_parties.sort();
 
     let (verifying_key, old_holder, chans) = if includes_me {
         // First run the key init session.
