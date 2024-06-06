@@ -1086,7 +1086,7 @@ async fn test_increment_or_wipe_request_limit() {
 
 #[tokio::test]
 #[serial]
-async fn test_dkg_with_3_nodes() {
+async fn test_threshold_dkg_and_sign_with_3_nodes() {
     initialize_test_logger().await;
     clean_tests();
 
