@@ -549,7 +549,7 @@ async fn test_store_share() {
             tss_account: TSS_ACCOUNTS[2].clone().encode(),
         },
     ];
-    let onchain_user_request = OcwMessageDkg {
+    let mut onchain_user_request = OcwMessageDkg {
         sig_request_accounts: vec![alice.public().encode()],
         block_number,
         validators_info,
