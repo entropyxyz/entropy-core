@@ -89,7 +89,7 @@ pub async fn do_dkg(
         Channels(broadcast_out, rx_from_others)
     };
 
-    // let threshold = tss_accounts.len();
+    // For now the threshold is a fixed proportion of the number of parties
     let threshold = (tss_accounts.len() as f32 * 0.75) as usize;
     let result =
         execute_dkg(session_id, channels, signer.signer(), tss_accounts, threshold).await?;
