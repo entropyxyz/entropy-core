@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
 
 ### Breaking Changes
 - In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for stale checks
@@ -16,6 +16,7 @@ At the moment this project **does not** adhere to
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
 - Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
+- Add blake2 as built in hash function and make HashingAlgorithm non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881)
 
 ### Changed
 - Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
