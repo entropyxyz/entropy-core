@@ -52,7 +52,10 @@ pub async fn get_signers_from_chain(
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let mut handles = Vec::new();
 
+    // For now we use a fix proportion of the number of validators as the threshold
     let threshold = (validators.len() as f32 * 0.75) as usize;
+    // For now we just take the first t validators as the ones to perform signing
+    validators.sort();
     validators.truncate(threshold);
 
     for validator in validators {
