@@ -45,6 +45,7 @@ async fn hashes_test() {
             HashingAlgorithm::Sha2,
             HashingAlgorithm::Sha3,
             HashingAlgorithm::Keccak,
+            HashingAlgorithm::Blake2_256,
             HashingAlgorithm::Custom(0),
         ]
     );
