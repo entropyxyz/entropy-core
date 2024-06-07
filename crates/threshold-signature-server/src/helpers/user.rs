@@ -217,6 +217,6 @@ pub async fn compute_hash(
             let program = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
             runtime.custom_hash(program.as_slice(), message).map_err(|e| e.into())
         },
-        _ => return Err(UserErr::UnknownHashingAlgorithm),
+        _ => Err(UserErr::UnknownHashingAlgorithm),
     }
 }
