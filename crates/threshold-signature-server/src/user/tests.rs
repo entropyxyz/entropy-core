@@ -43,7 +43,7 @@ use entropy_testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
         EVE_X25519_SECRET_KEY, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL,
-        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
+        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_FAUCET, TEST_INFINITE_LOOP_BYTECODE,
         TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
@@ -81,7 +81,8 @@ use subxt::{
     },
     tx::PairSigner,
     utils::{AccountId32 as subxtAccountId32, Static, H256},
-    Config, OnlineClient,
+    Config, OnlineClient, config::substrate::{BlakeTwo256, SubstrateHeader},
+    config::PolkadotExtrinsicParamsBuilder as Params,
 };
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
@@ -1676,6 +1677,154 @@ async fn test_device_key_proxy() {
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+}
+
+#[tokio::test]
+#[serial]
+async fn test_faucet() {
+    initialize_test_logger().await;
+    clean_tests();
+    /// JSON-deserializable struct that will be used to derive the program-JSON interface.
+    /// Note how this uses JSON-native types only.
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
+    pub struct UserConfig {}
+
+    /// JSON representation of the auxiliary data
+    #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    pub struct AuxData {
+        pub genesis_hash: String,
+        pub spec_version: u32,
+        pub transaction_version: u32,
+        pub header_string: String,
+        pub mortality: u64,
+        pub nonce: u64,
+        pub string_account_id: String,
+        pub amount: u128,
+    }
+
+    let one = AccountKeyring::Dave;
+    let two = AccountKeyring::Eve;
+
+    let (validator_ips, _validator_ids, keyshare_option) =
+        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let keypair = Sr25519Keypair::generate();
+    let public_key = BASE64_STANDARD.encode(keypair.public);
+
+    // check to make sure config data stored properly
+    // let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
+    // let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
+
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_FAUCET.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    update_programs(
+        &entropy_api,
+        &rpc,
+        DAVE_VERIFYING_KEY,
+        &one.pair(),
+        OtherBoundedVec(vec![OtherProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }]),
+    )
+    .await
+    .unwrap();
+
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: "localhost:3001".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: "127.0.0.1:3002".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+
+    // let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
+    let genesis_hash = rpc
+        .chain_get_block_hash(Some(subxt::backend::legacy::rpc_methods::NumberOrHex::Number(0)))
+        .await
+        .unwrap()
+        .unwrap();
+    dbg!(genesis_hash);
+    let spec_version = 00_01_00;
+    let transaction_version = 6;
+    let header = rpc.chain_get_header(None).await.unwrap().unwrap();
+    // TODO fix this
+    let numeric_block_number_json = r#"
+    {
+        "digest": {
+            "logs": []
+        },
+        "extrinsicsRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "number": 4,
+        "parentHash": "0xcb2690b2c85ceab55be03fc7f7f5f3857e7efeb7a020600ebd4331e10be2f7a5",
+        "stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    }
+"#;
+
+    let aux_data_json = AuxData {
+        genesis_hash: "7d194b5ecdfa6ccf84ee7f2a13ec4ca6f884d61bdde58cb91a9ccdc09c4d8c10"
+            .to_string(),
+        spec_version,
+        transaction_version,
+        header_string: numeric_block_number_json.to_string(),
+        mortality: 100,
+        nonce: 0,
+        string_account_id: one.to_account_id().to_string(),
+        amount: 1,
+    };
+
+    let header: SubstrateHeader<u32, BlakeTwo256> =
+        serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
+
+    let tx_params =
+        Params::new().mortal(&header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
+    let balance_transfer_tx =
+        entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data_json.amount);
+    let partial = entropy_api
+        .tx()
+        .create_partial_signed_offline(&balance_transfer_tx, tx_params)
+        .unwrap()
+        .signer_payload();
+
+    let mut generic_msg = UserSignatureRequest {
+        message: hex::encode(partial.clone()),
+        auxilary_data: Some(vec![Some(hex::encode(
+            &serde_json::to_string(&aux_data_json.clone()).unwrap(),
+        ))]),
+        validators_info,
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
+        hash: HashingAlgorithm::Keccak,
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+    };
+
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let message_hash = Hasher::keccak(&partial);
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
