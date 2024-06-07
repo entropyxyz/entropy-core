@@ -16,6 +16,7 @@
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
+use blake3::hash;
 use entropy_client::{
     client::{store_program, update_programs},
     user::get_current_subgroup_signers,
@@ -74,15 +75,16 @@ use std::{
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    config::substrate::{BlakeTwo256, SubstrateHeader},
+    config::PolkadotExtrinsicParamsBuilder as Params,
     events::EventsClient,
     ext::{
         sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
     },
-    tx::PairSigner,
-    utils::{AccountId32 as subxtAccountId32, Static, H256},
-    Config, OnlineClient, config::substrate::{BlakeTwo256, SubstrateHeader},
-    config::PolkadotExtrinsicParamsBuilder as Params,
+    tx::{PairSigner, TxStatus},
+    utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature, Static, H256},
+    Config, OnlineClient,
 };
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
@@ -1770,45 +1772,53 @@ async fn test_faucet() {
     let transaction_version = 6;
     let header = rpc.chain_get_header(None).await.unwrap().unwrap();
     // TODO fix this
-    let numeric_block_number_json = r#"
-    {
-        "digest": {
-            "logs": []
-        },
-        "extrinsicsRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "number": 4,
-        "parentHash": "0xcb2690b2c85ceab55be03fc7f7f5f3857e7efeb7a020600ebd4331e10be2f7a5",
-        "stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000"
-    }
-"#;
-
+    // let numeric_block_number_json:  = {
+    //     digest: {
+    //         logs: [],
+    //     },
+    //     extrinsics_root: header.extrinsics_root,
+    //     number: header.number,
+    //     parent_hash: header.parent_hash,
+    //     state_root: header.state_root
+    // }
+    // let numeric_block_number_json = r#"
+    //     {
+    //         "digest": {
+    //             "logs": []
+    //         },
+    //         "extrinsicsRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    //         "number": 40,
+    //         "parentHash": "0xcb2690b2c85ceab55be03fc7f7f5f3857e7efeb7a020600ebd4331e10be2f7a5",
+    //         "stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    //     }
+    // "#;
+    // let header: SubstrateHeader<u32, BlakeTwo256> =
+    //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
     let aux_data_json = AuxData {
         genesis_hash: "7d194b5ecdfa6ccf84ee7f2a13ec4ca6f884d61bdde58cb91a9ccdc09c4d8c10"
             .to_string(),
         spec_version,
         transaction_version,
-        header_string: numeric_block_number_json.to_string(),
+        header_string: serde_json::to_string(&header).unwrap(),
         mortality: 100,
         nonce: 0,
         string_account_id: one.to_account_id().to_string(),
         amount: 1,
     };
 
-    let header: SubstrateHeader<u32, BlakeTwo256> =
-        serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
+    // let header: SubstrateHeader<u32, BlakeTwo256> =
+    //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
 
     let tx_params =
         Params::new().mortal(&header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
-    let balance_transfer_tx =
-        entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data_json.amount);
-    let partial = entropy_api
-        .tx()
-        .create_partial_signed_offline(&balance_transfer_tx, tx_params)
-        .unwrap()
-        .signer_payload();
+    let balance_transfer_tx = entropy::tx()
+        .balances()
+        .transfer_allow_death(one.to_account_id().into(), aux_data_json.amount);
+    let partial =
+        entropy_api.tx().create_partial_signed_offline(&balance_transfer_tx, tx_params).unwrap();
 
     let mut generic_msg = UserSignatureRequest {
-        message: hex::encode(partial.clone()),
+        message: hex::encode(partial.signer_payload()),
         auxilary_data: Some(vec![Some(hex::encode(
             &serde_json::to_string(&aux_data_json.clone()).unwrap(),
         ))]),
@@ -1824,10 +1834,43 @@ async fn test_faucet() {
     ];
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    let message_hash = Hasher::keccak(&partial);
+    let message_hash = Hasher::keccak(&partial.signer_payload());
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-    verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+    // verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
+    let mut decoded_sig: Vec<u8> = vec![];
+    for res in test_user_res {
+        let chunk = res.unwrap().chunk().await.unwrap().unwrap();
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
+        // let verfiying_key_account = subxtAccountId32::from(hex::decode(verfiying_key_account_string).unwrap().as_slice()).to_ss58check();
+    }
+    let verfiying_key_account_string = hash(&DAVE_VERIFYING_KEY);
+    let verfiying_key_account = //one.to_account_id();
+    dbg!(verfiying_key_account_string);
+
+    let submittable_extrinsic = partial.sign_with_address_and_signature(
+        &MultiAddress::Id(verfiying_key_account.into()),
+        &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
+    );
+    let mut tx = submittable_extrinsic.submit_and_watch().await.unwrap();
+
+    while let Some(status) = tx.next().await {
+        match status.unwrap() {
+            TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
+                 println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
+            },
+            TxStatus::Error { message }
+            | TxStatus::Invalid { message }
+            | TxStatus::Dropped { message } => {
+                // Handle any errors:
+                panic!("{}", message);
+            },
+            // Continue otherwise:
+            _ => continue,
+        };
+    }
 }
 
 #[tokio::test]
