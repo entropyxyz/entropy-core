@@ -2679,6 +2679,7 @@ dependencies = [
  "lazy_static",
  "parity-scale-codec",
  "project-root",
+ "rand",
  "rand_core 0.6.4",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
