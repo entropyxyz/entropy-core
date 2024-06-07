@@ -64,7 +64,7 @@ use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
+use sp_core::{crypto::{Ss58Codec}, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     env, fs,
@@ -79,13 +79,14 @@ use subxt::{
     config::PolkadotExtrinsicParamsBuilder as Params,
     events::EventsClient,
     ext::{
-        sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
+        sp_core::{sr25519, sr25519::Signature, Bytes, Pair, hashing::blake2_256},
         sp_runtime::AccountId32,
     },
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature, Static, H256},
     Config, OnlineClient,
 };
+use subxt_signer::ecdsa::{PublicKey as EcdsaPublicKey};
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
@@ -1762,45 +1763,24 @@ async fn test_faucet() {
     ];
 
     // let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
-    let genesis_hash = rpc
+    let binding = rpc
         .chain_get_block_hash(Some(subxt::backend::legacy::rpc_methods::NumberOrHex::Number(0)))
         .await
         .unwrap()
-        .unwrap();
-    dbg!(genesis_hash);
+        .unwrap().to_string();
+    dbg!(binding.clone());
+    let genesis_hash = binding.strip_prefix("0x").unwrap().to_string();    
+    println!("{}", genesis_hash.to_string());
     let spec_version = 00_01_00;
     let transaction_version = 6;
     let header = rpc.chain_get_header(None).await.unwrap().unwrap();
-    // TODO fix this
-    // let numeric_block_number_json:  = {
-    //     digest: {
-    //         logs: [],
-    //     },
-    //     extrinsics_root: header.extrinsics_root,
-    //     number: header.number,
-    //     parent_hash: header.parent_hash,
-    //     state_root: header.state_root
-    // }
-    // let numeric_block_number_json = r#"
-    //     {
-    //         "digest": {
-    //             "logs": []
-    //         },
-    //         "extrinsicsRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    //         "number": 40,
-    //         "parentHash": "0xcb2690b2c85ceab55be03fc7f7f5f3857e7efeb7a020600ebd4331e10be2f7a5",
-    //         "stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000"
-    //     }
-    // "#;
-    // let header: SubstrateHeader<u32, BlakeTwo256> =
-    //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
     let aux_data_json = AuxData {
         genesis_hash: "7d194b5ecdfa6ccf84ee7f2a13ec4ca6f884d61bdde58cb91a9ccdc09c4d8c10"
             .to_string(),
         spec_version,
         transaction_version,
         header_string: serde_json::to_string(&header).unwrap(),
-        mortality: 100,
+        mortality: 2,
         nonce: 0,
         string_account_id: one.to_account_id().to_string(),
         amount: 1,
@@ -1840,20 +1820,34 @@ async fn test_faucet() {
     // verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
+        // assert_eq!(res.unwrap().text().await.unwrap(), "d");
         let chunk = res.unwrap().chunk().await.unwrap().unwrap();
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
         decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
         // let verfiying_key_account = subxtAccountId32::from(hex::decode(verfiying_key_account_string).unwrap().as_slice()).to_ss58check();
     }
-    let verfiying_key_account_string = hash(&DAVE_VERIFYING_KEY);
-    let verfiying_key_account = //one.to_account_id();
-    dbg!(verfiying_key_account_string);
-
+    let verifying_key = keyshare_option
+        .clone()
+        .unwrap()
+        .verifying_key()
+        .to_encoded_point(true)
+        .as_bytes()
+        .to_vec();
+    let verfiying_key_account_string = blake2_256(&verifying_key);
+    // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
+    // dbg!(demo.clone());
+    dbg!(verfiying_key_account_string.clone());
+    let verfiying_key_account = subxtAccountId32(verfiying_key_account_string);//EcdsaPublicKey(demo);//one.to_account_id();
+    dbg!(verfiying_key_account.clone());
+    // dbg!(MultiAddress::Id(verfiying_key_account.into()));
     let submittable_extrinsic = partial.sign_with_address_and_signature(
         &MultiAddress::Id(verfiying_key_account.into()),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
     );
+    let dry_res = submittable_extrinsic.validate().await;
+    dbg!(dry_res);
+
     let mut tx = submittable_extrinsic.submit_and_watch().await.unwrap();
 
     while let Some(status) = tx.next().await {
