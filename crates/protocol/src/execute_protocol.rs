@@ -359,3 +359,81 @@ fn get_key_init_parties(
 
     Ok((parties, includes_self))
 }
+
+/// Do an initial key reshare with a given keyshare
+/// This is only used for deterministically creating threshold keyshares for tests
+#[cfg(feature = "unsafe")]
+pub async fn execute_initial_reshare_with_keyshare(
+    init_keyshare: KeyShare<KeyParams, PartyId>,
+    session_id: SessionId,
+    chans: Channels,
+    threshold_pair: &sr25519::Pair,
+    threshold_accounts: Vec<AccountId32>,
+    old_holders: Vec<PartyId>,
+    threshold: usize,
+) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
+    let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
+    let pair = PairWrapper(threshold_pair.clone());
+    let shared_randomness = session_id.blake2()?;
+
+    let inputs = KeyResharingInputs {
+        old_holder: Some(OldHolder { key_share: init_keyshare.to_threshold_key_share() }),
+        new_holder: Some(NewHolder {
+            verifying_key: init_keyshare.verifying_key(),
+            old_threshold: threshold,
+            old_holders,
+        }),
+        new_holders: party_ids.clone(),
+        new_threshold: threshold,
+    };
+    let session = make_key_resharing_session(
+        &mut OsRng,
+        &shared_randomness,
+        pair.clone(),
+        &party_ids,
+        &inputs,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let (new_key_share_option, _rx) = execute_protocol_generic(chans, session).await?;
+    let new_key_share =
+        new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
+
+    Ok(new_key_share)
+}
+
+/// Do an initial key reshare with a given verifying key
+/// This is only used for deterministically creating threshold keyshares for tests
+#[cfg(feature = "unsafe")]
+pub async fn execute_initial_reshare_with_verifying_key(
+    verifying_key: VerifyingKey,
+    session_id: SessionId,
+    chans: Channels,
+    threshold_pair: &sr25519::Pair,
+    threshold_accounts: Vec<AccountId32>,
+    old_holders: Vec<PartyId>,
+    threshold: usize,
+) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
+    let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
+    let pair = PairWrapper(threshold_pair.clone());
+    let shared_randomness = session_id.blake2()?;
+
+    let inputs = KeyResharingInputs {
+        old_holder: None,
+        new_holder: Some(NewHolder { verifying_key, old_threshold: threshold, old_holders }),
+        new_holders: party_ids.clone(),
+        new_threshold: threshold,
+    };
+    let session = make_key_resharing_session(
+        &mut OsRng,
+        &shared_randomness,
+        pair.clone(),
+        &party_ids,
+        &inputs,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let (new_key_share_option, _rx) = execute_protocol_generic(chans, session).await?;
+    let new_key_share =
+        new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
+
+    Ok(new_key_share)
+}
