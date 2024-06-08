@@ -1713,12 +1713,20 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
 
     let (validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
+        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), false, true).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let keypair = Sr25519Keypair::generate();
     let public_key = BASE64_STANDARD.encode(keypair.public);
+
+    let verifying_key = keyshare_option
+        .clone()
+        .unwrap()
+        .verifying_key()
+        .to_encoded_point(true)
+        .as_bytes()
+        .to_vec();
 
     // check to make sure config data stored properly
     // let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
@@ -1739,8 +1747,8 @@ async fn test_faucet() {
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY,
-        &one.pair(),
+        verifying_key.clone().try_into().unwrap(),
+        &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
@@ -1761,12 +1769,12 @@ async fn test_faucet() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-
+dbg!(verifying_key.clone());
     // let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
-    let binding = entropy_api.genesis_hash().to_string();
+    let binding = entropy_api.genesis_hash();
     dbg!(binding.clone());
-    let genesis_hash = binding.strip_prefix("0x").unwrap();
-    dbg!(genesis_hash);
+    let genesis_hash = &binding[2..];
+    // dbg!(genesis_hash.to_string());
     // let genesis_hash = binding.strip_prefix("0x").unwrap().to_string();    
     // println!("{}", genesis_hash.to_string());
     let spec_version = entropy_api.runtime_version().spec_version;
@@ -1777,7 +1785,7 @@ async fn test_faucet() {
     let binding_header = entropy_api.blocks().at_latest().await.unwrap();
     let header = binding_header.header();
     let aux_data_json = AuxData {
-        genesis_hash: "7d194b5ecdfa6ccf84ee7f2a13ec4ca6f884d61bdde58cb91a9ccdc09c4d8c10"
+        genesis_hash: "2f6146255059a75639a61a73667db5f3d321039ca96937697944c2f5e319343f"
             .to_string(),
         spec_version,
         transaction_version,
@@ -1809,7 +1817,7 @@ async fn test_faucet() {
         validators_info,
         block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: verifying_key.clone().to_vec(),
     };
 
     let validator_ips_and_keys = vec![
@@ -1824,20 +1832,15 @@ async fn test_faucet() {
     // verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
-        // assert_eq!(res.unwrap().text().await.unwrap(), "d");
-        let chunk = res.unwrap().chunk().await.unwrap().unwrap();
-        let signing_result: Result<(String, Signature), String> =
-            serde_json::from_slice(&chunk).unwrap();
-        decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
+            // assert_eq!(res.unwrap().text().await.unwrap(), "d");
+            let chunk = res.unwrap().chunk().await.unwrap().unwrap();
+            let signing_result: Result<(String, Signature), String> =
+                serde_json::from_slice(&chunk).unwrap();
+            decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
+        
         // let verfiying_key_account = subxtAccountId32::from(hex::decode(verfiying_key_account_string).unwrap().as_slice()).to_ss58check();
     }
-    let verifying_key = keyshare_option
-        .clone()
-        .unwrap()
-        .verifying_key()
-        .to_encoded_point(true)
-        .as_bytes()
-        .to_vec();
+
     dbg!(&verifying_key);
     let verfiying_key_account_string = blake2_256(&verifying_key);
     // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
@@ -1870,6 +1873,7 @@ async fn test_faucet() {
             _ => continue,
         };
     }
+    clean_tests();
 }
 
 #[tokio::test]

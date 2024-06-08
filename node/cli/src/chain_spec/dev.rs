@@ -224,7 +224,7 @@ pub fn development_genesis_config(
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
+                    0,
                     Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
