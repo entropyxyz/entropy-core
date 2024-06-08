@@ -1769,18 +1769,25 @@ async fn test_faucet() {
         .unwrap()
         .unwrap().to_string();
     dbg!(binding.clone());
-    let genesis_hash = binding.strip_prefix("0x").unwrap().to_string();    
-    println!("{}", genesis_hash.to_string());
+    let genesis_hash = rpc
+        .chain_get_block_hash(Some(subxt::backend::legacy::rpc_methods::NumberOrHex::Number(0)))
+        .await
+        .unwrap()
+        .unwrap();
+    dbg!(genesis_hash);
+    // let genesis_hash = binding.strip_prefix("0x").unwrap().to_string();    
+    // println!("{}", genesis_hash.to_string());
     let spec_version = 00_01_00;
     let transaction_version = 6;
-    let header = rpc.chain_get_header(None).await.unwrap().unwrap();
+    let binding_header = entropy_api.blocks().at_latest().await.unwrap();
+    let header = binding_header.header();
     let aux_data_json = AuxData {
         genesis_hash: "7d194b5ecdfa6ccf84ee7f2a13ec4ca6f884d61bdde58cb91a9ccdc09c4d8c10"
             .to_string(),
         spec_version,
         transaction_version,
         header_string: serde_json::to_string(&header).unwrap(),
-        mortality: 2,
+        mortality: 32u64,
         nonce: 0,
         string_account_id: one.to_account_id().to_string(),
         amount: 1,
@@ -1790,7 +1797,9 @@ async fn test_faucet() {
     //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
 
     let tx_params =
-        Params::new().mortal(&header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
+        Params::new()
+        .mortal(header, aux_data_json.mortality)
+        .nonce(aux_data_json.nonce).build();
     let balance_transfer_tx = entropy::tx()
         .balances()
         .transfer_allow_death(one.to_account_id().into(), aux_data_json.amount);
@@ -1834,10 +1843,11 @@ async fn test_faucet() {
         .to_encoded_point(true)
         .as_bytes()
         .to_vec();
+    dbg!(&verifying_key);
     let verfiying_key_account_string = blake2_256(&verifying_key);
     // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
     // dbg!(demo.clone());
-    dbg!(verfiying_key_account_string.clone());
+    dbg!(hex::encode(verfiying_key_account_string.clone()));
     let verfiying_key_account = subxtAccountId32(verfiying_key_account_string);//EcdsaPublicKey(demo);//one.to_account_id();
     dbg!(verfiying_key_account.clone());
     // dbg!(MultiAddress::Id(verfiying_key_account.into()));

@@ -46,7 +46,7 @@ use futures::{
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, hashing::blake2_256};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
@@ -178,9 +178,9 @@ pub async fn sign_tx(
         runtime.evaluate(&program, &signature_request, Some(&program_info.program_config), None)?;
     }
     // We decided to do Keccak for subgroup selection for frontend compatability
-    let message_hash_keccak =
-        compute_hash(&api, &rpc, &HashingAlgorithm::Keccak, &mut runtime, &[], message.as_slice())
-            .await?;
+    let message_hash_keccak = blake2_256(message.as_slice());
+        // compute_hash(&api, &rpc, &HashingAlgorithm::Keccak, &mut runtime, &[], message.as_slice())
+        //     .await?;
     let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
     let subgroup_signers =
