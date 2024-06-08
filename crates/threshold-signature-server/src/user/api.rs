@@ -190,16 +190,16 @@ pub async fn sign_tx(
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
     user_sig_req.validators_info = subgroup_signers;
-
-    let message_hash = compute_hash(
-        &api,
-        &rpc,
-        &user_sig_req.hash,
-        &mut runtime,
-        &user_details.programs_data.0,
-        message.as_slice(),
-    )
-    .await?;
+    let message_hash = blake2_256(message.as_slice());
+    // let message_hash = compute_hash(
+    //     &api,
+    //     &rpc,
+    //     &user_sig_req.hash,
+    //     &mut runtime,
+    //     &user_details.programs_data.0,
+    //     message.as_slice(),
+    // )
+    // .await?;
 
     let signing_session_id = SigningSessionInfo {
         signature_verifying_key: user_sig_req.signature_verifying_key.clone(),
