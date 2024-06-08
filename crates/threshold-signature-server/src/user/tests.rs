@@ -1763,22 +1763,17 @@ async fn test_faucet() {
     ];
 
     // let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
-    let binding = rpc
-        .chain_get_block_hash(Some(subxt::backend::legacy::rpc_methods::NumberOrHex::Number(0)))
-        .await
-        .unwrap()
-        .unwrap().to_string();
+    let binding = entropy_api.genesis_hash().to_string();
     dbg!(binding.clone());
-    let genesis_hash = rpc
-        .chain_get_block_hash(Some(subxt::backend::legacy::rpc_methods::NumberOrHex::Number(0)))
-        .await
-        .unwrap()
-        .unwrap();
+    let genesis_hash = binding.strip_prefix("0x").unwrap();
     dbg!(genesis_hash);
     // let genesis_hash = binding.strip_prefix("0x").unwrap().to_string();    
     // println!("{}", genesis_hash.to_string());
-    let spec_version = 00_01_00;
-    let transaction_version = 6;
+    let spec_version = entropy_api.runtime_version().spec_version;
+    let transaction_version = entropy_api.runtime_version().transaction_version;
+    dbg!(spec_version.clone());
+    dbg!(transaction_version.clone());
+
     let binding_header = entropy_api.blocks().at_latest().await.unwrap();
     let header = binding_header.header();
     let aux_data_json = AuxData {
