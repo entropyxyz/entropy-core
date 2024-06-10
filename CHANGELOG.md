@@ -11,6 +11,9 @@ At the moment this project **does not** adhere to
 
 ### Breaking Changes
 - In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for stale checks
+- In [#881](https://github.com/entropyxyz/entropy-core/pull/881) the `HashingAlgorithm` enum is
+  given an additional variant `Blake2_256` and marked as `non_exhaustive` meaning we must handle the
+  case that an unknown variant is added in the future.
 
 ### Added
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
