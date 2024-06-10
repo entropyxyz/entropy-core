@@ -1,24 +1,44 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+//! Simulates 3 TSS nodes running the reshare protocol in order to create keyshares with a
+//! pre-defined distributed keypair for testing entropy-tss
 use entropy_protocol::{execute_protocol::PairWrapper, KeyParams, KeyShareWithAuxInfo, PartyId};
 use rand::Rng;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use std::collections::BTreeMap;
-use subxt::{ext::scale_decode::ext::scale_type_resolver::visitor::new, utils::AccountId32};
+use subxt::utils::AccountId32;
 use synedrion::{
-    k256::ecdsa::{Signature, SigningKey, VerifyingKey},
-    make_key_resharing_session, AuxInfo, CombinedMessage, FinalizeOutcome, KeyResharingInputs,
-    KeyShare, MappedResult, NewHolder, OldHolder, Session,
+    ecdsa::SigningKey, make_key_resharing_session, AuxInfo, CombinedMessage, FinalizeOutcome,
+    KeyResharingInputs, KeyShare, MappedResult, NewHolder, OldHolder, Session,
 };
 use tokio::{
     sync::mpsc,
     time::{sleep, Duration},
 };
 
-async fn create_test_keyshares(
+/// Given a secp256k1 secret key and 3 signing keypairs for the TSS parties, generate a set of
+/// threshold keyshares with auxiliary info
+pub async fn create_test_keyshares(
+    distributed_secret_key_bytes: [u8; 32],
     alice: sr25519::Pair,
     bob: sr25519::Pair,
     charlie: sr25519::Pair,
 ) -> Vec<KeyShareWithAuxInfo> {
+    let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
     let signers = vec![alice, bob, charlie.clone()];
     let shared_randomness = b"12345";
     let all_parties =
@@ -26,7 +46,11 @@ async fn create_test_keyshares(
 
     let old_holders = all_parties.clone().into_iter().take(2).collect::<Vec<_>>();
 
-    let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &old_holders, None);
+    let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(
+        &mut OsRng,
+        &old_holders,
+        Some(&signing_key),
+    );
     let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
     let new_holder =
@@ -87,6 +111,7 @@ fn key_to_str(key: &PartyId) -> String {
     key.to_string()
 }
 
+/// Run a generic synedrion session - this is mostly copied from the synedrion integration tests
 async fn run_session<Res: MappedResult<PartyId>>(
     tx: mpsc::Sender<MessageOut>,
     rx: mpsc::Receiver<MessageIn>,
@@ -119,7 +144,7 @@ async fn run_session<Res: MappedResult<PartyId>>(
             // to be added to the accumulator.
             let (message, artifact) = session.make_message(&mut OsRng, destination).unwrap();
             println!("{key_str}: sending a message to {}", key_to_str(destination));
-            tx.send((key, *destination, message)).await.unwrap();
+            tx.send((key.clone(), destination.clone(), message)).await.unwrap();
 
             // This will happen in a host task
             accum.add_artifact(artifact).unwrap();
@@ -203,12 +228,6 @@ async fn message_dispatcher(
             };
         }
     }
-}
-
-fn make_signers(num_parties: usize) -> (Vec<SigningKey>, Vec<PartyId>) {
-    let signers = (0..num_parties).map(|_| SigningKey::random(&mut OsRng)).collect::<Vec<_>>();
-    let verifiers = signers.iter().map(|signer| *signer.verifying_key()).collect::<Vec<_>>();
-    (signers, verifiers)
 }
 
 async fn run_nodes<Res>(
