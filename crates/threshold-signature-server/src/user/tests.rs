@@ -1722,22 +1722,13 @@ async fn test_faucet() {
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let keypair = Sr25519Keypair::generate();
-    let public_key = BASE64_STANDARD.encode(keypair.public);
 
     let verifying_key =
         keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
     let verfiying_key_account_string = blake2_256(&verifying_key);
-    // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
-    // dbg!(demo.clone());
-    dbg!(hex::encode(verfiying_key_account_string.clone()));
     let verfiying_key_account = subxtAccountId32(verfiying_key_account_string); //EcdsaPublicKey(demo);//one.to_account_id();
-    dbg!(verfiying_key_account.clone());
 
-    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-
-    // drain account of balance
+    // Add funds to faucet
     let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
         who: verfiying_key_account.clone().into(),
         new_free: 10000000000000000000000u128,
@@ -1748,7 +1739,7 @@ async fn test_faucet() {
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
 
     let tx_params_balance = Params::new().build();
-    let mut balance_status_tx = entropy_api
+    entropy_api
         .tx()
         .create_signed(&add_balance_tx, &signature_request_pair_signer, tx_params_balance)
         .await
@@ -1756,10 +1747,6 @@ async fn test_faucet() {
         .submit_and_watch()
         .await
         .unwrap();
-
-    // check to make sure config data stored properly
-    // let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
-    // let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
 
     let program_hash = store_program(
         &entropy_api,
@@ -1772,8 +1759,9 @@ async fn test_faucet() {
     )
     .await
     .unwrap();
-
-    let faucet_user_config = UserConfig { max_transfer_amount: 100000000000000u128 };
+    
+    let amount_to_send = 10000000000;
+    let faucet_user_config = UserConfig { max_transfer_amount: amount_to_send };
 
     update_programs(
         &entropy_api,
@@ -1800,29 +1788,22 @@ async fn test_faucet() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-
-    let binding = entropy_api.genesis_hash();
-    dbg!(binding.clone());
-    let genesis_hash = &binding[2..];
+    let genesis_hash = &entropy_api.genesis_hash();
     let spec_version = entropy_api.runtime_version().spec_version;
     let transaction_version = entropy_api.runtime_version().transaction_version;
-    dbg!(spec_version.clone());
-    dbg!(transaction_version.clone());
 
     let binding_header = entropy_api.blocks().at_latest().await.unwrap();
     let header = binding_header.header();
     let aux_data_json = AuxData {
-        genesis_hash: "2f6146255059a75639a61a73667db5f3d321039ca96937697944c2f5e319343f"
-            .to_string(),
+        genesis_hash: hex::encode(genesis_hash.encode()),
         spec_version,
         transaction_version,
         header_string: serde_json::to_string(&header).unwrap(),
         mortality: 32u64,
         nonce: 0,
         string_account_id: one.to_account_id().to_string(),
-        amount: 1,
+        amount: amount_to_send,
     };
-
     // let header: SubstrateHeader<u32, BlakeTwo256> =
     //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
 
@@ -1851,7 +1832,6 @@ async fn test_faucet() {
     ];
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    let message_hash = Hasher::keccak(&partial.signer_payload());
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     // verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
@@ -1865,30 +1845,43 @@ async fn test_faucet() {
     }
 
     let submittable_extrinsic = partial.sign_with_address_and_signature(
-        &MultiAddress::Id(verfiying_key_account.into()),
+        &MultiAddress::Id(verfiying_key_account.clone().into()),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
     );
-    let dry_res = submittable_extrinsic.validate().await;
-    dbg!(dry_res);
+    let account = subxtAccountId32::from_str(&aux_data_json.string_account_id).unwrap();
+    // balance before
+    let balance_query = entropy::storage().system().account(account.clone());
+    let account_info = query_chain(&entropy_api, &rpc, balance_query, None).await.unwrap().unwrap();
+    let balance_before = account_info.data.free;
 
     let mut tx = submittable_extrinsic.submit_and_watch().await.unwrap();
 
     while let Some(status) = tx.next().await {
         match status.unwrap() {
             TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
-                println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
+                assert!(tx_in_block.wait_for_success().await.is_ok());
                 break;
             },
-            TxStatus::Error { message }
-            | TxStatus::Invalid { message }
-            | TxStatus::Dropped { message } => {
-                // Handle any errors:
+            TxStatus::Error { message } => {
+                panic!("{}", message);
+            },
+            TxStatus::Invalid { message } => {
+                panic!("{}", message);
+            },
+            TxStatus::Dropped { message } => {
                 panic!("{}", message);
             },
             // Continue otherwise:
             _ => continue,
         };
     }
+
+    // balance after
+    let balance_after_query = entropy::storage().system().account(account);
+    let account_info =
+        query_chain(&entropy_api, &rpc, balance_after_query, None).await.unwrap().unwrap();
+    let balance_after = account_info.data.free;
+    ma::assert_gt!(balance_after, balance_before);
     clean_tests();
 }
 
