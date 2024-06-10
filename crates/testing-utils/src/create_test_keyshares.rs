@@ -15,7 +15,7 @@
 
 //! Simulates 3 TSS nodes running the reshare protocol in order to create keyshares with a
 //! pre-defined distributed keypair for testing entropy-tss
-use entropy_protocol::{execute_protocol::PairWrapper, KeyParams, KeyShareWithAuxInfo, PartyId};
+use entropy_protocol::{execute_protocol::PairWrapper, PartyId};
 use rand::Rng;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
@@ -23,7 +23,8 @@ use std::collections::BTreeMap;
 use subxt::utils::AccountId32;
 use synedrion::{
     ecdsa::SigningKey, make_key_resharing_session, AuxInfo, CombinedMessage, FinalizeOutcome,
-    KeyResharingInputs, KeyShare, MappedResult, NewHolder, OldHolder, Session,
+    KeyResharingInputs, KeyShare, MappedResult, NewHolder, OldHolder, Session, TestParams,
+    ThresholdKeyShare,
 };
 use tokio::{
     sync::mpsc,
@@ -37,7 +38,7 @@ pub async fn create_test_keyshares(
     alice: sr25519::Pair,
     bob: sr25519::Pair,
     charlie: sr25519::Pair,
-) -> Vec<KeyShareWithAuxInfo> {
+) -> Vec<(ThresholdKeyShare<TestParams, PartyId>, AuxInfo<TestParams, PartyId>)> {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
     let signers = vec![alice, bob, charlie.clone()];
     let shared_randomness = b"12345";
@@ -46,12 +47,12 @@ pub async fn create_test_keyshares(
 
     let old_holders = all_parties.clone().into_iter().take(2).collect::<Vec<_>>();
 
-    let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(
+    let keyshares = KeyShare::<TestParams, PartyId>::new_centralized(
         &mut OsRng,
         &old_holders,
         Some(&signing_key),
     );
-    let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &all_parties);
+    let aux_infos = AuxInfo::<TestParams, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
     let new_holder =
         NewHolder { verifying_key: keyshares[0].verifying_key(), old_threshold: 2, old_holders };
