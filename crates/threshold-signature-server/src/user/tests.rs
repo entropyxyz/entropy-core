@@ -76,7 +76,7 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::substrate::{BlakeTwo256, SubstrateHeader},
-    config::PolkadotExtrinsicParamsBuilder as Params,
+    config::{PolkadotExtrinsicParamsBuilder as Params, DefaultExtrinsicParamsBuilder},
     events::EventsClient,
     ext::{
         sp_core::{sr25519, sr25519::Signature, Bytes, Pair, hashing::blake2_256},
@@ -104,6 +104,8 @@ use crate::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
+        entropy::runtime_types::entropy_runtime::RuntimeCall,
+        entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
     },
     get_signer,
     helpers::{
@@ -1711,6 +1713,7 @@ async fn test_faucet() {
 
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Eve;
+    let alice = AccountKeyring::Alice;
 
     let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), false, true).await;
@@ -1727,6 +1730,35 @@ async fn test_faucet() {
         .to_encoded_point(true)
         .as_bytes()
         .to_vec();
+        let verfiying_key_account_string = blake2_256(&verifying_key);
+        // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
+        // dbg!(demo.clone());
+        dbg!(hex::encode(verfiying_key_account_string.clone()));
+        let verfiying_key_account = subxtAccountId32(verfiying_key_account_string);//EcdsaPublicKey(demo);//one.to_account_id();
+        dbg!(verfiying_key_account.clone());
+    
+    
+        let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+        let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+    
+        // drain account of balance
+        let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
+            who: verfiying_key_account.clone().into(),
+            new_free: 10000000000000000000000u128,
+        });
+        let add_balance_tx = entropy::tx().sudo().sudo(call);
+    
+        let signature_request_pair_signer =
+            PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+        
+        let tx_params_balance = Params::new().build();
+        let mut balance_status_tx = entropy_api.tx()
+            .create_signed(&add_balance_tx, &signature_request_pair_signer, tx_params_balance)
+            .await
+            .unwrap()
+            .submit_and_watch()
+            .await
+            .unwrap();
 
     // check to make sure config data stored properly
     // let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
@@ -1816,7 +1848,7 @@ dbg!(verifying_key.clone());
         ))]),
         validators_info,
         block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
-        hash: HashingAlgorithm::Keccak,
+        hash: HashingAlgorithm::Blake2_256,
         signature_verifying_key: verifying_key.clone().to_vec(),
     };
 
@@ -1841,13 +1873,23 @@ dbg!(verifying_key.clone());
         // let verfiying_key_account = subxtAccountId32::from(hex::decode(verfiying_key_account_string).unwrap().as_slice()).to_ss58check();
     }
 
-    dbg!(&verifying_key);
-    let verfiying_key_account_string = blake2_256(&verifying_key);
-    // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
-    // dbg!(demo.clone());
-    dbg!(hex::encode(verfiying_key_account_string.clone()));
-    let verfiying_key_account = subxtAccountId32(verfiying_key_account_string);//EcdsaPublicKey(demo);//one.to_account_id();
-    dbg!(verfiying_key_account.clone());
+    // while let Some(status) = balance_status_tx.next().await {
+    //         match status.unwrap() {
+    //             TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
+    //                  println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
+    //             },
+    //             TxStatus::Error { message }
+    //             | TxStatus::Invalid { message }
+    //             | TxStatus::Dropped { message } => {
+    //                 // Handle any errors:
+    //                 panic!("{}", message);
+    //             },
+    //             // Continue otherwise:
+    //             _ => continue,
+    //         };
+    //     }
+
+
     // dbg!(MultiAddress::Id(verfiying_key_account.into()));
     let submittable_extrinsic = partial.sign_with_address_and_signature(
         &MultiAddress::Id(verfiying_key_account.into()),
@@ -1862,6 +1904,7 @@ dbg!(verifying_key.clone());
         match status.unwrap() {
             TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
                  println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
+                 break;
             },
             TxStatus::Error { message }
             | TxStatus::Invalid { message }
