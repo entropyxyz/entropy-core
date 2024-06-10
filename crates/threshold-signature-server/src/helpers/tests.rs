@@ -43,6 +43,7 @@ use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, KeyShareWithAuxInfo, PartyId};
 use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
+use entropy_testing_utils::tss_server_process::put_keyshare_in_db;
 use rand_core::OsRng;
 use sp_core::Pair;
 use subxt::{
@@ -232,6 +233,10 @@ pub async fn spawn_3_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     ));
 
     let ids = vec![alice_id, bob_id, charlie_id];
+
+    put_keyshare_in_db("alice", alice_kv).await;
+    put_keyshare_in_db("bob", bob_kv).await;
+    put_keyshare_in_db("charlie", charlie_kv).await;
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await

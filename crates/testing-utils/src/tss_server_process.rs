@@ -16,7 +16,7 @@
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
 use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
+use entropy_shared::{DETERMINISTIC_KEY_SHARE_EVE, EVE_VERIFYING_KEY};
 use entropy_tss::{
     app, get_signer,
     launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
@@ -142,4 +142,15 @@ pub async fn spawn_testing_validators(
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
     (ips, ids, user_keyshare_option)
+}
+
+pub async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
+    let keyshare_bytes = {
+        let project_root = project_root::get_project_root().expect("Error obtaining project root.");
+        let file_path = project_root
+            .join(format!("crates/testing-utils/keyshares/eve-keyshare-held-by-{}.keyshare", name));
+        std::fs::read(file_path).unwrap()
+    };
+    let reservation = kvdb.kv().reserve_key(hex::encode(EVE_VERIFYING_KEY)).await.unwrap();
+    kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
 }
