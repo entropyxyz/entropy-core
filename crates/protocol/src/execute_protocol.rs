@@ -45,7 +45,7 @@ pub type ChannelOut = Broadcaster;
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
 #[derive(Clone)]
-struct PairWrapper(sr25519::Pair);
+pub struct PairWrapper(pub sr25519::Pair);
 
 impl signature::Keypair for PairWrapper {
     type VerifyingKey = PartyId;

@@ -1,0 +1,16 @@
+[package]
+name       ="entropy-create-test-keyshares"
+description="Makes a set of keyshares for testing entropy-tss"
+version    ='0.1.0'
+authors    =['Entropy Cryptography <engineering@entropy.xyz>']
+homepage   ='https://entropy.xyz/'
+license    ='AGPL-3.0-or-later'
+repository ='https://github.com/entropyxyz/entropy-core'
+edition    ='2021'
+
+[dependencies]
+entropy-testing-utils={ version="0.1.0", path="../../crates/testing-utils" }
+tokio                ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+sp-keyring           ="34.0.0"
+entropy-shared       ={ version="0.1.0", path="../../crates/shared" }
+entropy-kvdb         ={ version="0.1.0", path="../../crates/kvdb", default-features=false }

@@ -25,6 +25,7 @@ entropy-protocol  ={ version="0.1.0", path="../protocol" }
 synedrion         ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
 hex               ="0.4.3"
 rand_core         ="0.6.4"
+rand              ="0.8.5"
 
 # Logging
 tracing           ="0.1.37"
