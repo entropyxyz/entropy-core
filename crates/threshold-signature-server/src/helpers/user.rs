@@ -27,7 +27,7 @@ use reqwest::StatusCode;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
-use sp_core::{sr25519, Pair};
+use sp_core::{hashing::blake2_256, sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
 use synedrion::KeyShare;
 use tokio::time::timeout;
@@ -212,9 +212,11 @@ pub async fn compute_hash(
             hash.copy_from_slice(&result);
             Ok(hash)
         },
+        HashingAlgorithm::Blake2_256 => Ok(blake2_256(message)),
         HashingAlgorithm::Custom(i) => {
             let program = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
             runtime.custom_hash(program.as_slice(), message).map_err(|e| e.into())
         },
+        _ => Err(UserErr::UnknownHashingAlgorithm),
     }
 }
