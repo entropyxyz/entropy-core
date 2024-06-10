@@ -33,7 +33,7 @@ async fn main() {
         AccountKeyring::Charlie.pair(),
     )
     .await;
-    let names = vec!["alice", "bob", "charlie"];
+    let names = ["alice", "bob", "charlie"];
     for (i, keyshare_with_aux_info) in keyshares_with_aux_infos.iter().enumerate() {
         let keyshare_with_aux_info_bytes = serialize(&keyshare_with_aux_info).unwrap();
         let filename = format!("eve-keyshare-held-by-{}.keyshare", names[i]);
