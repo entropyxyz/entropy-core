@@ -91,11 +91,13 @@ pub struct OcwMessageProactiveRefresh {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", serde(rename = "hash"))]
 #[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
+#[non_exhaustive]
 pub enum HashingAlgorithm {
     Sha1,
     Sha2,
     Sha3,
     Keccak,
+    Blake2_256,
     Custom(usize),
 }
 
