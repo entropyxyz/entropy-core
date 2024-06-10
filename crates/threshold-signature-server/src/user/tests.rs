@@ -64,7 +64,7 @@ use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{crypto::{Ss58Codec}, Pair as OtherPair, H160};
+use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     env, fs,
@@ -76,17 +76,17 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::substrate::{BlakeTwo256, SubstrateHeader},
-    config::{PolkadotExtrinsicParamsBuilder as Params, DefaultExtrinsicParamsBuilder},
+    config::{DefaultExtrinsicParamsBuilder, PolkadotExtrinsicParamsBuilder as Params},
     events::EventsClient,
     ext::{
-        sp_core::{sr25519, sr25519::Signature, Bytes, Pair, hashing::blake2_256},
+        sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
     },
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature, Static, H256},
     Config, OnlineClient,
 };
-use subxt_signer::ecdsa::{PublicKey as EcdsaPublicKey};
+use subxt_signer::ecdsa::PublicKey as EcdsaPublicKey;
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,
@@ -102,10 +102,10 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
-        EntropyConfig,
         entropy::runtime_types::entropy_runtime::RuntimeCall,
         entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+        EntropyConfig,
     },
     get_signer,
     helpers::{
@@ -1692,11 +1692,6 @@ async fn test_device_key_proxy() {
 async fn test_faucet() {
     initialize_test_logger().await;
     clean_tests();
-    /// JSON-deserializable struct that will be used to derive the program-JSON interface.
-    /// Note how this uses JSON-native types only.
-    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
-    pub struct UserConfig {}
-
     /// JSON representation of the auxiliary data
     #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
     #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -1711,6 +1706,13 @@ async fn test_faucet() {
         pub amount: u128,
     }
 
+    /// JSON-deserializable struct that will be used to derive the program-JSON interface.
+    #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    pub struct UserConfig {
+        max_transfer_amount: u128,
+    }
+
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
@@ -1723,42 +1725,37 @@ async fn test_faucet() {
     let keypair = Sr25519Keypair::generate();
     let public_key = BASE64_STANDARD.encode(keypair.public);
 
-    let verifying_key = keyshare_option
-        .clone()
+    let verifying_key =
+        keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verfiying_key_account_string = blake2_256(&verifying_key);
+    // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
+    // dbg!(demo.clone());
+    dbg!(hex::encode(verfiying_key_account_string.clone()));
+    let verfiying_key_account = subxtAccountId32(verfiying_key_account_string); //EcdsaPublicKey(demo);//one.to_account_id();
+    dbg!(verfiying_key_account.clone());
+
+    let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
+    let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
+
+    // drain account of balance
+    let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
+        who: verfiying_key_account.clone().into(),
+        new_free: 10000000000000000000000u128,
+    });
+    let add_balance_tx = entropy::tx().sudo().sudo(call);
+
+    let signature_request_pair_signer =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+
+    let tx_params_balance = Params::new().build();
+    let mut balance_status_tx = entropy_api
+        .tx()
+        .create_signed(&add_balance_tx, &signature_request_pair_signer, tx_params_balance)
+        .await
         .unwrap()
-        .verifying_key()
-        .to_encoded_point(true)
-        .as_bytes()
-        .to_vec();
-        let verfiying_key_account_string = blake2_256(&verifying_key);
-        // let demo: [u8; 32] = "105d5b406c5467e1cb76539c850058d88dbd8a5ab9ccd0a1ebfc622f39cedf97".as_bytes().try_into().unwrap();
-        // dbg!(demo.clone());
-        dbg!(hex::encode(verfiying_key_account_string.clone()));
-        let verfiying_key_account = subxtAccountId32(verfiying_key_account_string);//EcdsaPublicKey(demo);//one.to_account_id();
-        dbg!(verfiying_key_account.clone());
-    
-    
-        let p_alice = <sr25519::Pair as Pair>::from_string(DEFAULT_MNEMONIC, None).unwrap();
-        let signer_alice = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_alice);
-    
-        // drain account of balance
-        let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
-            who: verfiying_key_account.clone().into(),
-            new_free: 10000000000000000000000u128,
-        });
-        let add_balance_tx = entropy::tx().sudo().sudo(call);
-    
-        let signature_request_pair_signer =
-            PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
-        
-        let tx_params_balance = Params::new().build();
-        let mut balance_status_tx = entropy_api.tx()
-            .create_signed(&add_balance_tx, &signature_request_pair_signer, tx_params_balance)
-            .await
-            .unwrap()
-            .submit_and_watch()
-            .await
-            .unwrap();
+        .submit_and_watch()
+        .await
+        .unwrap();
 
     // check to make sure config data stored properly
     // let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
@@ -1776,6 +1773,8 @@ async fn test_faucet() {
     .await
     .unwrap();
 
+    let faucet_user_config = UserConfig { max_transfer_amount: 100000000000000u128 };
+
     update_programs(
         &entropy_api,
         &rpc,
@@ -1783,7 +1782,7 @@ async fn test_faucet() {
         &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
-            program_config: vec![],
+            program_config: serde_json::to_vec(&faucet_user_config).unwrap(),
         }]),
     )
     .await
@@ -1801,14 +1800,10 @@ async fn test_faucet() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
-dbg!(verifying_key.clone());
-    // let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
+
     let binding = entropy_api.genesis_hash();
     dbg!(binding.clone());
     let genesis_hash = &binding[2..];
-    // dbg!(genesis_hash.to_string());
-    // let genesis_hash = binding.strip_prefix("0x").unwrap().to_string();    
-    // println!("{}", genesis_hash.to_string());
     let spec_version = entropy_api.runtime_version().spec_version;
     let transaction_version = entropy_api.runtime_version().transaction_version;
     dbg!(spec_version.clone());
@@ -1832,9 +1827,7 @@ dbg!(verifying_key.clone());
     //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
 
     let tx_params =
-        Params::new()
-        .mortal(header, aux_data_json.mortality)
-        .nonce(aux_data_json.nonce).build();
+        Params::new().mortal(header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
     let balance_transfer_tx = entropy::tx()
         .balances()
         .transfer_allow_death(one.to_account_id().into(), aux_data_json.amount);
@@ -1864,33 +1857,13 @@ dbg!(verifying_key.clone());
     // verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
-            // assert_eq!(res.unwrap().text().await.unwrap(), "d");
-            let chunk = res.unwrap().chunk().await.unwrap().unwrap();
-            let signing_result: Result<(String, Signature), String> =
-                serde_json::from_slice(&chunk).unwrap();
-            decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
-        
-        // let verfiying_key_account = subxtAccountId32::from(hex::decode(verfiying_key_account_string).unwrap().as_slice()).to_ss58check();
+        // assert_eq!(res.unwrap().text().await.unwrap(), "d");
+        let chunk = res.unwrap().chunk().await.unwrap().unwrap();
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
     }
 
-    // while let Some(status) = balance_status_tx.next().await {
-    //         match status.unwrap() {
-    //             TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
-    //                  println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
-    //             },
-    //             TxStatus::Error { message }
-    //             | TxStatus::Invalid { message }
-    //             | TxStatus::Dropped { message } => {
-    //                 // Handle any errors:
-    //                 panic!("{}", message);
-    //             },
-    //             // Continue otherwise:
-    //             _ => continue,
-    //         };
-    //     }
-
-
-    // dbg!(MultiAddress::Id(verfiying_key_account.into()));
     let submittable_extrinsic = partial.sign_with_address_and_signature(
         &MultiAddress::Id(verfiying_key_account.into()),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
@@ -1903,8 +1876,8 @@ dbg!(verifying_key.clone());
     while let Some(status) = tx.next().await {
         match status.unwrap() {
             TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
-                 println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
-                 break;
+                println!("{:?}", tx_in_block.wait_for_success().await.unwrap());
+                break;
             },
             TxStatus::Error { message }
             | TxStatus::Invalid { message }
