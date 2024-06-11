@@ -43,8 +43,8 @@ use entropy_testing_utils::{
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        EVE_X25519_SECRET_KEY, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL,
-        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_FAUCET, TEST_INFINITE_LOOP_BYTECODE,
+        EVE_X25519_SECRET_KEY, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL,
+        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
         TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
@@ -1719,9 +1719,9 @@ async fn test_faucet() {
 
     let (validator_ips, _validator_ids, keyshare_option) =
         spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), false, true).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let substrate_context = test_node_process_testing_state(true).await;
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let verifying_key =
         keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
@@ -1752,15 +1752,15 @@ async fn test_faucet() {
         &entropy_api,
         &rpc,
         &two.pair(),
-        TEST_FAUCET.to_owned(),
+        FAUCET_PROGRAM.to_owned(),
         vec![],
         vec![],
         vec![],
     )
     .await
     .unwrap();
-    
-    let amount_to_send = 10000000000;
+
+    let amount_to_send = 1000000000;
     let faucet_user_config = UserConfig { max_transfer_amount: amount_to_send };
 
     update_programs(
@@ -1804,8 +1804,6 @@ async fn test_faucet() {
         string_account_id: one.to_account_id().to_string(),
         amount: amount_to_send,
     };
-    // let header: SubstrateHeader<u32, BlakeTwo256> =
-    //     serde_json::from_str(&aux_data_json.header_string).expect("valid block header");
 
     let tx_params =
         Params::new().mortal(header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
@@ -1834,10 +1832,8 @@ async fn test_faucet() {
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-    // verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
-        // assert_eq!(res.unwrap().text().await.unwrap(), "d");
         let chunk = res.unwrap().chunk().await.unwrap().unwrap();
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();

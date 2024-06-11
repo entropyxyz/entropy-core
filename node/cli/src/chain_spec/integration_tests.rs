@@ -209,7 +209,7 @@ pub fn integration_tests_genesis_config(
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
                     },
                 ],
-                vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+                vec![FERDIE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
         },
         "elections": ElectionsConfig {
@@ -248,13 +248,14 @@ pub fn integration_tests_genesis_config(
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     0,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
+                    None,
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    2,
-                    None,
+                    1,
+                    // Can use eve's key, just need a key to talk to and encrypt for proactive refresh
+                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
             ],

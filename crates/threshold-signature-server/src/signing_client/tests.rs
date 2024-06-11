@@ -24,7 +24,7 @@ use crate::{
 };
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
@@ -44,11 +44,12 @@ async fn test_proactive_refresh() {
     let _cxt = test_node_process_testing_state(false).await;
 
     let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), true, false).await;
+        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), true, false).await;
 
     let client = reqwest::Client::new();
     let converted_key_share = serialize(&users_keyshare_option.unwrap()).unwrap();
-    let get_query_eve = UnsafeQuery::new(hex::encode(EVE_VERIFYING_KEY.to_vec()), vec![]).to_json();
+    let get_query_eve =
+        UnsafeQuery::new(hex::encode(FERDIE_VERIFYING_KEY.to_vec()), vec![]).to_json();
     let get_query_dave =
         UnsafeQuery::new(hex::encode(DAVE_VERIFYING_KEY.to_vec()), converted_key_share.clone())
             .to_json();
@@ -96,7 +97,7 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![FERDIE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
         block_number: 0,
     };
 
