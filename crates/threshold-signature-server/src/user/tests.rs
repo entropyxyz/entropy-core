@@ -1788,6 +1788,7 @@ async fn test_faucet() {
             tss_account: TSS_ACCOUNTS[1].clone(),
         },
     ];
+    // get tx data for aux data
     let genesis_hash = &entropy_api.genesis_hash();
     let spec_version = entropy_api.runtime_version().spec_version;
     let transaction_version = entropy_api.runtime_version().transaction_version;
@@ -1805,6 +1806,7 @@ async fn test_faucet() {
         amount: amount_to_send,
     };
 
+    // create a partial tx to sign
     let tx_params =
         Params::new().mortal(header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
     let balance_transfer_tx = entropy::tx()
@@ -1839,17 +1841,17 @@ async fn test_faucet() {
             serde_json::from_slice(&chunk).unwrap();
         decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
     }
-
+    // take signed tx and repack it into a submitable tx
     let submittable_extrinsic = partial.sign_with_address_and_signature(
         &MultiAddress::Id(verfiying_key_account.clone().into()),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
     );
     let account = subxtAccountId32::from_str(&aux_data_json.string_account_id).unwrap();
-    // balance before
+    // get balance before for checking if succeful
     let balance_query = entropy::storage().system().account(account.clone());
     let account_info = query_chain(&entropy_api, &rpc, balance_query, None).await.unwrap().unwrap();
     let balance_before = account_info.data.free;
-
+    // submit then wait for tx
     let mut tx = submittable_extrinsic.submit_and_watch().await.unwrap();
 
     while let Some(status) = tx.next().await {
@@ -1877,6 +1879,7 @@ async fn test_faucet() {
     let account_info =
         query_chain(&entropy_api, &rpc, balance_after_query, None).await.unwrap().unwrap();
     let balance_after = account_info.data.free;
+    // make sure funds were transfered
     ma::assert_gt!(balance_after, balance_before);
     clean_tests();
 }
