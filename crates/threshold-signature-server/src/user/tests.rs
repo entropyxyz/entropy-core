@@ -1837,6 +1837,7 @@ async fn test_faucet() {
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
         let chunk = res.unwrap().chunk().await.unwrap().unwrap();
+        dbg!(chunk.clone());
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
         decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
