@@ -46,6 +46,7 @@ use entropy_testing_utils::{
         test_context_stationary, test_node_process_testing_state, testing_context,
         SubstrateTestingContext,
     },
+    tss_server_process::spawn_3_testing_validators,
 };
 use futures::{
     future::{self, join_all},
@@ -107,8 +108,7 @@ use crate::{
         substrate::{query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_3_testing_validators,
-            spawn_testing_validators,
+            remove_program, run_to_block, setup_client, spawn_testing_validators,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
