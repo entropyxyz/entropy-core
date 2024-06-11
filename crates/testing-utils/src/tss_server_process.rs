@@ -144,6 +144,63 @@ pub async fn spawn_testing_validators(
     (ips, ids, user_keyshare_option)
 }
 
+/// Spawn 3 TSS nodes with no pre-exisiting keyshares
+pub async fn spawn_3_testing_validators() -> (Vec<String>, Vec<PartyId>) {
+    // spawn threshold servers
+    let ports = [3001i64, 3002, 3003];
+
+    let (alice_axum, alice_kv) =
+        create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
+    let alice_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let (bob_axum, bob_kv) =
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
+    let bob_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let (charlie_axum, charlie_kv) =
+        create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
+            .await;
+    let charlie_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let ids = vec![alice_id, bob_id, charlie_id];
+
+    put_keyshare_in_db("alice", alice_kv).await;
+    put_keyshare_in_db("bob", bob_kv).await;
+    put_keyshare_in_db("charlie", charlie_kv).await;
+
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_alice, alice_axum).await.unwrap();
+    });
+
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_bob, bob_axum).await.unwrap();
+    });
+
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_charlie, charlie_axum).await.unwrap();
+    });
+
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
+    (ips, ids)
+}
+
 pub async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");

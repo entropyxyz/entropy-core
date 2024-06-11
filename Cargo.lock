@@ -2466,7 +2466,9 @@ dependencies = [
  "entropy-kvdb",
  "entropy-shared",
  "entropy-testing-utils",
- "sp-keyring 34.0.0",
+ "entropy-tss",
+ "sp-core 31.0.0",
+ "synedrion",
  "tokio",
 ]
 
