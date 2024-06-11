@@ -20,19 +20,22 @@ use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    ecdsa::SigningKey, make_key_resharing_session, AuxInfo, KeyResharingInputs, KeyShare,
-    NewHolder, OldHolder, TestParams, ThresholdKeyShare,
+    ecdsa::SigningKey, make_aux_gen_session, make_key_resharing_session, AuxInfo,
+    KeyResharingInputs, KeyShare, NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
 };
 use synedrion_test_environment::run_nodes;
 
 /// Given a secp256k1 secret key and 3 signing keypairs for the TSS parties, generate a set of
 /// threshold keyshares with auxiliary info
-pub async fn create_test_keyshares(
+pub async fn create_test_keyshares<Params>(
     distributed_secret_key_bytes: [u8; 32],
     alice: sr25519::Pair,
     bob: sr25519::Pair,
     charlie: sr25519::Pair,
-) -> Vec<(ThresholdKeyShare<TestParams, PartyId>, AuxInfo<TestParams, PartyId>)> {
+) -> Vec<(ThresholdKeyShare<Params, PartyId>, AuxInfo<Params, PartyId>)>
+where
+    Params: SchemeParams,
+{
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
     let signers = vec![alice, bob, charlie.clone()];
     let shared_randomness = b"12345";
@@ -41,12 +44,9 @@ pub async fn create_test_keyshares(
 
     let old_holders = all_parties.clone().into_iter().take(2).collect::<Vec<_>>();
 
-    let keyshares = KeyShare::<TestParams, PartyId>::new_centralized(
-        &mut OsRng,
-        &old_holders,
-        Some(&signing_key),
-    );
-    let aux_infos = AuxInfo::<TestParams, PartyId>::new_centralized(&mut OsRng, &all_parties);
+    let keyshares =
+        KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
+    // let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
     let new_holder =
         NewHolder { verifying_key: keyshares[0].verifying_key(), old_threshold: 2, old_holders };
@@ -90,6 +90,19 @@ pub async fn create_test_keyshares(
     sessions.push(charlie_session);
 
     let new_t_key_shares = run_nodes(sessions).await;
+
+    let sessions = (0..3)
+        .map(|idx| {
+            make_aux_gen_session(
+                &mut OsRng,
+                shared_randomness,
+                PairWrapper(signers[idx].clone()),
+                &all_parties,
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let aux_infos = run_nodes(sessions).await;
 
     let mut output = Vec::new();
 
