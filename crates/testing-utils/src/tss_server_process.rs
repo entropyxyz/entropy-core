@@ -15,17 +15,15 @@
 
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, kv_manager::KvManager};
-use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::{DETERMINISTIC_KEY_SHARE_EVE, EVE_VERIFYING_KEY};
+use entropy_protocol::PartyId;
+use entropy_shared::EVE_VERIFYING_KEY;
 use entropy_tss::{
     app, get_signer,
     launch::{setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName},
     AppState,
 };
-use rand_core::OsRng;
 use std::time::Duration;
 use subxt::utils::AccountId32 as SubxtAccountId32;
-use synedrion::{ecdsa::SigningKey, AuxInfo, KeyShare, ThresholdKeyShare};
 
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
@@ -56,96 +54,14 @@ async fn create_clients(
     (app, kv_store)
 }
 
-pub async fn spawn_testing_validators(
-    passed_verifying_key: Option<Vec<u8>>,
-    // If this is true a keyshare for the user will be generated and returned
-    extra_private_keys: bool,
-    // If true keyshare and verifying key is deterministic
-    deterministic_key_share: bool,
-) -> (Vec<String>, Vec<PartyId>, Option<ThresholdKeyShare<KeyParams, PartyId>>) {
-    // spawn threshold servers
-    let ports = [3001i64, 3002];
+#[cfg(test)]
+const TEST: bool = true;
 
-    let (alice_axum, alice_kv) =
-        create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
-    let alice_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
+#[cfg(not(test))]
+const TEST: bool = false;
 
-    let (bob_axum, bob_kv) =
-        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
-    let bob_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
-
-    let ids = vec![alice_id, bob_id];
-
-    let user_keyshare_option = if passed_verifying_key.is_some() {
-        // creates a deterministic keyshare if requiered
-        let signing_key = if deterministic_key_share {
-            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_EVE).into()).unwrap())
-        } else {
-            None
-        };
-
-        let shares =
-            KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, signing_key.as_ref());
-        let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
-
-        let validator_1_threshold_keyshare: Vec<u8> = entropy_kvdb::kv_manager::helpers::serialize(
-            &(shares[0].to_threshold_key_share(), &aux_infos[0]),
-        )
-        .unwrap();
-        let validator_2_threshold_keyshare: Vec<u8> = entropy_kvdb::kv_manager::helpers::serialize(
-            &(shares[1].to_threshold_key_share(), &aux_infos[1]),
-        )
-        .unwrap();
-
-        // uses the deterministic verifying key if requested
-        let verifying_key = if deterministic_key_share {
-            hex::encode(shares[0].verifying_key().to_encoded_point(true).as_bytes())
-        } else {
-            hex::encode(passed_verifying_key.unwrap())
-        };
-
-        // add key share to kvdbs
-        let alice_reservation = alice_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
-        alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
-
-        let bob_reservation = bob_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
-        bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
-
-        if extra_private_keys {
-            Some(shares[2].to_threshold_key_share())
-        } else {
-            Some(shares[1].to_threshold_key_share())
-        }
-    } else {
-        None
-    };
-
-    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
-        .await
-        .expect("Unable to bind to given server address.");
-    tokio::spawn(async move {
-        axum::serve(listener_alice, alice_axum).await.unwrap();
-    });
-
-    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
-        .await
-        .expect("Unable to bind to given server address.");
-    tokio::spawn(async move {
-        axum::serve(listener_bob, bob_axum).await.unwrap();
-    });
-
-    tokio::time::sleep(Duration::from_secs(1)).await;
-
-    let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
-    (ips, ids, user_keyshare_option)
-}
-
-/// Spawn 3 TSS nodes with no pre-exisiting keyshares
-pub async fn spawn_3_testing_validators() -> (Vec<String>, Vec<PartyId>) {
+/// Spawn 3 TSS nodes with pre-stored keyshares
+pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
     let ports = [3001i64, 3002, 3003];
 
@@ -202,10 +118,13 @@ pub async fn spawn_3_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 }
 
 pub async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
+    let test_or_production = if TEST { "test" } else { "production" };
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
-        let file_path = project_root
-            .join(format!("crates/testing-utils/keyshares/eve-keyshare-held-by-{}.keyshare", name));
+        let file_path = project_root.join(format!(
+            "crates/testing-utils/keyshares/{}/eve-keyshare-held-by-{}.keyshare",
+            test_or_production, name
+        ));
         std::fs::read(file_path).unwrap()
     };
     let reservation = kvdb.kv().reserve_key(hex::encode(EVE_VERIFYING_KEY)).await.unwrap();
