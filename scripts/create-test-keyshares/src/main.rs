@@ -19,10 +19,10 @@
 use entropy_kvdb::kv_manager::helpers::serialize;
 use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
 use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
-use entropy_tss::helpers::launch::{
-    DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+use entropy_tss::helpers::{
+    launch::{DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC},
+    validator::get_signer_and_x25519_secret_from_mnemonic,
 };
-use sp_core::{sr25519, Pair};
 use std::{env::args, path::PathBuf};
 use synedrion::ProductionParams;
 
@@ -30,15 +30,17 @@ use synedrion::ProductionParams;
 async fn main() {
     let base_path = PathBuf::from(args().nth(1).unwrap_or_else(|| ".".to_string()));
 
-    let (alice_pair, _) = sr25519::Pair::from_phrase(DEFAULT_ALICE_MNEMONIC, None).unwrap();
-    let (bob_pair, _) = sr25519::Pair::from_phrase(DEFAULT_BOB_MNEMONIC, None).unwrap();
-    let (charlie_pair, _) = sr25519::Pair::from_phrase(DEFAULT_CHARLIE_MNEMONIC, None).unwrap();
+    let (alice_pair, _) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_ALICE_MNEMONIC).unwrap();
+    let (bob_pair, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
+    let (charlie_pair, _) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
 
     let keyshares_with_aux_infos = create_test_keyshares::<ProductionParams>(
         *DETERMINISTIC_KEY_SHARE_EVE,
-        alice_pair,
-        bob_pair,
-        charlie_pair,
+        alice_pair.signer().clone(),
+        bob_pair.signer().clone(),
+        charlie_pair.signer().clone(),
     )
     .await;
     let names = ["alice", "bob", "charlie"];

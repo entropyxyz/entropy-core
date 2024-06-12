@@ -20,10 +20,14 @@ use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    ecdsa::SigningKey, make_aux_gen_session, make_key_resharing_session, AuxInfo,
-    KeyResharingInputs, KeyShare, NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
+    ecdsa::{SigningKey, VerifyingKey},
+    make_aux_gen_session, make_interactive_signing_session, make_key_resharing_session,
+    signature::hazmat::PrehashVerifier,
+    AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
 };
 use synedrion_test_environment::run_nodes;
+
+use entropy_kvdb::kv_manager::helpers::{deserialize, serialize};
 
 /// Given a secp256k1 secret key and 3 signing keypairs for the TSS parties, generate a set of
 /// threshold keyshares with auxiliary info
