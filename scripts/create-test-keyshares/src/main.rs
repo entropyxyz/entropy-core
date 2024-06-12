@@ -24,7 +24,7 @@ use entropy_tss::helpers::{
     validator::get_signer_and_x25519_secret_from_mnemonic,
 };
 use std::{env::args, path::PathBuf};
-use synedrion::ProductionParams;
+use synedrion::{ProductionParams, TestParams};
 
 #[tokio::main]
 async fn main() {
@@ -36,20 +36,35 @@ async fn main() {
     let (charlie_pair, _) =
         get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
 
-    let keyshares_with_aux_infos = create_test_keyshares::<ProductionParams>(
+    let test_keyshares = create_test_keyshares::<TestParams>(
         *DETERMINISTIC_KEY_SHARE_EVE,
         alice_pair.signer().clone(),
         bob_pair.signer().clone(),
         charlie_pair.signer().clone(),
     )
     .await;
+    let test_keyshres_serialized = test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
+    write_keyshares(base_path.join("test"), test_keyshres_serialized).await;
+
+    let production_keyshares = create_test_keyshares::<ProductionParams>(
+        *DETERMINISTIC_KEY_SHARE_EVE,
+        alice_pair.signer().clone(),
+        bob_pair.signer().clone(),
+        charlie_pair.signer().clone(),
+    )
+    .await;
+    let production_keyshres_serialized =
+        production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
+    write_keyshares(base_path.join("production"), production_keyshres_serialized).await;
+}
+
+async fn write_keyshares(base_path: PathBuf, keyshares_bytes: Vec<Vec<u8>>) {
     let names = ["alice", "bob", "charlie"];
-    for (i, keyshare_with_aux_info) in keyshares_with_aux_infos.iter().enumerate() {
-        let keyshare_with_aux_info_bytes = serialize(&keyshare_with_aux_info).unwrap();
+    for (i, bytes) in keyshares_bytes.iter().enumerate() {
         let filename = format!("eve-keyshare-held-by-{}.keyshare", names[i]);
         let mut filepath = base_path.clone();
         filepath.push(filename);
         println!("Writing keyshare file: {:?}", filepath);
-        std::fs::write(filepath, keyshare_with_aux_info_bytes).unwrap();
+        std::fs::write(filepath, bytes).unwrap();
     }
 }
