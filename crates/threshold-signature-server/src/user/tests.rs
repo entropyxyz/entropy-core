@@ -24,6 +24,7 @@ use entropy_kvdb::{
 };
 use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
+    deserialize_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
@@ -46,7 +47,7 @@ use entropy_testing_utils::{
         test_context_stationary, test_node_process_testing_state, testing_context,
         SubstrateTestingContext,
     },
-    tss_server_process::spawn_3_testing_validators,
+    tss_server_process::spawn_testing_validators,
 };
 use futures::{
     future::{self, join_all},
@@ -108,7 +109,7 @@ use crate::{
         substrate::{query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators,
+            remove_program, run_to_block, setup_client,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -139,197 +140,197 @@ async fn test_get_signer_does_not_throw_err() {
     get_signer(&kv_store).await.unwrap();
     clean_tests();
 }
-// #[tokio::test]
-// #[serial]
-// async fn test_sign_tx_no_chain() {
-//     initialize_test_logger().await;
-//     clean_tests();
-//
-//     let one = AccountKeyring::Dave;
-//     let two = AccountKeyring::Two;
-//
-//     let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
-//         spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
-//     let substrate_context = test_context_stationary().await;
-//     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-//     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-//     let program_hash = store_program(
-//         &entropy_api,
-//         &rpc,
-//         &two.pair(),
-//         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-//         vec![],
-//         vec![],
-//         vec![],
-//     )
-//     .await
-//     .unwrap();
-//
-//     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-//     let signature_request_account = subxtAccountId32(one.pair().public().0);
-//     let session_id = SessionId::Sign(SigningSessionInfo {
-//         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
-//         message_hash,
-//         request_author: signature_request_account.clone(),
-//     });
-//
-//     let (_validators_info, mut generic_msg, validator_ips_and_keys) =
-//         get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
-//
-//     generic_msg.timestamp = SystemTime::now();
-//     // test points to no program
-//     let test_no_program =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-//
-//     for res in test_no_program {
-//         assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
-//     }
-//     update_programs(
-//         &entropy_api,
-//         &rpc,
-//         DAVE_VERIFYING_KEY,
-//         &one.pair(),
-//         OtherBoundedVec(vec![
-//             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-//             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-//         ]),
-//     )
-//     .await
-//     .unwrap();
-//
-//     generic_msg.timestamp = SystemTime::now();
-//     let test_user_res =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-//
-//     let keyshare = keyshare_with_aux_info_option.unwrap().0;
-//     verify_signature(test_user_res, message_hash, &keyshare).await;
-//     let mock_client = reqwest::Client::new();
-//     // check request limiter increases
-//     let unsafe_get =
-//         UnsafeQuery::new(request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())), vec![])
-//             .to_json();
-//
-//     // check get key before registration to see if key gets replaced
-//     let get_response = mock_client
-//         .post("http://127.0.0.1:3001/unsafe/get")
-//         .header("Content-Type", "application/json")
-//         .body(unsafe_get.clone())
-//         .send()
-//         .await
-//         .unwrap();
-//     let serialized_request_amount = get_response.text().await.unwrap();
-//
-//     let request_info: RequestLimitStorage =
-//         RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
-//     assert_eq!(request_info.request_amount, 1);
-//     generic_msg.timestamp = SystemTime::now();
-//     generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
-//     let test_user_res_order =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-//
-//     verify_signature(test_user_res_order, message_hash, &keyshare).await;
-//
-//     generic_msg.timestamp = SystemTime::now();
-//     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
-//     let test_user_res_not_registered =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
-//
-//     for res in test_user_res_not_registered {
-//         assert_eq!(
-//             res.unwrap().text().await.unwrap(),
-//             "Chain Fetch: Not Registering error: Register Onchain first"
-//         );
-//     }
-//
-//     // Test attempting to connect over ws by someone who is not in the signing group
-//     let validator_ip_and_key = validator_ips_and_keys[0].clone();
-//     let connection_attempt_handle = tokio::spawn(async move {
-//         // Wait for the "user" to submit the signing request
-//         tokio::time::sleep(Duration::from_millis(500)).await;
-//         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-//         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
-//
-//         let ferdie_pair = AccountKeyring::Ferdie.pair();
-//
-//         // create a SubscribeMessage from a party who is not in the signing commitee
-//         let subscribe_message_vec =
-//             bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
-//
-//         // Attempt a noise handshake including the subscribe message in the payload
-//         let mut encrypted_connection = noise_handshake_initiator(
-//             ws_stream,
-//             &FERDIE_X25519_SECRET_KEY.into(),
-//             validator_ip_and_key.1,
-//             subscribe_message_vec,
-//         )
-//         .await
-//         .unwrap();
-//
-//         // Check the response as to whether they accepted our SubscribeMessage
-//         let response_message = encrypted_connection.recv().await.unwrap();
-//         let subscribe_response: Result<(), String> =
-//             bincode::deserialize(&response_message).unwrap();
-//
-//         assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
-//         // The stream should not continue to send messages
-//         // returns true if this part of the test passes
-//         encrypted_connection.recv().await.is_err()
-//     });
-//
-//     generic_msg.timestamp = SystemTime::now();
-//     generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
-//     let test_user_bad_connection_res = submit_transaction_requests(
-//         vec![validator_ips_and_keys[1].clone()],
-//         generic_msg.clone(),
-//         one,
-//     )
-//     .await;
-//
-//     for res in test_user_bad_connection_res {
-//         assert_eq!(
-//             res.unwrap().text().await.unwrap(),
-//             "{\"Err\":\"Timed out waiting for remote party\"}"
-//         );
-//     }
-//
-//     assert!(connection_attempt_handle.await.unwrap());
-//
-//     // Now, test a signature request that should fail
-//     // The test program is written to fail when `auxilary_data` is `None`
-//     generic_msg.auxilary_data = None;
-//     generic_msg.timestamp = SystemTime::now();
-//
-//     let test_user_failed_programs_res =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-//
-//     for res in test_user_failed_programs_res {
-//         assert_eq!(
-//             res.unwrap().text().await.unwrap(),
-//             "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
-//         );
-//     }
-//
-//     // The test program is written to fail when `auxilary_data` is `None` but only on the second program
-//     generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
-//     generic_msg.timestamp = SystemTime::now();
-//
-//     let test_user_failed_aux_data =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-//
-//     for res in test_user_failed_aux_data {
-//         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
-//     }
-//
-//     generic_msg.timestamp = SystemTime::now();
-//     generic_msg.hash = HashingAlgorithm::Custom(3);
-//     let test_user_custom_hash_out_of_bounds =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
-//
-//     for res in test_user_custom_hash_out_of_bounds {
-//         assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
-//     }
-//     clean_tests();
-// }
+
+#[tokio::test]
+#[serial]
+async fn test_sign_tx_no_chain() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::Eve;
+    let two = AccountKeyring::Two;
+
+    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let substrate_context = test_context_stationary().await;
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
+    let session_id = SessionId::Sign(SigningSessionInfo {
+        signature_verifying_key: EVE_VERIFYING_KEY.to_vec(),
+        message_hash,
+        request_author: signature_request_account.clone(),
+    });
+
+    let (_validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
+
+    generic_msg.timestamp = SystemTime::now();
+    // test points to no program
+    let test_no_program =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_no_program {
+        assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
+    }
+    update_programs(
+        &entropy_api,
+        &rpc,
+        EVE_VERIFYING_KEY,
+        &one.pair(),
+        OtherBoundedVec(vec![
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+        ]),
+    )
+    .await
+    .unwrap();
+
+    generic_msg.timestamp = SystemTime::now();
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    let verifying_key = deserialize_verifying_key(EVE_VERIFYING_KEY.to_vec());
+    verify_signature(test_user_res, message_hash, &verifying_key).await;
+    let mock_client = reqwest::Client::new();
+    // check request limiter increases
+    let unsafe_get =
+        UnsafeQuery::new(request_limit_key(hex::encode(EVE_VERIFYING_KEY.to_vec())), vec![])
+            .to_json();
+
+    // check get key before registration to see if key gets replaced
+    let get_response = mock_client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(unsafe_get.clone())
+        .send()
+        .await
+        .unwrap();
+    let serialized_request_amount = get_response.text().await.unwrap();
+
+    let request_info: RequestLimitStorage =
+        RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
+    assert_eq!(request_info.request_amount, 1);
+    generic_msg.timestamp = SystemTime::now();
+    generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
+    let test_user_res_order =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    verify_signature(test_user_res_order, message_hash, &verifying_key).await;
+
+    generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
+    let test_user_res_not_registered =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_user_res_not_registered {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Chain Fetch: Not Registering error: Register Onchain first"
+        );
+    }
+
+    // Test attempting to connect over ws by someone who is not in the signing group
+    let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    let connection_attempt_handle = tokio::spawn(async move {
+        // Wait for the "user" to submit the signing request
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+
+        let ferdie_pair = AccountKeyring::Ferdie.pair();
+
+        // create a SubscribeMessage from a party who is not in the signing commitee
+        let subscribe_message_vec =
+            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
+
+        // Attempt a noise handshake including the subscribe message in the payload
+        let mut encrypted_connection = noise_handshake_initiator(
+            ws_stream,
+            &FERDIE_X25519_SECRET_KEY.into(),
+            validator_ip_and_key.1,
+            subscribe_message_vec,
+        )
+        .await
+        .unwrap();
+
+        // Check the response as to whether they accepted our SubscribeMessage
+        let response_message = encrypted_connection.recv().await.unwrap();
+        let subscribe_response: Result<(), String> =
+            bincode::deserialize(&response_message).unwrap();
+
+        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
+        // The stream should not continue to send messages
+        // returns true if this part of the test passes
+        encrypted_connection.recv().await.is_err()
+    });
+
+    generic_msg.timestamp = SystemTime::now();
+    generic_msg.signature_verifying_key = EVE_VERIFYING_KEY.to_vec().to_vec();
+    let test_user_bad_connection_res = submit_transaction_requests(
+        vec![validator_ips_and_keys[1].clone()],
+        generic_msg.clone(),
+        one,
+    )
+    .await;
+
+    for res in test_user_bad_connection_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "{\"Err\":\"Timed out waiting for remote party\"}"
+        );
+    }
+
+    assert!(connection_attempt_handle.await.unwrap());
+
+    // Now, test a signature request that should fail
+    // The test program is written to fail when `auxilary_data` is `None`
+    generic_msg.auxilary_data = None;
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_user_failed_programs_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_programs_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
+        );
+    }
+
+    // The test program is written to fail when `auxilary_data` is `None` but only on the second program
+    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+    generic_msg.timestamp = SystemTime::now();
+
+    let test_user_failed_aux_data =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    for res in test_user_failed_aux_data {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
+    }
+
+    generic_msg.timestamp = SystemTime::now();
+    generic_msg.hash = HashingAlgorithm::Custom(3);
+    let test_user_custom_hash_out_of_bounds =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+
+    for res in test_user_custom_hash_out_of_bounds {
+        assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
+    }
+    clean_tests();
+}
 //
 // #[tokio::test]
 // #[serial]
@@ -512,7 +513,7 @@ async fn test_store_share() {
     let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_3_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -747,7 +748,7 @@ async fn test_check_hash_pointer_out_of_bounds() {
 pub async fn verify_signature(
     test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
     message_should_succeed_hash: [u8; 32],
-    keyshare: &ThresholdKeyShare<KeyParams, PartyId>,
+    verifying_key: &VerifyingKey,
 ) {
     let mut i = 0;
     for res in test_user_res {
@@ -767,7 +768,7 @@ pub async fn verify_signature(
             recover_id,
         )
         .unwrap();
-        assert_eq!(keyshare.verifying_key(), recovery_key_from_sig);
+        assert_eq!(verifying_key, &recovery_key_from_sig);
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
             BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
@@ -787,8 +788,7 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
+    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1107,7 +1107,7 @@ async fn test_threshold_dkg_and_sign_with_3_nodes() {
     let deployer = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_3_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -1277,7 +1277,7 @@ pub fn get_sign_tx_data(
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: EVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys = vec![

@@ -18,7 +18,7 @@ use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
+        tests::{initialize_test_logger, run_to_block, setup_client},
     },
     r#unsafe::api::UnsafeQuery,
 };
@@ -31,6 +31,7 @@ use entropy_shared::{
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_context_stationary, test_node_process_testing_state},
+    tss_server_process::spawn_testing_validators,
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
@@ -46,8 +47,7 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, ids, _users_keyshare_option) =
-        spawn_testing_validators(Some(EVE_VERIFYING_KEY.to_vec()), None, true).await;
+    let (validator_ips, ids) = spawn_testing_validators().await;
 
     let dave_signing_key =
         Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_DAVE).into()).unwrap());

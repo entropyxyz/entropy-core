@@ -21,8 +21,8 @@ use entropy_client::{
     client as test_client, Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_protocol::RecoverableSignature;
-use entropy_shared::FERDIE_VERIFYING_KEY;
+use entropy_protocol::{deserialize_verifying_key, RecoverableSignature};
+use entropy_shared::{EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     substrate_context::test_context_stationary,
@@ -49,8 +49,7 @@ async fn integration_test_sign_eth_tx() {
     let pre_registered_user = AccountKeyring::Ferdie;
     let deployer = AccountKeyring::Eve;
 
-    let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), false, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -78,7 +77,8 @@ async fn integration_test_sign_eth_tx() {
     .unwrap();
 
     // Get the public key to use in the 'from' field
-    let verifying_key = keyshare_option.clone().unwrap().verifying_key();
+    // let verifying_key = keyshare_option.clone().unwrap().verifying_gkey();
+    let verifying_key = deserialize_verifying_key(EVE_VERIFYING_KEY.to_vec());
 
     let transaction_request = create_unsigned_eth_tx(verifying_key);
 
