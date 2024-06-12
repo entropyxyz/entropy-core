@@ -89,7 +89,6 @@ fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, User
 }
 
 /// For testing where we sometimes don't have access to the kvdb, derive directly from the mnemnic
-#[cfg(test)]
 pub fn get_signer_and_x25519_secret_from_mnemonic(
     mnemonic: &str,
 ) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
