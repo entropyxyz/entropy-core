@@ -37,7 +37,11 @@ use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    k256::ecdsa::{RecoveryId, Signature},
+    ecdsa::VerifyingKey,
+    k256::{
+        ecdsa::{RecoveryId, Signature},
+        EncodedPoint,
+    },
     signature::{self, hazmat::PrehashVerifier},
     AuxInfo, ThresholdKeyShare,
 };
@@ -201,4 +205,14 @@ impl SessionId {
         hasher.update(bincode::serialize(self)?);
         Ok(hasher.finalize().to_vec())
     }
+}
+
+pub fn deserialize_verifying_key(verifying_key_encoded: Vec<u8>) -> VerifyingKey {
+    let point = EncodedPoint::from_bytes(verifying_key_encoded).unwrap();
+    //.map_err(|_| {
+    //     ProtocolExecutionErr::BadVerifyingKey(
+    //         "Could not convert to encoded point".to_string(),
+    //     )
+    // })?;
+    VerifyingKey::from_encoded_point(&point).unwrap()
 }
