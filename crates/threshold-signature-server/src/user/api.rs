@@ -46,7 +46,7 @@ use futures::{
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, hashing::blake2_256};
+use sp_core::crypto::AccountId32;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},

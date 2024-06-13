@@ -1725,8 +1725,8 @@ async fn test_faucet() {
 
     let verifying_key =
         keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
-    let verfiying_key_account_string = blake2_256(&verifying_key);
-    let verfiying_key_account = subxtAccountId32(verfiying_key_account_string); //EcdsaPublicKey(demo);//one.to_account_id();
+    let verfiying_key_account_hash = blake2_256(&verifying_key);
+    let verfiying_key_account = subxtAccountId32(verfiying_key_account_hash);
 
     // Add funds to faucet
     let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
@@ -1795,7 +1795,7 @@ async fn test_faucet() {
 
     let binding_header = entropy_api.blocks().at_latest().await.unwrap();
     let header = binding_header.header();
-    let aux_data_json = AuxData {
+    let aux_data = AuxData {
         genesis_hash: hex::encode(genesis_hash.encode()),
         spec_version,
         transaction_version,
@@ -1805,20 +1805,17 @@ async fn test_faucet() {
         string_account_id: one.to_account_id().to_string(),
         amount: amount_to_send,
     };
-
     // create a partial tx to sign
-    let tx_params =
-        Params::new().mortal(header, aux_data_json.mortality).nonce(aux_data_json.nonce).build();
-    let balance_transfer_tx = entropy::tx()
-        .balances()
-        .transfer_allow_death(one.to_account_id().into(), aux_data_json.amount);
+    let tx_params = Params::new().mortal(header, aux_data.mortality).nonce(aux_data.nonce).build();
+    let balance_transfer_tx =
+        entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
     let partial =
         entropy_api.tx().create_partial_signed_offline(&balance_transfer_tx, tx_params).unwrap();
 
     let mut generic_msg = UserSignatureRequest {
         message: hex::encode(partial.signer_payload()),
         auxilary_data: Some(vec![Some(hex::encode(
-            &serde_json::to_string(&aux_data_json.clone()).unwrap(),
+            &serde_json::to_string(&aux_data.clone()).unwrap(),
         ))]),
         validators_info,
         block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
@@ -1846,7 +1843,7 @@ async fn test_faucet() {
         &MultiAddress::Id(verfiying_key_account.clone().into()),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
     );
-    let account = subxtAccountId32::from_str(&aux_data_json.string_account_id).unwrap();
+    let account = subxtAccountId32::from_str(&aux_data.string_account_id).unwrap();
     // get balance before for checking if succeful
     let balance_query = entropy::storage().system().account(account.clone());
     let account_info = query_chain(&entropy_api, &rpc, balance_query, None).await.unwrap().unwrap();
