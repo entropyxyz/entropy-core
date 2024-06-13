@@ -2467,7 +2467,6 @@ dependencies = [
  "entropy-shared",
  "entropy-testing-utils",
  "entropy-tss",
- "sp-core 31.0.0",
  "synedrion",
  "tokio",
 ]
