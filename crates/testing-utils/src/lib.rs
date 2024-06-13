@@ -21,6 +21,6 @@ pub mod constants;
 pub mod create_test_keyshares;
 mod node_proc;
 pub mod substrate_context;
-pub mod tss_server_process;
+pub use entropy_tss::helpers::tests::spawn_testing_validators;
 pub use node_proc::TestNodeProcess;
 pub use substrate_context::*;
