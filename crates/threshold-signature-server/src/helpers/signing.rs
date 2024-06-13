@@ -113,6 +113,6 @@ pub async fn do_signing(
     )
     .await
     .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-
+    println!("increamented {:?}", account_id);
     Ok(result)
 }

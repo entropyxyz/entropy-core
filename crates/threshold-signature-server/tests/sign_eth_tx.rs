@@ -25,8 +25,8 @@ use entropy_protocol::{deserialize_verifying_key, RecoverableSignature};
 use entropy_shared::{EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
+    spawn_testing_validators,
     substrate_context::test_context_stationary,
-    tss_server_process::spawn_testing_validators,
 };
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},

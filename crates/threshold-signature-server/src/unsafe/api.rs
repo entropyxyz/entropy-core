@@ -55,10 +55,12 @@ pub async fn unsafe_get(
     State(app_state): State<AppState>,
     Json(key): Json<UnsafeQuery>,
 ) -> Vec<u8> {
+    println!("reading kv value...");
     let value = app_state.kv_store.kv().get(&key.key.to_owned()).await;
     match value {
         Ok(v) => {
             tracing::trace!("Read value: {:?} from KVDB", &v);
+            println!("Read value: {:?} from KVDB", &v);
             v
         },
         Err(_) => {

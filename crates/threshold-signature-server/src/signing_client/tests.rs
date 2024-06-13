@@ -18,7 +18,7 @@ use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{initialize_test_logger, run_to_block, setup_client},
+        tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
     },
     r#unsafe::api::UnsafeQuery,
 };
@@ -31,7 +31,6 @@ use entropy_shared::{
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_context_stationary, test_node_process_testing_state},
-    tss_server_process::spawn_testing_validators,
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;

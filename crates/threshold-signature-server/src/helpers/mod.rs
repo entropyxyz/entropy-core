@@ -21,5 +21,5 @@ pub mod substrate;
 pub mod user;
 pub mod validator;
 
-#[cfg(test)]
+// #[cfg(any(test, feature = "test_helpers"))]
 pub mod tests;

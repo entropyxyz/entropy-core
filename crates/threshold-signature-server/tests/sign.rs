@@ -26,8 +26,8 @@ use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
+    spawn_testing_validators,
     substrate_context::test_context_stationary,
-    tss_server_process::spawn_testing_validators,
 };
 use serial_test::serial;
 use sp_keyring::AccountKeyring;

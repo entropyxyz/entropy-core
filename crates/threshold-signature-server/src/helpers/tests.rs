@@ -15,8 +15,8 @@
 
 //! Utilities used in unit tests
 
-// only compile when testing
-#![cfg(test)]
+// only compile when testing or when the test_helpers feature is enabled
+#![cfg(any(test, feature = "test_helpers"))]
 
 use crate::{
     app,
@@ -24,6 +24,7 @@ use crate::{
         entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
         EntropyConfig,
     },
+    get_signer,
     helpers::{
         launch::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
@@ -38,8 +39,12 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
+use entropy_protocol::PartyId;
+use entropy_shared::EVE_VERIFYING_KEY;
+use std::time::Duration;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, Config, OnlineClient,
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
 
@@ -107,6 +112,78 @@ pub async fn create_clients(
     let app = app(app_state).into_make_service();
 
     (app, kv_store)
+}
+
+/// Spawn 3 TSS nodes with pre-stored keyshares
+pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
+    // spawn threshold servers
+    let ports = [3001i64, 3002, 3003];
+
+    let (alice_axum, alice_kv) =
+        create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
+    let alice_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let (bob_axum, bob_kv) =
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
+    let bob_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let (charlie_axum, charlie_kv) =
+        create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
+            .await;
+    let charlie_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let ids = vec![alice_id, bob_id, charlie_id];
+
+    put_keyshare_in_db("alice", alice_kv).await;
+    put_keyshare_in_db("bob", bob_kv).await;
+    put_keyshare_in_db("charlie", charlie_kv).await;
+
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_alice, alice_axum).await.unwrap();
+    });
+
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_bob, bob_axum).await.unwrap();
+    });
+
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_charlie, charlie_axum).await.unwrap();
+    });
+
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
+    (ips, ids)
+}
+
+pub async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
+    // let test_or_production = if cfg!(test) { "test" } else { "production" };
+    let test_or_production = "production";
+    let keyshare_bytes = {
+        let project_root = project_root::get_project_root().expect("Error obtaining project root.");
+        let file_path = project_root.join(format!(
+            "crates/testing-utils/keyshares/{}/eve-keyshare-held-by-{}.keyshare",
+            test_or_production, name
+        ));
+        std::fs::read(file_path).unwrap()
+    };
+    let reservation = kvdb.kv().reserve_key(hex::encode(EVE_VERIFYING_KEY)).await.unwrap();
+    kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
 }
 
 /// Removes the program at the program hash
