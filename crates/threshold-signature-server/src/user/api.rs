@@ -314,15 +314,7 @@ async fn setup_dkg(
         let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
         // TODO: Error handling really complex needs to be thought about.
-        confirm_registered(
-            &api,
-            rpc,
-            sig_request_address,
-            &signer,
-            verifying_key,
-            nonce, //+ i as u32,
-        )
-        .await?;
+        confirm_registered(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
     }
     Ok(())
 }
