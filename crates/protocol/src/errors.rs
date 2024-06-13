@@ -133,3 +133,11 @@ pub enum ListenerErr {
     #[error("invalid party ID: {0}")]
     InvalidPartyId(String),
 }
+
+#[derive(Debug, Error)]
+pub enum VerifyingKeyError {
+    #[error("Could not decode to encoded point")]
+    DecodeEncodedPoint,
+    #[error("Could not convert encoded point to verifying key")]
+    EncodedPointToVerifyingKey,
+}

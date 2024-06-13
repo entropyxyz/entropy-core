@@ -32,7 +32,7 @@ use std::{
 };
 
 use blake2::{Blake2s256, Digest};
-use errors::ProtocolExecutionErr;
+use errors::{ProtocolExecutionErr, VerifyingKeyError};
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
@@ -207,12 +207,12 @@ impl SessionId {
     }
 }
 
-pub fn deserialize_verifying_key(verifying_key_encoded: Vec<u8>) -> VerifyingKey {
-    let point = EncodedPoint::from_bytes(verifying_key_encoded).unwrap();
-    //.map_err(|_| {
-    //     ProtocolExecutionErr::BadVerifyingKey(
-    //         "Could not convert to encoded point".to_string(),
-    //     )
-    // })?;
-    VerifyingKey::from_encoded_point(&point).unwrap()
+/// Decode a [VerifyingKey] from bytes
+pub fn decode_verifying_key(
+    verifying_key_encoded: &[u8; 33],
+) -> Result<VerifyingKey, VerifyingKeyError> {
+    let point = EncodedPoint::from_bytes(verifying_key_encoded)
+        .map_err(|_| VerifyingKeyError::DecodeEncodedPoint)?;
+    VerifyingKey::from_encoded_point(&point)
+        .map_err(|_| VerifyingKeyError::EncodedPointToVerifyingKey)
 }

@@ -27,7 +27,7 @@ use entropy_kvdb::{
 };
 use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
-    deserialize_verifying_key,
+    decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
@@ -205,7 +205,7 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = deserialize_verifying_key(EVE_VERIFYING_KEY.to_vec());
+    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
     let mock_client = reqwest::Client::new();
     // check request limiter increases
@@ -517,7 +517,7 @@ async fn test_program_with_config() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = deserialize_verifying_key(EVE_VERIFYING_KEY.to_vec());
+    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
     clean_tests();
 }
@@ -981,7 +981,7 @@ async fn test_device_key_proxy() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = deserialize_verifying_key(EVE_VERIFYING_KEY.to_vec());
+    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
 }
 

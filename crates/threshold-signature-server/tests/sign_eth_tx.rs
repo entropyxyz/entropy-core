@@ -21,7 +21,7 @@ use entropy_client::{
     client as test_client, Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_protocol::{deserialize_verifying_key, RecoverableSignature};
+use entropy_protocol::{decode_verifying_key, RecoverableSignature};
 use entropy_shared::{EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
@@ -77,8 +77,7 @@ async fn integration_test_sign_eth_tx() {
     .unwrap();
 
     // Get the public key to use in the 'from' field
-    // let verifying_key = keyshare_option.clone().unwrap().verifying_gkey();
-    let verifying_key = deserialize_verifying_key(EVE_VERIFYING_KEY.to_vec());
+    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
 
     let transaction_request = create_unsigned_eth_tx(verifying_key);
 
