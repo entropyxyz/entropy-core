@@ -908,7 +908,7 @@ async fn test_device_key_proxy() {
 
     let one = AccountKeyring::Eve;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -971,10 +971,12 @@ async fn test_device_key_proxy() {
         signature_verifying_key: EVE_VERIFYING_KEY.to_vec(),
     };
 
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
+    let validator_ips_and_keys: Vec<_> = validators_info
+        .iter()
+        .map(|validator_info| {
+            (validator_info.ip_address.clone(), validator_info.x25519_public_key.clone())
+        })
+        .collect();
 
     generic_msg.timestamp = SystemTime::now();
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);

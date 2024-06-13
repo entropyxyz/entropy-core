@@ -116,6 +116,11 @@ async fn test_proactive_refresh() {
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
+        entropy_shared::ValidatorInfo {
+            ip_address: "127.0.0.1:3003".as_bytes().to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone().encode(),
+        },
     ];
 
     let mut ocw_message = OcwMessageProactiveRefresh {
