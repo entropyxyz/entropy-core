@@ -134,6 +134,7 @@ pub enum ListenerErr {
     InvalidPartyId(String),
 }
 
+/// An error when handling a verifying key
 #[derive(Debug, Error)]
 pub enum VerifyingKeyError {
     #[error("Could not decode to encoded point")]
