@@ -169,7 +169,7 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     (ips, ids)
 }
 
-pub async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
+async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
     // let test_or_production = if cfg!(test) { "test" } else { "production" };
     let test_or_production = "production";
     let keyshare_bytes = {
