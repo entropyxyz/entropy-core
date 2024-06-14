@@ -17,7 +17,7 @@
 //! The base path for where to store keyshares is given as a single command line argument
 //! If it is not given, the current working directory is used
 use entropy_kvdb::kv_manager::helpers::serialize;
-use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
+use entropy_shared::{DETERMINISTIC_KEY_SHARE_DAVE, DETERMINISTIC_KEY_SHARE_EVE};
 use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
 use entropy_tss::helpers::{
     launch::{DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC},
@@ -36,32 +36,38 @@ async fn main() {
     let (charlie_pair, _) =
         get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
 
-    let test_keyshares = create_test_keyshares::<TestParams>(
-        *DETERMINISTIC_KEY_SHARE_EVE,
-        alice_pair.signer().clone(),
-        bob_pair.signer().clone(),
-        charlie_pair.signer().clone(),
-    )
-    .await;
-    let test_keyshres_serialized = test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
-    write_keyshares(base_path.join("test"), test_keyshres_serialized).await;
+    let names_and_secret_keys =
+        [("dave", *DETERMINISTIC_KEY_SHARE_DAVE), ("eve", *DETERMINISTIC_KEY_SHARE_EVE)];
 
-    let production_keyshares = create_test_keyshares::<ProductionParams>(
-        *DETERMINISTIC_KEY_SHARE_EVE,
-        alice_pair.signer().clone(),
-        bob_pair.signer().clone(),
-        charlie_pair.signer().clone(),
-    )
-    .await;
-    let production_keyshres_serialized =
-        production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
-    write_keyshares(base_path.join("production"), production_keyshres_serialized).await;
+    for (name, secret_key) in names_and_secret_keys {
+        let test_keyshares = create_test_keyshares::<TestParams>(
+            secret_key,
+            alice_pair.signer().clone(),
+            bob_pair.signer().clone(),
+            charlie_pair.signer().clone(),
+        )
+        .await;
+        let test_keyshres_serialized =
+            test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
+        write_keyshares(base_path.join("test"), name, test_keyshres_serialized).await;
+
+        let production_keyshares = create_test_keyshares::<ProductionParams>(
+            secret_key,
+            alice_pair.signer().clone(),
+            bob_pair.signer().clone(),
+            charlie_pair.signer().clone(),
+        )
+        .await;
+        let production_keyshres_serialized =
+            production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
+        write_keyshares(base_path.join("production"), name, production_keyshres_serialized).await;
+    }
 }
 
-async fn write_keyshares(base_path: PathBuf, keyshares_bytes: Vec<Vec<u8>>) {
-    let names = ["alice", "bob", "charlie"];
+async fn write_keyshares(base_path: PathBuf, name: &str, keyshares_bytes: Vec<Vec<u8>>) {
+    let holder_names = ["alice", "bob", "charlie"];
     for (i, bytes) in keyshares_bytes.iter().enumerate() {
-        let filename = format!("eve-keyshare-held-by-{}.keyshare", names[i]);
+        let filename = format!("{}-keyshare-held-by-{}.keyshare", name, holder_names[i]);
         let mut filepath = base_path.clone();
         filepath.push(filename);
         println!("Writing keyshare file: {:?}", filepath);

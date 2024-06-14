@@ -166,7 +166,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        "127.0.0.1:3003".as_bytes().to_vec(),
                     ),
                 ),
                 (
@@ -197,6 +197,14 @@ pub fn integration_tests_genesis_config(
                         .into(),
                         ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
+                    },
+                    entropy_shared::ValidatorInfo {
+                        tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                            &crate::chain_spec::tss_account_id::CHARLIE.clone(),
+                        )
+                        .into(),
+                        ip_address: "127.0.0.1:3003".as_bytes().to_vec(),
+                        x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
                     },
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],

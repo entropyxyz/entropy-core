@@ -40,7 +40,7 @@ use crate::{
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
-use entropy_shared::EVE_VERIFYING_KEY;
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY};
 use std::time::Duration;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
@@ -138,9 +138,9 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 
     let ids = vec![alice_id, bob_id, charlie_id];
 
-    put_keyshare_in_db("alice", alice_kv).await;
-    put_keyshare_in_db("bob", bob_kv).await;
-    put_keyshare_in_db("charlie", charlie_kv).await;
+    put_keyshares_in_db("alice", alice_kv).await;
+    put_keyshares_in_db("bob", bob_kv).await;
+    put_keyshares_in_db("charlie", charlie_kv).await;
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -169,19 +169,23 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     (ips, ids)
 }
 
-async fn put_keyshare_in_db(name: &str, kvdb: KvManager) {
-    // let test_or_production = if cfg!(test) { "test" } else { "production" };
-    let test_or_production = "production";
-    let keyshare_bytes = {
-        let project_root = project_root::get_project_root().expect("Error obtaining project root.");
-        let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/{}/eve-keyshare-held-by-{}.keyshare",
-            test_or_production, name
-        ));
-        std::fs::read(file_path).unwrap()
-    };
-    let reservation = kvdb.kv().reserve_key(hex::encode(EVE_VERIFYING_KEY)).await.unwrap();
-    kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
+/// Add the pre-generated test keyshares to a kvdb
+async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager) {
+    let user_names_and_verifying_keys = [("eve", EVE_VERIFYING_KEY), ("dave", DAVE_VERIFYING_KEY)];
+
+    for (user_name, user_verifying_key) in user_names_and_verifying_keys {
+        let keyshare_bytes = {
+            let project_root =
+                project_root::get_project_root().expect("Error obtaining project root.");
+            let file_path = project_root.join(format!(
+                "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
+                user_name, holder_name
+            ));
+            std::fs::read(file_path).unwrap()
+        };
+        let reservation = kvdb.kv().reserve_key(hex::encode(user_verifying_key)).await.unwrap();
+        kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
+    }
 }
 
 /// Removes the program at the program hash

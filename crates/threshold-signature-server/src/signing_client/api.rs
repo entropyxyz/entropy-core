@@ -240,11 +240,13 @@ pub async fn validate_proactive_refresh(
     let proactive_info = query_chain(api, rpc, proactive_info_query, None)
         .await?
         .ok_or_else(|| ProtocolErr::ChainFetch("Error getting Proactive Refresh data"))?;
+    println!("from chain {:?}", proactive_info);
     let mut hasher_chain_data = Blake2s256::new();
     let ocw_data_refresh_info = RefreshInfo {
         proactive_refresh_keys: ocw_data.proactive_refresh_keys.clone(),
         validators_info: ocw_data.validators_info.clone().into_iter().map(Static).collect(),
     };
+    println!("from http req: {:?}", ocw_data_refresh_info);
     hasher_chain_data.update(ocw_data_refresh_info.encode());
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
