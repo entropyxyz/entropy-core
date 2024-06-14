@@ -18,14 +18,15 @@ use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
+        tests::{
+            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            unsafe_get,
+        },
     },
-    r#unsafe::api::UnsafeQuery,
 };
-use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
-use entropy_protocol::{KeyParams, PartyId};
+use entropy_kvdb::clean_tests;
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, DETERMINISTIC_KEY_SHARE_DAVE, EVE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
@@ -34,11 +35,8 @@ use entropy_testing_utils::{
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
-use rand_core::OsRng;
 use serial_test::serial;
-use sp_core::crypto::key_types;
 use sp_keyring::AccountKeyring;
-use synedrion::{ecdsa::SigningKey, AuxInfo, KeyShare};
 
 #[tokio::test]
 #[serial]
@@ -47,29 +45,13 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, ids) = spawn_testing_validators().await;
+    let (validator_ips, _ids) = spawn_testing_validators().await;
 
     let client = reqwest::Client::new();
-    let get_query_eve = UnsafeQuery::new(hex::encode(EVE_VERIFYING_KEY.to_vec()), vec![]).to_json();
-    let get_query_dave =
-        UnsafeQuery::new(hex::encode(DAVE_VERIFYING_KEY.to_vec()), vec![]).to_json();
 
     // check get key before proactive refresh
-
-    async fn get_keyshare_from_db(client: &reqwest::Client, get_query: String) -> String {
-        let key_before_result = client
-            .post("http://127.0.0.1:3001/unsafe/get")
-            .header("Content-Type", "application/json")
-            .body(get_query)
-            .send()
-            .await
-            .unwrap();
-
-        key_before_result.text().await.unwrap()
-    }
-
-    let key_before_eve = get_keyshare_from_db(&client, get_query_eve.clone()).await;
-    let key_before_dave = get_keyshare_from_db(&client, get_query_dave.clone()).await;
+    let key_before_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY)).await;
+    let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY)).await;
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -109,8 +91,8 @@ async fn test_proactive_refresh() {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
     }
 
-    let key_after_eve = get_keyshare_from_db(&client, get_query_eve.clone()).await;
-    let key_after_dave = get_keyshare_from_db(&client, get_query_dave.clone()).await;
+    let key_after_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY)).await;
+    let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY)).await;
 
     // make sure private keyshares are changed
     assert_ne!(key_before_eve, key_after_eve);

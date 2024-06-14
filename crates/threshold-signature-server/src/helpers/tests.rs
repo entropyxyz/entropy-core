@@ -30,8 +30,7 @@ use crate::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
             DEFAULT_ENDPOINT,
         },
-        logger::Instrumentation,
-        logger::Logger,
+        logger::{Instrumentation, Logger},
         substrate::{query_chain, submit_transaction},
     },
     signing_client::ListenerState,
@@ -239,4 +238,19 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
     while current_block < block_run {
         current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     }
+}
+
+/// Get a value from a kvdb using unsafe get
+#[cfg(test)]
+pub async fn unsafe_get(client: &reqwest::Client, query_key: String) -> String {
+    let get_query = crate::r#unsafe::api::UnsafeQuery::new(query_key, vec![]).to_json();
+    let key_before_result = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query)
+        .send()
+        .await
+        .unwrap();
+
+    key_before_result.text().await.unwrap()
 }
