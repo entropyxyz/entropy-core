@@ -117,17 +117,13 @@ impl fmt::Display for PartyId {
     }
 }
 
-#[cfg(not(test))]
-use synedrion::ProductionParams;
 /// Parameters used for the threshold signing scheme in production
-#[cfg(not(test))]
-pub type KeyParams = ProductionParams;
+#[cfg(not(any(test, feature = "unsafe")))]
+pub type KeyParams = synedrion::ProductionParams;
 
-#[cfg(test)]
-use synedrion::TestParams;
 /// Parameters used for the threshold signing scheme in tests (faster but less secure)
-#[cfg(test)]
-pub type KeyParams = TestParams;
+#[cfg(any(test, feature = "unsafe"))]
+pub type KeyParams = synedrion::TestParams;
 
 pub use synedrion::KeyShare;
 

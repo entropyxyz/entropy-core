@@ -171,14 +171,14 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 /// Add the pre-generated test keyshares to a kvdb
 async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager) {
     let user_names_and_verifying_keys = [("eve", EVE_VERIFYING_KEY), ("dave", DAVE_VERIFYING_KEY)];
-
+    let test_or_production = if cfg!(test) { "test" } else { "production" };
     for (user_name, user_verifying_key) in user_names_and_verifying_keys {
         let keyshare_bytes = {
             let project_root =
                 project_root::get_project_root().expect("Error obtaining project root.");
             let file_path = project_root.join(format!(
-                "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
-                user_name, holder_name
+                "crates/testing-utils/keyshares/{}/{}-keyshare-held-by-{}.keyshare",
+                test_or_production, user_name, holder_name
             ));
             std::fs::read(file_path).unwrap()
         };
