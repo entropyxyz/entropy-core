@@ -2736,6 +2736,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "strum 0.26.2",
  "subxt",
+ "subxt-signer",
  "synedrion",
  "thiserror",
  "tokio",
@@ -13766,6 +13767,29 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-crypto-hashing",
+]
+
+[[package]]
+name = "subxt-signer"
+version = "0.35.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ccb59a38fe357fab55247756174435e8626b93929864e8a498635a15e779df8"
+dependencies = [
+ "bip39",
+ "cfg-if",
+ "derive_more",
+ "hex",
+ "hmac 0.12.1",
+ "parity-scale-codec",
+ "pbkdf2 0.12.2",
+ "regex",
+ "schnorrkel",
+ "secp256k1",
+ "secrecy",
+ "sha2 0.10.8",
+ "sp-crypto-hashing",
+ "subxt",
+ "zeroize",
 ]
 
 [[package]]

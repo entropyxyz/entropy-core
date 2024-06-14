@@ -80,6 +80,7 @@ blake3      ="1.5.1"
 ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
 schemars    ={ version="0.8.21" }
+subxt-signer="0.35.3"
 
 # Note: We don't specify versions here because otherwise we run into a cyclical dependency between
 # `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.

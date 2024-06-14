@@ -190,7 +190,6 @@ pub async fn sign_tx(
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
     user_sig_req.validators_info = subgroup_signers;
-
     let message_hash = compute_hash(
         &api,
         &rpc,

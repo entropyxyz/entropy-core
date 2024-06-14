@@ -59,6 +59,8 @@ pub const FERDIE_X25519_SECRET_KEY: [u8; 32] = [
 /// `example_barebones_with_auxilary.wasm` from the `programs` repo.
 pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
     include_bytes!("../example_barebones_with_auxilary.wasm");
+/// `faucet_program.wasm` from the `programs` repo.
+pub const FAUCET_PROGRAM: &[u8] = include_bytes!("../faucet_program.wasm");
 /// `infinite_loop.wasm` from the `programs` repo.
 pub const TEST_INFINITE_LOOP_BYTECODE: &[u8] = include_bytes!("../infinite_loop.wasm");
 /// `template_basic_transaction.wasm` from the `programs` repo.
