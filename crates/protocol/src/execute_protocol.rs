@@ -87,7 +87,7 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
         // TODO (#641): this can happen in a spawned task
         for destination in destinations.iter() {
             let (message, artifact) = session.make_message(&mut OsRng, destination)?;
-            tx.send(ProtocolMessage::new(&my_id, destination, message, session_id_hash.clone()))?;
+            tx.send(ProtocolMessage::new(&my_id, destination, message, session_id_hash))?;
 
             // This will happen in a host task
             accum.add_artifact(artifact)?;
@@ -221,6 +221,7 @@ pub async fn execute_dkg(
 
         let (init_keyshare, rx) = execute_protocol_generic(chans, session, session_id_hash).await?;
 
+        tracing::info!("Finished key init protocol");
         // Setup channels for the next session
         let chans = Channels(broadcaster.clone(), rx);
 
@@ -289,6 +290,7 @@ pub async fn execute_dkg(
         execute_protocol_generic(chans, session, session_id_hash).await?;
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
+    tracing::info!("Finished reshare protocol");
 
     // Setup channels for the next session
     let chans = Channels(broadcaster.clone(), rx);
@@ -298,6 +300,7 @@ pub async fn execute_dkg(
     let session = make_aux_gen_session(&mut OsRng, &session_id_hash, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
     let aux_info = execute_protocol_generic(chans, session, session_id_hash).await?.0;
+    tracing::info!("Finished aux gen protocol");
 
     Ok((new_key_share, aux_info))
 }
