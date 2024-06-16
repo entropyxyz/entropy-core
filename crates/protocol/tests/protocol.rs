@@ -195,7 +195,8 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
         message_hash,
         request_author: AccountId32([0u8; 32]),
     });
-    let mut outputs = test_protocol_with_parties(parties, session_id, threshold).await;
+    let mut outputs =
+        test_protocol_with_parties(parties[..threshold].to_vec(), session_id, threshold).await;
     if let ProtocolOutput::Sign(recoverable_signature) = outputs.pop().unwrap() {
         // Check signature
         let recovery_key_from_sig = VerifyingKey::recover_from_prehash(

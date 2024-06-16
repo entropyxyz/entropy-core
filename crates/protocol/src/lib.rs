@@ -200,10 +200,13 @@ impl Hash for SessionId {
 
 impl SessionId {
     /// Take the hash of the session ID - used as uniqueness in the protocol
-    pub fn blake2(&self) -> Result<Vec<u8>, ProtocolExecutionErr> {
+    pub fn blake2(&self, sub_session: Option<&str>) -> Result<[u8; 32], ProtocolExecutionErr> {
         let mut hasher = Blake2s256::new();
         hasher.update(bincode::serialize(self)?);
-        Ok(hasher.finalize().to_vec())
+        if let Some(name) = sub_session {
+            hasher.update(name.as_bytes());
+        }
+        Ok(hasher.finalize().into())
     }
 }
 
