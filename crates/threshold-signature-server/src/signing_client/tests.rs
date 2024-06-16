@@ -50,8 +50,8 @@ async fn test_proactive_refresh() {
     let client = reqwest::Client::new();
 
     // check get key before proactive refresh
-    let key_before_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY)).await;
-    let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY)).await;
+    let key_before_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -91,8 +91,8 @@ async fn test_proactive_refresh() {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
     }
 
-    let key_after_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY)).await;
-    let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY)).await;
+    let key_after_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     // make sure private keyshares are changed
     assert_ne!(key_before_eve, key_after_eve);

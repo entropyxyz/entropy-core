@@ -111,7 +111,7 @@ use crate::{
         substrate::{query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators,
+            remove_program, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -626,19 +626,10 @@ async fn test_store_share() {
     // Check that the timeout was not reached
     assert!(new_verifying_key.len() > 0);
 
-    let get_query =
-        UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
-    // check get key before registration to see if key gets replaced
-    let response_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
+    let response_key = unsafe_get(&client, hex::encode(new_verifying_key), 3001).await;
     // check to make sure keyshare is correct
     let key_share: Option<KeyShareWithAuxInfo> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.as_bytes());
     assert_eq!(key_share.is_some(), true);
 
     // fails repeated data
