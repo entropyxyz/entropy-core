@@ -22,7 +22,7 @@ use entropy_client::{
 };
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{decode_verifying_key, RecoverableSignature};
-use entropy_shared::{EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY};
+use entropy_shared::EVE_VERIFYING_KEY;
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     spawn_testing_validators,
@@ -46,8 +46,7 @@ const GOERLI_CHAIN_ID: u64 = 5;
 #[serial]
 async fn integration_test_sign_eth_tx() {
     clean_tests();
-    let pre_registered_user = AccountKeyring::Ferdie;
-    let deployer = AccountKeyring::Eve;
+    let pre_registered_user = AccountKeyring::Eve;
 
     let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
@@ -57,7 +56,7 @@ async fn integration_test_sign_eth_tx() {
     let program_pointer = test_client::store_program(
         &api,
         &rpc,
-        &deployer.pair(),
+        &pre_registered_user.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -69,7 +68,7 @@ async fn integration_test_sign_eth_tx() {
     test_client::update_programs(
         &api,
         &rpc,
-        FERDIE_VERIFYING_KEY,
+        EVE_VERIFYING_KEY,
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -89,7 +88,7 @@ async fn integration_test_sign_eth_tx() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        FERDIE_VERIFYING_KEY,
+        EVE_VERIFYING_KEY,
         message,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
