@@ -93,7 +93,6 @@ pub async fn do_dkg(
     let threshold = (tss_accounts.len() as f32 * 0.75) as usize;
     let result =
         execute_dkg(session_id, channels, signer.signer(), tss_accounts, threshold).await?;
-
     Ok(result)
 }
 
