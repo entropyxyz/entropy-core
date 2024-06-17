@@ -24,11 +24,16 @@ use crate::protocol_message::ProtocolMessage;
 /// A wrapper around [broadcast::Sender] for broadcasting protocol messages
 #[derive(Debug, Clone)]
 pub struct Broadcaster {
+    /// Channel for outgoing protocol messages to all parties
     pub broadcast: broadcast::Sender<ProtocolMessage>,
+    /// Channel for incoming protocol messages from all parties
+    /// A clone of the sender is kept here so that we can use it in the session loop to put messages
+    /// destined for a different sub-session back into the incoming queue
     pub incoming_sender: mpsc::Sender<ProtocolMessage>,
 }
 
 impl Broadcaster {
+    /// Send an outgoing protocol message
     pub fn send(&self, msg: ProtocolMessage) -> Result<usize, Box<SendError<ProtocolMessage>>> {
         Ok(self.broadcast.send(msg)?)
     }
