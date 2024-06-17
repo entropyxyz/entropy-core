@@ -152,7 +152,7 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Eve;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -177,8 +177,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED))
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     generic_msg.timestamp = SystemTime::now();
     // test points to no program
@@ -342,15 +341,14 @@ async fn test_sign_tx_no_chain_fail() {
 
     let one = AccountKeyring::Eve;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let mock_client = reqwest::Client::new();
 
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED))
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // fails verification tests
     // wrong key for wrong validator
@@ -467,7 +465,7 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Eve;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -489,7 +487,7 @@ async fn test_program_with_config() {
 
     let message_hash = Hasher::keccak(message.as_bytes());
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, validator_ips, hex::encode(message)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message)).await;
 
     let config = r#"
         {
@@ -1259,7 +1257,6 @@ pub async fn submit_transaction_requests(
 pub async fn get_sign_tx_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    _validator_ips: Vec<String>,
     message: String,
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
     let validators_info = get_signers_from_chain(api, rpc).await.unwrap();

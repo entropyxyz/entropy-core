@@ -20,8 +20,8 @@ use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    ecdsa::SigningKey, make_aux_gen_session, make_key_resharing_session, AuxInfo,
-    KeyResharingInputs, KeyShare, NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
+    ecdsa::SigningKey, make_key_resharing_session, AuxInfo, KeyResharingInputs, KeyShare,
+    NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
 };
 use synedrion_test_environment::run_nodes;
 
