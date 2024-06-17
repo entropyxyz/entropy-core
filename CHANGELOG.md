@@ -9,6 +9,11 @@ At the moment this project **does not** adhere to
 
 ## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
 
+### Breaking Changes
+
+- In [#879](https://github.com/entropyxyz/entropy-core/pull/879) threshold signing is introduced,
+  using a fix threshold based on the number of validators.
+
 ### Added
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
 - Pre-generated threshold keyshare set for entropy-tss tests ([#884](https://github.com/entropyxyz/entropy-core/pull/884))
