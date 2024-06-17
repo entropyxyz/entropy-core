@@ -551,7 +551,7 @@ async fn test_store_share() {
     .await
     .unwrap();
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -570,7 +570,7 @@ async fn test_store_share() {
             tss_account: TSS_ACCOUNTS[2].clone().encode(),
         },
     ];
-    let onchain_user_request = OcwMessageDkg {
+    let mut onchain_user_request = OcwMessageDkg {
         sig_request_accounts: vec![alice.public().encode()],
         block_number,
         validators_info,
@@ -626,71 +626,71 @@ async fn test_store_share() {
     // Check that the timeout was not reached
     assert!(new_verifying_key.len() > 0);
 
-    let response_key = unsafe_get(&client, hex::encode(new_verifying_key), 3001).await;
+    let response_key = unsafe_get(&client, hex::encode(&new_verifying_key), 3001).await;
     // check to make sure keyshare is correct
     let key_share: Option<KeyShareWithAuxInfo> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
 
     // fails repeated data
-    // let response_repeated_data = client
-    //     .post("http://127.0.0.1:3001/user/new")
-    //     .body(onchain_user_request.clone().encode())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(response_repeated_data.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    // assert_eq!(response_repeated_data.text().await.unwrap(), "Data is repeated");
-    //
-    // run_to_block(&rpc, block_number + 3).await;
-    // onchain_user_request.block_number = block_number + 1;
-    // // fails stale data
-    // let response_stale = client
-    //     .post("http://127.0.0.1:3001/user/new")
-    //     .body(onchain_user_request.clone().encode())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(response_stale.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    // assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
-    //
-    // block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    // put_register_request_on_chain(
-    //     &api,
-    //     &rpc,
-    //     &alice_program,
-    //     alice_program.to_account_id().into(),
-    //     BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    // )
-    // .await;
-    // onchain_user_request.block_number = block_number;
-    // run_to_block(&rpc, block_number + 1).await;
-    //
-    // // fails not verified data
-    // let response_not_verified = client
-    //     .post("http://127.0.0.1:3001/user/new")
-    //     .body(onchain_user_request.clone().encode())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(response_not_verified.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    // assert_eq!(response_not_verified.text().await.unwrap(), "Data is not verifiable");
-    //
-    // onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
-    // // fails not in validator group data
-    // let response_not_validator = client
-    //     .post("http://127.0.0.1:3001/user/new")
-    //     .body(onchain_user_request.clone().encode())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    //
-    // assert_eq!(response_not_validator.status(), StatusCode::MISDIRECTED_REQUEST);
-    //
-    // check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
+    let response_repeated_data = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_repeated_data.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_repeated_data.text().await.unwrap(), "Data is repeated");
+
+    run_to_block(&rpc, block_number + 3).await;
+    onchain_user_request.block_number = block_number + 1;
+    // fails stale data
+    let response_stale = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_stale.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
+
+    block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    put_register_request_on_chain(
+        &api,
+        &rpc,
+        &alice_program,
+        alice_program.to_account_id().into(),
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+    onchain_user_request.block_number = block_number;
+    run_to_block(&rpc, block_number + 1).await;
+
+    // fails not verified data
+    let response_not_verified = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_not_verified.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_not_verified.text().await.unwrap(), "Data is not verifiable");
+
+    onchain_user_request.validators_info[0].tss_account = TSS_ACCOUNTS[1].clone().encode();
+    // fails not in validator group data
+    let response_not_validator = client
+        .post("http://127.0.0.1:3001/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_not_validator.status(), StatusCode::MISDIRECTED_REQUEST);
+
+    check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
