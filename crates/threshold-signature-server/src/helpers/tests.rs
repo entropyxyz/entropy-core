@@ -242,9 +242,9 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
 
 /// Get a value from a kvdb using unsafe get
 #[cfg(test)]
-pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) -> String {
+pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) -> Vec<u8> {
     let get_query = crate::r#unsafe::api::UnsafeQuery::new(query_key, vec![]).to_json();
-    let key_before_result = client
+    let get_result = client
         .post(format!("http://127.0.0.1:{}/unsafe/get", port))
         .header("Content-Type", "application/json")
         .body(get_query)
@@ -252,5 +252,5 @@ pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) 
         .await
         .unwrap();
 
-    key_before_result.text().await.unwrap()
+    get_result.bytes().await.unwrap().into()
 }

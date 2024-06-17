@@ -629,7 +629,7 @@ async fn test_store_share() {
     let response_key = unsafe_get(&client, hex::encode(new_verifying_key), 3001).await;
     // check to make sure keyshare is correct
     let key_share: Option<KeyShareWithAuxInfo> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.as_bytes());
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
 
     // fails repeated data
