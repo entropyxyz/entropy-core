@@ -46,7 +46,7 @@ where
 
     let keyshares =
         KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
-    // let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
+    let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
     let new_holder =
         NewHolder { verifying_key: keyshares[0].verifying_key(), old_threshold: 2, old_holders };
@@ -91,21 +91,7 @@ where
 
     let new_t_key_shares = run_nodes(sessions).await;
 
-    let sessions = (0..3)
-        .map(|idx| {
-            make_aux_gen_session(
-                &mut OsRng,
-                shared_randomness,
-                PairWrapper(signers[idx].clone()),
-                &all_parties,
-            )
-            .unwrap()
-        })
-        .collect::<Vec<_>>();
-    let aux_infos = run_nodes(sessions).await;
-
     let mut output = Vec::new();
-
     for i in 0..3 {
         output.push((new_t_key_shares[i].clone().unwrap(), aux_infos[i].clone()));
     }
