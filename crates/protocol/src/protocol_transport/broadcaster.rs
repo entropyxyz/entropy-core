@@ -14,16 +14,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Listener becomes Broadcaster when all other parties have subscribed.
-use tokio::sync::broadcast::{self, error::SendError};
+use tokio::sync::{
+    broadcast::{self, error::SendError},
+    mpsc,
+};
 
 use crate::protocol_message::ProtocolMessage;
 
 /// A wrapper around [broadcast::Sender] for broadcasting protocol messages
 #[derive(Debug, Clone)]
-pub struct Broadcaster(pub broadcast::Sender<ProtocolMessage>);
+pub struct Broadcaster {
+    pub broadcast: broadcast::Sender<ProtocolMessage>,
+    pub incoming_sender: mpsc::Sender<ProtocolMessage>,
+}
 
 impl Broadcaster {
     pub fn send(&self, msg: ProtocolMessage) -> Result<usize, Box<SendError<ProtocolMessage>>> {
-        Ok(self.0.send(msg)?)
+        Ok(self.broadcast.send(msg)?)
     }
 }

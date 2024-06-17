@@ -18,6 +18,7 @@
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
+use std::collections::VecDeque;
 use subxt::utils::AccountId32;
 use synedrion::{
     ecdsa::VerifyingKey,
@@ -102,6 +103,7 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
         }
 
         while !session.can_finalize(&accum)? {
+            let mut messages_for_later = VecDeque::new();
             let (from, payload) = loop {
                 let message = rx.recv().await.ok_or_else(|| {
                     GenericProtocolError::<Res>::IncomingStream(format!(
@@ -110,17 +112,21 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
                     ))
                 })?;
 
-                if let ProtocolMessagePayload::CombinedMessage(payload) = message.payload {
+                if let ProtocolMessagePayload::CombinedMessage(payload) = message.payload.clone() {
                     if message.session_id_hash == session_id_hash {
                         break (message.from, *payload);
                     } else {
-                        tracing::warn!("Got protocol message with incorrect session ID - ignoring");
+                        tracing::warn!("Got protocol message with incorrect session ID - putting back in queue");
+                        messages_for_later.push_back(message);
                     }
                 } else {
                     tracing::warn!("Got verifying key during protocol - ignoring");
                 }
             };
-
+            // Put messages which were not for this session back onto the incoming message channel
+            for message in messages_for_later.into_iter() {
+                tx.incoming_sender.send(message).await.unwrap();
+            }
             // Perform quick checks before proceeding with the verification.
             let preprocessed = session.preprocess_message(&mut accum, &from, payload)?;
 
