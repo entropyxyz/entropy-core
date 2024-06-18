@@ -28,3 +28,6 @@ mod tests;
 pub mod client;
 #[cfg(feature = "full-client")]
 pub use client::*;
+
+#[cfg(feature = "full-client-wasm")]
+pub mod wasm;
