@@ -24,7 +24,7 @@ impl EntropyApi {
     pub async fn new(url: String) -> Result<EntropyApi, Error> {
         Ok(Self {
             api: get_api(&url).await.map_err(|err| Error::new(&format!("{:?}", err)))?,
-            rpc: get_rpc(&url).await.unwrap(),
+            rpc: get_rpc(&url).await.map_err(|err| Error::new(&format!("{:?}", err)))?,
         })
     }
 }
