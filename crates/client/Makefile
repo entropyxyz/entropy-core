@@ -17,6 +17,10 @@ build-bundler ::
 	# cp js-README.md ./pkg/README.md
 	cp ../../LICENSE ./pkg/
 
+# Builds a JS Module for nodejs in dev mode (no optimisations)
+build-nodejs-dev ::
+	wasm-pack build --dev --target nodejs --scope "entropyxyz" . --no-default-features -F full-client-wasm
+
 # Cleans out build artifacts.
 clean ::
 	rm -rf pkg/ nodejs-test/node_modules/
