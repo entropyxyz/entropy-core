@@ -104,6 +104,7 @@ pub enum ClientError {
     BadVerifyingKeyLength,
 }
 
+#[cfg(feature = "full-client")]
 impl From<synedrion::ecdsa::Error> for ClientError {
     fn from(ecdsa_error: synedrion::ecdsa::Error) -> ClientError {
         ClientError::Ecdsa(ecdsa_error)
