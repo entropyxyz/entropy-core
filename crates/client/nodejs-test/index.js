@@ -48,7 +48,7 @@ async function main () {
           break
       case 'accounts':
           // Display information about all registered accounts
-          const accounts = await client.get_accounts(api)
+          const accounts = await client.getAccounts(api)
           console.log(accounts)
           break
   }
