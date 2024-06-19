@@ -128,23 +128,37 @@ pub async fn register(
         SubxtAccountId32(signature_request_keypair.public().0);
 
     for _ in 0..50 {
-        let block_hash = rpc.chain_get_block_hash(None).await?;
-        let events =
-            EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
-        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
-        for event in registered_event.flatten() {
-            // check if the event belongs to this user
-            if event.0 == account_id {
-                let registered_query = entropy::storage().registry().registered(&event.1);
-                let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
-                if let Some(status) = registered_status {
-                    let verifying_key =
-                        event.1 .0.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
-                    return Ok((verifying_key, status, keyshare_option));
-                }
-            }
+        if let Ok((verifying_key, registration_status)) =
+            poll_for_registration(&api, &rpc, &account_id).await
+        {
+            return Ok((verifying_key, registration_status, keyshare_option));
         }
         std::thread::sleep(std::time::Duration::from_millis(1000));
+    }
+    Err(ClientError::RegistrationTimeout)
+}
+
+/// Check if a registration made by a given account was successful, and if so return registration details
+pub async fn poll_for_registration(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    account_id: &SubxtAccountId32,
+) -> Result<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo), ClientError> {
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+    let events =
+        EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
+    let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
+    for event in registered_event.flatten() {
+        // check if the event belongs to this user
+        if &event.0 == account_id {
+            let registered_query = entropy::storage().registry().registered(&event.1);
+            let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
+            if let Some(status) = registered_status {
+                let verifying_key =
+                    event.1 .0.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
+                return Ok((verifying_key, status));
+            }
+        }
     }
     Err(ClientError::RegistrationTimeout)
 }

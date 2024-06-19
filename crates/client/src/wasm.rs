@@ -96,42 +96,59 @@ impl VerifyingKey {
 /// Register an Entropy account
 #[wasm_bindgen]
 pub async fn register(
-    entropy_api: EntropyApi,
-    user_keypair: Sr25519Pair,
+    entropy_api: &EntropyApi,
+    user_keypair: &Sr25519Pair,
     program_account: Vec<u8>,
     // TODO this should be a js array of programs - for now allow just one program
     programs: ProgramInstance,
-) -> Result<VerifyingKey, Error> {
+) -> Result<(), Error> {
     let program_account: [u8; 32] =
         program_account.try_into().map_err(|_| Error::new("Program account must be 32 bytes"))?;
-    let (verifying_key, _, _) = client::register(
+
+    client::put_register_request_on_chain(
         &entropy_api.api,
         &entropy_api.rpc,
-        user_keypair.0,
+        user_keypair.0.clone(),
         AccountId32(program_account),
         KeyVisibility::Public,
         BoundedVec(vec![programs.0]),
-        None,
     )
     .await
     .map_err(|err| Error::new(&format!("{:?}", err)))?;
 
-    Ok(VerifyingKey(verifying_key))
+    Ok(())
+}
+
+#[wasm_bindgen(js_name=pollForRegistration)]
+pub async fn poll_for_registration(
+    entropy_api: &EntropyApi,
+    account_id: Vec<u8>,
+) -> Result<Option<VerifyingKey>, Error> {
+    let account_id: [u8; 32] =
+        account_id.try_into().map_err(|_| Error::new("Account ID must be 32 bytes"))?;
+    if let Ok((verifying_key, _)) =
+        client::poll_for_registration(&entropy_api.api, &entropy_api.rpc, &AccountId32(account_id))
+            .await
+    {
+        Ok(Some(VerifyingKey(verifying_key)))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Request to sign a message
 #[wasm_bindgen]
 pub async fn sign(
-    entropy_api: EntropyApi,
-    user_keypair: Sr25519Pair,
-    verifying_key: VerifyingKey,
+    entropy_api: &EntropyApi,
+    user_keypair: &Sr25519Pair,
+    verifying_key: &VerifyingKey,
     message: Vec<u8>,
     auxilary_data: Option<Vec<u8>>,
 ) -> Result<String, Error> {
     let recoverable_signature = client::sign(
         &entropy_api.api,
         &entropy_api.rpc,
-        user_keypair.0,
+        user_keypair.0.clone(),
         verifying_key.0,
         message,
         None,
@@ -147,8 +164,8 @@ pub async fn sign(
 /// Store a given program binary and return its hash
 #[wasm_bindgen(js_name=storeProgram)]
 pub async fn store_program(
-    entropy_api: EntropyApi,
-    deployer_pair: Sr25519Pair,
+    entropy_api: &EntropyApi,
+    deployer_pair: &Sr25519Pair,
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
     auxiliary_data_interface: Vec<u8>,
@@ -171,7 +188,7 @@ pub async fn store_program(
 
 /// Get a list of all registered Entropy accounts
 #[wasm_bindgen(js_name=getAccounts)]
-pub async fn get_accounts(entropy_api: EntropyApi) -> Result<String, Error> {
+pub async fn get_accounts(entropy_api: &EntropyApi) -> Result<String, Error> {
     let accounts = client::get_accounts(&entropy_api.api, &entropy_api.rpc)
         .await
         .map_err(|err| Error::new(&format!("{:?}", err)))?;
