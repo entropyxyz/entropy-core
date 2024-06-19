@@ -1,6 +1,7 @@
 const client = require('entropy-client')
 const minimist = require('minimist')
 const fs = require('node:fs')
+const path = require('node:path')
 
 // This is needed on Nodejs as we use bindings to the browser websocket API which is a property
 // of the global object
@@ -53,6 +54,8 @@ async function main () {
       const accounts = await client.getAccounts(api)
       console.log(accounts)
       break
+    default:
+      console.log(fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8'))
   }
 }
 
