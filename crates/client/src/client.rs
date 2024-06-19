@@ -129,7 +129,7 @@ pub async fn register(
 
     for _ in 0..50 {
         if let Ok((verifying_key, registration_status)) =
-            poll_for_registration(&api, &rpc, &account_id).await
+            poll_for_registration(api, rpc, &account_id).await
         {
             return Ok((verifying_key, registration_status, keyshare_option));
         }
