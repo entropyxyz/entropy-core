@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "dependencies": {
     "entropy-client": "file:../pkg",
+    "minimist": "^1.2.8",
     "ws": "^8.14.2"
   }
 }
