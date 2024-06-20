@@ -36,14 +36,14 @@ async function main () {
       await client.register(api, userKeypair, programAccount, [program])
       console.log('Submitted registration extrinsic, waiting for confirmation...')
       const verifyingKey = await pollForRegistration(api, userKeypair.public())
-      console.log(`Registered succesfully. Verifying key: ${verifyingKey.toHexString()}`)
+      console.log(`Registered succesfully. Verifying key: ${verifyingKey.toString()}`)
       break
     case 'sign':
       // Sign a message
       const signature = await client.sign(
         api,
         userKeypair,
-        client.VerifyingKey.fromHexString(args._[1]),
+        client.VerifyingKey.fromString(args._[1]),
         new Uint8Array(Buffer.from('my message to sign')),
         undefined // Aux data goes here
       )
@@ -52,7 +52,10 @@ async function main () {
     case 'accounts':
       // Display information about all registered accounts
       const accounts = await client.getAccounts(api)
-      console.log(accounts)
+      console.log(`There are ${accounts.length} Entropy accounts - with verifying keys:\n`)
+      for (const account of accounts) {
+          console.log(account.toString())
+      }
       break
     default:
       console.log(fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8'))
@@ -60,7 +63,6 @@ async function main () {
 }
 
 main().then(() => {
-  console.log('Done')
   process.exit(0)
 })
 

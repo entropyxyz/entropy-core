@@ -9,8 +9,8 @@ use entropy_shared::KeyVisibility;
 use js_sys::Error;
 use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_derive::TryFromJsValue;
+use wasm_bindgen::{prelude::*, JsCast, JsValue};
+use wasm_bindgen_derive::{into_js_array, TryFromJsValue};
 
 /// A connection to an Entropy chain endpoint
 #[wasm_bindgen]
@@ -80,16 +80,18 @@ impl Clone for ProgramInstance {
 extern "C" {
     #[wasm_bindgen(typescript_type = "ProgramInstance[]")]
     pub type ProgramInstanceArray;
+    #[wasm_bindgen(typescript_type = "VerifyingKey[]")]
+    pub type VerifyingKeyArray;
 }
 
 /// The public key of a distributed Entropy keypair
-#[wasm_bindgen]
+#[wasm_bindgen(inspectable)]
 pub struct VerifyingKey([u8; VERIFYING_KEY_LENGTH]);
 
 #[wasm_bindgen]
 impl VerifyingKey {
-    #[wasm_bindgen(js_name=fromHexString)]
-    pub fn from_hex_string(input: String) -> Result<VerifyingKey, Error> {
+    #[wasm_bindgen(js_name=fromString)]
+    pub fn from_string(input: String) -> Result<VerifyingKey, Error> {
         let vec = hex::decode(input).map_err(|_| Error::new("Program hash must be 32 bytes"))?;
         VerifyingKey::from_bytes(vec)
     }
@@ -104,8 +106,8 @@ impl VerifyingKey {
         self.0.to_vec()
     }
 
-    #[wasm_bindgen(js_name=toHexString)]
-    pub fn to_hex_string(&self) -> String {
+    #[wasm_bindgen(js_name=toString)]
+    pub fn to_string(&self) -> String {
         hex::encode(self.to_bytes())
     }
 }
@@ -204,14 +206,40 @@ pub async fn store_program(
     Ok(program_hash.to_string())
 }
 
-/// Get a list of all registered Entropy accounts
+/// Update the programs associated with an Entropy account
+#[wasm_bindgen(js_name=updatePrograms)]
+pub async fn update_programs(
+    entropy_api: &EntropyApi,
+    verifying_key: &VerifyingKey,
+    deployer_pair: &Sr25519Pair,
+    programs: ProgramInstanceArray,
+) -> Result<(), Error> {
+    let programs = parse_program_instances(programs)?;
+
+    client::update_programs(
+        &entropy_api.api,
+        &entropy_api.rpc,
+        verifying_key.0,
+        &deployer_pair.0,
+        BoundedVec(programs),
+    )
+    .await
+    .map_err(|err| Error::new(&format!("{:?}", err)))?;
+
+    Ok(())
+}
+
+/// Get a string list of all registered Entropy account's
 #[wasm_bindgen(js_name=getAccounts)]
-pub async fn get_accounts(entropy_api: &EntropyApi) -> Result<String, Error> {
+pub async fn get_accounts(entropy_api: &EntropyApi) -> Result<VerifyingKeyArray, Error> {
     let accounts = client::get_accounts(&entropy_api.api, &entropy_api.rpc)
         .await
         .map_err(|err| Error::new(&format!("{:?}", err)))?;
 
-    Ok(format!("{:?}", accounts))
+    let verifying_keys: Vec<_> =
+        accounts.into_iter().map(|(verifying_key, _info)| VerifyingKey(verifying_key)).collect();
+
+    Ok(into_js_array(verifying_keys))
 }
 
 /// Parse a JS array of ProgramInstance to a vector of pallet_registry ProgramsInstance
