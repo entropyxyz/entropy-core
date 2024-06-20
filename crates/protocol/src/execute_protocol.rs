@@ -125,7 +125,7 @@ async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
             };
             // Put messages which were not for this session back onto the incoming message channel
             for message in messages_for_later.into_iter() {
-                tx.incoming_sender.send(message).await.unwrap();
+                tx.incoming_sender.send(message).await?;
             }
             // Perform quick checks before proceeding with the verification.
             let preprocessed = session.preprocess_message(&mut accum, &from, payload)?;

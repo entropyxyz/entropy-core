@@ -29,6 +29,8 @@ pub enum GenericProtocolError<Res: MappedResult<PartyId>> {
     IncomingStream(String),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
+    #[error("Mpsc send error: {0}")]
+    Mpsc(#[from] tokio::sync::mpsc::error::SendError<ProtocolMessage>),
 }
 
 impl<Res: MappedResult<PartyId>> From<sessions::LocalError> for GenericProtocolError<Res> {
@@ -58,6 +60,7 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams>>> for Protoco
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::SigningProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
         }
     }
 }
@@ -69,6 +72,7 @@ impl From<GenericProtocolError<KeyInitResult<KeyParams>>> for ProtocolExecutionE
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
         }
     }
 }
@@ -80,6 +84,7 @@ impl From<GenericProtocolError<KeyResharingResult<KeyParams>>> for ProtocolExecu
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
         }
     }
 }
@@ -91,6 +96,7 @@ impl From<GenericProtocolError<AuxGenResult<KeyParams>>> for ProtocolExecutionEr
             GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
         }
     }
 }
@@ -112,6 +118,8 @@ pub enum ProtocolExecutionErr {
     AuxGenProtocolError(Box<sessions::Error<AuxGenResult<KeyParams>, PartyId>>),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
+    #[error("Mpsc send error: {0}")]
+    Mpsc(#[from] tokio::sync::mpsc::error::SendError<ProtocolMessage>),
     #[error("Bad keyshare error {0}")]
     BadKeyShare(String),
     #[error("Cannot serialize session ID {0}")]
