@@ -29,8 +29,10 @@ async function main () {
     case 'register':
       // Register an account
 
-      // Use the device key proxy program for now
-      const program = new client.ProgramInstance(new Uint8Array(32), new Uint8Array())
+      // Program hash defaults to device key proxy program
+      const hash = args.program ? new Uint8Array(Buffer.from(arg.program, 'hex')) : new Uint8Array(32)
+      const auxData = args.programAuxData ? new Uint8Array(Buffer.from(arg.programAuxData, 'hex')) : new Uint8Array()
+      const program = new client.ProgramInstance(hash, auxData)
       const programAccount = userKeypair.public()
 
       await client.register(api, userKeypair, programAccount, [program])
