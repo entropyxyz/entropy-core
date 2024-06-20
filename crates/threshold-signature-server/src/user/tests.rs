@@ -149,7 +149,7 @@ async fn test_sign_tx_no_chain() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Eve;
+    let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
     let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
@@ -339,7 +339,7 @@ async fn test_sign_tx_no_chain_fail() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Eve;
+    let one = AccountKeyring::Dave;
 
     let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
@@ -462,7 +462,7 @@ async fn test_program_with_config() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Eve;
+    let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
     let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
@@ -895,7 +895,7 @@ async fn test_device_key_proxy() {
         pub context: String,
     }
 
-    let one = AccountKeyring::Eve;
+    let one = AccountKeyring::Dave;
 
     let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
