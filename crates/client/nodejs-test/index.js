@@ -54,7 +54,7 @@ async function main () {
       const accounts = await client.getAccounts(api)
       console.log(`There are ${accounts.length} Entropy accounts - with verifying keys:\n`)
       for (const account of accounts) {
-          console.log(account.toString())
+        console.log(account.toString())
       }
       break
     default:
