@@ -34,7 +34,7 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
     Json(hashing_algos)
 }
 
-/// message is keccak hex encoded hash of message
+/// message is stripped 0x keccak hex encoded hash of message
 #[tracing::instrument(skip_all)]
 pub async fn get_subgroup_signers(
     State(app_state): State<AppState>,
