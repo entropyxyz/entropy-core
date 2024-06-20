@@ -25,6 +25,7 @@ At the moment this project **does not** adhere to
 - Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
 - Prepare test CLI for use in Programs repo ([#856](https://github.com/entropyxyz/entropy-core/pull/856))
 - Replace timestamp with block number ([#866](https://github.com/entropyxyz/entropy-core/pull/866))
+- Change currency units ([#901](https://github.com/entropyxyz/entropy-core/pull/901))
 
 ## [0.1.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0) - 2024-05-20
 
