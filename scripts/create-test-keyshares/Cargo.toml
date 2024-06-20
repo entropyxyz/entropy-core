@@ -13,6 +13,7 @@ entropy-testing-utils={ version="0.1.0", path="../../crates/testing-utils" }
 tokio={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 entropy-shared={ version="0.1.0", path="../../crates/shared" }
 entropy-kvdb={ version="0.1.0", path="../../crates/kvdb", default-features=false }
+# Unreleased version of synedrion - this was head of master at the point of beginning to add t of n
 synedrion={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
 entropy-tss={ version="0.1.0", path="../../crates/threshold-signature-server", features=[
   "test_helpers",
