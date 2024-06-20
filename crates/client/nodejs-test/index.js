@@ -33,7 +33,7 @@ async function main () {
       const program = new client.ProgramInstance(new Uint8Array(32), new Uint8Array())
       const programAccount = userKeypair.public()
 
-      await client.register(api, userKeypair, programAccount, program)
+      await client.register(api, userKeypair, programAccount, [program])
       console.log('Submitted registration extrinsic, waiting for confirmation...')
       const verifyingKey = await pollForRegistration(api, userKeypair.public())
       console.log(`Registered succesfully. Verifying key: ${verifyingKey.toHexString()}`)

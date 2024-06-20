@@ -10,6 +10,7 @@ use js_sys::Error;
 use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_derive::TryFromJsValue;
 
 /// A connection to an Entropy chain endpoint
 #[wasm_bindgen]
@@ -49,6 +50,7 @@ impl Sr25519Pair {
 }
 
 /// An instance of a program, with configuration (which may be empty)
+#[derive(TryFromJsValue)]
 #[wasm_bindgen]
 pub struct ProgramInstance(pallet_registry::pallet::ProgramInstance);
 
@@ -63,6 +65,21 @@ impl ProgramInstance {
             program_config,
         }))
     }
+}
+
+impl Clone for ProgramInstance {
+    fn clone(&self) -> Self {
+        ProgramInstance(pallet_registry::pallet::ProgramInstance {
+            program_pointer: self.0.program_pointer.clone(),
+            program_config: self.0.program_config.clone(),
+        })
+    }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "ProgramInstance[]")]
+    pub type ProgramInstanceArray;
 }
 
 /// The public key of a distributed Entropy keypair
@@ -99,11 +116,12 @@ pub async fn register(
     entropy_api: &EntropyApi,
     user_keypair: &Sr25519Pair,
     program_account: Vec<u8>,
-    // TODO this should be a js array of programs - for now allow just one program
-    programs: ProgramInstance,
+    programs: ProgramInstanceArray,
 ) -> Result<(), Error> {
     let program_account: [u8; 32] =
         program_account.try_into().map_err(|_| Error::new("Program account must be 32 bytes"))?;
+
+    let programs = parse_program_instances(programs)?;
 
     client::put_register_request_on_chain(
         &entropy_api.api,
@@ -111,7 +129,7 @@ pub async fn register(
         user_keypair.0.clone(),
         AccountId32(program_account),
         KeyVisibility::Public,
-        BoundedVec(vec![programs.0]),
+        BoundedVec(programs),
     )
     .await
     .map_err(|err| Error::new(&format!("{:?}", err)))?;
@@ -194,4 +212,20 @@ pub async fn get_accounts(entropy_api: &EntropyApi) -> Result<String, Error> {
         .map_err(|err| Error::new(&format!("{:?}", err)))?;
 
     Ok(format!("{:?}", accounts))
+}
+
+/// Parse a JS array of ProgramInstance to a vector of pallet_registry ProgramsInstance
+fn parse_program_instances(
+    program_instances_js: ProgramInstanceArray,
+) -> Result<Vec<pallet_registry::pallet::ProgramInstance>, Error> {
+    let js_val: &JsValue = program_instances_js.as_ref();
+    let array: &js_sys::Array =
+        js_val.dyn_ref().ok_or_else(|| Error::new("The argument must be an array"))?;
+    let length: usize = array.length().try_into().map_err(|err| Error::new(&format!("{}", err)))?;
+    let mut programs = Vec::<pallet_registry::pallet::ProgramInstance>::with_capacity(length);
+    for js in array.iter() {
+        let typed_elem = ProgramInstance::try_from(&js).map_err(|err| Error::new(&err))?;
+        programs.push(typed_elem.0);
+    }
+    Ok(programs)
 }

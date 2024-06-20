@@ -21,6 +21,8 @@ pub mod user;
 pub mod util;
 pub use util::Hasher;
 
+extern crate alloc;
+
 #[cfg(test)]
 mod tests;
 
