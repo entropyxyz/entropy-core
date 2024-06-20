@@ -38,10 +38,9 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
         ```sh
         docker compose logs --follow # Following is also optional.
         ```
-    * [use the Entropy CLI](https://docs.entropy.xyz/reference/cli#install) to interact with the locally running network:
+    * [use the Entropy Test CLI](https://docs.entropy.xyz/reference/rust-testing-interface) to interact with the locally running network:
         ```sh
-        cd /path/to/entropy/cli.source.code
-        yarn start --endpoint ws://127.0.0.1:9944
+        cargo run -p entropy-test-cli -- --chain-endpoint="ws://127.0.0.1:9944" status 
         ```
 
 ### Building from source
