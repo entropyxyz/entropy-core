@@ -36,7 +36,7 @@ use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
     protocol_message::{ProtocolMessage, ProtocolMessagePayload},
     protocol_transport::Broadcaster,
-    KeyParams, KeyShareWithAuxInfo, PartyId, SessionId,
+    DkgSubsession, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId,
 };
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
@@ -214,7 +214,7 @@ pub async fn execute_dkg(
 
     let my_party_id = PartyId::new(AccountId32(threshold_pair.public().0));
 
-    let session_id_hash = session_id.blake2(Some("key_init"))?;
+    let session_id_hash = session_id.blake2(Some(DkgSubsession::KeyInit))?;
     let (mut key_init_parties, includes_me) =
         get_key_init_parties(&my_party_id, threshold, &party_ids, &session_id_hash)?;
     key_init_parties.sort();
@@ -288,7 +288,7 @@ pub async fn execute_dkg(
         new_threshold: threshold,
     };
 
-    let session_id_hash = session_id.blake2(Some("reshare"))?;
+    let session_id_hash = session_id.blake2(Some(DkgSubsession::Reshare))?;
     let session =
         make_key_resharing_session(&mut OsRng, &session_id_hash, pair.clone(), &party_ids, &inputs)
             .map_err(ProtocolExecutionErr::SessionCreation)?;
@@ -302,7 +302,7 @@ pub async fn execute_dkg(
     let chans = Channels(broadcaster.clone(), rx);
 
     // Now run the aux gen protocol to get AuxInfo
-    let session_id_hash = session_id.blake2(Some("aux_gen"))?;
+    let session_id_hash = session_id.blake2(Some(DkgSubsession::AuxGen))?;
     let session = make_aux_gen_session(&mut OsRng, &session_id_hash, pair, &party_ids)
         .map_err(ProtocolExecutionErr::SessionCreation)?;
     let aux_info = execute_protocol_generic(chans, session, session_id_hash).await?.0;

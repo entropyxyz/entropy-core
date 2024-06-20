@@ -201,14 +201,25 @@ impl Hash for SessionId {
 impl SessionId {
     /// Take the hash of the session ID - used as uniqueness in the protocol
     /// Optionally with some extra data used to identify a sub-session
-    pub fn blake2(&self, sub_session: Option<&str>) -> Result<[u8; 32], ProtocolExecutionErr> {
+    pub fn blake2(
+        &self,
+        sub_session: Option<DkgSubsession>,
+    ) -> Result<[u8; 32], ProtocolExecutionErr> {
         let mut hasher = Blake2s256::new();
         hasher.update(bincode::serialize(self)?);
-        if let Some(name) = sub_session {
-            hasher.update(name.as_bytes());
+        if let Some(session) = sub_session {
+            hasher.update(format!("{:?}", session).as_bytes());
         }
         Ok(hasher.finalize().into())
     }
+}
+
+/// A sub-protocol of the DKG protocol
+#[derive(Debug)]
+pub enum DkgSubsession {
+    KeyInit,
+    Reshare,
+    AuxGen,
 }
 
 /// Decode a [VerifyingKey] from bytes
