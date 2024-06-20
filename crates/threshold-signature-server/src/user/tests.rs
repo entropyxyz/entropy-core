@@ -33,7 +33,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
-    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, FERDIE_VERIFYING_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -171,7 +171,7 @@ async fn test_sign_tx_no_chain() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: EVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
         message_hash,
         request_author: signature_request_account.clone(),
     });
@@ -190,7 +190,7 @@ async fn test_sign_tx_no_chain() {
     update_programs(
         &entropy_api,
         &rpc,
-        EVE_VERIFYING_KEY,
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -204,12 +204,12 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
+    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
     let mock_client = reqwest::Client::new();
     // check request limiter increases
     let unsafe_get =
-        UnsafeQuery::new(request_limit_key(hex::encode(EVE_VERIFYING_KEY.to_vec())), vec![])
+        UnsafeQuery::new(request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())), vec![])
             .to_json();
 
     let get_response = mock_client
@@ -279,7 +279,7 @@ async fn test_sign_tx_no_chain() {
     });
 
     generic_msg.timestamp = SystemTime::now();
-    generic_msg.signature_verifying_key = EVE_VERIFYING_KEY.to_vec().to_vec();
+    generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -414,7 +414,7 @@ async fn test_sign_tx_no_chain_fail() {
     update_programs(
         &entropy_api,
         &rpc,
-        EVE_VERIFYING_KEY,
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -430,7 +430,7 @@ async fn test_sign_tx_no_chain_fail() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     run_to_block(&rpc, block_number + 1).await;
     let unsafe_put = UnsafeQuery::new(
-        request_limit_key(hex::encode(EVE_VERIFYING_KEY.to_vec())),
+        request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())),
         RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
             .encode(),
     )
@@ -501,7 +501,7 @@ async fn test_program_with_config() {
     update_programs(
         &entropy_api,
         &rpc,
-        EVE_VERIFYING_KEY,
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
@@ -515,7 +515,7 @@ async fn test_program_with_config() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
+    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
     clean_tests();
 }
@@ -928,7 +928,7 @@ async fn test_device_key_proxy() {
     update_programs(
         &entropy_api,
         &rpc,
-        EVE_VERIFYING_KEY,
+        DAVE_VERIFYING_KEY,
         &one.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: *DEVICE_KEY_HASH,
@@ -957,7 +957,7 @@ async fn test_device_key_proxy() {
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: EVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys: Vec<_> = validators_info
@@ -972,7 +972,7 @@ async fn test_device_key_proxy() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
+    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
 }
 
@@ -1142,7 +1142,7 @@ pub async fn get_sign_tx_data(
         validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: EVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
     let validator_ips_and_keys =
