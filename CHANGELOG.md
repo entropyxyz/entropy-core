@@ -14,12 +14,14 @@ At the moment this project **does not** adhere to
 - In [#881](https://github.com/entropyxyz/entropy-core/pull/881) the `HashingAlgorithm` enum is
   given an additional variant `Blake2_256` and marked as `non_exhaustive` meaning we must handle the
   case that an unknown variant is added in the future.
+  - In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection now adds a ```.sort()``` function before selecting the index to ensure consistentcy across libraries languages and clients
 
 ### Added
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
 - Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
-- Add blake2 as built in hash function and make HashingAlgorithm non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881)
+- Add blake2 as built in hash function and make HashingAlgorithm non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
+- Add sort to subgroup signer selection ([#900](https://github.com/entropyxyz/entropy-core/pull/900))
 - Create local large testnet ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
 
 ### Changed
