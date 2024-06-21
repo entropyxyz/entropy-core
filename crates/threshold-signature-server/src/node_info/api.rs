@@ -44,7 +44,6 @@ pub async fn get_subgroup_signers(
 ) -> Result<String, UserErr> {
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let subgroup_signers =
-        get_current_subgroup_signers(&api, &rpc, &message_hash_keccak_hex).await?;
+    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &message_hash).await?;
     Ok(serde_json::to_string(&subgroup_signers)?)
 }
