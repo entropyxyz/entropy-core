@@ -190,7 +190,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
 /// provided in this repository.
 ///
 /// This configuration matches the same setup as the `testnet`, with the exception that is uses
-/// two well-known accounts (Alice and Bob) as the authorities.
+/// four well-known accounts (Alice Bob Dave and Eve) as the authorities.
 pub fn testnet_local_config_large() -> crate::chain_spec::ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Entropy Testnet Local Large")
