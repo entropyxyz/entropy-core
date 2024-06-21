@@ -20,6 +20,7 @@ At the moment this project **does not** adhere to
 - Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
 - Add blake2 as built in hash function and make HashingAlgorithm non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881)
+- Create local large testnet ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
 
 ### Changed
 - Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
