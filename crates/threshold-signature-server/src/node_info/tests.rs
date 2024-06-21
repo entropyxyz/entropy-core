@@ -13,7 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::helpers::tests::{initialize_test_logger, setup_client};
+use crate::{
+    chain_api::{get_api, get_rpc},
+    helpers::tests::{initialize_test_logger, setup_client, spawn_testing_validators},
+};
+use entropy_client::user::get_current_subgroup_signers;
+use entropy_testing_utils::substrate_context::test_context_stationary;
+
+use entropy_kvdb::clean_tests;
 use entropy_shared::types::HashingAlgorithm;
 use serial_test::serial;
 
@@ -49,4 +56,32 @@ async fn hashes_test() {
             HashingAlgorithm::Custom(0),
         ]
     );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_get_subgroup() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let _ = spawn_testing_validators(None, false, false).await;
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let mock_client = reqwest::Client::new();
+    // example keccak hash
+    let message_hash = "06b3dfaec148fb1bb2b066f10ec285e7c9bf402ab32aa78a5d38e34566810cd2";
+    let response = mock_client
+        .post("http://127.0.0.1:3001/subgroup_signers")
+        .header("Content-Type", "application/json")
+        .body(message_hash)
+        .send()
+        .await;
+    let mock_result = get_current_subgroup_signers(&api, &rpc, &message_hash).await.unwrap();
+    assert_eq!(
+        serde_json::to_string(&mock_result).unwrap(),
+        response.unwrap().text().await.unwrap(),
+        "subgroup data should match"
+    );
+    clean_tests();
 }

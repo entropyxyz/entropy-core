@@ -12,9 +12,16 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use axum::Json;
+use crate::{
+    chain_api::{get_api, get_rpc},
+    user::UserErr,
+    AppState,
+};
+use axum::{extract::State, Json};
+pub use entropy_client::user::get_current_subgroup_signers;
 use entropy_shared::types::HashingAlgorithm;
 use strum::IntoEnumIterator;
+
 /// Returns the version and commit data
 #[tracing::instrument]
 pub async fn version() -> String {
@@ -25,4 +32,19 @@ pub async fn version() -> String {
 pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
     let hashing_algos = HashingAlgorithm::iter().collect::<Vec<_>>();
     Json(hashing_algos)
+}
+
+/// Returns the list of subgroup signers given a message hash.
+///
+/// Note: the message hash should not include a preceding `0x`.
+#[tracing::instrument(skip_all)]
+pub async fn get_subgroup_signers(
+    State(app_state): State<AppState>,
+    message_hash: String,
+) -> Result<String, UserErr> {
+    tracing::debug!("Message hash {:?}", message_hash);
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+    let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &message_hash).await?;
+    Ok(serde_json::to_string(&subgroup_signers)?)
 }

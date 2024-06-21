@@ -61,11 +61,11 @@ pub async fn get_current_subgroup_signers(
             async move {
                 let subgroup_info_query =
                     entropy::storage().staking_extension().signing_groups(i as u8);
-                let subgroup_info =
-                    query_chain(api, rpc, subgroup_info_query, block_hash)
-                        .await?
-                        .ok_or_else(|| SubgroupGetError::ChainFetch("Subgroup Fetch Error"))?;
-
+                let mut subgroup_info = query_chain(api, rpc, subgroup_info_query, block_hash)
+                    .await?
+                    .ok_or_else(|| SubgroupGetError::ChainFetch("Subgroup Fetch Error"))?;
+                // sort subgroup for ease in client side calculations
+                subgroup_info.sort();
                 let index_of_signer_big = &*owned_number % subgroup_info.len();
                 let index_of_signer =
                     index_of_signer_big.to_usize().ok_or(SubgroupGetError::Usize("Usize error"))?;
