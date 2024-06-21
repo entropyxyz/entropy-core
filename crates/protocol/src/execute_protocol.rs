@@ -331,16 +331,18 @@ pub async fn execute_proactive_refresh(
     let pair = PairWrapper(threshold_pair.clone());
     let verifying_key = old_key.verifying_key();
 
+    let threshold = old_key.threshold();
+
     let session_id_hash = session_id.blake2(None)?;
     let inputs = KeyResharingInputs {
         old_holder: Some(OldHolder { key_share: old_key }),
         new_holder: Some(NewHolder {
             verifying_key,
-            old_threshold: party_ids.len(),
+            old_threshold: threshold,
             old_holders: party_ids.clone(),
         }),
         new_holders: party_ids.clone(),
-        new_threshold: party_ids.len(),
+        new_threshold: threshold,
     };
     let session =
         make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
