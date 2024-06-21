@@ -16,7 +16,10 @@
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
-use entropy_client::client::{store_program, update_programs};
+use entropy_client::{
+    client::{sign, store_program, update_programs},
+    user::get_signers_from_chain,
+};
 use entropy_kvdb::{
     clean_tests,
     encrypted_sled::PasswordMethod,
@@ -24,12 +27,13 @@ use entropy_kvdb::{
 };
 use entropy_programs_runtime::{Runtime, SignatureRequest};
 use entropy_protocol::{
+    decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
     KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
-    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, FERDIE_VERIFYING_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -107,7 +111,7 @@ use crate::{
         substrate::{query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators,
+            remove_program, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -138,6 +142,7 @@ async fn test_get_signer_does_not_throw_err() {
     get_signer(&kv_store).await.unwrap();
     clean_tests();
 }
+
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain() {
@@ -147,8 +152,7 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -172,8 +176,8 @@ async fn test_sign_tx_no_chain() {
         request_author: signature_request_account.clone(),
     });
 
-    let (_validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
+    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     generic_msg.timestamp = SystemTime::now();
     // test points to no program
@@ -200,17 +204,16 @@ async fn test_sign_tx_no_chain() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let keyshare = keyshare_with_aux_info_option.unwrap().0;
-    verify_signature(test_user_res, message_hash, &keyshare).await;
+    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
+    verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
     let mock_client = reqwest::Client::new();
     // check request limiter increases
     let unsafe_get =
         UnsafeQuery::new(request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())), vec![])
             .to_json();
 
-    // check get key before registration to see if key gets replaced
     let get_response = mock_client
-        .post("http://127.0.0.1:3001/unsafe/get")
+        .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
         .header("Content-Type", "application/json")
         .body(unsafe_get.clone())
         .send()
@@ -226,7 +229,7 @@ async fn test_sign_tx_no_chain() {
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res_order, message_hash, &keyshare).await;
+    verify_signature(test_user_res_order, message_hash, &verifying_key, &validators_info).await;
 
     generic_msg.timestamp = SystemTime::now();
     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
@@ -338,15 +341,14 @@ async fn test_sign_tx_no_chain_fail() {
 
     let one = AccountKeyring::Dave;
 
-    let (validator_ips, _validator_ids, _keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let mock_client = reqwest::Client::new();
 
-    let (_validators_info, generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(validator_ips, hex::encode(PREIMAGE_SHOULD_SUCCEED));
+    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // fails verification tests
     // wrong key for wrong validator
@@ -398,6 +400,29 @@ async fn test_sign_tx_no_chain_fail() {
     let request_limit =
         query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
 
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &one.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+    update_programs(
+        &entropy_api,
+        &rpc,
+        DAVE_VERIFYING_KEY,
+        &one.pair(),
+        OtherBoundedVec(vec![
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+        ]),
+    )
+    .await
+    .unwrap();
     // test request limit reached
 
     // gets current blocknumber, potential race condition run to block + 1
@@ -411,21 +436,17 @@ async fn test_sign_tx_no_chain_fail() {
     )
     .to_json();
 
-    let _ = mock_client
-        .post("http://127.0.0.1:3001/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(unsafe_put.clone())
-        .send()
-        .await
-        .unwrap();
-    let _ = mock_client
-        .post("http://127.0.0.1:3002/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(unsafe_put.clone())
-        .send()
-        .await
-        .unwrap();
+    for validator_info in validators_info {
+        mock_client
+            .post(format!("http://{}/unsafe/put", validator_info.ip_address))
+            .header("Content-Type", "application/json")
+            .body(unsafe_put.clone())
+            .send()
+            .await
+            .unwrap();
+    }
 
+    generic_msg.timestamp = SystemTime::now();
     let test_user_failed_request_limit =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -444,8 +465,7 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec().clone()), None, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -466,8 +486,8 @@ async fn test_program_with_config() {
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
 
     let message_hash = Hasher::keccak(message.as_bytes());
-    let (_validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(validator_ips, hex::encode(message));
+    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message)).await;
 
     let config = r#"
         {
@@ -495,8 +515,8 @@ async fn test_program_with_config() {
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let keyshare = keyshare_with_aux_info_option.unwrap().0;
-    verify_signature(test_user_res, message_hash, &keyshare).await;
+    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
+    verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
     clean_tests();
 }
 
@@ -511,8 +531,7 @@ async fn test_store_share() {
     let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), None, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -531,6 +550,7 @@ async fn test_store_share() {
     .unwrap();
 
     let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: b"127.0.0.1:3001".to_vec(),
@@ -541,6 +561,11 @@ async fn test_store_share() {
             ip_address: b"127.0.0.1:3002".to_vec(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3003".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone().encode(),
         },
     ];
     let mut onchain_user_request = OcwMessageDkg {
@@ -560,15 +585,22 @@ async fn test_store_share() {
 
     run_to_block(&rpc, block_number + 1).await;
 
-    // succeeds
-    let user_registration_response = client
-        .post("http://127.0.0.1:3002/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
+    let response_results = join_all(
+        vec![3002, 3003]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/user/new", port))
+                    .body(onchain_user_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
 
-    assert_eq!(user_registration_response.text().await.unwrap(), "");
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
 
     let mut new_verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
@@ -592,19 +624,10 @@ async fn test_store_share() {
     // Check that the timeout was not reached
     assert!(new_verifying_key.len() > 0);
 
-    let get_query =
-        UnsafeQuery::new(hex::encode(new_verifying_key.to_vec()), [].to_vec()).to_json();
-    // check get key before registration to see if key gets replaced
-    let response_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
+    let response_key = unsafe_get(&client, hex::encode(&new_verifying_key), 3001).await;
     // check to make sure keyshare is correct
     let key_share: Option<KeyShareWithAuxInfo> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
 
     // fails repeated data
@@ -734,7 +757,8 @@ async fn test_check_hash_pointer_out_of_bounds() {
 pub async fn verify_signature(
     test_user_res: Vec<Result<reqwest::Response, reqwest::Error>>,
     message_should_succeed_hash: [u8; 32],
-    keyshare: &ThresholdKeyShare<KeyParams, PartyId>,
+    verifying_key: &VerifyingKey,
+    validators_info: &Vec<ValidatorInfo>,
 ) {
     let mut i = 0;
     for res in test_user_res {
@@ -754,11 +778,11 @@ pub async fn verify_signature(
             recover_id,
         )
         .unwrap();
-        assert_eq!(keyshare.verifying_key(), recovery_key_from_sig);
+        assert_eq!(verifying_key, &recovery_key_from_sig);
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
             BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
-            &sr25519::Public(TSS_ACCOUNTS[i].0),
+            &sr25519::Public(validators_info[i].tss_account.0),
         );
         assert!(sig_recovery);
         i += 1;
@@ -774,8 +798,7 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids, _) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
+    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -874,8 +897,7 @@ async fn test_device_key_proxy() {
 
     let one = AccountKeyring::Dave;
 
-    let (validator_ips, _validator_ids, keyshare_with_aux_info_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), None, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -916,18 +938,7 @@ async fn test_device_key_proxy() {
     .await
     .unwrap();
 
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "localhost:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
+    let validators_info = get_signers_from_chain(&entropy_api, &rpc).await.unwrap();
     let context = signing_context(b"");
 
     let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
@@ -943,23 +954,26 @@ async fn test_device_key_proxy() {
         auxilary_data: Some(vec![Some(hex::encode(
             &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
         ))]),
-        validators_info,
+        validators_info: validators_info.clone(),
         timestamp: SystemTime::now(),
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
+    let validator_ips_and_keys: Vec<_> = validators_info
+        .iter()
+        .map(|validator_info| {
+            (validator_info.ip_address.clone(), validator_info.x25519_public_key.clone())
+        })
+        .collect();
 
     generic_msg.timestamp = SystemTime::now();
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-    let keyshare = keyshare_with_aux_info_option.unwrap().0;
-    verify_signature(test_user_res, message_hash, &keyshare).await;
+
+    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
+    verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
 }
 
 #[tokio::test]
@@ -1113,22 +1127,12 @@ pub async fn submit_transaction_requests(
     .await
 }
 
-pub fn get_sign_tx_data(
-    validator_ips: Vec<String>,
+pub async fn get_sign_tx_data(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
     message: String,
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "localhost:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
+    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
     let generic_msg = UserSignatureRequest {
         message,
         auxilary_data: Some(vec![
@@ -1141,10 +1145,8 @@ pub fn get_sign_tx_data(
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
 
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
+    let validator_ips_and_keys =
+        validators_info.iter().map(|v| (v.ip_address.clone(), v.x25519_public_key)).collect();
 
     (validators_info, generic_msg, validator_ips_and_keys)
 }

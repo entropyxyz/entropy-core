@@ -82,6 +82,6 @@ impl Listener {
 
     /// When all connections are set up, convert to a broadcaster and proceed with the protocol
     pub fn into_broadcaster(self) -> (oneshot::Sender<ListenerResult>, Broadcaster) {
-        (self.tx_ready, Broadcaster(self.tx))
+        (self.tx_ready, Broadcaster { broadcast: self.tx, incoming_sender: self.tx_to_others })
     }
 }

@@ -21,12 +21,12 @@ use entropy_client::{
     client as test_client, Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_protocol::RecoverableSignature;
-use entropy_shared::FERDIE_VERIFYING_KEY;
+use entropy_protocol::{decode_verifying_key, RecoverableSignature};
+use entropy_shared::EVE_VERIFYING_KEY;
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
+    spawn_testing_validators,
     substrate_context::test_context_stationary,
-    tss_server_process::spawn_testing_validators,
 };
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
@@ -46,11 +46,9 @@ const GOERLI_CHAIN_ID: u64 = 5;
 #[serial]
 async fn integration_test_sign_eth_tx() {
     clean_tests();
-    let pre_registered_user = AccountKeyring::Ferdie;
-    let deployer = AccountKeyring::Eve;
+    let pre_registered_user = AccountKeyring::Eve;
 
-    let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), false, false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -58,7 +56,7 @@ async fn integration_test_sign_eth_tx() {
     let program_pointer = test_client::store_program(
         &api,
         &rpc,
-        &deployer.pair(),
+        &pre_registered_user.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -70,7 +68,7 @@ async fn integration_test_sign_eth_tx() {
     test_client::update_programs(
         &api,
         &rpc,
-        FERDIE_VERIFYING_KEY,
+        EVE_VERIFYING_KEY,
         &pre_registered_user.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
@@ -78,7 +76,7 @@ async fn integration_test_sign_eth_tx() {
     .unwrap();
 
     // Get the public key to use in the 'from' field
-    let verifying_key = keyshare_option.clone().unwrap().verifying_key();
+    let verifying_key = decode_verifying_key(&EVE_VERIFYING_KEY).unwrap();
 
     let transaction_request = create_unsigned_eth_tx(verifying_key);
 
@@ -90,7 +88,7 @@ async fn integration_test_sign_eth_tx() {
         &api,
         &rpc,
         pre_registered_user.pair(),
-        FERDIE_VERIFYING_KEY,
+        EVE_VERIFYING_KEY,
         message,
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )

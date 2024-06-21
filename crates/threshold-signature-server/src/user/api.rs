@@ -77,7 +77,7 @@ use crate::{
     AppState, Configuration,
 };
 
-pub use entropy_client::user::UserSignatureRequest;
+pub use entropy_client::user::{get_signers_from_chain, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Type for validators to send user key's back and forth
@@ -168,8 +168,8 @@ pub async fn sign_tx(
     }
 
     let signers = get_signers_from_chain(&api, &rpc).await?;
-    // // Use the validator info from chain as we can be sure it is in the correct order and the
-    // // details are correct
+    // Use the validator info from chain as we can be sure it is in the correct order and the
+    // details are correct
     user_sig_req.validators_info = signers;
 
     let message_hash = compute_hash(
@@ -280,14 +280,7 @@ async fn setup_dkg(
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
 
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-    for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
+    for sig_request_account in data.sig_request_accounts.into_iter() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
             .try_into()
@@ -311,16 +304,17 @@ async fn setup_dkg(
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
+        let block_hash = rpc
+            .chain_get_block_hash(None)
+            .await?
+            .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+
+        let nonce_call =
+            entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+        let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
         // TODO: Error handling really complex needs to be thought about.
-        confirm_registered(
-            &api,
-            rpc,
-            sig_request_address,
-            &signer,
-            verifying_key,
-            nonce + i as u32,
-        )
-        .await?;
+        confirm_registered(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
     }
     Ok(())
 }
@@ -441,44 +435,6 @@ pub async fn confirm_registered(
     );
     submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
     Ok(())
-}
-
-pub async fn get_signers_from_chain(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<Vec<ValidatorInfo>, UserErr> {
-    let all_validators_query = entropy::storage().session().validators();
-    let all_validators = query_chain(api, rpc, all_validators_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Get all validators error"))?;
-    let block_hash = rpc.chain_get_block_hash(None).await?;
-    let mut handles = Vec::new();
-
-    for validator in all_validators {
-        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, UserErr>> = tokio::task::spawn({
-            let api = api.clone();
-            let rpc = rpc.clone();
-            async move {
-                let threshold_address_query =
-                    entropy::storage().staking_extension().threshold_servers(validator);
-                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
-                    .await?
-                    .ok_or_else(|| UserErr::ChainFetch("Subgroup Fetch Error"))?;
-                Ok(ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
-                    tss_account: server_info.tss_account,
-                })
-            }
-        });
-        handles.push(handle);
-    }
-    let mut all_signers: Vec<ValidatorInfo> = vec![];
-    for handle in handles {
-        all_signers.push(handle.await??);
-    }
-
-    Ok(all_signers)
 }
 
 /// Validates new user endpoint

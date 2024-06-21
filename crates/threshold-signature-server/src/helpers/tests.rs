@@ -15,10 +15,8 @@
 
 //! Utilities used in unit tests
 
-// only compile when testing
-#![cfg(test)]
-
-use std::time::Duration;
+// only compile when testing or when the test_helpers feature is enabled
+#![cfg(any(test, feature = "test_helpers"))]
 
 use crate::{
     app,
@@ -32,8 +30,7 @@ use crate::{
             setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
             DEFAULT_ENDPOINT,
         },
-        logger::Instrumentation,
-        logger::Logger,
+        logger::{Instrumentation, Logger},
         substrate::{query_chain, submit_transaction},
     },
     signing_client::ListenerState,
@@ -41,15 +38,13 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
-use entropy_protocol::{KeyParams, KeyShareWithAuxInfo, PartyId};
-use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
-use rand_core::OsRng;
-use sp_core::Pair;
+use entropy_protocol::PartyId;
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY};
+use std::time::Duration;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
-use synedrion::{k256::ecdsa::SigningKey, AuxInfo, KeyShare};
 use tokio::sync::OnceCell;
 
 /// A shared reference to the logger used for tests.
@@ -62,9 +57,7 @@ pub static LOGGER: OnceCell<()> = OnceCell::const_new();
 ///
 /// The logger will only be initialized once, even if this function is called multiple times.
 pub async fn initialize_test_logger() {
-    let mut instrumentation = Instrumentation::default();
-    instrumentation.logger = Logger::Pretty;
-
+    let instrumentation = Instrumentation { logger: Logger::Pretty, ..Default::default() };
     *LOGGER.get_or_init(|| instrumentation.setup()).await
 }
 
@@ -79,7 +72,7 @@ pub async fn setup_client() -> KvManager {
     let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
     let app = app(app_state).into_make_service();
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
         .await
         .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
@@ -118,15 +111,10 @@ pub async fn create_clients(
     (app, kv_store)
 }
 
-pub async fn spawn_testing_validators(
-    passed_verifying_key: Option<Vec<u8>>,
-    // If this is given a keyshare for the user will be generated and returned
-    extra_private_key: Option<sr25519::Pair>,
-    // If true keyshare and verifying key is deterministic
-    deterministic_key_share: bool,
-) -> (Vec<String>, Vec<PartyId>, Option<KeyShareWithAuxInfo>) {
+/// Spawn 3 TSS nodes with pre-stored keyshares
+pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
-    let ports = [3001i64, 3002];
+    let ports = [3001i64, 3002, 3003];
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
@@ -140,52 +128,18 @@ pub async fn spawn_testing_validators(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
-    let mut ids = vec![alice_id, bob_id];
-    if let Some(pair) = extra_private_key {
-        ids.push(PartyId::new(SubxtAccountId32(pair.public().0)));
-    }
+    let (charlie_axum, charlie_kv) =
+        create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
+            .await;
+    let charlie_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
 
-    let user_keyshare_option = if passed_verifying_key.is_some() {
-        // creates a deterministic keyshare if requiered
-        let signing_key = if deterministic_key_share {
-            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE_EVE).into()).unwrap())
-        } else {
-            None
-        };
+    let ids = vec![alice_id, bob_id, charlie_id];
 
-        let shares =
-            KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, signing_key.as_ref());
-        let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
-
-        let validator_1_threshold_keyshare: Vec<u8> = entropy_kvdb::kv_manager::helpers::serialize(
-            &(shares[0].to_threshold_key_share(), &aux_infos[0]),
-        )
-        .unwrap();
-        let validator_2_threshold_keyshare: Vec<u8> = entropy_kvdb::kv_manager::helpers::serialize(
-            &(shares[1].to_threshold_key_share(), &aux_infos[1]),
-        )
-        .unwrap();
-        // uses the deterministic verifying key if requested
-        let verifying_key = if deterministic_key_share {
-            hex::encode(shares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec())
-        } else {
-            hex::encode(passed_verifying_key.unwrap())
-        };
-
-        // add key share to kvdbs
-        let alice_reservation = alice_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
-        alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
-
-        let bob_reservation = bob_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
-        bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
-
-        Some((
-            shares[shares.len() - 1].to_threshold_key_share(),
-            aux_infos[aux_infos.len() - 1].clone(),
-        ))
-    } else {
-        None
-    };
+    put_keyshares_in_db("alice", alice_kv).await;
+    put_keyshares_in_db("bob", bob_kv).await;
+    put_keyshares_in_db("charlie", charlie_kv).await;
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -201,10 +155,36 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_charlie, charlie_axum).await.unwrap();
+    });
+
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
-    (ips, ids, user_keyshare_option)
+    (ips, ids)
+}
+
+/// Add the pre-generated test keyshares to a kvdb
+async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager) {
+    let user_names_and_verifying_keys = [("eve", EVE_VERIFYING_KEY), ("dave", DAVE_VERIFYING_KEY)];
+
+    for (user_name, user_verifying_key) in user_names_and_verifying_keys {
+        let keyshare_bytes = {
+            let project_root =
+                project_root::get_project_root().expect("Error obtaining project root.");
+            let file_path = project_root.join(format!(
+                "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
+                user_name, holder_name
+            ));
+            std::fs::read(file_path).unwrap()
+        };
+        let reservation = kvdb.kv().reserve_key(hex::encode(user_verifying_key)).await.unwrap();
+        kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
+    }
 }
 
 /// Removes the program at the program hash
@@ -258,4 +238,19 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
     while current_block < block_run {
         current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     }
+}
+
+/// Get a value from a kvdb using unsafe get
+#[cfg(test)]
+pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) -> Vec<u8> {
+    let get_query = crate::r#unsafe::api::UnsafeQuery::new(query_key, vec![]).to_json();
+    let get_result = client
+        .post(format!("http://127.0.0.1:{}/unsafe/get", port))
+        .header("Content-Type", "application/json")
+        .body(get_query)
+        .send()
+        .await
+        .unwrap();
+
+    get_result.bytes().await.unwrap().into()
 }

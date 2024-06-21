@@ -21,13 +21,13 @@ use entropy_client::{
     client as test_client, Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::DAVE_VERIFYING_KEY;
+use entropy_shared::EVE_VERIFYING_KEY;
 use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
+    spawn_testing_validators,
     substrate_context::test_context_stationary,
-    tss_server_process::spawn_testing_validators,
 };
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
@@ -37,13 +37,11 @@ use synedrion::k256::ecdsa::VerifyingKey;
 #[serial]
 async fn integration_test_sign_public() {
     clean_tests();
-    let pre_registered_public_user = AccountKeyring::Dave;
+    let eve = AccountKeyring::Eve;
     let request_author = AccountKeyring::One;
-    let deployer = AccountKeyring::Eve;
 
-    let (_validator_ips, _validator_ids, keyshare_option) =
-        spawn_testing_validators(Some(DAVE_VERIFYING_KEY.to_vec()), false, false).await;
-    dbg!(_validator_ids);
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -51,7 +49,7 @@ async fn integration_test_sign_public() {
     let program_pointer = test_client::store_program(
         &api,
         &rpc,
-        &deployer.pair(),
+        &eve.pair(),
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -63,8 +61,8 @@ async fn integration_test_sign_public() {
     test_client::update_programs(
         &api,
         &rpc,
-        DAVE_VERIFYING_KEY,
-        &pre_registered_public_user.pair(),
+        EVE_VERIFYING_KEY,
+        &eve.pair(),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
     .await
@@ -76,7 +74,7 @@ async fn integration_test_sign_public() {
         &api,
         &rpc,
         request_author.pair(),
-        DAVE_VERIFYING_KEY,
+        EVE_VERIFYING_KEY,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),
         Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
     )
@@ -89,5 +87,8 @@ async fn integration_test_sign_public() {
         recoverable_signature.recovery_id,
     )
     .unwrap();
-    assert_eq!(keyshare_option.clone().unwrap().verifying_key(), recovery_key_from_sig);
+    assert_eq!(
+        EVE_VERIFYING_KEY.to_vec(),
+        recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
+    );
 }

@@ -50,10 +50,11 @@ pub fn development_config() -> ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            vec!["127.0.0.1:3001", "127.0.0.1:3002"],
+            vec!["127.0.0.1:3001", "127.0.0.1:3002", "127.0.0.1:3003"],
         ))
         .build()
 }
@@ -180,6 +181,14 @@ pub fn development_genesis_config(
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
                         threshold_server_endpoints[1].as_bytes().to_vec(),
+                    ),
+                ),
+                (
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                    (
+                        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+                        crate::chain_spec::tss_x25519_public_key::CHARLIE,
+                        threshold_server_endpoints[2].as_bytes().to_vec(),
                     ),
                 ),
             ],
