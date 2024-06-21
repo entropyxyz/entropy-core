@@ -34,11 +34,13 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
     Json(hashing_algos)
 }
 
-/// message is stripped 0x keccak hex encoded hash of message
+/// Returns the list of subgroup signers given a message hash.
+///
+/// Note: the message hash should not include a preceding `0x`.
 #[tracing::instrument(skip_all)]
 pub async fn get_subgroup_signers(
     State(app_state): State<AppState>,
-    message_hash_keccak_hex: String,
+    message_hash: String,
 ) -> Result<String, UserErr> {
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
