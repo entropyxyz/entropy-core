@@ -54,6 +54,16 @@ pub fn testnet_local_initial_authorities(
     ]
 }
 
+pub fn testnet_local_large_initial_authorities(
+) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
+    vec![
+        crate::chain_spec::authority_keys_from_seed("Alice"),
+        crate::chain_spec::authority_keys_from_seed("Bob"),
+        crate::chain_spec::authority_keys_from_seed("Dave"),
+        crate::chain_spec::authority_keys_from_seed("Eve"),
+    ]
+}
+
 /// Generates the keys for the initial testnet authorities.
 ///
 /// These public keys were generated using the `generate-validator-node-keys.sh` script which can
@@ -176,6 +186,34 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
         .build()
 }
 
+/// The configuration used for a local testnet network spun up using the `docker-compose` setup
+/// provided in this repository.
+///
+/// This configuration matches the same setup as the `testnet`, with the exception that is uses
+/// two well-known accounts (Alice and Bob) as the authorities.
+pub fn testnet_local_config_large() -> crate::chain_spec::ChainSpec {
+    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+        .with_name("Entropy Testnet Local Large")
+        .with_id("entropy_testnet_local_large")
+        .with_chain_type(ChainType::Live)
+        .with_genesis_config_patch(testnet_genesis_config(
+            testnet_local_large_initial_authorities(),
+            vec![],
+            get_account_id_from_seed::<sr25519::Public>("Alice"),
+            testnet_local_large_initial_tss_servers(),
+        ))
+        .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
+        .with_properties(crate::chain_spec::entropy_properties())
+        .with_telemetry_endpoints(
+            TelemetryEndpoints::new(vec![(
+                crate::chain_spec::STAGING_TELEMETRY_URL.to_string(),
+                0,
+            )])
+            .expect("Staging telemetry url is valid; qed"),
+        )
+        .build()
+}
+
 pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -190,6 +228,33 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
     );
 
     vec![alice, bob]
+}
+
+pub fn testnet_local_large_initial_tss_servers(
+) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+    let alice = (
+        crate::chain_spec::tss_account_id::ALICE.clone(),
+        crate::chain_spec::tss_x25519_public_key::ALICE,
+        "alice-tss-server:3001".to_string(),
+    );
+
+    let bob = (
+        crate::chain_spec::tss_account_id::BOB.clone(),
+        crate::chain_spec::tss_x25519_public_key::BOB,
+        "bob-tss-server:3002".to_string(),
+    );
+    let dave = (
+        crate::chain_spec::tss_account_id::DAVE.clone(),
+        crate::chain_spec::tss_x25519_public_key::DAVE,
+        "dave-tss-server:3003".to_string(),
+    );
+    let eve = (
+        crate::chain_spec::tss_account_id::EVE.clone(),
+        crate::chain_spec::tss_x25519_public_key::EVE_TSS,
+        "eve-tss-server:3004".to_string(),
+    );
+
+    vec![alice, bob, dave, eve]
 }
 
 /// Information about the initial set of Threshold Signature Signing servers.

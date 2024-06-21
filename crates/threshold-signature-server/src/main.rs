@@ -52,6 +52,12 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
+    if args.dave {
+        validator_name = Some(ValidatorName::Dave);
+    }
+    if args.eve {
+        validator_name = Some(ValidatorName::Eve);
+    }
 
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
