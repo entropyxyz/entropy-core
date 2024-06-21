@@ -46,6 +46,7 @@ pub fn development_config() -> ChainSpec {
         .with_name("Development")
         .with_id("dev")
         .with_chain_type(ChainType::Development)
+        .with_properties(crate::chain_spec::entropy_properties())
         .with_genesis_config_patch(development_genesis_config(
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
@@ -67,6 +68,7 @@ pub fn devnet_local_config() -> crate::chain_spec::ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Devnet Local")
         .with_id("devnet_local")
+        .with_properties(crate::chain_spec::entropy_properties())
         .with_chain_type(ChainType::Development)
         .with_genesis_config_patch(development_genesis_config(
             vec![
