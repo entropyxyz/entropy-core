@@ -139,6 +139,9 @@ pub struct StartupArgs {
     #[arg(short = 'a', long = "alice")]
     pub alice: bool,
     /// Use the developer key dave.
+    #[arg(long = "charlie")]
+    pub charlie: bool,
+    /// Use the developer key dave.
     #[arg(long = "dave")]
     pub dave: bool,
     /// Use the developer key Eve.

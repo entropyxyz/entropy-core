@@ -52,6 +52,9 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
+    if args.charlie {
+        validator_name = Some(ValidatorName::Charlie);
+    }
     if args.dave {
         validator_name = Some(ValidatorName::Dave);
     }
