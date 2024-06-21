@@ -338,7 +338,7 @@ pub async fn execute_proactive_refresh(
         old_holder: Some(OldHolder { key_share: old_key }),
         new_holder: Some(NewHolder {
             verifying_key,
-            old_threshold: threshold,
+            old_threshold: party_ids.len(),
             old_holders: party_ids.clone(),
         }),
         new_holders: party_ids.clone(),
