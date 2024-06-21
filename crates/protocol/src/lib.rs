@@ -217,8 +217,11 @@ impl SessionId {
 /// A sub-protocol of the DKG protocol
 #[derive(Debug)]
 pub enum DkgSubsession {
+    /// The synedrion key init protocol
     KeyInit,
+    /// The synedrion reshare protocol
     Reshare,
+    /// The synedrion aux gen protocol
     AuxGen,
 }
 
