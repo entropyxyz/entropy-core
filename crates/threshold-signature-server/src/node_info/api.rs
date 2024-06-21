@@ -42,6 +42,7 @@ pub async fn get_subgroup_signers(
     State(app_state): State<AppState>,
     message_hash: String,
 ) -> Result<String, UserErr> {
+    tracing::debug!("Message hash {:?}", message_hash);
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let subgroup_signers = get_current_subgroup_signers(&api, &rpc, &message_hash).await?;
