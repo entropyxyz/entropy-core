@@ -1335,7 +1335,7 @@ version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b34115915337defe99b2aff5c2ce6771e5fbc4079f4b506301f5cf394c8452f7"
 dependencies = [
- "strum 0.26.2",
+ "strum 0.26.3",
  "strum_macros 0.26.4",
  "unicode-width",
 ]
@@ -2643,7 +2643,7 @@ dependencies = [
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-std 12.0.0",
- "strum 0.26.2",
+ "strum 0.26.3",
  "strum_macros 0.26.4",
  "subxt",
 ]
@@ -2734,7 +2734,7 @@ dependencies = [
  "snow",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
- "strum 0.26.2",
+ "strum 0.26.3",
  "subxt",
  "subxt-signer",
  "synedrion",
@@ -2887,7 +2887,7 @@ dependencies = [
  "rlp",
  "serde",
  "serde_json",
- "strum 0.26.2",
+ "strum 0.26.3",
  "tempfile",
  "thiserror",
  "tiny-keccak",
@@ -5024,11 +5024,11 @@ dependencies = [
 
 [[package]]
 name = "lazy_static"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 dependencies = [
- "spin 0.5.2",
+ "spin 0.9.8",
 ]
 
 [[package]]
@@ -12532,7 +12532,7 @@ checksum = "089da5d08c4a6b4a36de664de287f4a391ac338e351a923b79aedfc46162f201"
 dependencies = [
  "sp-core 32.0.0",
  "sp-runtime 35.0.0",
- "strum 0.26.2",
+ "strum 0.26.3",
 ]
 
 [[package]]
@@ -13527,9 +13527,9 @@ dependencies = [
 
 [[package]]
 name = "strum"
-version = "0.26.2"
+version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d8cec3501a5194c432b2b7976db6b7d10ec95c253208b45f83f7136aa985e29"
+checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
 dependencies = [
  "strum_macros 0.26.4",
 ]
