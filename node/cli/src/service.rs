@@ -252,7 +252,7 @@ pub fn new_partial(
         other: (rpc_extensions_builder, import_setup, rpc_setup, telemetry),
     })
 }
-#[allow(dead_code)]
+
 /// Result of [`new_full_base`].
 #[allow(dead_code)]
 pub struct NewFullBase {
