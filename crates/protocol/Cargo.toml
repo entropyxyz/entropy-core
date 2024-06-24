@@ -1,6 +1,6 @@
 [package]
 name       ='entropy-protocol'
-version    ='0.1.0'
+version    ='0.2.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 description="Entropy Signing and DKG protocol execution and transport logic"
 homepage   ='https://entropy.xyz/'
@@ -10,7 +10,7 @@ edition    ='2021'
 
 [dependencies]
 async-trait        ="0.1.80"
-entropy-shared     ={ version="0.1.0", path="../shared", default-features=false }
+entropy-shared     ={ version="0.2.0-rc.1", path="../shared", default-features=false }
 synedrion          ="0.1"
 serde              ={ version="1.0", features=["derive"], default-features=false }
 subxt              ={ version="0.35.3", default-features=false }
