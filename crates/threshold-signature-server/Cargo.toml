@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-tss"
-version    ="0.1.0"
+version    ="0.2.0-rc.1"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 description='Entropy threshold signature scheme (TSS) server'
@@ -38,10 +38,10 @@ parity-scale-codec="3.6.12"
 sp-core           ={ version="31.0.0", default-features=false }
 
 # Entropy
-entropy-shared  ={ version="0.1.0", path="../shared" }
-entropy-kvdb    ={ version="0.1.0", path="../kvdb", default-features=false }
-entropy-protocol={ version="0.1.0", path="../protocol", features=["server"] }
-entropy-client  ={ version="0.1.0", path="../client", default-features=false, features=["native"] }
+entropy-shared  ={ version="0.2.0-rc.1", path="../shared" }
+entropy-kvdb    ={ version="0.2.0-rc.1", path="../kvdb", default-features=false }
+entropy-protocol={ version="0.2.0-rc.1", path="../protocol", features=["server"] }
+entropy-client  ={ version="0.2.0-rc.1", path="../client", default-features=false, features=["native"] }
 
 # Programs
 entropy-programs-runtime="0.10.0"

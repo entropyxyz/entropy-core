@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-staking-extension'
-version   ='0.1.0'
+version   ='0.2.0-rc.1'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -27,7 +27,7 @@ sp-runtime        ={ version="32.0.0", default-features=false }
 sp-staking        ={ version="27.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 
-entropy-shared={ version="0.1.0", path="../../crates/shared", features=[
+entropy-shared={ version="0.2.0-rc.1", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
 
