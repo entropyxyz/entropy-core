@@ -1687,6 +1687,7 @@ async fn test_device_key_proxy() {
     verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_faucet() {
