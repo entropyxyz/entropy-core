@@ -22,7 +22,7 @@ At the moment this project **does not** adhere to
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
 - Add blake2 as built in hash function and make HashingAlgorithm non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
 - Add sort to subgroup signer selection ([#900](https://github.com/entropyxyz/entropy-core/pull/900))
-- Create local large testnet ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
+- Create four node Docker Compose chainspec ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
 
 ### Changed
 - Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
