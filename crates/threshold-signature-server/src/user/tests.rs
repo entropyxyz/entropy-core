@@ -1760,7 +1760,7 @@ async fn test_faucet() {
     .await
     .unwrap();
 
-    let amount_to_send = 200000012;
+    let amount_to_send = 200000014;
     let faucet_user_config = UserConfig { max_transfer_amount: amount_to_send };
 
     update_programs(
