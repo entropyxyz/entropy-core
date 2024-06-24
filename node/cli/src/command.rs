@@ -78,8 +78,8 @@ impl SubstrateCli for Cli {
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
-            "devnet-local" => Box::new(chain_spec::dev::devnet_local_config()),
-            "devnet-local-four-nodes" => Box::new(chain_spec::dev::devnet_local_config_large()),
+            "devnet-local" => Box::new(chain_spec::dev::devnet_local_two_node_config()),
+            "devnet-local-four-nodes" => Box::new(chain_spec::dev::devnet_local_four_node_config()),
             "integration-tests" => {
                 Box::new(chain_spec::integration_tests::integration_tests_config())
             },
