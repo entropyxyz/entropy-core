@@ -1686,7 +1686,7 @@ async fn test_device_key_proxy() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
 }
-
+// ignored for now see https://github.com/entropyxyz/entropy-core/issues/909
 #[ignore]
 #[tokio::test]
 #[serial]
@@ -1829,7 +1829,6 @@ async fn test_faucet() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
-        // dbg!(res.unwrap().text().await.unwrap());
         let chunk = res.unwrap().chunk().await.unwrap().unwrap();
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
