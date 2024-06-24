@@ -56,6 +56,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+        with:
+          pattern: "!*.dockerbuild"
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
