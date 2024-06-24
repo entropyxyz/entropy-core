@@ -1696,12 +1696,8 @@ async fn test_faucet() {
     #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
     #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
     pub struct AuxData {
-        pub genesis_hash: String,
         pub spec_version: u32,
         pub transaction_version: u32,
-        pub header_string: String,
-        pub mortality: u64,
-        pub nonce: u64,
         pub string_account_id: String,
         pub amount: u128,
     }
@@ -1711,6 +1707,7 @@ async fn test_faucet() {
     #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
     pub struct UserConfig {
         max_transfer_amount: u128,
+        genesis_hash: String,
     }
 
     let one = AccountKeyring::Dave;
@@ -1760,8 +1757,13 @@ async fn test_faucet() {
     .await
     .unwrap();
 
-    let amount_to_send = 200000013;
-    let faucet_user_config = UserConfig { max_transfer_amount: amount_to_send };
+    let amount_to_send = 200000001;
+    let genesis_hash = &entropy_api.genesis_hash();
+
+    let faucet_user_config = UserConfig {
+        max_transfer_amount: amount_to_send,
+        genesis_hash: hex::encode(genesis_hash.encode()),
+    };
 
     update_programs(
         &entropy_api,
@@ -1789,24 +1791,17 @@ async fn test_faucet() {
         },
     ];
     // get tx data for aux data
-    let genesis_hash = &entropy_api.genesis_hash();
     let spec_version = entropy_api.runtime_version().spec_version;
     let transaction_version = entropy_api.runtime_version().transaction_version;
 
-    let binding_header = entropy_api.blocks().at_latest().await.unwrap();
-    let header = binding_header.header();
     let aux_data = AuxData {
-        genesis_hash: hex::encode(genesis_hash.encode()),
         spec_version,
         transaction_version,
-        header_string: serde_json::to_string(&header).unwrap(),
-        mortality: 32u64,
-        nonce: 0,
         string_account_id: one.to_account_id().to_string(),
         amount: amount_to_send,
     };
     // create a partial tx to sign
-    let tx_params = Params::new().mortal(header, aux_data.mortality).nonce(aux_data.nonce).build();
+    let tx_params = Params::new().build();
     let balance_transfer_tx =
         entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
     let partial =
@@ -1833,6 +1828,7 @@ async fn test_faucet() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
+        // dbg!(res.unwrap().text().await.unwrap());
         let chunk = res.unwrap().chunk().await.unwrap().unwrap();
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
