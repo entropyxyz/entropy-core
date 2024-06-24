@@ -1687,7 +1687,7 @@ async fn test_device_key_proxy() {
     verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
 }
 
-/// FIXME (#909): ... explain why it's being ignored ...
+/// FIXME (#909): Ignored due to block number changing message causing signing selection to be the incorrect nodes
 #[ignore]
 #[tokio::test]
 #[serial]
