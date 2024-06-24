@@ -1686,7 +1686,8 @@ async fn test_device_key_proxy() {
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
     verify_signature(test_user_res, message_hash, keyshare_option.clone()).await;
 }
-// ignored for now see https://github.com/entropyxyz/entropy-core/issues/909
+
+/// FIXME (#909): ... explain why it's being ignored ...
 #[ignore]
 #[tokio::test]
 #[serial]
