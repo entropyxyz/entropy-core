@@ -17,6 +17,7 @@ At the moment this project **does not** adhere to
   - In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection now adds a ```.sort()``` function before selecting the index to ensure consistentcy across libraries languages and clients
 
 ### Added
+- JS bindings for entropy client ([#897](https://github.com/entropyxyz/entropy-core/pull/897))
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
 - Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))

@@ -32,7 +32,10 @@ hex             ={ version="0.4.3", optional=true }
 anyhow          ="1.0.86"
 
 # Only for the browser
-js-sys={ version="0.3.68", optional=true }
+js-sys              ={ version="0.3.68", optional=true }
+wasm-bindgen-futures={ version="0.4.42", optional=true }
+wasm-bindgen        ={ version="0.2.92", optional=true }
+wasm-bindgen-derive ={ version="0.3", optional=true }
 
 [dev-dependencies]
 tokio                ="1.38"
@@ -64,4 +67,14 @@ full-client=[
   "dep:hex",
 ]
 full-client-native=["full-client", "entropy-protocol/server"]
-full-client-wasm=["full-client", "entropy-protocol/wasm", "dep:js-sys"]
+full-client-wasm=[
+  "full-client",
+  "entropy-protocol/wasm",
+  "dep:js-sys",
+  "wasm-bindgen",
+  "wasm-bindgen-futures",
+  "wasm-bindgen-derive",
+]
+
+[lib]
+crate-type=["cdylib", "rlib"]

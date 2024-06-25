@@ -21,6 +21,8 @@ pub mod user;
 pub mod util;
 pub use util::Hasher;
 
+extern crate alloc;
+
 #[cfg(test)]
 mod tests;
 
@@ -28,3 +30,6 @@ mod tests;
 pub mod client;
 #[cfg(feature = "full-client")]
 pub use client::*;
+
+#[cfg(feature = "full-client-wasm")]
+pub mod wasm;

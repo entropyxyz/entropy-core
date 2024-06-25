@@ -22,7 +22,7 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "wasm-no-std")]
 use sp_runtime::RuntimeDebug;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "wasm"))]
 use strum_macros::EnumIter;
 
 /// X25519 public key used by the client in non-interactive ECDH to authenticate/encrypt
@@ -86,11 +86,11 @@ pub struct OcwMessageProactiveRefresh {
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.
-#[cfg_attr(any(feature = "wasm", feature = "std"), derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "std", derive(EnumIter))]
+#[cfg_attr(any(feature = "std", feature = "wasm"), derive(Serialize, Deserialize))]
+#[cfg_attr(any(feature = "std", feature = "wasm"), derive(EnumIter))]
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "std", serde(rename = "hash"))]
-#[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
+#[cfg_attr(any(feature = "std", feature = "wasm"), serde(rename = "hash"))]
+#[cfg_attr(any(feature = "std", feature = "wasm"), serde(rename_all = "lowercase"))]
 #[non_exhaustive]
 pub enum HashingAlgorithm {
     Sha1,

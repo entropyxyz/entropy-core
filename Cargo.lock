@@ -2459,6 +2459,9 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-derive",
+ "wasm-bindgen-futures",
  "x25519-dalek 2.0.1",
 ]
 
