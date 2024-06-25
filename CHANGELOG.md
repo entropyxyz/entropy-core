@@ -15,6 +15,10 @@ At the moment this project **does not** adhere to
 - In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
   TSS mnemonic was shifted to operators, which can be done using the `--mnemonic` flag during
   process startup. This also allows operators to back up the mnemonic for their TSS.
+- In [#856](https://github.com/entropyxyz/entropy-core/pull/856) a new flag, `--mnemonic-option`,
+  and environment variable `DEPLOYER_MNEMONIC`, were added to the `entropy-test-cli` as ways to
+  indicate which account to use during registration. This replaces having an account name or
+  mnemonic directly in the command invocation.
 - In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from
   `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for
   stale checks
