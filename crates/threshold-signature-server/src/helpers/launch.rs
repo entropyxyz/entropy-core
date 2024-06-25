@@ -39,7 +39,10 @@ pub const DEFAULT_ALICE_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 pub const DEFAULT_CHARLIE_MNEMONIC: &str =
     "lake carry still awful point mention bike category tornado plate brass lock";
-
+pub const DEFAULT_DAVE_MNEMONIC: &str =
+    "beef dutch panic monkey black glad audit twice humor gossip wealth drive";
+pub const DEFAULT_EVE_MNEMONIC: &str =
+    "impact federal dish number fun crisp various wedding radio immense whisper glue";
 pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
 pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
 
@@ -60,6 +63,8 @@ pub enum ValidatorName {
     Alice,
     Bob,
     Charlie,
+    Dave,
+    Eve,
 }
 
 /// Output for --setup-only flag
@@ -133,6 +138,15 @@ pub struct StartupArgs {
     /// Use the developer key Alice.
     #[arg(short = 'a', long = "alice")]
     pub alice: bool,
+    /// Use the developer key dave.
+    #[arg(long = "charlie")]
+    pub charlie: bool,
+    /// Use the developer key dave.
+    #[arg(long = "dave")]
+    pub dave: bool,
+    /// Use the developer key Eve.
+    #[arg(short = 'e', long = "eve")]
+    pub eve: bool,
     /// Websocket endpoint for the entropy blockchain.
     #[arg(
         short = 'c',
@@ -221,6 +235,8 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
             ValidatorName::Alice => DEFAULT_ALICE_MNEMONIC,
             ValidatorName::Bob => DEFAULT_BOB_MNEMONIC,
             ValidatorName::Charlie => DEFAULT_CHARLIE_MNEMONIC,
+            ValidatorName::Dave => DEFAULT_DAVE_MNEMONIC,
+            ValidatorName::Eve => DEFAULT_EVE_MNEMONIC,
         }
     } else {
         DEFAULT_MNEMONIC
