@@ -1011,7 +1011,7 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
   pub const ProposalBond: Permill = Permill::from_percent(5);
   pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
-pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
+  pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
   pub const SpendPeriod: BlockNumber = DAYS;
   pub const Burn: Permill = Permill::from_percent(50);
   pub const TipCountdown: BlockNumber = DAYS;
