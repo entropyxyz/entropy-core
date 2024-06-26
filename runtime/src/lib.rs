@@ -1104,7 +1104,7 @@ impl Pay for PayFromTreasuryAccount {
         let _ = <Balances as fungible::Mutate<_>>::transfer(
             &TreasuryAccount::get(),
             who,
-            amount * 100 * DOLLARS
+            amount * 100 * DOLLARS,
             Preservation::Expendable,
         )?;
         Ok(())
