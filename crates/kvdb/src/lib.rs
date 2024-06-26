@@ -35,7 +35,7 @@ pub fn get_db_path(testing: bool) -> String {
 
 pub fn clean_tests() {
     let db_path = get_db_path(true);
-    if fs::metadata(db_path).is_ok() {
+    if fs::metadata(db_path.clone()).is_ok() {
         let _result = std::fs::remove_dir_all(db_path);
     }
 }
