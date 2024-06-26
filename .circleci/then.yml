@@ -101,7 +101,8 @@ jobs:
             resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
-            - run: pushd node && cargo check --features=runtime-benchmarks
+            - run: pwd && ./scripts/benchmarks.sh 2 1
+
     node-test:
         machine:
             image: ubuntu-2204:2022.10.2
