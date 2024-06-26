@@ -9,7 +9,7 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
 
-## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-06-XX
+## [0.2.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0-rc.1) - 2024-06-24
 
 ### Breaking Changes
 - In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
@@ -29,7 +29,7 @@ At the moment this project **does not** adhere to
   sorted to ensure a predicatble order across libraries, languages and clients.
 
 ### Added
-- Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
+- Add a way to change program modification account ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
 - Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
 - Add `blake2` as built in hash function and make `HashingAlgorithm` non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
