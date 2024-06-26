@@ -1032,7 +1032,7 @@ pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
   pub const CuratorDepositMin: Balance = DOLLARS;
   pub const CuratorDepositMax: Balance = 100 * DOLLARS;
   pub const SpendPayoutPeriod: BlockNumber = 30 * DAYS;
-  pub const MaxBalance: Balance = Balance::max_value();
+  pub const MaxBalance: Balance = Balance::MAX;
 }
 
 impl pallet_treasury::Config for Runtime {
