@@ -101,7 +101,7 @@ jobs:
             resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
-            - run: ./scripts/benchmarks 2 1
+            - run: ../scripts/benchmarks 2 1
 
     node-test:
         machine:
