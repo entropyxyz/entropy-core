@@ -16,6 +16,7 @@
 use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
+use blake3::hash;
 use entropy_client::{
     client::{sign, store_program, update_programs},
     user::get_signers_from_chain,
@@ -33,7 +34,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
-    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, FERDIE_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -42,7 +43,7 @@ use entropy_testing_utils::{
     },
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED,
+        FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED,
         TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH,
         TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
@@ -74,15 +75,18 @@ use std::{
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    config::substrate::{BlakeTwo256, SubstrateHeader},
+    config::{DefaultExtrinsicParamsBuilder, PolkadotExtrinsicParamsBuilder as Params},
     events::EventsClient,
     ext::{
-        sp_core::{sr25519, sr25519::Signature, Bytes, Pair},
+        sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Bytes, Pair},
         sp_runtime::AccountId32,
     },
-    tx::PairSigner,
-    utils::{AccountId32 as subxtAccountId32, Static, H256},
+    tx::{PairSigner, TxStatus},
+    utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature, Static, H256},
     Config, OnlineClient,
 };
+use subxt_signer::ecdsa::PublicKey as EcdsaPublicKey;
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     AuxInfo, ThresholdKeyShare,
@@ -98,14 +102,16 @@ use super::UserInputPartyInfo;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::entropy_runtime::RuntimeCall,
+        entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
     get_signer,
     helpers::{
         launch::{
-            load_kv_store, setup_mnemonic, Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC,
-            DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            development_mnemonic, load_kv_store, setup_mnemonic, Configuration, ValidatorName,
+            DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
         substrate::{query_chain, submit_transaction},
@@ -137,8 +143,8 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 
     let kv_store = load_kv_store(&None, None).await;
-    let account = setup_mnemonic(&kv_store, &None).await;
-    assert_eq!(account.unwrap(), "5DACCJgQV6sHoYUKfTGEimddFxe16NJXgkzHZ3RC9QCBShMH");
+    let account = setup_mnemonic(&kv_store, development_mnemonic(&None)).await;
+    assert_eq!(account, "5DACCJgQV6sHoYUKfTGEimddFxe16NJXgkzHZ3RC9QCBShMH");
     get_signer(&kv_store).await.unwrap();
     clean_tests();
 }
@@ -179,7 +185,7 @@ async fn test_sign_tx_no_chain() {
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     // test points to no program
     let test_no_program =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -200,7 +206,7 @@ async fn test_sign_tx_no_chain() {
     .await
     .unwrap();
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -224,14 +230,15 @@ async fn test_sign_tx_no_chain() {
     let request_info: RequestLimitStorage =
         RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
     assert_eq!(request_info.request_amount, 1);
-    generic_msg.timestamp = SystemTime::now();
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     verify_signature(test_user_res_order, message_hash, &verifying_key, &validators_info).await;
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -278,7 +285,7 @@ async fn test_sign_tx_no_chain() {
         encrypted_connection.recv().await.is_err()
     });
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
@@ -299,7 +306,7 @@ async fn test_sign_tx_no_chain() {
     // Now, test a signature request that should fail
     // The test program is written to fail when `auxilary_data` is `None`
     generic_msg.auxilary_data = None;
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -313,7 +320,7 @@ async fn test_sign_tx_no_chain() {
 
     // The test program is written to fail when `auxilary_data` is `None` but only on the second program
     generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_user_failed_aux_data =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -322,7 +329,7 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.hash = HashingAlgorithm::Custom(3);
     let test_user_custom_hash_out_of_bounds =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
@@ -446,7 +453,7 @@ async fn test_sign_tx_no_chain_fail() {
             .unwrap();
     }
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_failed_request_limit =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -511,7 +518,7 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
@@ -848,7 +855,7 @@ async fn test_fail_infinite_program() {
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
         validators_info,
-        timestamp: SystemTime::now(),
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
@@ -858,7 +865,7 @@ async fn test_fail_infinite_program() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_infinite_loop =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -955,7 +962,7 @@ async fn test_device_key_proxy() {
             &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
         ))]),
         validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };
@@ -967,13 +974,202 @@ async fn test_device_key_proxy() {
         })
         .collect();
 
-    generic_msg.timestamp = SystemTime::now();
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
+}
+
+/// FIXME (#909): Ignored due to block number changing message causing signing selection to be the incorrect nodes
+#[ignore]
+#[tokio::test]
+#[serial]
+async fn test_faucet() {
+    initialize_test_logger().await;
+    clean_tests();
+    /// JSON representation of the auxiliary data
+    #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    pub struct AuxData {
+        pub spec_version: u32,
+        pub transaction_version: u32,
+        pub string_account_id: String,
+        pub amount: u128,
+    }
+
+    /// JSON-deserializable struct that will be used to derive the program-JSON interface.
+    #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
+    #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+    pub struct UserConfig {
+        max_transfer_amount: u128,
+        genesis_hash: String,
+    }
+
+    let one = AccountKeyring::Dave;
+    let two = AccountKeyring::Eve;
+    let alice = AccountKeyring::Alice;
+
+    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let substrate_context = test_node_process_testing_state(true).await;
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let verifying_key = EVE_VERIFYING_KEY; //keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verfiying_key_account_hash = blake2_256(&verifying_key);
+    let verfiying_key_account = subxtAccountId32(verfiying_key_account_hash);
+
+    // Add funds to faucet
+    let call = RuntimeCall::Balances(BalancesCall::force_set_balance {
+        who: verfiying_key_account.clone().into(),
+        new_free: 10000000000000000000000u128,
+    });
+    let add_balance_tx = entropy::tx().sudo().sudo(call);
+
+    let signature_request_pair_signer =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+
+    let tx_params_balance = Params::new().build();
+    entropy_api
+        .tx()
+        .create_signed(&add_balance_tx, &signature_request_pair_signer, tx_params_balance)
+        .await
+        .unwrap()
+        .submit_and_watch()
+        .await
+        .unwrap();
+
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        FAUCET_PROGRAM.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    let amount_to_send = 200000001;
+    let genesis_hash = &entropy_api.genesis_hash();
+
+    let faucet_user_config = UserConfig {
+        max_transfer_amount: amount_to_send,
+        genesis_hash: hex::encode(genesis_hash.encode()),
+    };
+
+    update_programs(
+        &entropy_api,
+        &rpc,
+        verifying_key.clone().try_into().unwrap(),
+        &two.pair(),
+        OtherBoundedVec(vec![OtherProgramInstance {
+            program_pointer: program_hash,
+            program_config: serde_json::to_vec(&faucet_user_config).unwrap(),
+        }]),
+    )
+    .await
+    .unwrap();
+
+    let validators_info = vec![
+        ValidatorInfo {
+            ip_address: "localhost:3001".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        },
+        ValidatorInfo {
+            ip_address: "127.0.0.1:3002".to_string(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        },
+    ];
+    // get tx data for aux data
+    let spec_version = entropy_api.runtime_version().spec_version;
+    let transaction_version = entropy_api.runtime_version().transaction_version;
+
+    let aux_data = AuxData {
+        spec_version,
+        transaction_version,
+        string_account_id: one.to_account_id().to_string(),
+        amount: amount_to_send,
+    };
+    // create a partial tx to sign
+    let tx_params = Params::new().build();
+    let balance_transfer_tx =
+        entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
+    let partial =
+        entropy_api.tx().create_partial_signed_offline(&balance_transfer_tx, tx_params).unwrap();
+
+    let mut generic_msg = UserSignatureRequest {
+        message: hex::encode(partial.signer_payload()),
+        auxilary_data: Some(vec![Some(hex::encode(
+            &serde_json::to_string(&aux_data.clone()).unwrap(),
+        ))]),
+        validators_info,
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
+        hash: HashingAlgorithm::Blake2_256,
+        signature_verifying_key: verifying_key.clone().to_vec(),
+    };
+
+    let validator_ips_and_keys = vec![
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
+        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
+    ];
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    let mut decoded_sig: Vec<u8> = vec![];
+    for res in test_user_res {
+        let chunk = res.unwrap().chunk().await.unwrap().unwrap();
+        let signing_result: Result<(String, Signature), String> =
+            serde_json::from_slice(&chunk).unwrap();
+        decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
+    }
+    // take signed tx and repack it into a submitable tx
+    let submittable_extrinsic = partial.sign_with_address_and_signature(
+        &MultiAddress::Id(verfiying_key_account.clone().into()),
+        &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
+    );
+    let account = subxtAccountId32::from_str(&aux_data.string_account_id).unwrap();
+    // get balance before for checking if succeful
+    let balance_query = entropy::storage().system().account(account.clone());
+    let account_info = query_chain(&entropy_api, &rpc, balance_query, None).await.unwrap().unwrap();
+    let balance_before = account_info.data.free;
+    // submit then wait for tx
+    let mut tx = submittable_extrinsic.submit_and_watch().await.unwrap();
+
+    while let Some(status) = tx.next().await {
+        match status.unwrap() {
+            TxStatus::InBestBlock(tx_in_block) | TxStatus::InFinalizedBlock(tx_in_block) => {
+                assert!(tx_in_block.wait_for_success().await.is_ok());
+                break;
+            },
+            TxStatus::Error { message } => {
+                panic!("{}", message);
+            },
+            TxStatus::Invalid { message } => {
+                panic!("{}", message);
+            },
+            TxStatus::Dropped { message } => {
+                panic!("{}", message);
+            },
+            // Continue otherwise:
+            _ => continue,
+        };
+    }
+
+    // balance after
+    let balance_after_query = entropy::storage().system().account(account);
+    let account_info =
+        query_chain(&entropy_api, &rpc, balance_after_query, None).await.unwrap().unwrap();
+    let balance_after = account_info.data.free;
+    // make sure funds were transfered
+    ma::assert_gt!(balance_after, balance_before);
+    clean_tests();
 }
 
 #[tokio::test]
@@ -1140,7 +1336,7 @@ pub async fn get_sign_tx_data(
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
         validators_info: validators_info.clone(),
-        timestamp: SystemTime::now(),
+        block_number: 0,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
     };

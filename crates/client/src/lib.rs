@@ -21,8 +21,8 @@ pub mod user;
 pub mod util;
 pub use util::Hasher;
 
-// //! Re-exports of things needed for a client for integration tests
-// pub use crate::{helpers::signing::Hasher, user::api::UserSignatureRequest, validation};
+#[cfg(test)]
+mod tests;
 
 #[cfg(feature = "full-client")]
 pub mod client;

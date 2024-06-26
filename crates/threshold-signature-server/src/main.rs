@@ -22,8 +22,8 @@ use entropy_tss::{
     app,
     chain_api::{get_api, get_rpc},
     launch::{
-        load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
-        StartupArgs, ValidatorName,
+        development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only,
+        Configuration, StartupArgs, ValidatorName,
     },
     validator::api::check_balance_for_fees,
     AppState,
@@ -55,11 +55,55 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
+    if args.charlie {
+        validator_name = Some(ValidatorName::Charlie);
+    }
+    if args.dave {
+        validator_name = Some(ValidatorName::Dave);
+    }
+    if args.eve {
+        validator_name = Some(ValidatorName::Eve);
+    }
+
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
-    let account_id =
-        setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
+
+    // We consider the inputs in order of most to least explicit: CLI flag, supplied file,
+    // environment variable.
+    let user_mnemonic = args
+        .mnemonic
+        .or_else(|| {
+            args.mnemonic_file.map(|path| {
+                let file = std::fs::read(path).expect("Unable to read mnemonic file.");
+                let mnemonic = std::str::from_utf8(&file)
+                    .expect("Unable to convert provided mnemonic to UTF-8 string.")
+                    .trim();
+
+                bip39::Mnemonic::parse_normalized(mnemonic)
+                    .expect("Unable to parse given mnemonic.")
+            })
+        })
+        .or_else(|| {
+            std::env::var("THRESHOLD_SERVER_MNEMONIC").ok().map(|mnemonic| {
+                bip39::Mnemonic::parse_normalized(&mnemonic)
+                    .expect("Unable to parse given mnemonic.")
+            })
+        });
+
+    let account_id = if let Some(mnemonic) = user_mnemonic {
+        setup_mnemonic(&kv_store, mnemonic).await
+    } else if cfg!(test) || validator_name.is_some() {
+        setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
+    } else {
+        let (has_mnemonic, account_id) = entropy_tss::launch::has_mnemonic(&kv_store).await;
+        assert!(
+            has_mnemonic,
+            "No mnemonic provided. Please provide one or use a development account."
+        );
+        account_id
+    };
+
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb

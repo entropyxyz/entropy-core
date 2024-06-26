@@ -19,7 +19,9 @@ pub use crate::{
     chain_api::{get_api, get_rpc},
     errors::ClientError,
 };
+use anyhow::anyhow;
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
+use std::str::FromStr;
 pub use synedrion::KeyShare;
 
 use crate::{
@@ -34,6 +36,7 @@ use crate::{
         },
         EntropyConfig,
     },
+    client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
     substrate::{query_chain, submit_transaction_with_pair},
     user::{get_signers_from_chain, UserSignatureRequest},
     Hasher,
@@ -44,7 +47,6 @@ use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
 use futures::{future, stream::StreamExt};
 use sp_core::{sr25519, Pair};
-use std::time::SystemTime;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     events::EventsClient,
@@ -131,12 +133,12 @@ pub async fn sign(
     let message_hash = Hasher::keccak(&message);
     let validators_info = get_signers_from_chain(api, rpc).await?;
     tracing::debug!("Validators info {:?}", validators_info);
-
+    let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
         auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
         validators_info: validators_info.clone(),
-        timestamp: get_current_time(),
+        block_number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),
     };
@@ -319,7 +321,42 @@ pub async fn check_verifying_key(
     Ok(())
 }
 
-#[cfg(not(feature = "full-client-wasm"))]
-fn get_current_time() -> SystemTime {
-    SystemTime::now()
+/// Changes the endpoint of a validator
+pub async fn change_endpoint(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user_keypair: sr25519::Pair,
+    new_endpoint: String,
+) -> anyhow::Result<EndpointChanged> {
+    let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into());
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
+    let result_event = in_block
+        .find_first::<entropy::staking_extension::events::EndpointChanged>()?
+        .ok_or(anyhow!("Error with transaction"))?;
+    Ok(result_event)
+}
+
+/// Changes the threshold account info of a validator
+pub async fn change_threshold_accounts(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user_keypair: sr25519::Pair,
+    new_tss_account: String,
+    new_x25519_public_key: String,
+) -> anyhow::Result<ThresholdAccountChanged> {
+    let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
+    let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
+        tss_account,
+        hex::decode(new_x25519_public_key)?
+            .try_into()
+            .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
+    );
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)
+            .await?;
+    let result_event = in_block
+        .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
+        .ok_or(anyhow!("Error with transaction"))?;
+    Ok(result_event)
 }

@@ -13,20 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::{Duration, SystemTime};
-
 use bip39::Mnemonic;
 pub use entropy_protocol::sign_and_encrypt::{
     EncryptedSignedMessage, EncryptedSignedMessageErr, SignedMessage,
 };
+use entropy_shared::BlockNumber;
 use rand_core::{OsRng, RngCore};
 use subxt::ext::sp_core::{sr25519, Pair};
-
 pub mod errors;
-
 use errors::ValidationErr;
 
-pub const TIME_BUFFER: Duration = Duration::from_secs(25);
+pub const BLOCK_BUFFER: BlockNumber = 5u32;
 
 /// Derives a sr25519::Pair from a Mnemonic
 pub fn mnemonic_to_pair(m: &Mnemonic) -> Result<sr25519::Pair, ValidationErr> {
@@ -36,9 +33,12 @@ pub fn mnemonic_to_pair(m: &Mnemonic) -> Result<sr25519::Pair, ValidationErr> {
 }
 
 /// Checks if the message sent was within X amount of time
-pub fn check_stale(message_time: SystemTime) -> Result<(), ValidationErr> {
-    let time_difference = SystemTime::now().duration_since(message_time)?;
-    if time_difference > TIME_BUFFER {
+pub async fn check_stale(
+    user_block_number: BlockNumber,
+    chain_block_number: BlockNumber,
+) -> Result<(), ValidationErr> {
+    let block_difference = chain_block_number.abs_diff(user_block_number);
+    if block_difference > BLOCK_BUFFER {
         return Err(ValidationErr::StaleMessage);
     }
     Ok(())
@@ -55,21 +55,18 @@ pub fn new_mnemonic() -> Result<Mnemonic, bip39::Error> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_stale_check() {
-        let result = check_stale(SystemTime::now());
+    #[tokio::test]
+    async fn test_stale_check() {
+        let result = check_stale(1, 1).await;
         assert!(result.is_ok());
 
-        let fail_time =
-            SystemTime::now().checked_sub(TIME_BUFFER).unwrap().checked_sub(TIME_BUFFER).unwrap();
-        let fail_stale = check_stale(fail_time).unwrap_err();
-        assert_eq!(fail_stale.to_string(), "Message is too old".to_string());
+        let result_server_larger = check_stale(1, 2).await;
+        assert!(result_server_larger.is_ok());
 
-        let future_time = SystemTime::now().checked_add(TIME_BUFFER).unwrap();
-        let fail_future = check_stale(future_time).unwrap_err();
-        assert_eq!(
-            fail_future.to_string(),
-            "Time subtraction error: second time provided was later than self".to_string()
-        );
+        let result_user_larger = check_stale(2, 1).await;
+        assert!(result_user_larger.is_ok());
+
+        let fail_stale = check_stale(1, 2 + BLOCK_BUFFER).await.unwrap_err();
+        assert_eq!(fail_stale.to_string(), "Message is too old".to_string());
     }
 }

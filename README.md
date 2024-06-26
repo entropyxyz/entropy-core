@@ -29,16 +29,19 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
     ```sh
     docker compose up --detach # Detaching is optional.
     ```
-1. Once running, if you have `--detach`ed your terminal from the containers' output streams, you can view them again like so:
-    ```sh
-    docker compose logs --follow # Following is also optional.
-    ```
 1. If you need to communicate directly with the threshold signature scheme server from your Docker host machine, you may also need to include its address in your local `/etc/hosts` file:
     ```sh
     echo "127.0.0.1	alice-tss-server bob-tss-server" | sudo tee -a /etc/hosts
     ```
-
-Additional documentation on running a local network can be found [here](https://github.com/entropyxyz/meta/wiki/Local-devnet).
+1. Confirm your local development network is up and running. You can:
+    * look at server logs:
+        ```sh
+        docker compose logs --follow # Following is also optional.
+        ```
+    * [use the Entropy Test CLI](https://docs.entropy.xyz/reference/rust-testing-interface) to interact with the locally running network:
+        ```sh
+        cargo run -p entropy-test-cli -- --chain-endpoint="ws://127.0.0.1:9944" status 
+        ```
 
 ### Building from source
 
@@ -141,6 +144,12 @@ It is however only intended for use with test networks and has no secure private
 ## Pulling Metadata
 
 Everytime a change to the chain's interface happens, metadata needs to be pulled. You'll need to install Subxt using `cargo install subxt-cli`. Then [run a development chain](#getting-started-with-docker) and then invoke [the `./scripts/pull_entropy_metadata.sh` script](./scripts/pull_entropy_metadata.sh).
+
+## Support
+
+Need help with something not necessarily related to `entropy-core`?
+
+Head over to the [Entropy Community repository](https://github.com/entropyxyz/community#support) for support or to raise a ticket.
 
 ## Licensing
 

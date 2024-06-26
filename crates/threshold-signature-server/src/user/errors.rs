@@ -163,6 +163,8 @@ pub enum UserErr {
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("Cannot get subgroup signers: {0}")]
     SubgroupGet(#[from] entropy_client::user::SubgroupGetError),
+    #[error("Unknown hashing algorthim - user is using a newer version than us")]
+    UnknownHashingAlgorithm,
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

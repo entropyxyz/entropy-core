@@ -82,9 +82,6 @@
 //!
 //! ### For other instances of the threshold server
 //!
-//! - [`/user/receive_key`](receive_key) - recieve a keyshare from another threshold server in the
-//!   same signing subgroup during registration or proactive refresh.
-//!
 //!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
 //!   in a [crate::validation::SignedMessage].
 //!
@@ -177,7 +174,6 @@ pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
-        .route("/user/receive_key", post(receive_key))
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))

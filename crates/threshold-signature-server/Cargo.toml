@@ -17,7 +17,7 @@ thiserror          ="1.0.61"
 blake2             ="0.10.4"
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
 rand_core          ="0.6.4"
-zeroize            ="1.7.0"
+zeroize            ="1.8.1"
 hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
@@ -26,10 +26,10 @@ strum              ="0.26.2"
 
 # Async
 futures="0.3"
-tokio  ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
+tokio  ={ version="1.38", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
-reqwest={ version="0.12.4", features=["json", "stream"] }
+reqwest={ version="0.12.5", features=["json", "stream"] }
 axum   ={ version="0.7.5", features=["ws"] }
 
 # Substrate
@@ -52,15 +52,15 @@ tracing-subscriber      ={ version="0.3.18", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
 tower-http              ={ version="0.5.2", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
-uuid                    ={ version="1.8.0", features=["v4"] }
+uuid                    ={ version="1.9.0", features=["v4"] }
 
 # Misc
-tokio-tungstenite="0.21.0"
+tokio-tungstenite="0.23.1"
 bip39            ={ version="2.0.0", features=["zeroize"] }
 bincode          ="1.3.3"
 bytes            ={ version="1.6", default-features=false, features=["serde"] }
 base64           ="0.22.1"
-clap             ={ version="4.0.29", features=["derive"] }
+clap             ={ version="4.5.7", features=["derive"] }
 num              ="0.4.3"
 snow             ="0.9.6"
 sha3             ="0.10.8"
@@ -76,11 +76,12 @@ hex-literal ="0.4.1"
 project-root="0.2.2"
 sp-keyring  ="34.0.0"
 more-asserts="0.3.1"
-lazy_static ="1.4.0"
+lazy_static ="1.5.0"
 blake3      ="1.5.1"
 ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
 schemars    ={ version="0.8.21" }
+subxt-signer="0.35.3"
 
 # Note: We don't specify versions here because otherwise we run into a cyclical dependency between
 # `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.

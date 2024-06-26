@@ -68,7 +68,7 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
       - name: Build and push ${{ inputs.docker_build_arg_package }} container image
         id: docker-build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -84,7 +84,7 @@ jobs:
           tmpdir=$(mktemp -d)
           echo path=${tmpdir} >> $GITHUB_OUTPUT
       - name: Export plain binaries from built images
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           build-args: |

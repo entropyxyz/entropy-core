@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::helpers::tests::{initialize_test_logger, setup_client};
+
 use entropy_shared::types::HashingAlgorithm;
 use serial_test::serial;
 
@@ -45,6 +46,7 @@ async fn hashes_test() {
             HashingAlgorithm::Sha2,
             HashingAlgorithm::Sha3,
             HashingAlgorithm::Keccak,
+            HashingAlgorithm::Blake2_256,
             HashingAlgorithm::Custom(0),
         ]
     );

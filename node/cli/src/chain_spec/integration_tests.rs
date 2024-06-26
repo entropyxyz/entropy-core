@@ -174,9 +174,7 @@ pub fn integration_tests_genesis_config(
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     (
                         crate::chain_spec::tss_account_id::DAVE.clone(),
-                        // This should be a `Dave` account, but we use `Bob` since Dave's mnemonic
-                        // is unavailable right now.
-                        crate::chain_spec::tss_x25519_public_key::BOB,
+                        crate::chain_spec::tss_x25519_public_key::DAVE,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),

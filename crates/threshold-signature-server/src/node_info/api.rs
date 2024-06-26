@@ -15,6 +15,7 @@
 use axum::Json;
 use entropy_shared::types::HashingAlgorithm;
 use strum::IntoEnumIterator;
+
 /// Returns the version and commit data
 #[tracing::instrument]
 pub async fn version() -> String {

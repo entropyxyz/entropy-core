@@ -130,7 +130,13 @@ pub async fn sign_tx(
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
 
-    check_stale(user_sig_req.timestamp)?;
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
+        .number;
+
+    check_stale(user_sig_req.block_number, block_number).await?;
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
     check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
@@ -317,73 +323,6 @@ async fn setup_dkg(
         confirm_registered(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
     }
     Ok(())
-}
-
-/// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
-/// signing subgroup.
-///
-/// Takes a [UserRegistrationInfo] wrapped in an [EncryptedSignedMessage].
-#[tracing::instrument(skip_all, fields(signing_address))]
-pub async fn receive_key(
-    State(app_state): State<AppState>,
-    Json(encrypted_message): Json<EncryptedSignedMessage>,
-) -> Result<StatusCode, UserErr> {
-    let (_signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
-    let signed_message = encrypted_message.decrypt(&x25519_secret_key, &[])?;
-    let signing_address = signed_message.account_id();
-    tracing::Span::current().record("signing_address", signing_address.to_string());
-
-    let user_registration_info: UserRegistrationInfo =
-        serde_json::from_slice(&signed_message.message.0)?;
-
-    check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
-
-    // Check this is a well-formed keyshare
-    let _: ThresholdKeyShare<KeyParams, PartyId> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
-            .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
-
-    let api = get_api(&app_state.configuration.endpoint).await?;
-    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
-    let already_exists =
-        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-
-    if user_registration_info.proactive_refresh {
-        if !already_exists {
-            return Err(UserErr::UserDoesNotExist);
-        }
-        // TODO validate that an active proactive refresh is happening
-        app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
-    } else {
-        let registering = is_registering(
-            &api,
-            &rpc,
-            &user_registration_info.sig_request_address.ok_or_else(|| {
-                UserErr::OptionUnwrapError("Failed to unwrap signature request account".to_string())
-            })?,
-        )
-        .await?;
-
-        if already_exists {
-            if registering {
-                // Delete key if user in registering phase
-                app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
-            } else {
-                return Err(UserErr::AlreadyRegistered);
-            }
-        } else if !registering {
-            return Err(UserErr::NotRegistering("Provided account ID not from a registering user"));
-        }
-    }
-
-    // TODO #652 now get the block number and check that the author of the message should be in the
-    // current DKG or proactive refresh committee
-
-    let reservation =
-        app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
-    app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
-    Ok(StatusCode::OK)
 }
 
 /// Returns details of a given registering user including key key visibility and X25519 public key.
