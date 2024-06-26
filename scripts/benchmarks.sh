@@ -10,7 +10,7 @@ entropyTemplate=.maintain/frame-weight-template.hbs
 licenseHeader=.maintain/AGPL-3.0-header.txt
 # Manually exclude some pallets.
 excluded_pallets=(
-    pallet_nomination_pools,
+    pallet_nomination_pools
     pallet_treasury
 )
 
