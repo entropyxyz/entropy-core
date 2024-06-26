@@ -1118,7 +1118,7 @@ impl Pay for PayFromTreasuryAccount {
     fn ensure_successful(_: &Self::Beneficiary, _: Self::AssetKind, amount: Self::Balance) {
         <Balances as fungible::Mutate<_>>::mint_into(
             &TreasuryAccount::get(),
-           amount * 100 * DOLLARS,
+            amount * 100 * DOLLARS,
         )
         .unwrap();
     }
