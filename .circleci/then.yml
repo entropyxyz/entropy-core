@@ -101,10 +101,8 @@ jobs:
             resource_class: xlarge
         steps:
             - install-dependencies-and-checkout
-            - run:
-                command: |
-                    pushd node
-                    ../scripts/benchmarks 2 1
+            - run: ./scripts/benchmarks 2 1
+
     node-test:
         machine:
             image: ubuntu-2204:2022.10.2
