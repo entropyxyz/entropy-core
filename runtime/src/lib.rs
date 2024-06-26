@@ -1098,12 +1098,13 @@ impl Pay for PayFromTreasuryAccount {
         _asset_kind: Self::AssetKind,
         amount: Self::Balance,
     ) -> Result<Self::Id, Self::Error> {
-        // In case of benchmarks, we adjust the value by multiplying it by 1_000_000_000_000, otherwise it fails with BelowMinimum limit error, because
-        // treasury benchmarks uses only 100 as the amount.
+        // In case of benchmarks, we adjust the value by multiplying it by 1_000_000_000_000,
+        // otherwise it fails with BelowMinimum limit error, because treasury benchmarks uses only
+        // 100 as the amount.
         let _ = <Balances as fungible::Mutate<_>>::transfer(
             &TreasuryAccount::get(),
             who,
-            amount * 1_000_000_000_000,
+            amount * 100 * DOLLARS
             Preservation::Expendable,
         )?;
         Ok(())
@@ -1117,7 +1118,7 @@ impl Pay for PayFromTreasuryAccount {
     fn ensure_successful(_: &Self::Beneficiary, _: Self::AssetKind, amount: Self::Balance) {
         <Balances as fungible::Mutate<_>>::mint_into(
             &TreasuryAccount::get(),
-            amount * 1_000_000_000_000,
+           amount * 100 * DOLLARS,
         )
         .unwrap();
     }
