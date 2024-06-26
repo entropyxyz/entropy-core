@@ -333,7 +333,6 @@ async fn test_get_and_store_values() {
 #[tokio::test]
 async fn test_get_random_server_info() {
     initialize_test_logger().await;
-    clean_tests();
 
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -352,16 +351,12 @@ async fn test_get_random_server_info() {
     let error =
         get_random_server_info(&api, &rpc, my_subgroup, validator_address).await.unwrap_err();
     assert_eq!(error.to_string(), ValidatorErr::SubgroupError("Index out of bounds").to_string());
-
-    clean_tests();
 }
 
 #[tokio::test]
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     initialize_test_logger().await;
-    clean_tests();
-
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -378,13 +373,11 @@ async fn test_check_balance_for_fees() {
     assert!(!result_2);
 
     let _ = check_balance_for_fees(&api, &rpc, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
-    clean_tests();
 }
 
 #[tokio::test]
 async fn test_tell_chain_syncing_is_done() {
     initialize_test_logger().await;
-    clean_tests();
 
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -395,7 +388,6 @@ async fn test_tell_chain_syncing_is_done() {
     // expect this to fail in the proper way
     let result = tell_chain_syncing_is_done(&api, &rpc, &signer_alice).await;
     assert!(result.is_err());
-    clean_tests();
 }
 
 #[tokio::test]
