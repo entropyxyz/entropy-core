@@ -30,7 +30,7 @@ log             ="0.4.21"
 pallet-im-online={ version="28.0.0" }
 rand            ="0.8.5"
 serde           ={ version="1.0.203", features=["derive"] }
-serde_json      ='1.0.117'
+serde_json      ='1.0.118'
 
 # Substrate Client
 
