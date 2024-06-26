@@ -2,14 +2,16 @@
 
 set -eux
 
-steps=50
-repeat=20
+steps=${1:-50}
+repeat=${2:-20}
 entropyOutput=./runtime/src/weights/
 entropyChain=dev
 entropyTemplate=.maintain/frame-weight-template.hbs
 licenseHeader=.maintain/AGPL-3.0-header.txt
 # Manually exclude some pallets.
 excluded_pallets=(
+    pallet_nomination_pools,
+    pallet_treasury
 )
 
 # Load all pallet names in an array.
