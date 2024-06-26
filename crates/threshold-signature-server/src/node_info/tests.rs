@@ -27,6 +27,7 @@ use serial_test::serial;
 #[tokio::test]
 #[serial]
 async fn version_test() {
+    clean_tests();
     initialize_test_logger().await;
     setup_client().await;
     let client = reqwest::Client::new();
@@ -35,11 +36,13 @@ async fn version_test() {
         response.text().await.unwrap(),
         format!("{}-{}", env!("CARGO_PKG_VERSION"), env!("VERGEN_GIT_DESCRIBE"))
     );
+    clean_tests();
 }
 
 #[tokio::test]
 #[serial]
 async fn hashes_test() {
+    clean_tests();
     initialize_test_logger().await;
     setup_client().await;
     let response = reqwest::get("http://127.0.0.1:3001/hashes").await.unwrap();
@@ -56,6 +59,7 @@ async fn hashes_test() {
             HashingAlgorithm::Custom(0),
         ]
     );
+    clean_tests();
 }
 
 #[tokio::test]
