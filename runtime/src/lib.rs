@@ -50,10 +50,10 @@ use frame_support::{
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
-        fungible::HoldConsideration,
+        fungible::{HoldConsideration, self},
         tokens::{
             nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, PayFromAccount,
-            UnityAssetBalanceConversion,
+            UnityAssetBalanceConversion, Pay, Preservation, PaymentStatus
         },
         ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
@@ -71,7 +71,7 @@ use frame_support::{
 pub use frame_system::Call as SystemCall;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureSigned,
+    EnsureRoot, EnsureSigned, EnsureWithSuccess,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -98,10 +98,10 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     create_runtime_str,
     curve::PiecewiseLinear,
-    generic, impl_opaque_keys,
+    generic, impl_opaque_keys, DispatchError,
     traits::{
         self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
-        SaturatedConversion, StaticLookup,
+        SaturatedConversion, StaticLookup, IdentityLookup
     },
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill, Perquintill,
@@ -1009,7 +1009,8 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 
 parameter_types! {
   pub const ProposalBond: Permill = Permill::from_percent(5);
-  pub const ProposalBondMinimum: Balance = DOLLARS;
+  pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
+pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
   pub const SpendPeriod: BlockNumber = DAYS;
   pub const Burn: Permill = Permill::from_percent(50);
   pub const TipCountdown: BlockNumber = DAYS;
@@ -1030,6 +1031,7 @@ parameter_types! {
   pub const CuratorDepositMin: Balance = DOLLARS;
   pub const CuratorDepositMax: Balance = 100 * DOLLARS;
   pub const SpendPayoutPeriod: BlockNumber = 30 * DAYS;
+  pub const MaxBalance: Balance = Balance::max_value();
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1041,10 +1043,10 @@ impl pallet_treasury::Config for Runtime {
     type BurnDestination = ();
     type Currency = Balances;
     type MaxApprovals = MaxApprovals;
-    type OnSlash = ();
+	type OnSlash = Treasury;
     type PalletId = TreasuryPalletId;
     type ProposalBond = ProposalBond;
-    type ProposalBondMaximum = ();
+	type ProposalBondMaximum = ProposalBondMaximum;
     type ProposalBondMinimum = ProposalBondMinimum;
     type RejectOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
@@ -1052,17 +1054,70 @@ impl pallet_treasury::Config for Runtime {
     >;
     type RuntimeEvent = RuntimeEvent;
     type SpendFunds = Bounties;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
+	type SpendOrigin = EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxBalance>;
     type SpendPeriod = SpendPeriod;
-    type AssetKind = ();
+	type AssetKind = ();
     type Beneficiary = AccountId;
-    type BeneficiaryLookup = Indices;
+	type BeneficiaryLookup = IdentityLookup<AccountId>;
     type BalanceConverter = UnityAssetBalanceConversion;
-    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+	type Paymaster = PayFromTreasuryAccount;
     type PayoutPeriod = SpendPayoutPeriod;
     type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+pub struct PayFromTreasuryAccount;
+
+impl Pay for PayFromTreasuryAccount {
+	type Balance = Balance;
+	type Beneficiary = AccountId;
+	type AssetKind = ();
+	type Id = ();
+	type Error = DispatchError;
+
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	fn pay(
+		who: &Self::Beneficiary,
+		_asset_kind: Self::AssetKind,
+		amount: Self::Balance,
+	) -> Result<Self::Id, Self::Error> {
+		let _ = <Balances as fungible::Mutate<_>>::transfer(
+			&TreasuryAccount::get(),
+			who,
+			amount,
+			Preservation::Expendable,
+		)?;
+		Ok(())
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn pay(
+		who: &Self::Beneficiary,
+		_asset_kind: Self::AssetKind,
+		amount: Self::Balance,
+	) -> Result<Self::Id, Self::Error> {
+		// In case of benchmarks, we adjust the value by multiplying it by 1_000_000_000_000, otherwise it fails with BelowMinimum limit error, because
+		// treasury benchmarks uses only 100 as the amount.
+		let _ = <Balances as fungible::Mutate<_>>::transfer(
+			&TreasuryAccount::get(),
+			who,
+			amount * 1_000_000_000_000,
+			Preservation::Expendable,
+		)?;
+		Ok(())
+	}
+
+	fn check_payment(_id: Self::Id) -> PaymentStatus {
+		PaymentStatus::Success
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful(_: &Self::Beneficiary, _: Self::AssetKind, amount: Self::Balance) {
+		<Balances as fungible::Mutate<_>>::mint_into(&TreasuryAccount::get(), amount * 1_000_000_000_000).unwrap();
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_concluded(_: Self::Id) {}
 }
 
 impl pallet_bounties::Config for Runtime {
