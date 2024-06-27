@@ -26,7 +26,7 @@ use crate::{
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
@@ -73,7 +73,7 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![FERDIE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
         block_number: 0,
     };
 

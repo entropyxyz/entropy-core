@@ -12,8 +12,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-use entropy_kvdb::clean_tests;
 use entropy_shared::MIN_BALANCE;
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
@@ -51,7 +49,9 @@ async fn test_check_balance_for_fees() {
     .unwrap();
     assert!(!result_2);
 
-    let _ = check_balance_for_fees(&api, &rpc, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
+    let _ = check_balance_for_fees(&api, &rpc, (&RANDOM_ACCOUNT).to_string(), MIN_BALANCE)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]

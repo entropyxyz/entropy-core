@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::helpers::tests::{initialize_test_logger, setup_client};
-
+use entropy_kvdb::clean_tests;
 use entropy_shared::types::HashingAlgorithm;
 use serial_test::serial;
 

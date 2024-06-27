@@ -151,7 +151,7 @@ pub use crate::helpers::{
 use crate::{
     health::api::healthz,
     launch::Configuration,
-    node_info::api::{get_subgroup_signers, hashes, version as get_version},
+    node_info::api::{hashes, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,

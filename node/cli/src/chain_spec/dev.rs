@@ -268,16 +268,6 @@ pub fn development_genesis_config(
                     (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
                 })
                 .collect::<Vec<_>>(),
-            // We place all Stash accounts into the specified number of signing groups
-            signing_groups: initial_authorities
-                .iter()
-                .map(|x| x.0.clone())
-                .collect::<Vec<_>>()
-                .as_slice()
-                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
-                .enumerate()
-                .map(|(i, v)| (i as u8, v.to_vec()))
-                .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
         },
         "elections": ElectionsConfig {
