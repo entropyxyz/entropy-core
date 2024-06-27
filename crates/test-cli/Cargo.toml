@@ -1,7 +1,7 @@
 [package]
 name       ="entropy-test-cli"
 description="Simple command line interface client for testing Entropy"
-version    ='0.1.0'
+version    ='0.2.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
@@ -9,7 +9,7 @@ repository ='https://github.com/entropyxyz/entropy-core'
 edition    ='2021'
 
 [dependencies]
-entropy-client={ version="0.1.0", path="../client" }
+entropy-client={ version="0.2.0-rc.1", path="../client" }
 clap          ={ version="4.5.7", features=["derive"] }
 colored       ="2.0.4"
 subxt         ="0.35.3"
