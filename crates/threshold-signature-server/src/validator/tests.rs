@@ -31,8 +31,6 @@ use crate::{
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     initialize_test_logger().await;
-    clean_tests();
-
     let cxt = testing_context().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -53,19 +51,15 @@ async fn test_check_balance_for_fees() {
     .unwrap();
     assert!(!result_2);
 
-    let _ =
-        check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE).await.unwrap();
-    clean_tests();
+    let _ = check_balance_for_fees(&api, &rpc, &RANDOM_ACCOUNT, MIN_BALANCE).await.unwrap();
 }
 
 #[tokio::test]
 async fn test_forbidden_keys() {
     initialize_test_logger().await;
-    clean_tests();
     let should_fail = check_forbidden_key(FORBIDDEN_KEYS[0]);
     assert_eq!(should_fail.unwrap_err().to_string(), ValidatorErr::ForbiddenKey.to_string());
 
     let should_pass = check_forbidden_key("test");
     assert_eq!(should_pass.unwrap(), ());
-    clean_tests();
 }

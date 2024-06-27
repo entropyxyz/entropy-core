@@ -11,15 +11,12 @@ At the moment this project **does not** adhere to
 
 ### Breaking Changes
 - In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for stale checks
+- In [#879](https://github.com/entropyxyz/entropy-core/pull/879) threshold signing is introduced,
+  using a fix threshold based on the number of validators.
 - In [#881](https://github.com/entropyxyz/entropy-core/pull/881) the `HashingAlgorithm` enum is
   given an additional variant `Blake2_256` and marked as `non_exhaustive` meaning we must handle the
   case that an unknown variant is added in the future.
-  - In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection now adds a ```.sort()``` function before selecting the index to ensure consistentcy across libraries languages and clients
-
-### Breaking Changes
-
-- In [#879](https://github.com/entropyxyz/entropy-core/pull/879) threshold signing is introduced,
-  using a fix threshold based on the number of validators.
+- In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection now adds a ```.sort()``` function before selecting the index to ensure consistentcy across libraries languages and clients
 
 ### Added
 - Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))

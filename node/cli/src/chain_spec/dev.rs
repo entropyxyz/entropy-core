@@ -261,32 +261,23 @@ pub fn development_genesis_config(
             ..Default::default()
         },
         "stakingExtension": StakingExtensionConfig {
-            threshold_servers: vec![
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::ALICE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::ALICE,
-                        initial_tss_servers[0].2.as_bytes().to_vec(),
-                    ),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::BOB.clone(),
-                        crate::chain_spec::tss_x25519_public_key::BOB,
-                        initial_tss_servers[1].2.as_bytes().to_vec(),
-                    ),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::CHARLIE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::CHARLIE,
-                        initial_tss_servers[2].2.as_bytes().to_vec(),
-                    ),
-                ),
-            ],
+            threshold_servers: initial_authorities
+                .iter()
+                .zip(initial_tss_servers.iter())
+                .map(|(auth, tss)| {
+                    (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
+                })
+                .collect::<Vec<_>>(),
+            // We place all Stash accounts into the specified number of signing groups
+            signing_groups: initial_authorities
+                .iter()
+                .map(|x| x.0.clone())
+                .collect::<Vec<_>>()
+                .as_slice()
+                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
+                .enumerate()
+                .map(|(i, v)| (i as u8, v.to_vec()))
+                .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
         },
         "elections": ElectionsConfig {

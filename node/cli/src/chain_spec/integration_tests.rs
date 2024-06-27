@@ -206,7 +206,7 @@ pub fn integration_tests_genesis_config(
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
                     },
                 ],
-                vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+                vec![FERDIE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
         },
         "elections": ElectionsConfig {
