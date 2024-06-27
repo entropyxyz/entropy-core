@@ -1,7 +1,7 @@
 [package]
 name       ="entropy-create-test-keyshares"
 description="Makes a set of keyshares for testing entropy-tss"
-version    ='0.1.0'
+version    ='0.2.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
@@ -9,12 +9,12 @@ repository ='https://github.com/entropyxyz/entropy-core'
 edition    ='2021'
 
 [dependencies]
-entropy-testing-utils={ version="0.1.0", path="../../crates/testing-utils" }
+entropy-testing-utils={ version="0.2.0-rc.1", path="../../crates/testing-utils" }
 tokio                ={ version="1.36", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
-entropy-shared       ={ version="0.1.0", path="../../crates/shared" }
-entropy-kvdb         ={ version="0.1.0", path="../../crates/kvdb", default-features=false }
+entropy-shared       ={ version="0.2.0-rc.1", path="../../crates/shared" }
+entropy-kvdb         ={ version="0.2.0-rc.1", path="../../crates/kvdb", default-features=false }
 # Unreleased version of synedrion - this was head of master at the point of beginning to add t of n
 synedrion={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
-entropy-tss={ version="0.1.0", path="../../crates/threshold-signature-server", features=[
+entropy-tss={ version="0.2.0-rc.1", path="../../crates/threshold-signature-server", features=[
   "test_helpers",
 ] }

@@ -1,7 +1,7 @@
 [package]
 name       ="entropy-testing-utils"
 description="Utilities for testing the Entropy Threshold Signature Server"
-version    ='0.1.0'
+version    ='0.2.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
@@ -18,10 +18,10 @@ lazy_static       ="1.5.0"
 hex-literal       ="0.4.1"
 tokio             ={ version="1.38", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 axum              ={ version="0.7.5" }
-entropy-shared    ={ version="0.1.0", path="../shared" }
-entropy-kvdb      ={ version="0.1.0", path="../kvdb", default-features=false }
-entropy-tss       ={ version="0.1.0", path="../threshold-signature-server", features=["test_helpers"] }
-entropy-protocol  ={ version="0.1.0", path="../protocol" }
+entropy-shared    ={ version="0.2.0-rc.1", path="../shared" }
+entropy-kvdb      ={ version="0.2.0-rc.1", path="../kvdb", default-features=false }
+entropy-tss       ={ version="0.2.0-rc.1", path="../threshold-signature-server" }
+entropy-protocol  ={ version="0.2.0-rc.1", path="../protocol" }
 synedrion         ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
 hex               ="0.4.3"
 rand_core         ="0.6.4"
