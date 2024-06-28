@@ -46,7 +46,7 @@ use futures::{
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, H256};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
@@ -505,12 +505,20 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().registry().confirm_register(
-        who,
-        subgroup,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-    );
-    submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
+    let network_account = H256::zero().encode();
+    if network_account != who.encode() {
+        let tx_request = entropy::tx().registry().confirm_register(
+            who,
+            subgroup,
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
+        submit_transaction(api, rpc, signer, &tx_request, Some(nonce)).await?;
+    } else {
+        let tx_request = entropy::tx().registry().jump_start_results(
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
+        submit_transaction(api, rpc, signer, &tx_request, Some(nonce)).await?;
+    }
     Ok(())
 }
 

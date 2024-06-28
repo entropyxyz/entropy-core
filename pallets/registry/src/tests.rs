@@ -23,6 +23,7 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
+use sp_core::H256;
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -138,6 +139,14 @@ fn it_registers_a_user() {
             1,
             "ref counter is incremented"
         );
+    });
+}
+
+#[test]
+fn it_jumps_the_network() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1),));
+        assert_eq!(Registry::dkg(0), vec![H256::zero().encode()]);
     });
 }
 

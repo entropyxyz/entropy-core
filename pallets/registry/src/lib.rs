@@ -62,6 +62,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
+    use sp_core::H256;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::vec;
     use sp_std::{fmt::Debug, vec::Vec};
@@ -229,6 +230,49 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
+        // TODO fix benches
+        #[pallet::weight({
+            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+        })]
+        pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let network_account = H256::zero();
+            let block_number = <frame_system::Pallet<T>>::block_number();
+            // dbg!(network_account.clone());
+            // dbg!(network_account.clone().encode());
+            // TODO check to make sure network is at the state we want it 
+            // lock the ability to call this again 
+            Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
+                messages.push(network_account.clone().encode());
+                Ok(())
+            })?;
+
+            // todo 
+            // Self::deposit_event(Event::SignalRegister(sig_req_account));
+
+            Ok(())
+        }
+
+        #[pallet::call_index(1)]
+        // TODO fix benches
+        #[pallet::weight({
+            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+        })]
+        pub fn jump_start_results(origin: OriginFor<T>, verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            // Make sure is validtor 
+            // Make sure not already has main key 
+            // do some sort of test I guess 
+            // lock this call and jump start call forever
+            // If failed unlock the locks and allow another jumpstart
+
+            // todo 
+            // Self::deposit_event(Event::SignalRegister(sig_req_account));
+
+            Ok(())
+        }
+
         /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
         /// The caller provides an initial program pointer.
@@ -236,7 +280,7 @@ pub mod pallet {
         /// Note that a user needs to be confirmed by validators through the
         /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
         /// network.
-        #[pallet::call_index(0)]
+        #[pallet::call_index(2)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
@@ -292,7 +336,7 @@ pub mod pallet {
         }
 
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
-        #[pallet::call_index(1)]
+        #[pallet::call_index(3)]
         #[pallet::weight({
             <T as Config>::WeightInfo::prune_registration(<T as Config>::MaxProgramHashes::get())
         })]
@@ -316,7 +360,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change their program pointer
-        #[pallet::call_index(2)]
+        #[pallet::call_index(4)]
         #[pallet::weight({
              <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
@@ -377,7 +421,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change itself.
-        #[pallet::call_index(3)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
                  <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
              })]
@@ -436,7 +480,7 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(4)]
+        #[pallet::call_index(6)]
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
