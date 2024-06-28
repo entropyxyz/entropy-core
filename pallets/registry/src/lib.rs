@@ -63,7 +63,10 @@ pub mod pallet {
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_core::H256;
-    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
+    use sp_runtime::{
+        traits::{DispatchInfoOf, SignedExtension},
+        Saturating,
+    };
     use sp_std::vec;
     use sp_std::{fmt::Debug, vec::Vec};
 
@@ -129,6 +132,18 @@ pub mod pallet {
         pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>, VerifyingKey)>,
     }
 
+    #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+    pub enum JumpStartStatus {
+        Ready,
+        InProgress(u32),
+        Done,
+    }
+
+    impl Default for JumpStartStatus {
+        fn default() -> Self {
+            Self::Ready
+        }
+    }
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
@@ -183,6 +198,11 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    /// A Concept of what progress status the jumpstart is
+    #[pallet::storage]
+    #[pallet::getter(fn jump_start_progress)]
+    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartStatus, ValueQuery>;
+
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
@@ -226,6 +246,8 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+        JumpStartProgressNotReady,
+        JumpStartNotInProgress,
     }
 
     #[pallet::call]
@@ -239,16 +261,30 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let network_account = H256::zero();
             let block_number = <frame_system::Pallet<T>>::block_number();
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
+            // make sure jumpstart is ready, or in progress but X amount of time has passed
+            match JumpStartProgress::<T>::get() {
+                JumpStartStatus::Ready => (),
+                JumpStartStatus::InProgress(started_block_number) => {
+                    // TODO: make 50 a constant or a config thing or somthing
+                    if converted_block_number.saturating_sub(started_block_number) < 50 {
+                        return Err(Error::<T>::JumpStartProgressNotReady.into());
+                    };
+                    ()
+                },
+                _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
+            };
             // dbg!(network_account.clone());
             // dbg!(network_account.clone().encode());
-            // TODO check to make sure network is at the state we want it 
-            // lock the ability to call this again 
+            // TODO check to make sure network is at the state we want it
+            // lock the ability to call this again
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(network_account.clone().encode());
                 Ok(())
             })?;
-
-            // todo 
+            JumpStartProgress::<T>::put(JumpStartStatus::InProgress(converted_block_number));
+            // todo
             // Self::deposit_event(Event::SignalRegister(sig_req_account));
 
             Ok(())
@@ -259,15 +295,24 @@ pub mod pallet {
         #[pallet::weight({
             <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
-        pub fn jump_start_results(origin: OriginFor<T>, verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>) -> DispatchResult {
+        pub fn jump_start_results(
+            origin: OriginFor<T>,
+            verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            // Make sure is validtor 
-            // Make sure not already has main key 
-            // do some sort of test I guess 
+
+            match JumpStartProgress::<T>::get() {
+                JumpStartStatus::InProgress(_) => (),
+                _ => return Err(Error::<T>::JumpStartNotInProgress.into()),
+            };
+
+            // Make sure is validtor
+            // Make sure not already has main key
+            // do some sort of test I guess
             // lock this call and jump start call forever
             // If failed unlock the locks and allow another jumpstart
 
-            // todo 
+            // todo
             // Self::deposit_event(Event::SignalRegister(sig_req_account));
 
             Ok(())

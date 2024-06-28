@@ -31,7 +31,7 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
+    mock::*, Error, JumpStartStatus, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
     RegisteringDetails, ValidateConfirmRegistered,
 };
 
@@ -145,8 +145,20 @@ fn it_registers_a_user() {
 #[test]
 fn it_jumps_the_network() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1),));
+        assert_eq!(Registry::jump_start_progress(), JumpStartStatus::Ready);
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(Registry::dkg(0), vec![H256::zero().encode()]);
+        assert_eq!(Registry::jump_start_progress(), JumpStartStatus::InProgress(0));
+
+        assert_noop!(
+            Registry::jump_start_network(RuntimeOrigin::signed(1)),
+            Error::<Test>::JumpStartProgressNotReady
+        );
+
+        System::set_block_number(100);
+
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_eq!(Registry::jump_start_progress(), JumpStartStatus::InProgress(100));
     });
 }
 
