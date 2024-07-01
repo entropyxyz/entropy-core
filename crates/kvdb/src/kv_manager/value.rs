@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use core::fmt;
 use std::{convert::TryFrom, path::PathBuf};
 
 use entropy_protocol::PartyId;
@@ -35,11 +36,20 @@ pub struct Entropy(pub Vec<u8>);
 
 /// This records encapsulates the additional information that's only available
 /// after the share is created: the correspondence of shares to party IDs they were distributed to.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PartyInfo {
     // TODO: in the future this will probably be a mapping {party_id: [share_id, share_id, ...]}
     pub party_ids: Vec<PartyId>,
-    pub share: KeyShare<ProductionParams>,
+    pub share: KeyShare<ProductionParams, PartyId>,
+}
+
+impl fmt::Debug for PartyInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Point")
+            .field("party_ids", &self.party_ids)
+            .field("share", &self.share.verifying_key())
+            .finish()
+    }
 }
 
 /// Kv manager for grpc services
@@ -102,10 +112,6 @@ impl PartyInfo {
     pub fn log_info(&self, session_id: &str, sign_span: Span) {
         let init_span = span!(parent: &sign_span, Level::INFO, "init");
         let _enter = init_span.enter();
-        info!(
-            "[uid:{:?}] starting Sign with [session ID: {}]",
-            self.share.party_index(),
-            session_id,
-        );
+        info!("[uid:{:?}] starting Sign with [session ID: {}]", self.share.owner(), session_id,);
     }
 }

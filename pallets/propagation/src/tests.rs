@@ -16,7 +16,7 @@
 use std::sync::Arc;
 
 use codec::Encode;
-use entropy_shared::{KeyVisibility, ValidatorInfo};
+use entropy_shared::ValidatorInfo;
 use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_registry::ProgramInstance;
@@ -52,8 +52,8 @@ fn knows_how_to_mock_several_http_calls() {
             body: [
                 3, 0, 0, 0, 8, 32, 1, 0, 0, 0, 0, 0, 0, 0, 32, 2, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 4, 20, 32, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 40, 32, 8, 0, 0, 0, 0, 0, 0,
+                0, 4, 10, 32, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 11, 32, 4, 0, 0, 0, 0, 0, 0,
                 0,
             ]
             .to_vec(),
@@ -95,18 +95,8 @@ fn knows_how_to_mock_several_http_calls() {
             program_config: vec![],
         }])
         .unwrap();
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2,
-            KeyVisibility::Public,
-            programs_info.clone(),
-        ));
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(2),
-            3,
-            KeyVisibility::Public,
-            programs_info,
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(2), 3, programs_info,));
         // full send
         Propagation::post_dkg(4).unwrap();
         // test pruning

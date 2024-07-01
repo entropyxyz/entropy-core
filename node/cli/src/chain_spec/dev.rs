@@ -37,8 +37,6 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sr25519;
 use sp_runtime::{BoundedVec, Perbill};
 
-const SIGNING_GROUPS: usize = 2;
-
 pub fn devnet_two_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String)> {
     let alice = (
@@ -53,7 +51,13 @@ pub fn devnet_two_node_initial_tss_servers(
         "127.0.0.1:3002".to_string(),
     );
 
-    vec![alice, bob]
+    let charlie = (
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_x25519_public_key::CHARLIE,
+        "127.0.0.1:3003".to_string(),
+    );
+
+    vec![alice, bob, charlie]
 }
 
 pub fn devnet_local_docker_two_node_initial_tss_servers(
@@ -116,6 +120,7 @@ pub fn development_config() -> ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -263,16 +268,6 @@ pub fn development_genesis_config(
                     (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
                 })
                 .collect::<Vec<_>>(),
-            // We place all Stash accounts into the specified number of signing groups
-            signing_groups: initial_authorities
-                .iter()
-                .map(|x| x.0.clone())
-                .collect::<Vec<_>>()
-                .as_slice()
-                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
-                .enumerate()
-                .map(|(i, v)| (i as u8, v.to_vec()))
-                .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
         },
         "elections": ElectionsConfig {
@@ -304,20 +299,14 @@ pub fn development_genesis_config(
             registered_accounts: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    0,
-                    None,
                     BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    2,
-                    None,
                     BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
             ],

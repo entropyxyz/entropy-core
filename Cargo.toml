@@ -1,3 +1,3 @@
 [workspace]
 resolver="2"
-members =['crates/*', 'node/*', 'pallets/*', 'runtime']
+members =['crates/*', 'node/*', 'pallets/*', 'runtime', 'scripts/create-test-keyshares']

@@ -112,13 +112,6 @@ pub mod tss_x25519_public_key {
         4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
     ];
 
-    /// Eve is not a TSS node but a pre-registered user. Her corresponding secret key is in
-    /// `entropy_testing_utils::constants`
-    pub const EVE: [u8; 32] = [
-        142, 113, 91, 59, 177, 104, 208, 23, 219, 170, 47, 145, 200, 139, 188, 28, 14, 199, 116,
-        86, 193, 144, 10, 18, 74, 157, 138, 202, 115, 99, 229, 55,
-    ];
-
     // The `DEFAULT_DAVE_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "beef dutch panic monkey black glad audit twice humor gossip wealth drive"
     pub const DAVE: [u8; 32] = [

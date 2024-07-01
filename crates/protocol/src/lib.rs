@@ -20,7 +20,6 @@ mod listener;
 mod protocol_message;
 pub mod protocol_transport;
 pub mod sign_and_encrypt;
-pub mod user;
 
 pub use entropy_shared::user::ValidatorInfo;
 pub use listener::Listener;
@@ -33,13 +32,18 @@ use std::{
 };
 
 use blake2::{Blake2s256, Digest};
-use errors::ProtocolExecutionErr;
+use errors::{ProtocolExecutionErr, VerifyingKeyError};
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    k256::ecdsa::{RecoveryId, Signature},
+    ecdsa::VerifyingKey,
+    k256::{
+        ecdsa::{RecoveryId, Signature},
+        EncodedPoint,
+    },
     signature::{self, hazmat::PrehashVerifier},
+    AuxInfo, ThresholdKeyShare,
 };
 
 /// Identifies a party participating in a protocol session
@@ -127,6 +131,9 @@ pub type KeyParams = TestParams;
 
 pub use synedrion::KeyShare;
 
+/// This is the keyshare payload which gets stored by entropy-tss
+pub type KeyShareWithAuxInfo = (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>);
+
 /// A secp256k1 signature from which we can recover the public key of the keypair used to create it
 #[derive(Clone, Debug)]
 pub struct RecoverableSignature {
@@ -193,9 +200,37 @@ impl Hash for SessionId {
 
 impl SessionId {
     /// Take the hash of the session ID - used as uniqueness in the protocol
-    pub fn blake2(&self) -> Result<Vec<u8>, ProtocolExecutionErr> {
+    /// Optionally with some extra data used to identify a sub-session
+    pub fn blake2(
+        &self,
+        sub_session: Option<DkgSubsession>,
+    ) -> Result<[u8; 32], ProtocolExecutionErr> {
         let mut hasher = Blake2s256::new();
         hasher.update(bincode::serialize(self)?);
-        Ok(hasher.finalize().to_vec())
+        if let Some(session) = sub_session {
+            hasher.update(format!("{:?}", session).as_bytes());
+        }
+        Ok(hasher.finalize().into())
     }
+}
+
+/// A sub-protocol of the DKG protocol
+#[derive(Debug)]
+pub enum DkgSubsession {
+    /// The synedrion key init protocol
+    KeyInit,
+    /// The synedrion reshare protocol
+    Reshare,
+    /// The synedrion aux gen protocol
+    AuxGen,
+}
+
+/// Decode a [VerifyingKey] from bytes
+pub fn decode_verifying_key(
+    verifying_key_encoded: &[u8; 33],
+) -> Result<VerifyingKey, VerifyingKeyError> {
+    let point = EncodedPoint::from_bytes(verifying_key_encoded)
+        .map_err(|_| VerifyingKeyError::DecodeEncodedPoint)?;
+    VerifyingKey::from_encoded_point(&point)
+        .map_err(|_| VerifyingKeyError::EncodedPointToVerifyingKey)
 }

@@ -52,6 +52,7 @@ pub fn integration_tests_config() -> ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -166,7 +167,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        "127.0.0.1:3003".as_bytes().to_vec(),
                     ),
                 ),
                 (
@@ -177,16 +178,6 @@ pub fn integration_tests_genesis_config(
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),
-            ],
-            signing_groups: vec![
-                (
-                    0,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    ],
-                ),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
             proactive_refresh_data: (
                 vec![
@@ -206,8 +197,16 @@ pub fn integration_tests_genesis_config(
                         ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
                     },
+                    entropy_shared::ValidatorInfo {
+                        tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                            &crate::chain_spec::tss_account_id::CHARLIE.clone(),
+                        )
+                        .into(),
+                        ip_address: "127.0.0.1:3003".as_bytes().to_vec(),
+                        x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
+                    },
                 ],
-                vec![FERDIE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+                vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
         },
         "elections": ElectionsConfig {
@@ -239,21 +238,14 @@ pub fn integration_tests_genesis_config(
             registered_accounts: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    0,
-                    None,
                     BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    0,
-                    None,
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    1,
-                    // Can use eve's key, just need a key to talk to and encrypt for proactive refresh
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
             ],

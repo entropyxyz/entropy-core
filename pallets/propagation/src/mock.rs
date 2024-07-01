@@ -129,16 +129,16 @@ pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
     type Key = UintAuthorityId;
 
-    fn on_genesis_session<'a, I: 'a>(_: I)
+    fn on_genesis_session<'a, I>(_: I)
     where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        I: Iterator<Item = (&'a AccountId, Self::Key)> + 'a,
         AccountId: 'a,
     {
     }
 
-    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
+    fn on_new_session<'a, I>(_: bool, _: I, _: I)
     where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        I: Iterator<Item = (&'a AccountId, Self::Key)> + 'a,
         AccountId: 'a,
     {
     }
@@ -312,14 +312,12 @@ impl pallet_authorship::Config for Test {
 }
 
 parameter_types! {
-  pub const SigningPartySize: usize = 2;
   pub const MaxProgramHashes: u32 = 5;
   pub const KeyVersionNumber: u8 = 1;
 }
 
 impl pallet_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
     type WeightInfo = ();
@@ -355,11 +353,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (1, (3, NULL_ARR, vec![10])),
             (2, (4, NULL_ARR, vec![11])),
         ],
-        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6])],
         proactive_refresh_data: (vec![], vec![]),
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
+    let stakers = vec![1, 2];
+    let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
+
+    pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();
+
     t.into()
 }

@@ -24,17 +24,19 @@ use entropy_protocol::{
         noise::{noise_handshake_initiator, noise_handshake_responder},
         ws_to_channels, SubscribeMessage, WsChannels,
     },
-    KeyParams, Listener, PartyId, RecoverableSignature, SessionId, ValidatorInfo,
+    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, RecoverableSignature, SessionId,
+    ValidatorInfo,
 };
 use entropy_shared::X25519PublicKey;
 use futures::future;
 use sp_core::{sr25519, Pair};
 use std::{
+    fmt,
     sync::{Arc, Mutex},
     time::Duration,
 };
 use subxt::utils::AccountId32;
-use synedrion::KeyShare;
+use synedrion::{AuxInfo, KeyShare, ThresholdKeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
     time::timeout,
@@ -50,11 +52,17 @@ struct ServerState {
 }
 
 /// Output of a successful protocol run
-#[derive(Debug)]
+#[derive(Clone)]
 pub enum ProtocolOutput {
     Sign(RecoverableSignature),
-    ProactiveRefresh(KeyShare<KeyParams>),
-    Dkg(KeyShare<KeyParams>),
+    ProactiveRefresh(ThresholdKeyShare<KeyParams, PartyId>),
+    Dkg(KeyShareWithAuxInfo),
+}
+
+impl fmt::Debug for ProtocolOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Success")
+    }
 }
 
 /// A websocket server handling a single test protocol session
@@ -64,13 +72,15 @@ pub async fn server(
     pair: sr25519::Pair,
     x25519_secret_key: StaticSecret,
     session_id: SessionId,
-    keyshare: Option<KeyShare<KeyParams>>,
+    keyshare: Option<KeyShare<KeyParams, PartyId>>,
+    threshold_keyshare: Option<ThresholdKeyShare<KeyParams, PartyId>>,
+    aux_info: Option<AuxInfo<KeyParams, PartyId>>,
+    threshold: usize,
 ) -> anyhow::Result<ProtocolOutput> {
     let account_id = AccountId32(pair.public().0);
 
     // Setup a single listener for tracking connnections to the other parties
-    let (rx_ready, rx_from_others, listener) =
-        Listener::new(validators_info.clone(), &account_id, None);
+    let (rx_ready, rx_from_others, listener) = Listener::new(validators_info.clone(), &account_id);
 
     let state = ServerState {
         listener: Arc::new(Mutex::new(vec![listener])),
@@ -110,6 +120,7 @@ pub async fn server(
                 session_id,
                 channels,
                 &keyshare.unwrap(),
+                &aux_info.unwrap(),
                 &session_info.message_hash,
                 &pair,
                 tss_accounts,
@@ -125,14 +136,15 @@ pub async fn server(
                 channels,
                 &pair,
                 tss_accounts,
-                keyshare.unwrap(),
+                threshold_keyshare.unwrap(),
             )
             .await?;
             Ok(ProtocolOutput::ProactiveRefresh(new_keyshare))
         },
         SessionId::Dkg { .. } => {
-            let keyshare = execute_dkg(session_id, channels, &pair, tss_accounts).await?;
-            Ok(ProtocolOutput::Dkg(keyshare))
+            let keyshare_and_aux_info =
+                execute_dkg(session_id, channels, &pair, tss_accounts, threshold).await?;
+            Ok(ProtocolOutput::Dkg(keyshare_and_aux_info))
         },
     }
 }
