@@ -125,6 +125,13 @@ pub mod pallet {
         pub version_number: u8,
     }
 
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
+    #[scale_info(skip_type_params(T))]
+    pub struct JumpStartDetails {
+        pub jump_start_status: JumpStartStatus,
+        pub confirmations: Vec<u8>,
+    }
+
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
@@ -201,13 +208,19 @@ pub mod pallet {
     /// A Concept of what progress status the jumpstart is
     #[pallet::storage]
     #[pallet::getter(fn jump_start_progress)]
-    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartStatus, ValueQuery>;
+    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails, ValueQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// The network has been jump started.
+        NetworkJumpStarted(),
+        /// The network has been jump started succefully.
+        JumpStartDone(),
+        /// The network has had a jump start confirmation. [signing_subgroup]
+        JumpStartConfirmation(u8),
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, signing_group, verifying_key]
@@ -258,13 +271,13 @@ pub mod pallet {
             <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
         pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
-            let who = ensure_signed(origin)?;
+            let _who = ensure_signed(origin)?;
             let network_account = H256::zero();
             let block_number = <frame_system::Pallet<T>>::block_number();
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
             // make sure jumpstart is ready, or in progress but X amount of time has passed
-            match JumpStartProgress::<T>::get() {
+            match JumpStartProgress::<T>::get().jump_start_status {
                 JumpStartStatus::Ready => (),
                 JumpStartStatus::InProgress(started_block_number) => {
                     // TODO: make 50 a constant or a config thing or somthing
@@ -275,18 +288,16 @@ pub mod pallet {
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
-            // dbg!(network_account.clone());
-            // dbg!(network_account.clone().encode());
             // TODO check to make sure network is at the state we want it
-            // lock the ability to call this again
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(network_account.clone().encode());
                 Ok(())
             })?;
-            JumpStartProgress::<T>::put(JumpStartStatus::InProgress(converted_block_number));
-            // todo
-            // Self::deposit_event(Event::SignalRegister(sig_req_account));
-
+            JumpStartProgress::<T>::put(JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(converted_block_number),
+                confirmations: vec![],
+            });
+            Self::deposit_event(Event::NetworkJumpStarted());
             Ok(())
         }
 
@@ -295,25 +306,43 @@ pub mod pallet {
         #[pallet::weight({
             <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
-        pub fn jump_start_results(
-            origin: OriginFor<T>,
-            verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
-        ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-
-            match JumpStartProgress::<T>::get() {
+        pub fn jump_start_results(origin: OriginFor<T>, signing_subgroup: u8) -> DispatchResult {
+            // check is validator
+            let ts_server_account = ensure_signed(origin)?;
+            let validator_stash =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+            let validator_subgroup =
+                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
+                    .ok_or(Error::<T>::SigningGroupError)?;
+            ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
+            let mut jump_start_info = JumpStartProgress::<T>::get();
+            // check in progoress
+            match jump_start_info.jump_start_status {
                 JumpStartStatus::InProgress(_) => (),
                 _ => return Err(Error::<T>::JumpStartNotInProgress.into()),
             };
 
-            // Make sure is validtor
-            // Make sure not already has main key
-            // do some sort of test I guess
-            // lock this call and jump start call forever
-            // If failed unlock the locks and allow another jumpstart
+            ensure!(
+                !jump_start_info.confirmations.contains(&signing_subgroup),
+                Error::<T>::AlreadyConfirmed
+            );
 
-            // todo
-            // Self::deposit_event(Event::SignalRegister(sig_req_account));
+            // TODO  some sort of test I guess like a sign from this account or check the verifying keys
+            // If failed unlock the locks and allow another jumpstart
+            if jump_start_info.confirmations.len() == T::SigningPartySize::get() - 1 {
+                // registration finished, lock call
+                JumpStartProgress::<T>::put(JumpStartDetails {
+                    jump_start_status: JumpStartStatus::Done,
+                    confirmations: vec![],
+                });
+                Self::deposit_event(Event::JumpStartDone());
+            } else {
+                // Add confirmation wait for next one
+                jump_start_info.confirmations.push(signing_subgroup);
+                JumpStartProgress::<T>::put(jump_start_info);
+                Self::deposit_event(Event::JumpStartConfirmation(signing_subgroup));
+            }
 
             Ok(())
         }
