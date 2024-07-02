@@ -325,8 +325,12 @@ async fn setup_dkg(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
-        let user_details =
-            get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
+        let mut key_visibility = KeyVisibility::Public;
+        if sig_request_account != H256::zero().encode() {
+            let user_details =
+                get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
+            key_visibility = user_details.key_visibility.0;
+        };
 
         let key_share = do_dkg(
             &data.validators_info,
@@ -334,7 +338,7 @@ async fn setup_dkg(
             x25519_secret_key,
             &app_state.listener_state,
             sig_request_address.clone(),
-            *user_details.key_visibility,
+            key_visibility,
             data.block_number,
         )
         .await?;
@@ -514,9 +518,7 @@ pub async fn confirm_registered(
         );
         submit_transaction(api, rpc, signer, &tx_request, Some(nonce)).await?;
     } else {
-        let tx_request = entropy::tx().registry().jump_start_results(
-            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-        );
+        let tx_request = entropy::tx().registry().jump_start_results(subgroup);
         submit_transaction(api, rpc, signer, &tx_request, Some(nonce)).await?;
     }
     Ok(())
