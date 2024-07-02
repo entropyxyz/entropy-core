@@ -142,7 +142,7 @@ pub async fn sign_tx(
         .number;
 
     check_stale(user_sig_req.block_number, block_number).await?;
-    // Probably impossible but block anyways
+    // Probably impossible but block signing from master key anyways
     if user_sig_req.signature_verifying_key == H256::zero().0.to_vec() {
         return Err(UserErr::NoSigningFromMasterKey);
     }
@@ -312,7 +312,7 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-
+    let master_key = H256::zero();
     let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
     let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
@@ -331,7 +331,8 @@ async fn setup_dkg(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
         let mut key_visibility = KeyVisibility::Public;
-        if sig_request_account != H256::zero().encode() {
+        // If master key set visibility to public
+        if sig_request_account != master_key.encode() {
             let user_details =
                 get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
             key_visibility = user_details.key_visibility.0;
@@ -349,8 +350,9 @@ async fn setup_dkg(
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
         let mut string_verifying_key = hex::encode(verifying_key.clone()).to_string();
-        if sig_request_account == H256::zero().encode() {
-            string_verifying_key = hex::encode(H256::zero()).to_string();
+        // If jump start store key under the master key (zero address)
+        if sig_request_account == master_key.encode() {
+            string_verifying_key = hex::encode(master_key).to_string();
         }
 
         let serialized_key_share = key_serialize(&key_share)
@@ -384,6 +386,7 @@ async fn setup_dkg(
             &signer,
             verifying_key,
             nonce + i as u32,
+            master_key.encode(),
         )
         .await?;
     }
@@ -505,6 +508,7 @@ pub async fn is_registering(
 }
 
 /// Confirms that a address has finished registering on chain.
+#[allow(clippy::too_many_arguments)]
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -513,13 +517,15 @@ pub async fn confirm_registered(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
+    master_key: Vec<u8>,
 ) -> Result<(), UserErr> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let network_account = H256::zero().encode();
-    if network_account != who.encode() {
+
+    // If master key call jump_start_result
+    if master_key != who.encode() {
         let tx_request = entropy::tx().registry().confirm_register(
             who,
             subgroup,

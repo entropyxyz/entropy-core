@@ -686,7 +686,7 @@ async fn test_store_share() {
     assert_eq!(user_registration_response.text().await.unwrap(), "");
 
     let mut new_verifying_key = vec![];
-    // wait for registered event check that key exists in kvdb
+    // wait for jump start event check that key exists in kvdb
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
@@ -2027,7 +2027,7 @@ async fn test_mutiple_confirm_done() {
     .await;
 
     let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
-
+    let master_key = H256::zero().encode();
     confirm_registered(
         &api,
         &rpc,
@@ -2036,6 +2036,7 @@ async fn test_mutiple_confirm_done() {
         &signer_alice,
         DEFAULT_VERIFYING_KEY.to_vec(),
         0u32,
+        master_key.clone(),
     )
     .await
     .unwrap();
@@ -2047,6 +2048,7 @@ async fn test_mutiple_confirm_done() {
         &signer_alice,
         DEFAULT_VERIFYING_KEY.to_vec(),
         1u32,
+        master_key,
     )
     .await
     .unwrap();

@@ -121,7 +121,7 @@ pub mod pallet {
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
     }
-
+    /// Details of status of jump starting the network
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
     #[scale_info(skip_type_params(T))]
     pub struct JumpStartDetails {
@@ -202,7 +202,7 @@ pub mod pallet {
         ValueQuery,
     >;
 
-    /// A Concept of what progress status the jumpstart is
+    /// A concept of what progress status the jumpstart is
     #[pallet::storage]
     #[pallet::getter(fn jump_start_progress)]
     pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails, ValueQuery>;
@@ -260,6 +260,7 @@ pub mod pallet {
         JumpStartNotInProgress,
     }
 
+    /// Allows anyone to create a master key for the network if the network is read and a master key does not exist
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -296,6 +297,7 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Allows validators to signal a succecful network jumpstart
         #[pallet::call_index(1)]
         #[pallet::weight({
                 <T as Config>::WeightInfo::jump_start_results_confirm(SIGNING_PARTY_SIZE as u32)
