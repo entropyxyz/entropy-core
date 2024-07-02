@@ -63,10 +63,7 @@ pub mod pallet {
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
     use sp_core::H256;
-    use sp_runtime::{
-        traits::{DispatchInfoOf, SignedExtension},
-        Saturating,
-    };
+    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::vec;
     use sp_std::{fmt::Debug, vec::Vec};
 
@@ -284,7 +281,6 @@ pub mod pallet {
                     if converted_block_number.saturating_sub(started_block_number) < 50 {
                         return Err(Error::<T>::JumpStartProgressNotReady.into());
                     };
-                    ()
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
