@@ -362,6 +362,18 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_custom_hash_out_of_bounds {
         assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
     }
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = H256::zero().0.to_vec();
+    let test_user_sign_with_master_key = submit_transaction_requests(
+        vec![validator_ips_and_keys[1].clone()],
+        generic_msg.clone(),
+        one,
+    )
+    .await;
+    for res in test_user_sign_with_master_key {
+        assert_eq!(res.unwrap().text().await.unwrap(), "No signing from master key");
+    }
     clean_tests();
 }
 
@@ -781,8 +793,6 @@ async fn test_jumpstart_network() {
     clean_tests();
 
     let alice = AccountKeyring::Alice;
-    let alice_program = AccountKeyring::Charlie;
-    let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids, _) =
@@ -792,7 +802,7 @@ async fn test_jumpstart_network() {
 
     let client = reqwest::Client::new();
 
-    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: b"127.0.0.1:3001".to_vec(),
@@ -805,7 +815,7 @@ async fn test_jumpstart_network() {
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
     ];
-    let mut onchain_user_request = OcwMessageDkg {
+    let onchain_user_request = OcwMessageDkg {
         sig_request_accounts: vec![H256::zero().encode()],
         block_number,
         validators_info,
