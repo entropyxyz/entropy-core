@@ -263,9 +263,8 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        // TODO fix benches
         #[pallet::weight({
-            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::jump_start_network()
         })]
         pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
             let _who = ensure_signed(origin)?;
@@ -298,11 +297,14 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        // TODO fix benches
         #[pallet::weight({
-            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+                <T as Config>::WeightInfo::jump_start_results_confirm(SIGNING_PARTY_SIZE as u32)
+                .max(<T as Config>::WeightInfo::jump_start_results_done(SIGNING_PARTY_SIZE as u32))
         })]
-        pub fn jump_start_results(origin: OriginFor<T>, signing_subgroup: u8) -> DispatchResult {
+        pub fn jump_start_results(
+            origin: OriginFor<T>,
+            signing_subgroup: u8,
+        ) -> DispatchResultWithPostInfo {
             // check is validator
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
@@ -323,6 +325,7 @@ pub mod pallet {
                 !jump_start_info.confirmations.contains(&signing_subgroup),
                 Error::<T>::AlreadyConfirmed
             );
+            let confirmation_length = jump_start_info.confirmations.len() as u32;
 
             // TODO  some sort of test I guess like a sign from this account or check the verifying keys
             // If failed unlock the locks and allow another jumpstart
@@ -333,14 +336,20 @@ pub mod pallet {
                     confirmations: vec![],
                 });
                 Self::deposit_event(Event::JumpStartDone());
+                return Ok(Some(<T as Config>::WeightInfo::jump_start_results_done(
+                    confirmation_length,
+                ))
+                .into());
             } else {
                 // Add confirmation wait for next one
                 jump_start_info.confirmations.push(signing_subgroup);
                 JumpStartProgress::<T>::put(jump_start_info);
                 Self::deposit_event(Event::JumpStartConfirmation(signing_subgroup));
+                return Ok(Some(<T as Config>::WeightInfo::jump_start_results_confirm(
+                    confirmation_length,
+                ))
+                .into());
             }
-
-            Ok(())
         }
 
         /// Allows a user to signal that they want to register an account with the Entropy network.

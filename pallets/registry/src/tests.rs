@@ -31,8 +31,8 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, JumpStartDetails, JumpStartStatus, ModifiableKeys,
-    ProgramInstance, Registered, RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
+    mock::*, Error, JumpStartDetails, JumpStartStatus, ModifiableKeys, ProgramInstance, Registered,
+    RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
 };
 
 #[test]
