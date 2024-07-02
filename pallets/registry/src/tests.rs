@@ -178,6 +178,48 @@ fn it_jumps_the_network() {
 }
 
 #[test]
+fn it_tests_jump_start_result() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Registry::jump_start_results(RuntimeOrigin::signed(1), 0,),
+            Error::<Test>::NoThresholdKey
+        );
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+        assert_noop!(
+            Registry::jump_start_results(RuntimeOrigin::signed(1), 3,),
+            Error::<Test>::NotInSigningGroup
+        );
+
+        assert_noop!(
+            Registry::jump_start_results(RuntimeOrigin::signed(1), 0,),
+            Error::<Test>::JumpStartNotInProgress
+        );
+        // trigger jump start
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+
+        assert_ok!(Registry::jump_start_results(RuntimeOrigin::signed(1), 0,));
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(0),
+                confirmations: vec![0]
+            }
+        );
+        assert_noop!(
+            Registry::jump_start_results(RuntimeOrigin::signed(1), 0,),
+            Error::<Test>::AlreadyConfirmed
+        );
+
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+        assert_ok!(Registry::jump_start_results(RuntimeOrigin::signed(2), 1,));
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails { jump_start_status: JumpStartStatus::Done, confirmations: vec![] }
+        );
+    });
+}
+
+#[test]
 fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
         let expected_verifying_key =
