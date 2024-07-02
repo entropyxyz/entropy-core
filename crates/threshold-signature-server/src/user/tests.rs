@@ -811,12 +811,7 @@ async fn test_jumpstart_network() {
         validators_info,
     };
 
-    put_jumpstart_request_on_chain(
-        &api,
-        &rpc,
-        &alice,
-    )
-    .await;
+    put_jumpstart_request_on_chain(&api, &rpc, &alice).await;
 
     run_to_block(&rpc, block_number + 1).await;
 
@@ -841,20 +836,19 @@ async fn test_jumpstart_network() {
         }
     }
 
-    // let get_query =
-    //     UnsafeQuery::new(hex::encode(H256::zero().encode()), [].to_vec()).to_json();
-    // // check get key before registration to see if key gets replaced
-    // let response_key = client
-    //     .post("http://127.0.0.1:3001/unsafe/get")
-    //     .header("Content-Type", "application/json")
-    //     .body(get_query.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    // // check to make sure keyshare is correct
-    // let key_share: Option<KeyShare<KeyParams>> =
-    //     entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
-    // assert_eq!(key_share.is_some(), true);
+    let get_query = UnsafeQuery::new(hex::encode(H256::zero()), [].to_vec()).to_json();
+    // check get key before registration to see if key gets replaced
+    let response_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+    // check to make sure keyshare is correct
+    let key_share: Option<KeyShare<KeyParams>> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+    assert_eq!(key_share.is_some(), true);
     clean_tests();
 }
 
