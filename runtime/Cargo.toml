@@ -102,6 +102,7 @@ pallet-slashing         ={ version='0.2.0-rc.1', path='../pallets/slashing', def
 pallet-staking-extension={ version='0.2.0-rc.1', path='../pallets/staking', default-features=false }
 pallet-transaction-pause={ version='0.2.0-rc.1', path='../pallets/transaction-pause', default-features=false }
 pallet-parameters       ={ version='0.2.0-rc.1', path='../pallets/parameters', default-features=false }
+pallet-oracle       ={ version='0.2.0-rc.1', path='../pallets/oracle', default-features=false }
 
 entropy-shared={ version="0.2.0-rc.1", path="../crates/shared", default-features=false, features=[
   "wasm-no-std",
@@ -141,6 +142,7 @@ std=[
   "pallet-nomination-pools-benchmarking?/std",
   "pallet-nomination-pools/std",
   "pallet-offences/std",
+    "pallet-oracle/std",
   "pallet-preimage/std",
   "pallet-parameters/std",
   "pallet-programs/std",
@@ -207,6 +209,7 @@ runtime-benchmarks=[
   "pallet-multisig/runtime-benchmarks",
   "pallet-nomination-pools-benchmarking/runtime-benchmarks",
   "pallet-offences-benchmarking/runtime-benchmarks",
+  "pallet-oracle/runtime-benchmarks",
   "pallet-parameters/runtime-benchmarks",
   "pallet-preimage/runtime-benchmarks",
   "pallet-programs/runtime-benchmarks",
@@ -249,6 +252,7 @@ try-runtime=[
   "pallet-multisig/try-runtime",
   "pallet-nomination-pools/try-runtime",
   "pallet-offences/try-runtime",
+  "pallet-oracle/try-runtime",
   "pallet-preimage/try-runtime",
   "pallet-propagation/try-runtime",
   "pallet-proxy/try-runtime",

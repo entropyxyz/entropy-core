@@ -1495,6 +1495,11 @@ impl pallet_parameters::Config for Runtime {
     type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
+impl pallet_oracle::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+}
+
 construct_runtime!(
   pub enum Runtime
   {
@@ -1547,6 +1552,7 @@ construct_runtime!(
     TransactionPause: pallet_transaction_pause = 54,
     Propagation: pallet_propagation = 55,
     Parameters: pallet_parameters = 56,
+    Oracle: pallet_oracle = 57,
   }
 );
 
@@ -1625,6 +1631,7 @@ mod benches {
       [pallet_offences, OffencesBench::<Runtime>]
       [pallet_preimage, Preimage]
       [pallet_parameters, Parameters]
+      [pallet_oracle, Oracle]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
       [pallet_registry, Registry]
