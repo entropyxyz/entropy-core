@@ -121,6 +121,8 @@ pub enum UserErr {
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("No program set at: {0}")]
     NoProgramDefined(String),
+    #[error("No oracle data for pointer: {0}")]
+    NoOracleDataForPointer(String),
     #[error("No program pointer defined for account")]
     NoProgramPointerDefined(),
     #[error("Runtime error: {0:?}")]

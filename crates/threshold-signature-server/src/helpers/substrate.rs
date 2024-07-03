@@ -83,13 +83,25 @@ pub async fn get_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     program_pointer: &<EntropyConfig as Config>::Hash,
-) -> Result<Vec<u8>, UserErr> {
+) -> Result<(Vec<u8>, Vec<u8>), UserErr> {
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
-
-    Ok(query_chain(api, rpc, bytecode_address, None)
+    let program_info = query_chain(api, rpc, bytecode_address, None)
         .await?
-        .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?
-        .bytecode)
+        .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?;
+    Ok((program_info.bytecode, program_info.oracle_data_pointer))
+}
+
+/// Queries the oracle data needed for the program
+pub async fn get_oracle_data(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    program_oracle_data: Vec<u8>,
+) -> Result<Vec<u8>, UserErr> {
+    let oracle_data_call = entropy::storage().oracle().oracle_data(BoundedVec(program_oracle_data));
+    let oracle_info = query_chain(api, rpc, oracle_data_call, None)
+        .await?
+        .unwrap_or(BoundedVec(vec![]));
+    Ok(oracle_info.0)
 }
 
 /// Returns a registered user's key visibility

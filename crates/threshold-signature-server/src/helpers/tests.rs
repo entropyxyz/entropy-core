@@ -291,3 +291,9 @@ async fn test_get_signing_group() {
 
     clean_tests();
 }
+
+#[tokio::test]
+#[serial]
+async fn test_get_oracle_data() {
+    //TODO
+}

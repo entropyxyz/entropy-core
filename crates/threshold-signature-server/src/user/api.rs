@@ -70,8 +70,8 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_program, get_registered_details, get_stash_address, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup, submit_transaction,
+            get_oracle_data, get_program, get_registered_details, get_stash_address, get_subgroup,
+            query_chain, return_all_addresses_of_subgroup, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, send_key},
         validator::{get_signer, get_signer_and_x25519_secret},
@@ -172,10 +172,18 @@ pub async fn sign_tx(
     let mut runtime = Runtime::new(ProgramConfig { fuel });
 
     for (i, program_info) in user_details.programs_data.0.iter().enumerate() {
-        let program = get_program(&api, &rpc, &program_info.program_pointer).await?;
+        let (program_bytecode, program_oracle_data) =
+            get_program(&api, &rpc, &program_info.program_pointer).await?;
+        let oracle_data =
+            get_oracle_data(&api, &rpc, program_oracle_data).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
-        runtime.evaluate(&program, &signature_request, Some(&program_info.program_config), None)?;
+        runtime.evaluate(
+            &program_bytecode,
+            &signature_request,
+            Some(&program_info.program_config),
+            Some(&oracle_data),
+        )?;
     }
     // We decided to do Keccak for subgroup selection for frontend compatability
     let message_hash_keccak =
