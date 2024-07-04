@@ -16,7 +16,7 @@
 //! Unit tests for the parameters pallet.
 
 #![cfg(test)]
-use frame_support::{traits::OnInitialize};
+use frame_support::traits::OnInitialize;
 use mock::*;
 
 use super::*;
