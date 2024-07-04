@@ -25,7 +25,7 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::pallet_prelude::*;
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, WeightInfo};
 
 #[cfg(test)]
 mod mock;
@@ -33,13 +33,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
-pub mod weights;
-
 pub use module::*;
-pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {

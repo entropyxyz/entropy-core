@@ -1638,7 +1638,6 @@ mod benches {
       [pallet_offences, OffencesBench::<Runtime>]
       [pallet_preimage, Preimage]
       [pallet_parameters, Parameters]
-      [pallet_oracle, Oracle]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
       [pallet_registry, Registry]
