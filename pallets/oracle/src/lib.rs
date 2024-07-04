@@ -69,8 +69,10 @@ pub mod module {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             OracleData::<T>::insert(
-                BoundedVec::try_from("block_number_entropy".encode()).unwrap(),
-                BoundedVec::try_from(block_number.encode()).unwrap(),
+                BoundedVec::try_from("block_number_entropy".encode())
+                    .expect("Key fits in bounded vec; qed"),
+                BoundedVec::try_from(block_number.encode())
+                    .expect("Block number fits in bounded vec; qed"),
             );
             T::DbWeight::get().writes(1)
         }
