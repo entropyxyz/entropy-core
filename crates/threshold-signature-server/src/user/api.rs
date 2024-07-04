@@ -174,8 +174,7 @@ pub async fn sign_tx(
     for (i, program_info) in user_details.programs_data.0.iter().enumerate() {
         let (program_bytecode, program_oracle_data) =
             get_program(&api, &rpc, &program_info.program_pointer).await?;
-        let oracle_data =
-            get_oracle_data(&api, &rpc, program_oracle_data).await?;
+        let oracle_data = get_oracle_data(&api, &rpc, program_oracle_data).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(

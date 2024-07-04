@@ -98,9 +98,8 @@ pub async fn get_oracle_data(
     program_oracle_data: Vec<u8>,
 ) -> Result<Vec<u8>, UserErr> {
     let oracle_data_call = entropy::storage().oracle().oracle_data(BoundedVec(program_oracle_data));
-    let oracle_info = query_chain(api, rpc, oracle_data_call, None)
-        .await?
-        .unwrap_or(BoundedVec(vec![]));
+    let oracle_info =
+        query_chain(api, rpc, oracle_data_call, None).await?.unwrap_or(BoundedVec(vec![]));
     Ok(oracle_info.0)
 }
 

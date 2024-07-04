@@ -34,7 +34,7 @@ use crate::{
         },
         logger::Instrumentation,
         logger::Logger,
-        substrate::{get_subgroup, query_chain, submit_transaction},
+        substrate::{get_oracle_data, get_subgroup, query_chain, submit_transaction},
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
@@ -47,6 +47,7 @@ use entropy_kvdb::{
 use entropy_protocol::{KeyParams, PartyId};
 use entropy_shared::{KeyVisibility, DETERMINISTIC_KEY_SHARE};
 use entropy_testing_utils::substrate_context::testing_context;
+use parity_scale_codec::Encode;
 use rand_core::OsRng;
 use serial_test::serial;
 use subxt::{
@@ -295,5 +296,18 @@ async fn test_get_signing_group() {
 #[tokio::test]
 #[serial]
 async fn test_get_oracle_data() {
-    //TODO
+    initialize_test_logger().await;
+    let cxt = testing_context().await;
+    setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    run_to_block(&rpc, 1).await;
+
+    let oracle_data = get_oracle_data(&api, &rpc, "block_number_entropy".encode()).await.unwrap();
+    let current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    assert_eq!(current_block.encode(), oracle_data);
+
+    // fails gracefully
+    let oracle_data_fail = get_oracle_data(&api, &rpc, "random_heading".encode()).await.unwrap();
+    assert_eq!(oracle_data_fail.len(), 0);
 }
