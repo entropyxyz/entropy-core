@@ -26,7 +26,6 @@
 
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
-use sp_runtime::DispatchResult;
 
 #[cfg(test)]
 mod mock;
@@ -49,7 +48,10 @@ pub mod module {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
+        /// The maximum amount of owned programs.
+        type MaxOracleKeyLength: Get<u32>;
+        /// The maximum amount of owned programs.
+        type MaxOracleValueLength: Get<u32>;
         /// Weight information for the extrinsics in this module.
         type WeightInfo: WeightInfo;
     }
@@ -60,8 +62,8 @@ pub mod module {
     pub type OracleData<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
-        BoundedVec<u8, ConstU32<100>>,
-        BoundedVec<u8, ConstU32<100>>,
+        BoundedVec<u8, T::MaxOracleKeyLength>,
+        BoundedVec<u8, T::MaxOracleValueLength>,
         OptionQuery,
     >;
 
@@ -84,7 +86,6 @@ pub mod module {
     pub enum Error<T> {}
 
     #[pallet::event]
-    #[pallet::generate_deposit(fn deposit_event)]
     pub enum Event<T: Config> {}
 
     #[pallet::call]

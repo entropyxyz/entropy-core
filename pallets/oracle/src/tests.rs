@@ -16,11 +16,8 @@
 //! Unit tests for the parameters pallet.
 
 #![cfg(test)]
-
-use crate as pallet_oracle;
-use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use frame_support::{traits::OnInitialize};
 use mock::*;
-use sp_runtime::traits::BadOrigin;
 
 use super::*;
 

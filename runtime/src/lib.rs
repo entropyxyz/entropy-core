@@ -1495,8 +1495,15 @@ impl pallet_parameters::Config for Runtime {
     type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+    pub const MaxOracleKeyLength: u32 = 100;
+    pub const MaxOracleValueLength: u32 = 100;
+}
+
 impl pallet_oracle::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
     type WeightInfo = ();
 }
 

@@ -18,10 +18,9 @@
 #![cfg(test)]
 
 use frame_support::{
-    construct_runtime, derive_impl, ord_parameter_types,
+    construct_runtime, derive_impl, parameter_types,
     traits::{ConstU64, Everything},
 };
-use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{traits::IdentityLookup, BuildStorage};
 
@@ -58,12 +57,15 @@ impl frame_system::Config for Runtime {
     type Version = ();
 }
 
-ord_parameter_types! {
-  pub const One: AccountId = 1;
+parameter_types! {
+    pub const MaxOracleKeyLength: u32 = 100;
+    pub const MaxOracleValueLength: u32 = 100;
 }
 
 impl Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
     type WeightInfo = ();
 }
 

@@ -30,6 +30,5 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 }
 
 benchmarks! {
-
   impl_benchmark_test_suite!(Parameters, crate::mock::ExtBuilder::default().build(), crate::mock::Runtime);
 }
