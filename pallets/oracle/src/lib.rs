@@ -65,6 +65,23 @@ pub mod module {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        #[serde(skip)]
+        _config: sp_std::marker::PhantomData<T>,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+        fn build(&self) {
+            // Makes sure key chosen can fit in bounded vec
+            assert!("block_number_entropy".encode().len() as u32 <= T::MaxOracleKeyLength::get());
+            // Makes sure block number can fit in bounded vec
+            assert!(u64::MAX.encode().len() as u32 <= T::MaxOracleKeyLength::get());
+        }
+    }
+
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
