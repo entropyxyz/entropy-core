@@ -72,6 +72,9 @@ pub mod pallet {
     /// Max modifiable keys allowed for a program modification account
     pub const MAX_MODIFIABLE_KEYS: u32 = 25;
 
+    /// Blocks to wait until we agree jump start network failed and to allow a retry
+    pub const BLOCKS_TO_RESTART_JUMP_START: u32 = 50;
+
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
@@ -277,14 +280,15 @@ pub mod pallet {
             match JumpStartProgress::<T>::get().jump_start_status {
                 JumpStartStatus::Ready => (),
                 JumpStartStatus::InProgress(started_block_number) => {
-                    // TODO: make 50 a constant or a config thing or somthing
-                    if converted_block_number.saturating_sub(started_block_number) < 50 {
+                    if converted_block_number.saturating_sub(started_block_number)
+                        < BLOCKS_TO_RESTART_JUMP_START
+                    {
                         return Err(Error::<T>::JumpStartProgressNotReady.into());
                     };
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
-            // TODO check to make sure network is at the state we want it
+            // TODO: Add checks for network state see https://github.com/entropyxyz/entropy-core/issues/923
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(network_account.clone().encode());
                 Ok(())

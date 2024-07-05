@@ -686,7 +686,7 @@ async fn test_store_share() {
     assert_eq!(user_registration_response.text().await.unwrap(), "");
 
     let mut new_verifying_key = vec![];
-    // wait for jump start event check that key exists in kvdb
+    // wait for registered event check that key exists in kvdb
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
@@ -834,7 +834,7 @@ async fn test_jumpstart_network() {
         .unwrap();
 
     assert_eq!(user_registration_response.text().await.unwrap(), "");
-    // wait for registered event check that key exists in kvdb
+    // wait for jump start event check that key exists in kvdb
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
