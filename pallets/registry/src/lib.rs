@@ -462,7 +462,7 @@ pub mod pallet {
 
             let registering_info_verifying_key =
                 registering_info.verifying_key.clone().ok_or(Error::<T>::NoVerifyingKey)?;
-            // TODO
+
             if registering_info.confirmations.len() == validators.len() - 1 {
                 // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
