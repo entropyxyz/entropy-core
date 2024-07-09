@@ -53,7 +53,9 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{
+        KeyVisibility, NETWORK_PARENT_KEY, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH,
+    };
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -62,7 +64,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use pallet_staking_extension::ServerInfo;
     use scale_info::TypeInfo;
-    use sp_core::H256;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::vec;
     use sp_std::{fmt::Debug, vec::Vec};
@@ -139,14 +140,16 @@ pub mod pallet {
         pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>, VerifyingKey)>,
     }
 
-    #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+    #[derive(
+        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+    )]
     pub enum JumpStartStatus {
         #[default]
         Ready,
         InProgress(u32),
         Done,
     }
-    
+
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
@@ -257,6 +260,7 @@ pub mod pallet {
         MismatchedVerifyingKeyLength,
         JumpStartProgressNotReady,
         JumpStartNotInProgress,
+        NoRegisteringFromParentKey,
     }
 
     /// Allows anyone to create a master key for the network if the network is read and a master key
@@ -269,10 +273,9 @@ pub mod pallet {
         })]
         pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
             let _who = ensure_signed(origin)?;
-            let network_account = H256::zero();
             let current_block_number = <frame_system::Pallet<T>>::block_number();
-            let current_block_number: u32 =
-                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(current_block_number).unwrap_or_default();
 
             // make sure jumpstart is ready, or in progress but X amount of time has passed
             match JumpStartProgress::<T>::get().jump_start_status {
@@ -287,15 +290,15 @@ pub mod pallet {
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
             // TODO: Add checks for network state see https://github.com/entropyxyz/entropy-core/issues/923
-            Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(network_account.clone().encode());
+            Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
+                messages.push(NETWORK_PARENT_KEY.clone().encode());
                 Ok(())
             })?;
             JumpStartProgress::<T>::put(JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
             });
-            Self::deposit_event(Event::NetworkJumpStarted());
+            Self::deposit_event(Event::StartedNetworkJumpStart());
             Ok(())
         }
 
@@ -331,7 +334,7 @@ pub mod pallet {
             );
             let confirmation_length = jump_start_info.confirmations.len() as u32;
 
-            // TODO  some sort of test I guess like a sign from this account or check the verifying keys
+            // TODO: some sort of test I a sign from this account or check the verifying keys see :https://github.com/entropyxyz/entropy-core/issues/927
             // If failed unlock the locks and allow another jumpstart
             if jump_start_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 // registration finished, lock call
@@ -339,7 +342,7 @@ pub mod pallet {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
                 });
-                Self::deposit_event(Event::JumpStartDone());
+                Self::deposit_event(Event::FinishedNetworkJumpStart());
                 return Ok(Some(<T as Config>::WeightInfo::jump_start_results_done(
                     confirmation_length,
                 ))
@@ -374,7 +377,11 @@ pub mod pallet {
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
-
+            let encoded_sig_req_account = sig_req_account.encode();
+            ensure!(
+                encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
+                Error::<T>::NoRegisteringFromParentKey
+            );
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
@@ -397,7 +404,7 @@ pub mod pallet {
             }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(sig_req_account.clone().encode());
+                messages.push(encoded_sig_req_account);
                 Ok(())
             })?;
 

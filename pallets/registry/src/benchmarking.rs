@@ -78,7 +78,7 @@ benchmarks! {
 
   }: _(RawOrigin::Signed(sig_req_account.clone()))
   verify {
-    assert_last_event::<T>(Event::NetworkJumpStarted().into());
+    assert_last_event::<T>(Event::StartedNetworkJumpStart().into());
   }
 
   jump_start_results_done {
@@ -103,7 +103,7 @@ benchmarks! {
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
   }: jump_start_results(RawOrigin::Signed(threshold_account), 0)
   verify {
-    assert_last_event::<T>(Event::<T>::JumpStartDone().into());
+    assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
   }
 
   jump_start_results_confirm {

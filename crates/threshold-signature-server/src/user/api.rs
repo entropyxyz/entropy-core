@@ -36,7 +36,8 @@ use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureReques
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, NETWORK_PARENT_KEY,
+    SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -312,7 +313,6 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-    let master_key = H256::zero();
     let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
     let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
@@ -330,14 +330,13 @@ async fn setup_dkg(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
-        let key_visibility = if sig_request_account == master_key.encode() {
+        let key_visibility = if sig_request_account == NETWORK_PARENT_KEY.encode() {
             KeyVisibility::Public
         } else {
             let user_details =
                 get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
             user_details.key_visibility.0
         };
-
 
         let key_share = do_dkg(
             &data.validators_info,
@@ -352,8 +351,8 @@ async fn setup_dkg(
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
         let mut string_verifying_key = hex::encode(verifying_key.clone()).to_string();
         // If jump start store key under the master key (zero address)
-        if sig_request_account == master_key.encode() {
-            string_verifying_key = hex::encode(master_key).to_string();
+        if sig_request_account == NETWORK_PARENT_KEY.encode() {
+            string_verifying_key = hex::encode(*NETWORK_PARENT_KEY).to_string();
         }
 
         let serialized_key_share = key_serialize(&key_share)
@@ -387,7 +386,7 @@ async fn setup_dkg(
             &signer,
             verifying_key,
             nonce + i as u32,
-            master_key.encode(),
+            NETWORK_PARENT_KEY.encode(),
         )
         .await?;
     }
@@ -518,7 +517,7 @@ pub async fn confirm_registered(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
-    master_key: Vec<u8>,
+    parent_key: Vec<u8>,
 ) -> Result<(), UserErr> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
@@ -526,7 +525,7 @@ pub async fn confirm_registered(
     // or other method under sign_and_*
 
     // If master key call jump_start_result
-    if master_key != who.encode() {
+    if parent_key != who.encode() {
         let tx_request = entropy::tx().registry().confirm_register(
             who,
             subgroup,
