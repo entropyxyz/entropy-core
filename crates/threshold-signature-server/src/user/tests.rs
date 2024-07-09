@@ -839,7 +839,7 @@ async fn test_jumpstart_network() {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let jump_start_event = events.find::<entropy::registry::events::JumpStartDone>();
+        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
         for event in jump_start_event.flatten() {
             dbg!(event);
             break;
