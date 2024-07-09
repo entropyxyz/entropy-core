@@ -7,25 +7,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0-rc.1...master)
+
+## [0.2.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0-rc.1) - 2024-06-24
 
 ### Breaking Changes
-- In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for stale checks
+- In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
+  TSS mnemonic was shifted to operators, which can be done using the `--mnemonic` flag during
+  process startup. This also allows operators to back up the mnemonic for their TSS.
+- In [#856](https://github.com/entropyxyz/entropy-core/pull/856) a new flag, `--mnemonic-option`,
+  and environment variable `DEPLOYER_MNEMONIC`, were added to the `entropy-test-cli` as ways to
+  indicate which account to use during registration. This replaces having an account name or
+  mnemonic directly in the command invocation.
+- In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from
+  `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for
+  stale checks
 - In [#881](https://github.com/entropyxyz/entropy-core/pull/881) the `HashingAlgorithm` enum is
   given an additional variant `Blake2_256` and marked as `non_exhaustive` meaning we must handle the
   case that an unknown variant is added in the future.
+- In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection was
+  sorted to ensure a predicatble order across libraries, languages and clients.
 
 ### Added
 - JS bindings for entropy client ([#897](https://github.com/entropyxyz/entropy-core/pull/897))
-- Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
+- Add a way to change program modification account ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
 - Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
 - Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
-- Add blake2 as built in hash function and make HashingAlgorithm non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881)
+- Add `blake2` as built in hash function and make `HashingAlgorithm` non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
+- Add sort to subgroup signer selection ([#900](https://github.com/entropyxyz/entropy-core/pull/900))
+- Create four node Docker Compose chainspec ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
 
 ### Changed
-- Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
+- Move TSS mnemonic out of keystore ([#853](https://github.com/entropyxyz/entropy-core/pull/853))
 - Prepare test CLI for use in Programs repo ([#856](https://github.com/entropyxyz/entropy-core/pull/856))
 - Replace timestamp with block number ([#866](https://github.com/entropyxyz/entropy-core/pull/866))
+- Change currency units ([#901](https://github.com/entropyxyz/entropy-core/pull/901))
 
 ## [0.1.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0) - 2024-05-20
 

@@ -45,7 +45,7 @@ tagged as the final release.
     - Build the images and spin up the network using `docker compose up`
     - Register an account using:
         - `cargo run -p entropy-test-cli -- register \
-            One public ./crates/testing-utils/template_barebones.wasm`
+            public -m //One ./crates/testing-utils/template_barebones.wasm`
     - Request a signature using:
         - `cargo run -p entropy-test-cli -- sign \
             $VERIFYING_KEY "Hello, Docker Compose"`
