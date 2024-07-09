@@ -330,13 +330,14 @@ async fn setup_dkg(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
-        let mut key_visibility = KeyVisibility::Public;
-        // If master key set visibility to public
-        if sig_request_account != master_key.encode() {
+        let key_visibility = if sig_request_account == master_key.encode() {
+            KeyVisibility::Public
+        } else {
             let user_details =
                 get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
-            key_visibility = user_details.key_visibility.0;
+            user_details.key_visibility.0
         };
+
 
         let key_share = do_dkg(
             &data.validators_info,

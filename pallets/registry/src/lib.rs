@@ -141,16 +141,12 @@ pub mod pallet {
 
     #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
     pub enum JumpStartStatus {
+        #[default]
         Ready,
         InProgress(u32),
         Done,
     }
-
-    impl Default for JumpStartStatus {
-        fn default() -> Self {
-            Self::Ready
-        }
-    }
+    
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
@@ -216,9 +212,9 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// The network has been jump started.
-        NetworkJumpStarted(),
-        /// The network has been jump started succefully.
-        JumpStartDone(),
+        StartedNetworkJumpStart(),
+        /// The network has been jump started successfully.
+        FinishedNetworkJumpStart(),
         /// The network has had a jump start confirmation. [signing_subgroup]
         JumpStartConfirmation(u8),
         /// An account has signaled to be registered. [signature request account]
@@ -263,7 +259,8 @@ pub mod pallet {
         JumpStartNotInProgress,
     }
 
-    /// Allows anyone to create a master key for the network if the network is read and a master key does not exist
+    /// Allows anyone to create a master key for the network if the network is read and a master key
+    /// does not exist
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -273,9 +270,10 @@ pub mod pallet {
         pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
             let _who = ensure_signed(origin)?;
             let network_account = H256::zero();
-            let block_number = <frame_system::Pallet<T>>::block_number();
-            let converted_block_number: u32 =
+            let current_block_number = <frame_system::Pallet<T>>::block_number();
+            let current_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
+
             // make sure jumpstart is ready, or in progress but X amount of time has passed
             match JumpStartProgress::<T>::get().jump_start_status {
                 JumpStartStatus::Ready => (),
@@ -301,7 +299,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Allows validators to signal a succecful network jumpstart
+        /// Allows validators to signal a successful network jumpstart
         #[pallet::call_index(1)]
         #[pallet::weight({
                 <T as Config>::WeightInfo::jump_start_results_confirm(SIGNING_PARTY_SIZE as u32)
@@ -321,11 +319,11 @@ pub mod pallet {
                     .ok_or(Error::<T>::SigningGroupError)?;
             ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
             let mut jump_start_info = JumpStartProgress::<T>::get();
-            // check in progoress
-            match jump_start_info.jump_start_status {
-                JumpStartStatus::InProgress(_) => (),
-                _ => return Err(Error::<T>::JumpStartNotInProgress.into()),
-            };
+            // check in progress
+            ensure!(
+                matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
+                Error::<T>::JumpStartNotInProgress
+            );
 
             ensure!(
                 !jump_start_info.confirmations.contains(&signing_subgroup),
