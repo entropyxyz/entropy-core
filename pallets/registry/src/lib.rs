@@ -146,6 +146,7 @@ pub mod pallet {
     pub enum JumpStartStatus {
         #[default]
         Ready,
+        // u32 is block number process was started, after X blocks we assume failed and retry
         InProgress(u32),
         Done,
     }
