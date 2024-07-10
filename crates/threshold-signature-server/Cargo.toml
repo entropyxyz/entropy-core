@@ -96,7 +96,7 @@ entropy-protocol     ={ path="../protocol", features=["unsafe"] }
 entropy-testing-utils={ path="../testing-utils" }
 
 [build-dependencies]
-vergen={ version="8.0.0", features=["build", "git", "gitcl"] }
+vergen={ version="8.3.2", features=["build", "git", "gitcl"] }
 
 [features]
 default=['std']
