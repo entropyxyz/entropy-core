@@ -264,7 +264,7 @@ pub mod pallet {
         NoRegisteringFromParentKey,
     }
 
-    /// Allows anyone to create a master key for the network if the network is read and a master key
+    /// Allows anyone to create a parent key for the network if the network is read and a parent key
     /// does not exist
     #[pallet::call]
     impl<T: Config> Pallet<T> {
