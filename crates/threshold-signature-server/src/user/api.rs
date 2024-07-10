@@ -144,7 +144,7 @@ pub async fn sign_tx(
 
     check_stale(user_sig_req.block_number, block_number).await?;
     // Probably impossible but block signing from master key anyways
-    if user_sig_req.signature_verifying_key == H256::zero().0.to_vec() {
+    if user_sig_req.signature_verifying_key == NETWORK_PARENT_KEY {
         return Err(UserErr::NoSigningFromMasterKey);
     }
 
@@ -349,11 +349,12 @@ async fn setup_dkg(
         )
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-        let mut string_verifying_key = hex::encode(verifying_key.clone()).to_string();
-        // If jump start store key under the master key (zero address)
-        if sig_request_account == NETWORK_PARENT_KEY.encode() {
-            string_verifying_key = hex::encode(*NETWORK_PARENT_KEY).to_string();
+        let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
+            hex::encode(*NETWORK_PARENT_KEY)
+        } else {
+            hex::encode(verifying_key.clone())
         }
+        .to_string();
 
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
@@ -508,7 +509,6 @@ pub async fn is_registering(
 }
 
 /// Confirms that a address has finished registering on chain.
-#[allow(clippy::too_many_arguments)]
 pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -517,25 +517,24 @@ pub async fn confirm_registered(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
-    parent_key: Vec<u8>,
 ) -> Result<(), UserErr> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
 
-    // If master key call jump_start_result
-    if parent_key != who.encode() {
-        let tx_request = entropy::tx().registry().confirm_register(
+    if who.encode() == NETWORK_PARENT_KEY.encode() {
+        let jump_start_request = entropy::tx().registry().jump_start_results(subgroup);
+        submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
+    } else {
+        let confirm_register_request = entropy::tx().registry().confirm_register(
             who,
             subgroup,
             entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
         );
-        submit_transaction(api, rpc, signer, &tx_request, Some(nonce)).await?;
-    } else {
-        let tx_request = entropy::tx().registry().jump_start_results(subgroup);
-        submit_transaction(api, rpc, signer, &tx_request, Some(nonce)).await?;
+        submit_transaction(api, rpc, signer, &confirm_register_request, Some(nonce)).await?;
     }
+
     Ok(())
 }
 

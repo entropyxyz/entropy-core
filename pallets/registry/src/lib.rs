@@ -290,7 +290,7 @@ pub mod pallet {
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
-            // TODO: Add checks for network state see https://github.com/entropyxyz/entropy-core/issues/923
+            // TODO (#923): Add checks for network state.
             Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
                 messages.push(NETWORK_PARENT_KEY.clone().encode());
                 Ok(())
@@ -309,7 +309,7 @@ pub mod pallet {
                 <T as Config>::WeightInfo::jump_start_results_confirm(SIGNING_PARTY_SIZE as u32)
                 .max(<T as Config>::WeightInfo::jump_start_results_done(SIGNING_PARTY_SIZE as u32))
         })]
-        pub fn jump_start_results(
+        pub fn confirm_jump_start(
             origin: OriginFor<T>,
             signing_subgroup: u8,
         ) -> DispatchResultWithPostInfo {
@@ -335,8 +335,10 @@ pub mod pallet {
             );
             let confirmation_length = jump_start_info.confirmations.len() as u32;
 
-            // TODO: some sort of test I a sign from this account or check the verifying keys see :https://github.com/entropyxyz/entropy-core/issues/927
-            // If failed unlock the locks and allow another jumpstart
+            // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
+            // ensure that registration was indeed successful.
+            //
+            // If it fails we'll need to allow another jumpstart.
             if jump_start_info.confirmations.len() == T::SigningPartySize::get() - 1 {
                 // registration finished, lock call
                 JumpStartProgress::<T>::put(JumpStartDetails {

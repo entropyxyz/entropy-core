@@ -841,7 +841,6 @@ async fn test_jumpstart_network() {
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
         for event in jump_start_event.flatten() {
-            dbg!(event);
             break;
         }
     }
