@@ -144,7 +144,7 @@ pub async fn sign_tx(
 
     check_stale(user_sig_req.block_number, block_number).await?;
     // Probably impossible but block signing from master key anyways
-    if user_sig_req.signature_verifying_key == NETWORK_PARENT_KEY {
+    if user_sig_req.signature_verifying_key.encode() == NETWORK_PARENT_KEY.encode() {
         return Err(UserErr::NoSigningFromMasterKey);
     }
 
@@ -387,7 +387,6 @@ async fn setup_dkg(
             &signer,
             verifying_key,
             nonce + i as u32,
-            NETWORK_PARENT_KEY.encode(),
         )
         .await?;
     }
@@ -524,7 +523,7 @@ pub async fn confirm_registered(
     // or other method under sign_and_*
 
     if who.encode() == NETWORK_PARENT_KEY.encode() {
-        let jump_start_request = entropy::tx().registry().jump_start_results(subgroup);
+        let jump_start_request = entropy::tx().registry().confirm_jump_start(subgroup);
         submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
     } else {
         let confirm_register_request = entropy::tx().registry().confirm_register(
