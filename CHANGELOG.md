@@ -7,9 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0-rc.1...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
 
-## [0.2.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0-rc.1) - 2024-06-24
+## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
 ### Breaking Changes
 - In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
