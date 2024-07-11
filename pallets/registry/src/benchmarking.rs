@@ -70,6 +70,67 @@ pub fn add_non_syncing_validators<T: Config>(
 }
 
 benchmarks! {
+  jump_start_network {
+
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
+
+  }: _(RawOrigin::Signed(sig_req_account.clone()))
+  verify {
+    assert_last_event::<T>(Event::StartedNetworkJumpStart().into());
+  }
+
+  confirm_jump_start_done {
+    let c in 0 .. SIG_PARTIES as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+
+    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    // add validators and a registering user
+    for i in 0..SIG_PARTIES {
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    }
+    <JumpStartProgress<T>>::put(JumpStartDetails {
+      jump_start_status: JumpStartStatus::InProgress(0),
+      confirmations: vec![1],
+  });
+
+
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account), 0)
+  verify {
+    assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
+  }
+
+  confirm_jump_start_confirm {
+    let c in 0 .. SIG_PARTIES as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+
+    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
+    // add validators and a registering user
+    for i in 0..SIG_PARTIES {
+        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    }
+    <JumpStartProgress<T>>::put(JumpStartDetails {
+      jump_start_status: JumpStartStatus::InProgress(0),
+      confirmations: vec![],
+  });
+
+
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account), 0)
+  verify {
+    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(0).into());
+  }
+
   register {
     let p in 1 .. T::MaxProgramHashes::get();
     let program = vec![0u8];

@@ -23,6 +23,7 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
+use sp_core::H256;
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -30,8 +31,8 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
-    RegisteringDetails, ValidateConfirmRegistered,
+    mock::*, Error, JumpStartDetails, JumpStartStatus, ModifiableKeys, ProgramInstance, Registered,
+    RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
 };
 
 #[test]
@@ -137,6 +138,92 @@ fn it_registers_a_user() {
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             1,
             "ref counter is incremented"
+        );
+    });
+}
+
+#[test]
+fn it_jumps_the_network() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails { jump_start_status: JumpStartStatus::Ready, confirmations: vec![] },
+            "Checks default status of jump start detail"
+        );
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_eq!(
+            Registry::dkg(0),
+            vec![H256::zero().encode()],
+            "ensures a dkg message for the jump start network is prepped"
+        );
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(0),
+                confirmations: vec![]
+            },
+            "Checks that jump start is in progress"
+        );
+
+        assert_noop!(
+            Registry::jump_start_network(RuntimeOrigin::signed(1)),
+            Error::<Test>::JumpStartProgressNotReady
+        );
+
+        System::set_block_number(100);
+
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(100),
+                confirmations: vec![]
+            },
+            "ensures jump start is called again if too many blocks passed"
+        );
+    });
+}
+
+#[test]
+fn it_tests_jump_start_result() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,),
+            Error::<Test>::NoThresholdKey
+        );
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 3,),
+            Error::<Test>::NotInSigningGroup
+        );
+
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,),
+            Error::<Test>::JumpStartNotInProgress
+        );
+        // trigger jump start
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+
+        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,));
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(0),
+                confirmations: vec![0]
+            },
+            "Jump start recieves a confirmation"
+        );
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,),
+            Error::<Test>::AlreadyConfirmed
+        );
+
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(2), 1,));
+        assert_eq!(
+            Registry::jump_start_progress(),
+            JumpStartDetails { jump_start_status: JumpStartStatus::Done, confirmations: vec![] },
+            "Jump start in done status after all confirmations"
         );
     });
 }

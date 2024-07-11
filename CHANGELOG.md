@@ -9,6 +9,9 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
 
+### Added 
+- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
 ### Breaking Changes

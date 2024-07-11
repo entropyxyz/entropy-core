@@ -36,7 +36,8 @@ use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureReques
 use entropy_protocol::ValidatorInfo;
 use entropy_protocol::{KeyParams, SigningSessionInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
+    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, NETWORK_PARENT_KEY,
+    SIGNING_PARTY_SIZE,
 };
 use futures::{
     channel::mpsc,
@@ -46,7 +47,7 @@ use futures::{
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, H256};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
@@ -142,6 +143,11 @@ pub async fn sign_tx(
         .number;
 
     check_stale(user_sig_req.block_number, block_number).await?;
+    // Probably impossible but block signing from parent key anyways
+    if user_sig_req.signature_verifying_key == NETWORK_PARENT_KEY.encode() {
+        return Err(UserErr::NoSigningFromParentKey);
+    }
+
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
     check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
@@ -307,7 +313,6 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-
     let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
     let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
     let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
@@ -325,8 +330,13 @@ async fn setup_dkg(
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
-        let user_details =
-            get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
+        let key_visibility = if sig_request_account == NETWORK_PARENT_KEY.encode() {
+            KeyVisibility::Public
+        } else {
+            let user_details =
+                get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
+            user_details.key_visibility.0
+        };
 
         let key_share = do_dkg(
             &data.validators_info,
@@ -334,12 +344,18 @@ async fn setup_dkg(
             x25519_secret_key,
             &app_state.listener_state,
             sig_request_address.clone(),
-            *user_details.key_visibility,
+            key_visibility,
             data.block_number,
         )
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-        let string_verifying_key = hex::encode(verifying_key.clone()).to_string();
+        let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
+            hex::encode(*NETWORK_PARENT_KEY)
+        } else {
+            hex::encode(verifying_key.clone())
+        }
+        .to_string();
+
         let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
@@ -505,12 +521,19 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().registry().confirm_register(
-        who,
-        subgroup,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-    );
-    submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
+
+    if who.encode() == NETWORK_PARENT_KEY.encode() {
+        let jump_start_request = entropy::tx().registry().confirm_jump_start(subgroup);
+        submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
+    } else {
+        let confirm_register_request = entropy::tx().registry().confirm_register(
+            who,
+            subgroup,
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
+        submit_transaction(api, rpc, signer, &confirm_register_request, Some(nonce)).await?;
+    }
+
     Ok(())
 }
 
