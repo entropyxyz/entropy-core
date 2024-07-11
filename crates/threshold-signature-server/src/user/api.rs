@@ -145,7 +145,7 @@ pub async fn sign_tx(
     check_stale(user_sig_req.block_number, block_number).await?;
     // Probably impossible but block signing from parent key anyways
     if user_sig_req.signature_verifying_key == NETWORK_PARENT_KEY.encode() {
-        return Err(UserErr::NoSigningFromMasterKey);
+        return Err(UserErr::NoSigningFromParentKey);
     }
 
     let user_details =

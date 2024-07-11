@@ -9,6 +9,9 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0-rc.1...master)
 
+### Added 
+- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+
 ## [0.2.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0-rc.1) - 2024-06-24
 
 ### Breaking Changes
@@ -35,7 +38,6 @@ At the moment this project **does not** adhere to
 - Add `blake2` as built in hash function and make `HashingAlgorithm` non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
 - Add sort to subgroup signer selection ([#900](https://github.com/entropyxyz/entropy-core/pull/900))
 - Create four node Docker Compose chainspec ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
-- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
 
 ### Changed
 - Move TSS mnemonic out of keystore ([#853](https://github.com/entropyxyz/entropy-core/pull/853))
