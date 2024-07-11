@@ -152,7 +152,7 @@ pub enum UserErr {
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
     #[error("No signing from parent key")]
-    NoSigningFromMasterKey,
+    NoSigningFromParentKey,
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),
     #[error("Error creating sr25519 keypair from seed: {0}")]
