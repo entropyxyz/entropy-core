@@ -306,8 +306,8 @@ pub mod pallet {
         /// Allows validators to signal a successful network jumpstart
         #[pallet::call_index(1)]
         #[pallet::weight({
-                <T as Config>::WeightInfo::jump_start_results_confirm(SIGNING_PARTY_SIZE as u32)
-                .max(<T as Config>::WeightInfo::jump_start_results_done(SIGNING_PARTY_SIZE as u32))
+                <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
+                .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
         })]
         pub fn confirm_jump_start(
             origin: OriginFor<T>,
@@ -346,7 +346,7 @@ pub mod pallet {
                     confirmations: vec![],
                 });
                 Self::deposit_event(Event::FinishedNetworkJumpStart());
-                return Ok(Some(<T as Config>::WeightInfo::jump_start_results_done(
+                return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_done(
                     confirmation_length,
                 ))
                 .into());
@@ -355,7 +355,7 @@ pub mod pallet {
                 jump_start_info.confirmations.push(signing_subgroup);
                 JumpStartProgress::<T>::put(jump_start_info);
                 Self::deposit_event(Event::JumpStartConfirmation(signing_subgroup));
-                return Ok(Some(<T as Config>::WeightInfo::jump_start_results_confirm(
+                return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_confirm(
                     confirmation_length,
                 ))
                 .into());

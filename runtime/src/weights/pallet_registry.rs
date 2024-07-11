@@ -66,7 +66,7 @@ impl<T: frame_system::Config> pallet_registry::WeightInfo for WeightInfo<T> {
 	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
 	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn jump_start_results_done(_c: u32, ) -> Weight {
+	fn confirm_jump_start_done(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1314`
 		//  Estimated: `4779`
@@ -83,7 +83,7 @@ impl<T: frame_system::Config> pallet_registry::WeightInfo for WeightInfo<T> {
 	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
 	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn jump_start_results_confirm(_c: u32, ) -> Weight {
+	fn confirm_jump_start_confirm(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1313`
 		//  Estimated: `4778`

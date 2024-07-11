@@ -54,8 +54,8 @@ pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
 	fn jump_start_network() -> Weight;
 	fn prune_registration(p: u32) -> Weight;
-	fn jump_start_results_done(c: u32, ) -> Weight;
-	fn jump_start_results_confirm(c: u32, ) -> Weight;
+	fn confirm_jump_start_done(c: u32, ) -> Weight;
+	fn confirm_jump_start_confirm(c: u32, ) -> Weight;
 	fn change_program_instance(n: u32, o:u32) -> Weight;
 	fn change_program_modification_account(n: u32) -> Weight;
 	fn confirm_register_registering(c: u32, ) -> Weight;
@@ -87,7 +87,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
 	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn jump_start_results_done(_c: u32, ) -> Weight {
+	fn confirm_jump_start_done(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1314`
 		//  Estimated: `4779`
@@ -104,7 +104,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
 	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn jump_start_results_confirm(_c: u32, ) -> Weight {
+	fn confirm_jump_start_confirm(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1313`
 		//  Estimated: `4778`
@@ -264,7 +264,7 @@ impl WeightInfo for () {
 	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
 	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn jump_start_results_done(_c: u32, ) -> Weight {
+	fn confirm_jump_start_done(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1314`
 		//  Estimated: `4779`
@@ -281,7 +281,7 @@ impl WeightInfo for () {
 	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
 	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 2]`.
-	fn jump_start_results_confirm(_c: u32, ) -> Weight {
+	fn confirm_jump_start_confirm(_c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1313`
 		//  Estimated: `4778`

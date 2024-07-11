@@ -81,7 +81,7 @@ benchmarks! {
     assert_last_event::<T>(Event::StartedNetworkJumpStart().into());
   }
 
-  jump_start_results_done {
+  confirm_jump_start_done {
     let c in 0 .. SIG_PARTIES as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
@@ -101,12 +101,12 @@ benchmarks! {
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: jump_start_results(RawOrigin::Signed(threshold_account), 0)
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account), 0)
   verify {
     assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
   }
 
-  jump_start_results_confirm {
+  confirm_jump_start_confirm {
     let c in 0 .. SIG_PARTIES as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
@@ -126,7 +126,7 @@ benchmarks! {
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: jump_start_results(RawOrigin::Signed(threshold_account), 0)
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account), 0)
   verify {
     assert_last_event::<T>(Event::<T>::JumpStartConfirmation(0).into());
   }
