@@ -2035,7 +2035,6 @@ async fn test_mutiple_confirm_done() {
         &signer_alice,
         DEFAULT_VERIFYING_KEY.to_vec(),
         0u32,
-        parent_key.clone(),
     )
     .await
     .unwrap();
@@ -2047,7 +2046,6 @@ async fn test_mutiple_confirm_done() {
         &signer_alice,
         DEFAULT_VERIFYING_KEY.to_vec(),
         1u32,
-        parent_key,
     )
     .await
     .unwrap();
