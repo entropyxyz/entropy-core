@@ -151,7 +151,7 @@ pub enum UserErr {
     EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
-    #[error("No signing from master key")]
+    #[error("No signing from parent key")]
     NoSigningFromMasterKey,
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),

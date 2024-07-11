@@ -35,6 +35,7 @@ use entropy_protocol::{
 use entropy_shared::{
     HashingAlgorithm, KeyVisibility, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
     DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    NETWORK_PARENT_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -364,7 +365,7 @@ async fn test_sign_tx_no_chain() {
     }
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = H256::zero().0.to_vec();
+    generic_msg.signature_verifying_key = NETWORK_PARENT_KEY.0.to_vec();
     let test_user_sign_with_parent_key = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -372,7 +373,7 @@ async fn test_sign_tx_no_chain() {
     )
     .await;
     for res in test_user_sign_with_parent_key {
-        assert_eq!(res.unwrap().text().await.unwrap(), "No signing from master key");
+        assert_eq!(res.unwrap().text().await.unwrap(), "No signing from parent key");
     }
     clean_tests();
 }
@@ -840,7 +841,7 @@ async fn test_jumpstart_network() {
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
-        for event in jump_start_event.flatten() {
+        for _event in jump_start_event.flatten() {
             break;
         }
     }
@@ -2026,7 +2027,7 @@ async fn test_mutiple_confirm_done() {
     .await;
 
     let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
-    let parent_key = H256::zero().encode();
+
     confirm_registered(
         &api,
         &rpc,
