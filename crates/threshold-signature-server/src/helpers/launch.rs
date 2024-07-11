@@ -97,11 +97,28 @@ pub async fn load_kv_store(
         )
         .unwrap();
     }
+
+    if validator_name == &Some(ValidatorName::Alice) {
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+
     if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-    if validator_name == &Some(ValidatorName::Alice) {
+
+    if validator_name == &Some(ValidatorName::Charlie) {
+        root.push("charlie");
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+
+    if validator_name == &Some(ValidatorName::Dave) {
+        root.push("dave");
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+
+    if validator_name == &Some(ValidatorName::Eve) {
+        root.push("eve");
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
 
