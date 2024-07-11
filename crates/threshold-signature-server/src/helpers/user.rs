@@ -214,8 +214,9 @@ pub async fn compute_hash(
         },
         HashingAlgorithm::Blake2_256 => Ok(blake2_256(message)),
         HashingAlgorithm::Custom(i) => {
-            let program = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
-            runtime.custom_hash(program.as_slice(), message).map_err(|e| e.into())
+            let (program_bytecode, _) =
+                get_program(api, rpc, &programs_data[*i].program_pointer).await?;
+            runtime.custom_hash(program_bytecode.as_slice(), message).map_err(|e| e.into())
         },
         _ => Err(UserErr::UnknownHashingAlgorithm),
     }

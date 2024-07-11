@@ -2583,6 +2583,7 @@ dependencies = [
  "pallet-nomination-pools-benchmarking",
  "pallet-offences",
  "pallet-offences-benchmarking",
+ "pallet-oracle",
  "pallet-parameters",
  "pallet-preimage",
  "pallet-programs",
@@ -6985,6 +6986,21 @@ dependencies = [
  "scale-info",
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
+ "sp-std 14.0.0",
+]
+
+[[package]]
+name = "pallet-oracle"
+version = "0.2.0-rc.1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support 29.0.2",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 29.0.0",
+ "sp-io 31.0.0",
+ "sp-runtime 32.0.0",
  "sp-std 14.0.0",
 ]
 
