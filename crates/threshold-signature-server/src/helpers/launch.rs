@@ -243,6 +243,7 @@ pub struct StartupArgs {
 
 pub async fn has_mnemonic(kv: &KvManager) -> bool {
     let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
+
     if exists {
         tracing::debug!("Existing mnemonic found in keystore.");
     }
@@ -393,4 +394,64 @@ pub async fn setup_only(kv: &KvManager) {
     });
 
     println!("{}", output);
+}
+
+pub async fn check_node_connection(url: &str, account_id: &str) {
+    use crate::chain_api::{get_api, get_rpc};
+
+    let connect_to_substrate_node = || async {
+        tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
+
+        let api = get_api(url).await.map_err(|_| {
+            Err::<(), String>("Unable to connect to Substrate chain API".to_string())
+        })?;
+
+        let rpc = get_rpc(url)
+            .await
+            .map_err(|_| Err("Unable to connect to Substrate chain RPC".to_string()))?;
+
+        Ok((api, rpc))
+    };
+
+    // Note: By default this will wait 15 minutes before it stops retry attempts.
+    let backoff = backoff::ExponentialBackoff::default();
+    match backoff::future::retry(backoff, connect_to_substrate_node).await {
+        Ok((api, rpc)) => {
+            tracing::info!("Sucessfully connected to Substrate node!");
+
+            tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+            let balance_query = crate::validator::api::check_balance_for_fees(
+                &api,
+                &rpc,
+                account_id.to_string(),
+                entropy_shared::MIN_BALANCE,
+            )
+            .await
+            .map_err(|_| Err::<bool, String>("Failed to get balance of account.".to_string()));
+
+            match balance_query {
+                Ok(has_minimum_balance) => {
+                    if has_minimum_balance {
+                        tracing::info!(
+                            "The account `{}` has enough funds for submitting extrinsics.",
+                            &account_id
+                        )
+                    } else {
+                        tracing::warn!(
+                            "The account `{}` does not meet the minimum balance of `{}`",
+                            &account_id,
+                            entropy_shared::MIN_BALANCE,
+                        )
+                    }
+                },
+                Err(_) => {
+                    tracing::warn!("Unable to query the account balance of `{}`", &account_id)
+                },
+            }
+        },
+        Err(_err) => {
+            tracing::error!("Unable to establish connection with Substrate node at `{}`", url);
+            panic!("Unable to establish connection with Substrate node.");
+        },
+    }
 }

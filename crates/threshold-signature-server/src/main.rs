@@ -113,66 +113,8 @@ async fn main() {
     if args.setup_only {
         setup_only(&kv_store).await;
     } else {
-        let connect_to_substrate_node = || async {
-            tracing::info!(
-                "Attempting to establish connection to Substrate node at `{}`",
-                &app_state.configuration.endpoint
-            );
-
-            let api = get_api(&app_state.configuration.endpoint).await.map_err(|_| {
-                Err::<(), String>("Unable to connect to Substrate chain API".to_string())
-            })?;
-
-            let rpc = get_rpc(&app_state.configuration.endpoint)
-                .await
-                .map_err(|_| Err("Unable to connect to Substrate chain RPC".to_string()))?;
-
-            Ok((api, rpc))
-        };
-
-        let backoff = backoff::ExponentialBackoffBuilder::default()
-            .with_max_elapsed_time(Some(std::time::Duration::from_secs(60)))
-            .build();
-        match backoff::future::retry(backoff, connect_to_substrate_node).await {
-            Ok((api, rpc)) => {
-                tracing::info!("Sucessfully connected to Substrate node!");
-
-                tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
-                let balance_query =
-                    check_balance_for_fees(&api, &rpc, account_id.clone(), MIN_BALANCE)
-                        .await
-                        .map_err(|_| {
-                            Err::<bool, String>("Failed to get balance of account.".to_string())
-                        });
-
-                match balance_query {
-                    Ok(has_minimum_balance) => {
-                        if has_minimum_balance {
-                            tracing::info!(
-                                "The account `{}` has enough funds for submitting extrinsics.",
-                                &account_id
-                            )
-                        } else {
-                            tracing::warn!(
-                                "The account `{}` does not meet the minimum balance of `{}`",
-                                &account_id,
-                                MIN_BALANCE
-                            )
-                        }
-                    },
-                    Err(_) => {
-                        tracing::warn!("Unable to query the account balance of `{}`", &account_id)
-                    },
-                }
-            },
-            Err(_err) => {
-                tracing::error!(
-                    "Unable to establish connection with Substrate node at `{}`",
-                    &app_state.configuration.endpoint
-                );
-                panic!("Unable to establish connection with Substrate node.");
-            },
-        }
+        entropy_tss::launch::check_node_connection(&app_state.configuration.endpoint, &account_id)
+            .await;
 
         let listener = tokio::net::TcpListener::bind(&addr)
             .await
