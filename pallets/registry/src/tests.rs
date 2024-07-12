@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{KeyVisibility, NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -23,7 +23,6 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
-use sp_core::H256;
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -153,7 +152,7 @@ fn it_jumps_the_network() {
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(
             Registry::dkg(0),
-            vec![H256::zero().encode()],
+            vec![NETWORK_PARENT_KEY.encode()],
             "ensures a dkg message for the jump start network is prepped"
         );
         assert_eq!(
