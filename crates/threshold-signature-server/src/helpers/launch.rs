@@ -241,16 +241,6 @@ pub struct StartupArgs {
     pub mnemonic_file: Option<PathBuf>,
 }
 
-pub async fn threshold_account_id(kv: &KvManager) -> String {
-    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
-    let pair = <sr25519::Pair as Pair>::from_phrase(
-        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-        None,
-    )
-    .expect("Issue converting mnemonic to pair");
-    AccountId32::new(pair.0.public().into()).to_ss58check()
-}
-
 pub async fn has_mnemonic(kv: &KvManager) -> bool {
     let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
     if exists {
@@ -344,6 +334,16 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String
 
     tracing::debug!("Starting process with account ID: `{id}`");
     id.to_ss58check()
+}
+
+pub async fn threshold_account_id(kv: &KvManager) -> String {
+    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
+    let pair = <sr25519::Pair as Pair>::from_phrase(
+        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        None,
+    )
+    .expect("Issue converting mnemonic to pair");
+    AccountId32::new(pair.0.public().into()).to_ss58check()
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {

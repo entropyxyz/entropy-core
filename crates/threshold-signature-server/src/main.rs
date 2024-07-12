@@ -136,13 +136,33 @@ async fn main() {
         match backoff::future::retry(backoff, connect_to_substrate_node).await {
             Ok((api, rpc)) => {
                 tracing::info!("Sucessfully connected to Substrate node!");
+
                 tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
-                let has_fee_balance =
+                let balance_query =
                     check_balance_for_fees(&api, &rpc, account_id.clone(), MIN_BALANCE)
                         .await
-                        .expect("Error in check balance");
-                if !has_fee_balance {
-                    panic!("threshold account needs balance: {:?}", account_id);
+                        .map_err(|_| {
+                            Err::<bool, String>("Failed to get balance of account.".to_string())
+                        });
+
+                match balance_query {
+                    Ok(has_minimum_balance) => {
+                        if has_minimum_balance {
+                            tracing::info!(
+                                "The account `{}` has enough funds for submitting extrinsics.",
+                                &account_id
+                            )
+                        } else {
+                            tracing::warn!(
+                                "The account `{}` does not meet the minimum balance of `{}`",
+                                &account_id,
+                                MIN_BALANCE
+                            )
+                        }
+                    },
+                    Err(_) => {
+                        tracing::warn!("Unable to query the account balance of `{}`", &account_id)
+                    },
                 }
             },
             Err(_err) => {
