@@ -17,15 +17,12 @@ use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
 
-use entropy_shared::MIN_BALANCE;
 use entropy_tss::{
     app,
-    chain_api::{get_api, get_rpc},
     launch::{
         development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only,
         Configuration, StartupArgs, ValidatorName,
     },
-    validator::api::check_balance_for_fees,
     AppState,
 };
 
