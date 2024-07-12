@@ -339,7 +339,7 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
 pub async fn threshold_account_id(kv: &KvManager) -> String {
     let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
     let pair = <sr25519::Pair as Pair>::from_phrase(
-        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        dbg!(&String::from_utf8(mnemonic).expect("Issue converting mnemonic to string")),
         None,
     )
     .expect("Issue converting mnemonic to pair");

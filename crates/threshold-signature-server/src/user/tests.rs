@@ -144,11 +144,16 @@ async fn test_get_signer_does_not_throw_err() {
     initialize_test_logger().await;
     clean_tests();
 
+    let pair = <sr25519::Pair as Pair>::from_phrase(crate::helpers::launch::DEFAULT_MNEMONIC, None)
+        .expect("Issue converting mnemonic to pair");
+    let expected_account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
+
     let kv_store = load_kv_store(&None, None).await;
     setup_mnemonic(&kv_store, development_mnemonic(&None)).await;
+    development_mnemonic(&None).to_string();
     let account = threshold_account_id(&kv_store).await;
 
-    assert_eq!(account, "5DACCJgQV6sHoYUKfTGEimddFxe16NJXgkzHZ3RC9QCBShMH");
+    assert_eq!(account, expected_account_id);
     get_signer(&kv_store).await.unwrap();
     clean_tests();
 }
