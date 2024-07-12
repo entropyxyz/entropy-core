@@ -111,8 +111,9 @@ use crate::{
     get_signer,
     helpers::{
         launch::{
-            development_mnemonic, load_kv_store, setup_mnemonic, Configuration, ValidatorName,
-            DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            development_mnemonic, load_kv_store, setup_mnemonic, threshold_account_id,
+            Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
         substrate::{query_chain, submit_transaction},
@@ -144,7 +145,9 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 
     let kv_store = load_kv_store(&None, None).await;
-    let account = setup_mnemonic(&kv_store, development_mnemonic(&None)).await;
+    setup_mnemonic(&kv_store, development_mnemonic(&None)).await;
+    let account = threshold_account_id(&kv_store).await;
+
     assert_eq!(account, "5DACCJgQV6sHoYUKfTGEimddFxe16NJXgkzHZ3RC9QCBShMH");
     get_signer(&kv_store).await.unwrap();
     clean_tests();
