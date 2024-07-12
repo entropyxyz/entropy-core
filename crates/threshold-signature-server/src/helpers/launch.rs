@@ -241,21 +241,23 @@ pub struct StartupArgs {
     pub mnemonic_file: Option<PathBuf>,
 }
 
-pub async fn has_mnemonic(kv: &KvManager) -> (bool, String) {
+pub async fn threshold_account_id(kv: &KvManager) -> String {
+    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
+    let pair = <sr25519::Pair as Pair>::from_phrase(
+        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        None,
+    )
+    .expect("Issue converting mnemonic to pair");
+    AccountId32::new(pair.0.public().into()).to_ss58check()
+}
+
+pub async fn has_mnemonic(kv: &KvManager) -> bool {
     let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
-    let mut account_id = "".to_string();
     if exists {
         tracing::debug!("Existing mnemonic found in keystore.");
-        let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
-        let pair = <sr25519::Pair as Pair>::from_phrase(
-            &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-            None,
-        )
-        .expect("Issue converting mnemonic to pair");
-        account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
     }
 
-    (exists, account_id)
+    exists
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
@@ -276,7 +278,7 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
 }
 
 pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String {
-    if has_mnemonic(kv).await.0 {
+    if has_mnemonic(kv).await {
         tracing::warn!("Deleting account related keys from KVDB.");
 
         kv.kv()

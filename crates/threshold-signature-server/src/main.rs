@@ -96,12 +96,13 @@ async fn main() {
     } else if cfg!(test) || validator_name.is_some() {
         setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
     } else {
-        let (has_mnemonic, account_id) = entropy_tss::launch::has_mnemonic(&kv_store).await;
+        let has_mnemonic = entropy_tss::launch::has_mnemonic(&kv_store).await;
         assert!(
             has_mnemonic,
             "No mnemonic provided. Please provide one or use a development account."
         );
-        account_id
+
+        entropy_tss::launch::threshold_account_id(&kv_store).await
     };
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
