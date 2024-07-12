@@ -91,7 +91,7 @@ async fn main() {
             })
         });
 
-    let account_id = if let Some(mnemonic) = user_mnemonic {
+    if let Some(mnemonic) = user_mnemonic {
         setup_mnemonic(&kv_store, mnemonic).await
     } else if cfg!(test) || validator_name.is_some() {
         setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
@@ -101,8 +101,6 @@ async fn main() {
             has_mnemonic,
             "No mnemonic provided. Please provide one or use a development account."
         );
-
-        entropy_tss::launch::threshold_account_id(&kv_store).await
     };
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
@@ -113,8 +111,12 @@ async fn main() {
     if args.setup_only {
         setup_only(&kv_store).await;
     } else {
-        entropy_tss::launch::check_node_connection(&app_state.configuration.endpoint, &account_id)
-            .await;
+        let account_id = entropy_tss::launch::threshold_account_id(&kv_store).await;
+        entropy_tss::launch::check_node_prerequisites(
+            &app_state.configuration.endpoint,
+            &account_id,
+        )
+        .await;
 
         let listener = tokio::net::TcpListener::bind(&addr)
             .await

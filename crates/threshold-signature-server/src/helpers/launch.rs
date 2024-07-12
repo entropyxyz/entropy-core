@@ -268,7 +268,7 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
-pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String {
+pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     if has_mnemonic(kv).await {
         tracing::warn!("Deleting account related keys from KVDB.");
 
@@ -334,7 +334,6 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String
     fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
     tracing::debug!("Starting process with account ID: `{id}`");
-    id.to_ss58check()
 }
 
 pub async fn threshold_account_id(kv: &KvManager) -> String {
@@ -396,7 +395,7 @@ pub async fn setup_only(kv: &KvManager) {
     println!("{}", output);
 }
 
-pub async fn check_node_connection(url: &str, account_id: &str) {
+pub async fn check_node_prerequisites(url: &str, account_id: &str) {
     use crate::chain_api::{get_api, get_rpc};
 
     let connect_to_substrate_node = || async {
