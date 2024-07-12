@@ -14,7 +14,7 @@ serde         ={ version="1.0", default-features=false, features=["derive"] }
 entropy-shared={ version="0.2.0", path="../shared", default-features=false }
 subxt         ={ version="0.35.3", default-features=false, features=["jsonrpsee"] }
 num           ="0.4.3"
-thiserror     ="1.0.61"
+thiserror     ="1.0.62"
 futures       ="0.3"
 sp-core       ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
 tracing       ="0.1.37"
