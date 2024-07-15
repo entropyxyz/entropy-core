@@ -120,11 +120,20 @@ pub mod pallet {
         pub version_number: u8,
     }
     /// Details of status of jump starting the network
-    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
+    #[derive(
+        Clone,
+        Encode,
+        Decode,
+        Eq,
+        PartialEqNoBound,
+        RuntimeDebug,
+        TypeInfo,
+        frame_support::DefaultNoBound,
+    )]
     #[scale_info(skip_type_params(T))]
-    pub struct JumpStartDetails {
+    pub struct JumpStartDetails<T: Config> {
         pub jump_start_status: JumpStartStatus,
-        pub confirmations: Vec<u8>,
+        pub confirmations: Vec<T::ValidatorId>,
     }
 
     #[pallet::genesis_config]
@@ -195,7 +204,7 @@ pub mod pallet {
     /// A concept of what progress status the jumpstart is
     #[pallet::storage]
     #[pallet::getter(fn jump_start_progress)]
-    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails, ValueQuery>;
+    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails<T>, ValueQuery>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -294,12 +303,11 @@ pub mod pallet {
                 <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
                 .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
         })]
-        pub fn confirm_jump_start(
-            origin: OriginFor<T>,
-            signing_subgroup: u8,
-        ) -> DispatchResultWithPostInfo {
+        pub fn confirm_jump_start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             // check is validator
             let ts_server_account = ensure_signed(origin)?;
+
+            // TODO (Nando): Check that they're actually in active set and not a candidate/runner up
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
@@ -307,44 +315,50 @@ pub mod pallet {
             //     pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
             //         .ok_or(Error::<T>::SigningGroupError)?;
             // ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
+
             let mut jump_start_info = JumpStartProgress::<T>::get();
+
             // check in progress
             ensure!(
                 matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
                 Error::<T>::JumpStartNotInProgress
             );
-
             ensure!(
-                !jump_start_info.confirmations.contains(&signing_subgroup),
+                !jump_start_info.confirmations.contains(&validator_stash),
                 Error::<T>::AlreadyConfirmed
             );
-            let confirmation_length = jump_start_info.confirmations.len() as u32;
 
             // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
             // ensure that registration was indeed successful.
             //
             // If it fails we'll need to allow another jumpstart.
-            //
-            // TODO (Nando): make this a const
-            if jump_start_info.confirmations.len() == (3 - 1) as usize {
-                // T::SigningPartySize::get() - 1 {
+            if jump_start_info.confirmations.len() == (SIGNING_PARTY_SIZE - 1) as usize {
                 // registration finished, lock call
+                jump_start_info.confirmations.push(validator_stash);
+                let confirmations = jump_start_info.confirmations.len();
+
                 JumpStartProgress::<T>::put(JumpStartDetails {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
                 });
+
                 Self::deposit_event(Event::FinishedNetworkJumpStart());
+
                 return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_done(
-                    confirmation_length,
+                    confirmations as u32,
                 ))
                 .into());
             } else {
                 // Add confirmation wait for next one
-                jump_start_info.confirmations.push(signing_subgroup);
+                jump_start_info.confirmations.push(validator_stash);
+                let confirmations = jump_start_info.confirmations.len();
+
                 JumpStartProgress::<T>::put(jump_start_info);
-                Self::deposit_event(Event::JumpStartConfirmation(signing_subgroup));
+
+                Self::deposit_event(Event::JumpStartConfirmation(confirmations as u8));
+
                 return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_confirm(
-                    confirmation_length,
+                    confirmations as u32,
                 ))
                 .into());
             }

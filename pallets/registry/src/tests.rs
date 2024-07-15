@@ -105,7 +105,7 @@ fn it_jumps_the_network() {
             Registry::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
-                confirmations: vec![]
+                confirmations: vec![],
             },
             "Checks that jump start is in progress"
         );
@@ -133,38 +133,34 @@ fn it_jumps_the_network() {
 fn it_tests_jump_start_result() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
             Error::<Test>::NoThresholdKey
         );
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-        assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 3,),
-            Error::<Test>::NotInSigningGroup
-        );
 
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
             Error::<Test>::JumpStartNotInProgress
         );
         // trigger jump start
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
 
-        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,));
+        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(1)));
         assert_eq!(
             Registry::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
-                confirmations: vec![0]
+                confirmations: vec![1]
             },
             "Jump start recieves a confirmation"
         );
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), 0,),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
             Error::<Test>::AlreadyConfirmed
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(2), 1,));
+        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(2)));
         assert_eq!(
             Registry::jump_start_progress(),
             JumpStartDetails { jump_start_status: JumpStartStatus::Done, confirmations: vec![] },
