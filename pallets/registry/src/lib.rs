@@ -215,8 +215,8 @@ pub mod pallet {
         StartedNetworkJumpStart(),
         /// The network has been jump started successfully.
         FinishedNetworkJumpStart(),
-        /// The network has had a jump start confirmation. [signing_subgroup]
-        JumpStartConfirmation(u8),
+        /// The network has had a jump start confirmation. [who, confirmation_count]
+        JumpStartConfirmation(T::ValidatorId, u8),
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, verifying_key]
@@ -347,12 +347,15 @@ pub mod pallet {
                 .into());
             } else {
                 // Add confirmation wait for next one
-                jump_start_info.confirmations.push(validator_stash);
+                jump_start_info.confirmations.push(validator_stash.clone());
                 let confirmations = jump_start_info.confirmations.len();
 
                 JumpStartProgress::<T>::put(jump_start_info);
 
-                Self::deposit_event(Event::JumpStartConfirmation(confirmations as u8));
+                Self::deposit_event(Event::JumpStartConfirmation(
+                    validator_stash,
+                    confirmations as u8,
+                ));
 
                 return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_confirm(
                     confirmations as u32,

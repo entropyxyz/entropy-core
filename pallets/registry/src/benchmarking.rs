@@ -128,9 +128,11 @@ benchmarks! {
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_jump_start(RawOrigin::Signed(threshold_account))
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account.clone()))
   verify {
-    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(1).into());
+    let validator_stash =
+        pallet_staking_extension::Pallet::<T>::threshold_to_stash(&threshold_account).unwrap();
+    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(validator_stash, 1).into());
   }
 
   register {
