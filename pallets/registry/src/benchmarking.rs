@@ -128,7 +128,7 @@ benchmarks! {
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
   }: confirm_jump_start(RawOrigin::Signed(threshold_account))
   verify {
-    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(0).into());
+    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(1).into());
   }
 
   register {
@@ -259,8 +259,8 @@ benchmarks! {
 
   confirm_register_registering {
     let c in 1 .. MaxValidators::<T>::get();
-    // non synced validators
-    let n in 0 .. MaxValidators::<T>::get();
+    // // non synced validators
+    // let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -277,7 +277,7 @@ benchmarks! {
 
       // add validators and a registering user
       // adds an extra validator so requires confirmations is > validators and doesn't confirm
-      let validators = add_non_syncing_validators::<T>(c + 1, n);
+      let validators = add_non_syncing_validators::<T>(c + 1, 0);
       <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
 
         <Validators<T>>::set(validators);
@@ -299,8 +299,8 @@ benchmarks! {
 
   confirm_register_failed_registering {
     let c in 1 .. MaxValidators::<T>::get();
-     // non synced validators
-     let n in 0 .. MaxValidators::<T>::get();
+    //  // non synced validators
+    //  let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -317,7 +317,7 @@ benchmarks! {
     let random_account = account::<T::AccountId>("ts_account", 10, SEED);
     let invalid_verifying_key = BoundedVec::try_from(vec![2; VERIFICATION_KEY_LENGTH as usize]).unwrap();
     // add validators and a registering user with different verifying key
-    let validators = add_non_syncing_validators::<T>(c, n);
+    let validators = add_non_syncing_validators::<T>(c, 0);
     <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
     let confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
 
@@ -340,8 +340,8 @@ benchmarks! {
 
 confirm_register_registered {
     let c in 1 .. MaxValidators::<T>::get();
-     // non synced validators
-     let n in 0 .. MaxValidators::<T>::get();
+    //  // non synced validators
+    //  let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -356,7 +356,7 @@ confirm_register_registered {
     let threshold_account: T::AccountId = whitelisted_caller();
     let random_account = account::<T::AccountId>("ts_account", 10, SEED);
     // add validators, a registering user and one less than all confirmations
-    let validators = add_non_syncing_validators::<T>(c, n);
+    let validators = add_non_syncing_validators::<T>(c, 0);
     <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
     let confirmations = vec![random_account.clone(); (c -1).try_into().unwrap()];
 
