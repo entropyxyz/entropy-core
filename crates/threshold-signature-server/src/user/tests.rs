@@ -1116,7 +1116,7 @@ async fn test_faucet() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let verifying_key = EVE_VERIFYING_KEY; //keyshare_option.clone().unwrap().verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verifying_key = EVE_VERIFYING_KEY;
     let verfiying_key_account_hash = blake2_256(&verifying_key);
     let verfiying_key_account = subxtAccountId32(verfiying_key_account_hash);
 

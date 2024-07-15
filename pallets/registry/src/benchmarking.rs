@@ -259,8 +259,6 @@ benchmarks! {
 
   confirm_register_registering {
     let c in 1 .. MaxValidators::<T>::get();
-    // // non synced validators
-    // let n in 0 .. MaxValidators::<T>::get();
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -299,8 +297,7 @@ benchmarks! {
 
   confirm_register_failed_registering {
     let c in 1 .. MaxValidators::<T>::get();
-    //  // non synced validators
-    //  let n in 0 .. MaxValidators::<T>::get();
+
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];
@@ -340,8 +337,7 @@ benchmarks! {
 
 confirm_register_registered {
     let c in 1 .. MaxValidators::<T>::get();
-    //  // non synced validators
-    //  let n in 0 .. MaxValidators::<T>::get();
+
     let program = vec![0u8];
     let configuration_schema = vec![1u8];
     let auxiliary_data_schema = vec![2u8];

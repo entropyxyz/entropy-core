@@ -307,7 +307,7 @@ async fn setup_dkg(
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
 
-        let (key_share, aux_info) = do_dkg(
+        let (key_share, _aux_info) = do_dkg(
             &data.validators_info,
             &signer,
             x25519_secret_key,
