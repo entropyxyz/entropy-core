@@ -292,7 +292,7 @@ pub mod pallet {
             };
             // TODO (#923): Add checks for network state.
             Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(NETWORK_PARENT_KEY.clone().encode());
+                messages.push(NETWORK_PARENT_KEY.encode());
                 Ok(())
             })?;
             JumpStartProgress::<T>::put(JumpStartDetails {

@@ -144,7 +144,7 @@ pub async fn sign_tx(
 
     check_stale(user_sig_req.block_number, block_number).await?;
     // Probably impossible but block signing from parent key anyways
-    if user_sig_req.signature_verifying_key == NETWORK_PARENT_KEY.encode() {
+    if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
         return Err(UserErr::NoSigningFromParentKey);
     }
 
@@ -350,7 +350,7 @@ async fn setup_dkg(
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
         let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
-            hex::encode(*NETWORK_PARENT_KEY)
+            hex::encode(NETWORK_PARENT_KEY)
         } else {
             hex::encode(verifying_key.clone())
         }
