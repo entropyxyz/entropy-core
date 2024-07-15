@@ -22,6 +22,7 @@ use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
+use entropy_shared::NETWORK_PARENT_KEY;
 use serde::Deserialize;
 use serde_json::json;
 use subxt::ext::sp_core::{
@@ -49,8 +50,12 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 #[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 3] =
-    [FORBIDDEN_KEY_MNEMONIC, FORBIDDEN_KEY_SHARED_SECRET, FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC];
+pub const FORBIDDEN_KEYS: [&str; 4] = [
+    FORBIDDEN_KEY_MNEMONIC,
+    FORBIDDEN_KEY_SHARED_SECRET,
+    FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC,
+    NETWORK_PARENT_KEY,
+];
 
 pub const FORBIDDEN_KEY_MNEMONIC: &str = "MNEMONIC";
 pub const FORBIDDEN_KEY_SHARED_SECRET: &str = "SHARED_SECRET";

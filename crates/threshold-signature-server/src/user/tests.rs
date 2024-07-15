@@ -340,7 +340,7 @@ async fn test_sign_tx_no_chain() {
     }
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = NETWORK_PARENT_KEY.0.to_vec();
+    generic_msg.signature_verifying_key = NETWORK_PARENT_KEY.as_bytes().to_vec();
     let test_user_sign_with_parent_key = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
@@ -743,7 +743,7 @@ async fn test_jumpstart_network() {
         },
     ];
     let onchain_user_request = OcwMessageDkg {
-        sig_request_accounts: vec![H256::zero().encode()],
+        sig_request_accounts: vec![NETWORK_PARENT_KEY.encode()],
         block_number,
         validators_info,
     };
@@ -772,7 +772,7 @@ async fn test_jumpstart_network() {
         }
     }
 
-    let get_query = UnsafeQuery::new(hex::encode(H256::zero()), [].to_vec()).to_json();
+    let get_query = UnsafeQuery::new(hex::encode(NETWORK_PARENT_KEY), [].to_vec()).to_json();
     // check get key before registration to see if key gets replaced
     let response_key = client
         .post("http://127.0.0.1:3001/unsafe/get")
