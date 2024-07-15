@@ -329,7 +329,7 @@ pub mod pallet {
             // ensure that registration was indeed successful.
             //
             // If it fails we'll need to allow another jumpstart.
-            if jump_start_info.confirmations.len() == (SIGNING_PARTY_SIZE - 1) as usize {
+            if jump_start_info.confirmations.len() == (SIGNING_PARTY_SIZE - 1) {
                 // registration finished, lock call
                 jump_start_info.confirmations.push(validator_stash);
                 let confirmations = jump_start_info.confirmations.len();
