@@ -729,6 +729,7 @@ async fn test_jumpstart_network() {
     let client = reqwest::Client::new();
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: b"127.0.0.1:3001".to_vec(),
@@ -739,6 +740,11 @@ async fn test_jumpstart_network() {
             ip_address: b"127.0.0.1:3002".to_vec(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3003".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone().encode(),
         },
     ];
     let onchain_user_request = OcwMessageDkg {
@@ -752,14 +758,25 @@ async fn test_jumpstart_network() {
     run_to_block(&rpc, block_number + 1).await;
 
     // succeeds
-    let user_registration_response = client
-        .post("http://127.0.0.1:3002/user/new")
-        .body(onchain_user_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
+    let response_results = join_all(
+        vec![3002, 3003]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/user/new", port))
+                    .body(onchain_user_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
 
-    assert_eq!(user_registration_response.text().await.unwrap(), "");
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
+
+    // assert_eq!(user_registration_response.text().await.unwrap(), "");
+
     // wait for jump start event check that key exists in kvdb
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -771,19 +788,14 @@ async fn test_jumpstart_network() {
         }
     }
 
-    let get_query = UnsafeQuery::new(hex::encode(NETWORK_PARENT_KEY), [].to_vec()).to_json();
-    // check get key before registration to see if key gets replaced
-    let response_key = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
+    let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
+
     // check to make sure keyshare is correct
+    // TODO (Nando): Check with `KeyshareWithAuxInfo` instead?
     let key_share: Option<ThresholdKeyShare<KeyParams, entropy_protocol::PartyId>> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
+
     clean_tests();
 }
 
