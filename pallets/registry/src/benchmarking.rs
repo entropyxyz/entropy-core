@@ -89,6 +89,7 @@ benchmarks! {
     }
 
     let validators = add_non_syncing_validators::<T>(SIGNING_PARTY_SIZE as u32, 0);
+    <Validators<T>>::set(validators.clone());
 
     for i in 0..SIGNING_PARTY_SIZE {
         <ThresholdToStash<T>>::insert(accounts[i].clone(), &validators[i]);
@@ -116,6 +117,7 @@ benchmarks! {
     // add validators and a registering user
     for i in 0..SIGNING_PARTY_SIZE {
         let validators = add_non_syncing_validators::<T>(SIGNING_PARTY_SIZE as u32, 0);
+        <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
     <JumpStartProgress<T>>::put(JumpStartDetails {
@@ -278,7 +280,7 @@ benchmarks! {
       let validators = add_non_syncing_validators::<T>(c + 1, 0);
       <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
 
-        <Validators<T>>::set(validators);
+    <Validators<T>>::set(validators);
 
 
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
