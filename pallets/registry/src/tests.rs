@@ -23,11 +23,8 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
-<<<<<<< HEAD
 use pallet_staking_extension::ServerInfo;
-=======
 use sp_core::H256;
->>>>>>> master
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
