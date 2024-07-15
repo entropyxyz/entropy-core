@@ -138,6 +138,12 @@ fn it_tests_jump_start_result() {
         );
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(7, 7);
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7)),
+            Error::<Test>::NotValidator
+        );
+
         assert_noop!(
             Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
             Error::<Test>::JumpStartNotInProgress

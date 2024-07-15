@@ -307,14 +307,11 @@ pub mod pallet {
             // check is validator
             let ts_server_account = ensure_signed(origin)?;
 
-            // TODO (Nando): Check that they're actually in active set and not a candidate/runner up
             let validator_stash =
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
-            // let validator_subgroup =
-            //     pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
-            //         .ok_or(Error::<T>::SigningGroupError)?;
-            // ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
+            let validators = pallet_session::Pallet::<T>::validators();
+            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
 
             let mut jump_start_info = JumpStartProgress::<T>::get();
 
