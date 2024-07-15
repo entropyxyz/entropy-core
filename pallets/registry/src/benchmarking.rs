@@ -277,13 +277,12 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
 
-      // add validators and a registering user
-      // adds an extra validator so requires confirmations is > validators and doesn't confirm
-      let validators = add_non_syncing_validators::<T>(c + 1, 0);
-      <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
+    // add validators and a registering user
+    // adds an extra validator so requires confirmations is > validators and doesn't confirm
+    let validators = add_non_syncing_validators::<T>(c + 1, 0);
+    <ThresholdToStash<T>>::insert(&threshold_account, &validators[(c -1) as usize]);
 
     <Validators<T>>::set(validators);
-
 
     <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
         program_modification_account: sig_req_account.clone(),
