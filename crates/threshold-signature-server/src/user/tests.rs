@@ -775,8 +775,6 @@ async fn test_jumpstart_network() {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
 
-    // assert_eq!(user_registration_response.text().await.unwrap(), "");
-
     // wait for jump start event check that key exists in kvdb
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -791,8 +789,7 @@ async fn test_jumpstart_network() {
     let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
 
     // check to make sure keyshare is correct
-    // TODO (Nando): Check with `KeyshareWithAuxInfo` instead?
-    let key_share: Option<ThresholdKeyShare<KeyParams, entropy_protocol::PartyId>> =
+    let key_share: Option<KeyShareWithAuxInfo> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
 
