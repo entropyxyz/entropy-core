@@ -389,8 +389,7 @@ pub async fn confirm_registered(
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
     if who.encode() == NETWORK_PARENT_KEY.encode() {
-        // TODO (Nando): Remove the subgroup argument
-        let jump_start_request = entropy::tx().registry().confirm_jump_start(0);
+        let jump_start_request = entropy::tx().registry().confirm_jump_start();
         submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
     } else {
         let confirm_register_request = entropy::tx().registry().confirm_register(
