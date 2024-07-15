@@ -34,7 +34,9 @@ use entropy_kvdb::kv_manager::{
 };
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
 use entropy_protocol::{KeyParams, PartyId, SigningSessionInfo, ValidatorInfo};
-use entropy_shared::{HashingAlgorithm, OcwMessageDkg, X25519PublicKey};
+use entropy_shared::{
+    HashingAlgorithm, OcwMessageDkg, X25519PublicKey, NETWORK_PARENT_KEY, SIGNING_PARTY_SIZE,
+};
 use futures::{
     channel::mpsc,
     future::{join_all, FutureExt},
@@ -43,7 +45,7 @@ use futures::{
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, H256};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
@@ -137,6 +139,11 @@ pub async fn sign_tx(
         .number;
 
     check_stale(user_sig_req.block_number, block_number).await?;
+    // Probably impossible but block signing from parent key anyways
+    if user_sig_req.signature_verifying_key == NETWORK_PARENT_KEY.encode() {
+        return Err(UserErr::NoSigningFromParentKey);
+    }
+
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
     check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
@@ -285,7 +292,14 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
+    // let block_hash = rpc
+    //     .chain_get_block_hash(None)
+    //     .await?
+    //     .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    // let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+    // let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
+    // for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
     for sig_request_account in data.sig_request_accounts.into_iter() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
@@ -303,8 +317,14 @@ async fn setup_dkg(
         )
         .await?;
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-        let string_verifying_key = hex::encode(verifying_key.clone()).to_string();
-        let serialized_key_share = key_serialize(&(key_share, aux_info))
+        let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
+            hex::encode(*NETWORK_PARENT_KEY)
+        } else {
+            hex::encode(verifying_key.clone())
+        }
+        .to_string();
+
+        let serialized_key_share = key_serialize(&key_share)
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
@@ -368,11 +388,18 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().registry().confirm_register(
-        who,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-    );
-    submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
+    if who.encode() == NETWORK_PARENT_KEY.encode() {
+        // TODO (Nando): Remove the subgroup argument
+        let jump_start_request = entropy::tx().registry().confirm_jump_start(0);
+        submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
+    } else {
+        let confirm_register_request = entropy::tx().registry().confirm_register(
+            who,
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
+        submit_transaction(api, rpc, signer, &confirm_register_request, Some(nonce)).await?;
+    }
+
     Ok(())
 }
 

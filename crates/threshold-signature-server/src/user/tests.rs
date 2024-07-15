@@ -35,6 +35,7 @@ use entropy_protocol::{
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
     DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
+    NETWORK_PARENT_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -336,6 +337,18 @@ async fn test_sign_tx_no_chain() {
 
     for res in test_user_custom_hash_out_of_bounds {
         assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
+    }
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = NETWORK_PARENT_KEY.0.to_vec();
+    let test_user_sign_with_parent_key = submit_transaction_requests(
+        vec![validator_ips_and_keys[1].clone()],
+        generic_msg.clone(),
+        one,
+    )
+    .await;
+    for res in test_user_sign_with_parent_key {
+        assert_eq!(res.unwrap().text().await.unwrap(), "No signing from parent key");
     }
     clean_tests();
 }
@@ -700,6 +713,341 @@ async fn test_store_share() {
     clean_tests();
 }
 
+#[tokio::test]
+#[serial]
+async fn test_jumpstart_network() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+
+    let cxt = test_context_stationary().await;
+    let (_validator_ips, _validator_ids, _) =
+        spawn_testing_validators(Some(DEFAULT_VERIFYING_KEY.to_vec()), false, false).await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let client = reqwest::Client::new();
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let validators_info = vec![
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3001".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone().encode(),
+        },
+        entropy_shared::ValidatorInfo {
+            ip_address: b"127.0.0.1:3002".to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone().encode(),
+        },
+    ];
+    let onchain_user_request = OcwMessageDkg {
+        sig_request_accounts: vec![H256::zero().encode()],
+        block_number,
+        validators_info,
+    };
+
+    put_jumpstart_request_on_chain(&api, &rpc, &alice).await;
+
+    run_to_block(&rpc, block_number + 1).await;
+
+    // succeeds
+    let user_registration_response = client
+        .post("http://127.0.0.1:3002/user/new")
+        .body(onchain_user_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(user_registration_response.text().await.unwrap(), "");
+    // wait for jump start event check that key exists in kvdb
+    for _ in 0..45 {
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
+        for _event in jump_start_event.flatten() {
+            break;
+        }
+    }
+
+    let get_query = UnsafeQuery::new(hex::encode(H256::zero()), [].to_vec()).to_json();
+    // check get key before registration to see if key gets replaced
+    let response_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+    // check to make sure keyshare is correct
+    let key_share: Option<KeyShare<KeyParams>> =
+        entropy_kvdb::kv_manager::helpers::deserialize(&response_key.bytes().await.unwrap());
+    assert_eq!(key_share.is_some(), true);
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_return_addresses_of_subgroup() {
+    initialize_test_logger().await;
+
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let result = return_all_addresses_of_subgroup(&api, &rpc, 0u8).await.unwrap();
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_send_and_receive_keys() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let program_manager = AccountKeyring::Dave;
+    let signature_request_account = subxtAccountId32(alice.pair().public().0);
+
+    let cxt = test_context_stationary().await;
+    setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let share = {
+        let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
+        entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap()
+    };
+
+    let user_registration_info = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: share.clone(),
+        proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
+    };
+
+    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
+
+    // First try sending a keyshare for a user who is not registering - should fail
+    let result = send_key(
+        &api,
+        &rpc,
+        &alice.to_account_id().into(),
+        &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
+        user_registration_info.clone(),
+        &signer_alice,
+    )
+    .await;
+
+    if let Err(UserErr::KeyShareRejected(error_message)) = result {
+        assert_eq!(
+            error_message,
+            "Not Registering error: Provided account ID not from a registering user".to_string()
+        );
+    } else {
+        panic!("Should give not registering error");
+    }
+
+    // The happy path - the user is in a registering state - should succeed
+    let program_hash = store_program(
+        &api,
+        &rpc,
+        &program_manager.pair(),
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    put_register_request_on_chain(
+        &api,
+        &rpc,
+        &alice.clone(),
+        alice.to_account_id().into(),
+        KeyVisibility::Public,
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+
+    // sends key to alice validator, while filtering out own key
+    send_key(
+        &api,
+        &rpc,
+        &alice.to_account_id().into(),
+        &mut vec![ALICE_STASH_ADDRESS.clone(), alice.to_account_id().into()],
+        user_registration_info.clone(),
+        &signer_alice,
+    )
+    .await
+    .unwrap();
+
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
+
+    let client = reqwest::Client::new();
+    // check alice has new key
+    let response_new_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_new_key.bytes().await.unwrap(), &user_registration_info.value.clone());
+
+    // A keyshare can be overwritten when the user is still in a registering state
+    let some_other_share = {
+        let share = &KeyShare::<KeyParams>::new_centralized(&mut rand_core::OsRng, 2, None)[0];
+        entropy_kvdb::kv_manager::helpers::serialize(&share).unwrap()
+    };
+
+    let user_registration_info_overwrite = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: some_other_share.clone(),
+        proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
+    };
+
+    let signed_message = serde_json::to_string(
+        &EncryptedSignedMessage::new(
+            signer_alice.signer(),
+            serde_json::to_vec(&user_registration_info_overwrite).unwrap(),
+            &X25519_PUBLIC_KEYS[0],
+            &[],
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    let response_overwrites_key = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_overwrites_key.status(), StatusCode::OK);
+    assert_eq!(response_overwrites_key.text().await.unwrap(), "");
+
+    // Check that the key has been successfully overwritten
+    let get_query = UnsafeQuery::new(user_registration_info.key.clone(), vec![]).to_json();
+    let response_new_key = client
+        .post("http://127.0.0.1:3001/unsafe/get")
+        .header("Content-Type", "application/json")
+        .body(get_query.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_new_key.bytes().await.unwrap(), &some_other_share);
+
+    // Try writing a 'forbidden key' - should fail
+    let user_registration_info_forbidden = UserRegistrationInfo {
+        key: "MNEMONIC".to_string(),
+        value: share.clone(),
+        proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
+    };
+
+    let signed_message = serde_json::to_string(
+        &EncryptedSignedMessage::new(
+            signer_alice.signer(),
+            serde_json::to_vec(&user_registration_info_forbidden).unwrap(),
+            &X25519_PUBLIC_KEYS[0],
+            &[],
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    let response_overwrites_key = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_overwrites_key.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response_overwrites_key.text().await.unwrap(), "The given key is forbidden");
+
+    // Try sending a badly formed keyshare - should fail
+    let user_registration_info_bad_keyshare = UserRegistrationInfo {
+        key: alice.to_account_id().to_string(),
+        value: b"This will not deserialize to KeyShare<KeyParams>".to_vec(),
+        proactive_refresh: false,
+        sig_request_address: Some(signature_request_account.clone()),
+    };
+
+    let signed_message = serde_json::to_string(
+        &EncryptedSignedMessage::new(
+            signer_alice.signer(),
+            serde_json::to_vec(&user_registration_info_bad_keyshare).unwrap(),
+            &X25519_PUBLIC_KEYS[0],
+            &[],
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    let response_overwrites_key = client
+        .post("http://127.0.0.1:3001/user/receive_key")
+        .header("Content-Type", "application/json")
+        .body(signed_message.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_overwrites_key.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        response_overwrites_key.text().await.unwrap(),
+        "Input Validation error: Not a valid keyshare"
+    );
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_recover_key() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let cxt = test_node_process_testing_state(false).await;
+    setup_client().await;
+    let (_, bob_kv) =
+        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
+
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let unsafe_query = UnsafeQuery::new("key".to_string(), vec![10]);
+    let client = reqwest::Client::new();
+
+    let _ = client
+        .post("http://127.0.0.1:3001/unsafe/put")
+        .header("Content-Type", "application/json")
+        .body(unsafe_query.clone().to_json())
+        .send()
+        .await
+        .unwrap();
+
+    let (signer_alice, x25519_alice) =
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
+
+    recover_key(&api, &rpc, &bob_kv, &signer_alice, &x25519_alice, unsafe_query.key.clone())
+        .await
+        .unwrap();
+
+    let value = bob_kv.kv().get(&unsafe_query.key).await.unwrap();
+    assert_eq!(value, unsafe_query.value);
+    clean_tests();
+}
+
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -712,6 +1060,18 @@ pub async fn put_register_request_on_chain(
 
     let registering_tx =
         entropy::tx().registry().register(program_modification_account, program_instance);
+    submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
+}
+
+pub async fn put_jumpstart_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    sig_req_keyring: &Sr25519Keyring,
+) {
+    let sig_req_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
+
+    let registering_tx = entropy::tx().registry().jump_start_network();
     submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 

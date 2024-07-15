@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::VERIFICATION_KEY_LENGTH;
+    use entropy_shared::{NETWORK_PARENT_KEY, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -70,6 +70,9 @@ pub mod pallet {
 
     /// Max modifiable keys allowed for a program modification account
     pub const MAX_MODIFIABLE_KEYS: u32 = 25;
+
+    /// Blocks to wait until we agree jump start network failed and to allow a retry
+    pub const BLOCKS_TO_RESTART_JUMP_START: u32 = 50;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -116,12 +119,30 @@ pub mod pallet {
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
     }
+    /// Details of status of jump starting the network
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
+    #[scale_info(skip_type_params(T))]
+    pub struct JumpStartDetails {
+        pub jump_start_status: JumpStartStatus,
+        pub confirmations: Vec<u8>,
+    }
 
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
         pub registered_accounts: Vec<(T::AccountId, VerifyingKey)>,
+    }
+
+    #[derive(
+        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+    )]
+    pub enum JumpStartStatus {
+        #[default]
+        Ready,
+        // u32 is block number process was started, after X blocks we assume failed and retry
+        InProgress(u32),
+        Done,
     }
 
     #[pallet::genesis_build]
@@ -171,11 +192,22 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    /// A concept of what progress status the jumpstart is
+    #[pallet::storage]
+    #[pallet::getter(fn jump_start_progress)]
+    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails, ValueQuery>;
+
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// The network has been jump started.
+        StartedNetworkJumpStart(),
+        /// The network has been jump started successfully.
+        FinishedNetworkJumpStart(),
+        /// The network has had a jump start confirmation. [signing_subgroup]
+        JumpStartConfirmation(u8),
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
         /// An account has been registered. [who, verifying_key]
@@ -203,7 +235,6 @@ pub mod pallet {
         NotRegistered,
         AlreadyConfirmed,
         IpAddressError,
-        SigningGroupError,
         NoSyncedValidators,
         MaxProgramLengthExceeded,
         NoVerifyingKey,
@@ -213,10 +244,112 @@ pub mod pallet {
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
         NotValidator,
+        JumpStartProgressNotReady,
+        JumpStartNotInProgress,
+        NoRegisteringFromParentKey,
     }
 
+    /// Allows anyone to create a parent key for the network if the network is read and a parent key
+    /// does not exist
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::jump_start_network()
+        })]
+        pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+            let current_block_number = <frame_system::Pallet<T>>::block_number();
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(current_block_number).unwrap_or_default();
+
+            // make sure jumpstart is ready, or in progress but X amount of time has passed
+            match JumpStartProgress::<T>::get().jump_start_status {
+                JumpStartStatus::Ready => (),
+                JumpStartStatus::InProgress(started_block_number) => {
+                    if converted_block_number.saturating_sub(started_block_number)
+                        < BLOCKS_TO_RESTART_JUMP_START
+                    {
+                        return Err(Error::<T>::JumpStartProgressNotReady.into());
+                    };
+                },
+                _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
+            };
+            // TODO (#923): Add checks for network state.
+            Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
+                messages.push(NETWORK_PARENT_KEY.clone().encode());
+                Ok(())
+            })?;
+            JumpStartProgress::<T>::put(JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(converted_block_number),
+                confirmations: vec![],
+            });
+            Self::deposit_event(Event::StartedNetworkJumpStart());
+            Ok(())
+        }
+
+        /// Allows validators to signal a successful network jumpstart
+        #[pallet::call_index(1)]
+        #[pallet::weight({
+                <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
+                .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
+        })]
+        pub fn confirm_jump_start(
+            origin: OriginFor<T>,
+            signing_subgroup: u8,
+        ) -> DispatchResultWithPostInfo {
+            // check is validator
+            let ts_server_account = ensure_signed(origin)?;
+            let validator_stash =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+            // let validator_subgroup =
+            //     pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
+            //         .ok_or(Error::<T>::SigningGroupError)?;
+            // ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
+            let mut jump_start_info = JumpStartProgress::<T>::get();
+            // check in progress
+            ensure!(
+                matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
+                Error::<T>::JumpStartNotInProgress
+            );
+
+            ensure!(
+                !jump_start_info.confirmations.contains(&signing_subgroup),
+                Error::<T>::AlreadyConfirmed
+            );
+            let confirmation_length = jump_start_info.confirmations.len() as u32;
+
+            // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
+            // ensure that registration was indeed successful.
+            //
+            // If it fails we'll need to allow another jumpstart.
+            //
+            // TODO (Nando): make this a const
+            if jump_start_info.confirmations.len() == (3 - 1) as usize {
+                // T::SigningPartySize::get() - 1 {
+                // registration finished, lock call
+                JumpStartProgress::<T>::put(JumpStartDetails {
+                    jump_start_status: JumpStartStatus::Done,
+                    confirmations: vec![],
+                });
+                Self::deposit_event(Event::FinishedNetworkJumpStart());
+                return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_done(
+                    confirmation_length,
+                ))
+                .into());
+            } else {
+                // Add confirmation wait for next one
+                jump_start_info.confirmations.push(signing_subgroup);
+                JumpStartProgress::<T>::put(jump_start_info);
+                Self::deposit_event(Event::JumpStartConfirmation(signing_subgroup));
+                return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_confirm(
+                    confirmation_length,
+                ))
+                .into());
+            }
+        }
+
         /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
         /// The caller provides an initial program pointer.
@@ -224,7 +357,7 @@ pub mod pallet {
         /// Note that a user needs to be confirmed by validators through the
         /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
         /// network.
-        #[pallet::call_index(0)]
+        #[pallet::call_index(2)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
@@ -234,7 +367,11 @@ pub mod pallet {
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
-
+            let encoded_sig_req_account = sig_req_account.encode();
+            ensure!(
+                encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
+                Error::<T>::NoRegisteringFromParentKey
+            );
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
@@ -257,7 +394,7 @@ pub mod pallet {
             }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(sig_req_account.clone().encode());
+                messages.push(encoded_sig_req_account);
                 Ok(())
             })?;
 
@@ -278,7 +415,7 @@ pub mod pallet {
         }
 
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
-        #[pallet::call_index(1)]
+        #[pallet::call_index(3)]
         #[pallet::weight({
             <T as Config>::WeightInfo::prune_registration(<T as Config>::MaxProgramHashes::get())
         })]
@@ -302,7 +439,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change their program pointer
-        #[pallet::call_index(2)]
+        #[pallet::call_index(4)]
         #[pallet::weight({
              <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
@@ -363,7 +500,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change itself.
-        #[pallet::call_index(3)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
                  <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
              })]
@@ -422,7 +559,7 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(4)]
+        #[pallet::call_index(6)]
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)

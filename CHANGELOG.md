@@ -7,9 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0-rc.1...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
 
-## [0.2.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0-rc.1) - 2024-06-24
+### Added 
+- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+
+## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
 ### Breaking Changes
 - In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
@@ -27,6 +30,9 @@ At the moment this project **does not** adhere to
   case that an unknown variant is added in the future.
 - In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection was
   sorted to ensure a predicatble order across libraries, languages and clients.
+- In [#901](https://github.com/entropyxyz/entropy-core/pull/901) the network's currency units were
+  changed. This resulted in a change to the existential deposit as well as balances of endowed
+  accounts (e.g development accounts like `//Alice`).
 
 ### Added
 - Add a way to change program modification account ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
