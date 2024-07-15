@@ -292,14 +292,6 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-    // let block_hash = rpc
-    //     .chain_get_block_hash(None)
-    //     .await?
-    //     .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    // let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    // let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-    // for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
     for sig_request_account in data.sig_request_accounts.into_iter() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
