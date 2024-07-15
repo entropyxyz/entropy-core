@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::VERIFICATION_KEY_LENGTH;
+use entropy_shared::{SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -79,40 +79,43 @@ benchmarks! {
   }
 
   confirm_jump_start_done {
-    let c in 0 .. SIG_PARTIES as u32;
+    let c in 0 .. SIGNING_PARTY_SIZE as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
 
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    // add validators and a registering user
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+    let mut accounts = vec![];
+    for i in 0..SIGNING_PARTY_SIZE {
+        accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
     }
+
+    let validators = add_non_syncing_validators::<T>(SIGNING_PARTY_SIZE as u32, 0);
+
+    for i in 0..SIGNING_PARTY_SIZE {
+        <ThresholdToStash<T>>::insert(accounts[i].clone(), &validators[i]);
+    }
+
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
-      confirmations: vec![1],
-  });
+      confirmations: vec![validators[0].clone()],
+      });
 
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_jump_start(RawOrigin::Signed(threshold_account), 0)
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
+  }: confirm_jump_start(RawOrigin::Signed(accounts[1].clone()))
   verify {
     assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
   }
 
   confirm_jump_start_confirm {
-    let c in 0 .. SIG_PARTIES as u32;
+    let c in 0 .. SIGNING_PARTY_SIZE as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
 
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
     // add validators and a registering user
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
+    for i in 0..SIGNING_PARTY_SIZE {
+        let validators = add_non_syncing_validators::<T>(SIGNING_PARTY_SIZE as u32, 0);
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
     <JumpStartProgress<T>>::put(JumpStartDetails {
@@ -123,7 +126,7 @@ benchmarks! {
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_jump_start(RawOrigin::Signed(threshold_account), 0)
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account))
   verify {
     assert_last_event::<T>(Event::<T>::JumpStartConfirmation(0).into());
   }
