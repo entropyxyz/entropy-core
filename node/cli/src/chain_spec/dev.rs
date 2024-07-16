@@ -37,7 +37,7 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sr25519;
 use sp_runtime::{BoundedVec, Perbill};
 
-pub fn devnet_two_node_initial_tss_servers(
+pub fn devnet_three_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -60,7 +60,7 @@ pub fn devnet_two_node_initial_tss_servers(
     vec![alice, bob, charlie]
 }
 
-pub fn devnet_local_docker_two_node_initial_tss_servers(
+pub fn devnet_local_docker_three_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -74,7 +74,13 @@ pub fn devnet_local_docker_two_node_initial_tss_servers(
         "bob-tss-server:3002".to_string(),
     );
 
-    vec![alice, bob]
+    let charlie = (
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_x25519_public_key::CHARLIE,
+        "charlie-tss-server:3003".to_string(),
+    );
+
+    vec![alice, bob, charlie]
 }
 
 pub fn devnet_local_docker_four_node_initial_tss_servers(
@@ -108,8 +114,8 @@ pub fn devnet_local_docker_four_node_initial_tss_servers(
 
 /// The configuration used for development.
 ///
-/// Since Entropy requires at least two signing groups to work properly we spin up this network with
-/// two validators, Alice and Bob.
+/// Since Entropy requires at two-of-three threshold setup, we spin up three validators: Alice, Bob,
+/// and Charlie.
 pub fn development_config() -> ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Development")
@@ -124,7 +130,7 @@ pub fn development_config() -> ChainSpec {
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            devnet_two_node_initial_tss_servers(),
+            devnet_three_node_initial_tss_servers(),
         ))
         .build()
 }
@@ -132,9 +138,9 @@ pub fn development_config() -> ChainSpec {
 /// The configuration used for a local development network spun up with the `docker-compose` setup
 /// provided in this repository.
 ///
-/// Since Entropy requires at least two signing groups to work properly we spin up this network with
-/// two validators, Alice and Bob.
-pub fn devnet_local_two_node_config() -> crate::chain_spec::ChainSpec {
+/// Since Entropy requires at two-of-three threshold setup, we spin up three validators: Alice, Bob,
+/// and Charlie.
+pub fn devnet_local_three_node_config() -> crate::chain_spec::ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Devnet Local")
         .with_id("devnet_local")
@@ -144,17 +150,18 @@ pub fn devnet_local_two_node_config() -> crate::chain_spec::ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            devnet_local_docker_two_node_initial_tss_servers(),
+            devnet_local_docker_three_node_initial_tss_servers(),
         ))
         .build()
 }
 
 /// The configuration used for a local four-node development network spun up using `docker-compose`.
 ///
-/// Note that this repository does not provide an example of that, but the provided two-node
+/// Note that this repository does not provide an example of that, but the provided three-node
 /// `docker-compose` setup can be used as a reference.
 pub fn devnet_local_four_node_config() -> crate::chain_spec::ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())

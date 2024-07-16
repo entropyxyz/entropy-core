@@ -43,7 +43,11 @@ target
 .cargo-remote.toml
 .entropy
 chains
+
+# We specifically want to include the `create-test-keyshares` crate as part of our builds.
 scripts
+!scripts/create-test-keyshares/
+
 service
 shell.nix
 
