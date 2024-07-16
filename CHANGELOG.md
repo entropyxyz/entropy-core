@@ -11,6 +11,10 @@ At the moment this project **does not** adhere to
 
 ### Added 
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+- Add Signer groups and rotation ([#938](https://github.com/entropyxyz/entropy-core/pull/938))
+
+### Breaking Changes
+- In [#938](https://github.com/entropyxyz/entropy-core/pull/938) As the network readys for signer subgroups `Signers` are added to the chain config, currently the creation of the config file should select and assign them
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
