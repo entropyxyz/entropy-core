@@ -53,6 +53,7 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn change_request_limit() -> Weight;
 	fn max_instructions_per_programs() -> Weight;
+	fn change_signers_info() -> Weight;
 }
 
 /// Weights for pallet_transaction_pause using the Substrate node and recommended hardware.
@@ -80,6 +81,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `Parameters::SignersInfo` (r:0 w:1)
+	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn change_signers_info() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 4_000_000 picoseconds.
+		Weight::from_parts(4_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
 
 // For backwards compatibility and tests
@@ -102,6 +114,17 @@ impl WeightInfo for () {
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 3_000_000 picoseconds.
+		Weight::from_parts(4_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	/// Storage: `Parameters::SignersInfo` (r:0 w:1)
+	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn change_signers_info() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 4_000_000 picoseconds.
 		Weight::from_parts(4_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(RocksDbWeight::get().writes(1))

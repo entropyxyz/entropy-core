@@ -326,8 +326,5 @@ fn it_declares_synced() {
 
 #[test]
 fn it_tests_randomness() {
-    new_test_ext().execute_with(|| {
-        Staking::get_randomness()
-       
-    });
+    new_test_ext().execute_with(|| Staking::get_randomness());
 }

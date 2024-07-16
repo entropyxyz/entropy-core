@@ -37,7 +37,7 @@ async fn test_change_endpoint() {
 
 #[tokio::test]
 #[serial]
-async fn test_change_threhsold_accounts() {
+async fn test_change_threshold_accounts() {
     let one = AccountKeyring::AliceStash;
     let substrate_context = test_context_stationary().await;
 

@@ -208,6 +208,10 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
+            inital_signers: initial_authorities.iter().map(|auth| {
+                auth.0.clone()
+            })
+            .collect::<Vec<_>>(),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -253,6 +257,9 @@ pub fn integration_tests_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            // TODO: figure out init values and const them
+            signers_size: 5,
+            threshold: 3,
             ..Default::default()
         },
         "programs": ProgramsConfig {

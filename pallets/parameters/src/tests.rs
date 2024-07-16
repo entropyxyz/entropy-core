@@ -25,8 +25,8 @@ use super::*;
 
 #[test]
 fn request_limit_changed() {
-    ExtBuilder.build().execute_with(|| {
-        assert_eq!(Parameters::request_limit(), 0, "Inital request limit set");
+    new_test_ext().execute_with(|| {
+        assert_eq!(Parameters::request_limit(), 5, "Inital request limit set");
 
         assert_ok!(Parameters::change_request_limit(RuntimeOrigin::root(), 10));
 
@@ -39,10 +39,10 @@ fn request_limit_changed() {
 
 #[test]
 fn max_instructions_per_programs_changed() {
-    ExtBuilder.build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Parameters::max_instructions_per_programs(),
-            0,
+            5,
             "Inital max instructions per program set"
         );
 
@@ -57,6 +57,34 @@ fn max_instructions_per_programs_changed() {
         // Fails not root
         assert_noop!(
             Parameters::change_max_instructions_per_programs(RuntimeOrigin::signed(2), 15),
+            BadOrigin,
+        );
+    });
+}
+
+#[test]
+fn signer_info_changed() {
+    new_test_ext().execute_with(|| {
+        let signer_info = SignersSize { signers_size: 5, threshold: 3 };
+        let new_signer_info = SignersSize { signers_size: 6, threshold: 4 };
+
+        assert_eq!(Parameters::signers_info(), signer_info, "Inital signer info set");
+
+        assert_ok!(Parameters::change_signers_info(
+            RuntimeOrigin::root(),
+            new_signer_info.signers_size,
+            new_signer_info.threshold
+        ));
+
+        assert_eq!(Parameters::signers_info(), new_signer_info, "Inital signer info changed");
+
+        // Fails not root
+        assert_noop!(
+            Parameters::change_signers_info(
+                RuntimeOrigin::signed(2),
+                signer_info.signers_size,
+                signer_info.threshold
+            ),
             BadOrigin,
         );
     });

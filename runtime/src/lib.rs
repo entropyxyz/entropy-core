@@ -714,6 +714,7 @@ parameter_types! {
 impl pallet_staking_extension::Config for Runtime {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }

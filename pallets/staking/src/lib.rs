@@ -59,17 +59,20 @@ use sp_staking::SessionIndex;
 pub mod pallet {
     use entropy_shared::{ValidatorInfo, X25519PublicKey};
     use frame_support::{
-        dispatch::DispatchResult, pallet_prelude::*, traits::{Currency, Randomness}, DefaultNoBound,
+        dispatch::DispatchResult,
+        pallet_prelude::*,
+        traits::{Currency, Randomness},
+        DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use rand_chacha::{
+        rand_core::{RngCore, SeedableRng},
+        ChaCha20Rng, ChaChaRng,
+    };
+    use sp_runtime::traits::TrailingZeroInput;
     use sp_staking::StakingAccount;
     use sp_std::vec::Vec;
-    use sp_runtime::traits::TrailingZeroInput;
-    use rand_chacha::{
-        rand_core::{SeedableRng, RngCore},
-        ChaChaRng, ChaCha20Rng
-    };
-    
+
     use super::*;
 
     #[pallet::config]
@@ -78,7 +81,7 @@ pub mod pallet {
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Something that provides randomness in the runtime.
-		type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
+        type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
         /// The weight information of this pallet.
@@ -160,13 +163,11 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn signers)]
-    pub type Signers<T: Config> =
-        StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
+    pub type Signers<T: Config> = StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn next_signers)]
-    pub type NextSigners<T: Config> =
-            StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
+    pub type NextSigners<T: Config> = StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
 
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
@@ -403,12 +404,12 @@ pub mod pallet {
 
         pub fn get_randomness() -> u32 {
             let phrase = b"signer_rotation";
-			// TODO: Is randomness freshness an issue here
-			// https://github.com/paritytech/substrate/issues/8312
-			let (seed, _) = T::Randomness::random(phrase);
-			// seed needs to be guaranteed to be 32 bytes.
-			let seed = <[u8; 32]>::decode(&mut TrailingZeroInput::new(seed.as_ref()))
-				.expect("input is padded with zeroes; qed");
+            // TODO: Is randomness freshness an issue here
+            // https://github.com/paritytech/substrate/issues/8312
+            let (seed, _) = T::Randomness::random(phrase);
+            // seed needs to be guaranteed to be 32 bytes.
+            let seed = <[u8; 32]>::decode(&mut TrailingZeroInput::new(seed.as_ref()))
+                .expect("input is padded with zeroes; qed");
             let mut rng = ChaChaRng::from_seed(seed);
             rng.next_u32()
         }
@@ -417,15 +418,13 @@ pub mod pallet {
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
             let phrase = b"signer_rotation";
-			let randomness = Self::get_randomness();
+            let randomness = Self::get_randomness();
             let index = randomness % validators.len() as u32;
             let next_signer_up = &validators[index as usize];
-            dbg!(randomness);
-            dbg!(next_signer_up);
-            // check to make sure signer selected does not exist in signer selection already 
+            // check to make sure signer selected does not exist in signer selection already
             // tell signers to do new key rotation with new signer group (dkg)
             // confirm action has taken place
-            
+
             Ok(())
         }
     }

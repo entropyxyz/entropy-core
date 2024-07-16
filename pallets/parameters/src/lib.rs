@@ -71,6 +71,8 @@ pub mod module {
     pub struct GenesisConfig<T: Config> {
         pub request_limit: u32,
         pub max_instructions_per_programs: u64,
+        pub signers_size: u8,
+        pub threshold: u8,
         #[serde(skip)]
         pub _config: sp_std::marker::PhantomData<T>,
     }
@@ -80,11 +82,20 @@ pub mod module {
         fn build(&self) {
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
+            let signer_info =
+                SignersSize { signers_size: self.signers_size, threshold: self.threshold };
+            SignersInfo::<T>::put(&signer_info);
         }
     }
 
     #[pallet::error]
     pub enum Error<T> {}
+
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
+    pub struct SignersSize {
+        pub signers_size: u8,
+        pub threshold: u8,
+    }
 
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
@@ -93,6 +104,8 @@ pub mod module {
         RequestLimitChanged { request_limit: u32 },
         /// Max instructions per program changes
         MaxInstructionsPerProgramsChanged { max_instructions_per_programs: u64 },
+        /// Max instructions per program changes
+        SignerInfoChanged { signer_info: SignersSize },
     }
 
     /// The request limit a user can ask to a specific set of TSS in a block
@@ -104,6 +117,11 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn max_instructions_per_programs)]
     pub type MaxInstructionsPerPrograms<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+    /// The size of the signers and their threshold
+    #[pallet::storage]
+    #[pallet::getter(fn signers_info)]
+    pub type SignersInfo<T: Config> = StorageValue<_, SignersSize, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -131,6 +149,21 @@ pub mod module {
             Self::deposit_event(Event::MaxInstructionsPerProgramsChanged {
                 max_instructions_per_programs,
             });
+            Ok(())
+        }
+
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::change_signers_info())]
+        pub fn change_signers_info(
+            origin: OriginFor<T>,
+            signers_size: u8,
+            threshold: u8,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let signer_info = SignersSize { signers_size, threshold };
+            // TODO: add checks to make sure threshold is not bigger then signature size
+            SignersInfo::<T>::put(&signer_info);
+            Self::deposit_event(Event::SignerInfoChanged { signer_info });
             Ok(())
         }
     }
