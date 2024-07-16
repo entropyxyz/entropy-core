@@ -77,7 +77,7 @@ pub fn devnet_local_docker_three_node_initial_tss_servers(
     let charlie = (
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-        "charlie-tss-server:3002".to_string(),
+        "charlie-tss-server:3003".to_string(),
     );
 
     vec![alice, bob, charlie]
