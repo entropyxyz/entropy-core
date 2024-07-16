@@ -354,6 +354,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (2, (4, NULL_ARR, vec![11])),
         ],
         proactive_refresh_data: (vec![], vec![]),
+        inital_signers: vec![5, 6],
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();

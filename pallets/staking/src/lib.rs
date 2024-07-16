@@ -160,10 +160,12 @@ pub mod pallet {
     #[pallet::getter(fn proactive_refresh)]
     pub type ProactiveRefresh<T: Config> = StorageValue<_, RefreshInfo, ValueQuery>;
 
+    /// Current validators in the network that hold the parent key and are expected to sign
     #[pallet::storage]
     #[pallet::getter(fn signers)]
     pub type Signers<T: Config> = StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
 
+    /// The next signers ready to take the Signers place when a reshare is done
     #[pallet::storage]
     #[pallet::getter(fn next_signers)]
     pub type NextSigners<T: Config> = StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;

@@ -83,7 +83,7 @@ pub mod module {
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
             let signer_info =
-                SignersSize { signers_size: self.signers_size, threshold: self.threshold };
+                SignersSize { total_signers: self.total_signers, threshold: self.threshold };
             SignersInfo::<T>::put(signer_info);
         }
     }
@@ -104,7 +104,7 @@ pub mod module {
         RequestLimitChanged { request_limit: u32 },
         /// Max instructions per program changes
         MaxInstructionsPerProgramsChanged { max_instructions_per_programs: u64 },
-        /// Max instructions per program changes
+        /// Signer Info changed
         SignerInfoChanged { signer_info: SignersSize },
     }
 
@@ -152,15 +152,16 @@ pub mod module {
             Ok(())
         }
 
+        /// Changes the signer info
         #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::change_signers_info())]
         pub fn change_signers_info(
             origin: OriginFor<T>,
-            signers_size: u8,
+            total_signers: u8,
             threshold: u8,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            let signer_info = SignersSize { signers_size, threshold };
+            let signer_info = SignersSize { total_signers, threshold };
             // TODO: add checks to make sure threshold is not bigger then signature size
             SignersInfo::<T>::put(&signer_info);
             Self::deposit_event(Event::SignerInfoChanged { signer_info });

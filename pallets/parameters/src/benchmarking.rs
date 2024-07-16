@@ -54,10 +54,10 @@ benchmarks! {
 
   change_signers_info {
     let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-    let signer_info = SignersSize { signers_size: 5, threshold: 3 };
+    let signer_info = SignersSize { total_signers: 5, threshold: 3 };
   }: {
     assert_ok!(
-      <Parameters<T>>::change_signers_info(origin, signer_info.signers_size, signer_info.threshold)
+      <Parameters<T>>::change_signers_info(origin, signer_info.total_signers, signer_info.threshold)
     );
   }
   verify {

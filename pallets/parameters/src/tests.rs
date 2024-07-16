@@ -65,14 +65,14 @@ fn max_instructions_per_programs_changed() {
 #[test]
 fn signer_info_changed() {
     new_test_ext().execute_with(|| {
-        let signer_info = SignersSize { signers_size: 5, threshold: 3 };
-        let new_signer_info = SignersSize { signers_size: 6, threshold: 4 };
+        let signer_info = SignersSize { total_signers: 5, threshold: 3 };
+        let new_signer_info = SignersSize { total_signers: 6, threshold: 4 };
 
         assert_eq!(Parameters::signers_info(), signer_info, "Inital signer info set");
 
         assert_ok!(Parameters::change_signers_info(
             RuntimeOrigin::root(),
-            new_signer_info.signers_size,
+            new_signer_info.total_signers,
             new_signer_info.threshold
         ));
 
@@ -82,7 +82,7 @@ fn signer_info_changed() {
         assert_noop!(
             Parameters::change_signers_info(
                 RuntimeOrigin::signed(2),
-                signer_info.signers_size,
+                signer_info.total_signers,
                 signer_info.threshold
             ),
             BadOrigin,

@@ -26,7 +26,7 @@ use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     X25519PublicKey as TssX25519PublicKey, DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE,
     DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY, EVE_VERIFYING_KEY,
-    FERDIE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    FERDIE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -318,9 +318,8 @@ pub fn development_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
-            // TODO: figure out init values and const them
-            signers_size: 5,
-            threshold: 3,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
             ..Default::default()
         },
         "programs": ProgramsConfig {
