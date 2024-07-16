@@ -16,6 +16,7 @@ codec     ={ package="parity-scale-codec", version="3.6.3", default-features=fal
 scale-info={ version="2.11", default-features=false, features=["derive"] }
 log       ={ version="0.4.22", default-features=false }
 serde     ={ version="1.0.204", default-features=false }
+rand_chacha = { version = "0.2", default-features = false }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 frame-support     ={ version="29.0.0", default-features=false }
@@ -26,6 +27,7 @@ sp-core           ={ version="29.0.0", default-features=false }
 sp-runtime        ={ version="32.0.0", default-features=false }
 sp-staking        ={ version="27.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
+sp-consensus-babe     ={ version="0.33.0", default-features=false }
 
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
   "wasm-no-std",
@@ -56,7 +58,8 @@ std=[
   'pallet-session/std',
   'pallet-staking/std',
   'scale-info/std',
+  'sp-consensus-babe/std',
   'sp-runtime/std',
-
+  	"rand_chacha/std",
 ]
 try-runtime=['frame-support/try-runtime']

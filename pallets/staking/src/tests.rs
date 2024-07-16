@@ -323,3 +323,11 @@ fn it_declares_synced() {
         assert!(Staking::is_validator_synced(5));
     });
 }
+
+#[test]
+fn it_tests_randomness() {
+    new_test_ext().execute_with(|| {
+        Staking::get_randomness()
+       
+    });
+}
