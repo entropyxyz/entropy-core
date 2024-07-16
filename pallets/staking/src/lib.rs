@@ -87,8 +87,7 @@ pub mod pallet {
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
-    // TODO: JA add build for initial endpoints
-
+    
     /// A unique identifier of a subgroup or partition of validators that have the same set of
     /// threshold shares.
     pub type SubgroupId = u8;
@@ -328,7 +327,7 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
-            // TODO: do not allow unbonding of validator if not enough validators
+            // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
             if pallet_staking::Pallet::<T>::bonded(&controller).is_none() {
                 let server_info =
                     ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
@@ -418,7 +417,7 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             let mut current_signers = Self::signers();
             // Since not enough validators do not allow rotation
-            // TODO: open issue to discuss
+            // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers.len() {
                 return Ok(());
             }
