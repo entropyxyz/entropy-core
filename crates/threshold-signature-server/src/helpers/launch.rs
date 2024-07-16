@@ -241,21 +241,14 @@ pub struct StartupArgs {
     pub mnemonic_file: Option<PathBuf>,
 }
 
-pub async fn has_mnemonic(kv: &KvManager) -> (bool, String) {
+pub async fn has_mnemonic(kv: &KvManager) -> bool {
     let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
-    let mut account_id = "".to_string();
+
     if exists {
         tracing::debug!("Existing mnemonic found in keystore.");
-        let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
-        let pair = <sr25519::Pair as Pair>::from_phrase(
-            &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-            None,
-        )
-        .expect("Issue converting mnemonic to pair");
-        account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
     }
 
-    (exists, account_id)
+    exists
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
@@ -275,8 +268,8 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
-pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String {
-    if has_mnemonic(kv).await.0 {
+pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
+    if has_mnemonic(kv).await {
         tracing::warn!("Deleting account related keys from KVDB.");
 
         kv.kv()
@@ -341,7 +334,16 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String
     fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
     tracing::debug!("Starting process with account ID: `{id}`");
-    id.to_ss58check()
+}
+
+pub async fn threshold_account_id(kv: &KvManager) -> String {
+    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
+    let pair = <sr25519::Pair as Pair>::from_phrase(
+        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        None,
+    )
+    .expect("Issue converting mnemonic to pair");
+    AccountId32::new(pair.0.public().into()).to_ss58check()
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
@@ -391,4 +393,64 @@ pub async fn setup_only(kv: &KvManager) {
     });
 
     println!("{}", output);
+}
+
+pub async fn check_node_prerequisites(url: &str, account_id: &str) {
+    use crate::chain_api::{get_api, get_rpc};
+
+    let connect_to_substrate_node = || async {
+        tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
+
+        let api = get_api(url).await.map_err(|_| {
+            Err::<(), String>("Unable to connect to Substrate chain API".to_string())
+        })?;
+
+        let rpc = get_rpc(url)
+            .await
+            .map_err(|_| Err("Unable to connect to Substrate chain RPC".to_string()))?;
+
+        Ok((api, rpc))
+    };
+
+    // Note: By default this will wait 15 minutes before it stops retry attempts.
+    let backoff = backoff::ExponentialBackoff::default();
+    match backoff::future::retry(backoff, connect_to_substrate_node).await {
+        Ok((api, rpc)) => {
+            tracing::info!("Sucessfully connected to Substrate node!");
+
+            tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+            let balance_query = crate::validator::api::check_balance_for_fees(
+                &api,
+                &rpc,
+                account_id.to_string(),
+                entropy_shared::MIN_BALANCE,
+            )
+            .await
+            .map_err(|_| Err::<bool, String>("Failed to get balance of account.".to_string()));
+
+            match balance_query {
+                Ok(has_minimum_balance) => {
+                    if has_minimum_balance {
+                        tracing::info!(
+                            "The account `{}` has enough funds for submitting extrinsics.",
+                            &account_id
+                        )
+                    } else {
+                        tracing::warn!(
+                            "The account `{}` does not meet the minimum balance of `{}`",
+                            &account_id,
+                            entropy_shared::MIN_BALANCE,
+                        )
+                    }
+                },
+                Err(_) => {
+                    tracing::warn!("Unable to query the account balance of `{}`", &account_id)
+                },
+            }
+        },
+        Err(_err) => {
+            tracing::error!("Unable to establish connection with Substrate node at `{}`", url);
+            panic!("Unable to establish connection with Substrate node.");
+        },
+    }
 }
