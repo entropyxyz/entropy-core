@@ -84,7 +84,7 @@ pub mod module {
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
             let signer_info =
                 SignersSize { signers_size: self.signers_size, threshold: self.threshold };
-            SignersInfo::<T>::put(&signer_info);
+            SignersInfo::<T>::put(signer_info);
         }
     }
 

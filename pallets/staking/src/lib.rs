@@ -87,7 +87,7 @@ pub mod pallet {
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
-    
+
     /// A unique identifier of a subgroup or partition of validators that have the same set of
     /// threshold shares.
     pub type SubgroupId = u8;
@@ -426,7 +426,7 @@ pub mod pallet {
             let mut next_signer_up = &current_signers[0].clone();
             let mut index;
             // loops to find signer in validator that is not already signer
-            while current_signers.contains(&next_signer_up) {
+            while current_signers.contains(next_signer_up) {
                 index = randomness.next_u32() % validators.len() as u32;
                 next_signer_up = &validators[index as usize];
             }
