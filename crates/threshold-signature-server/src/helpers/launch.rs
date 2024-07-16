@@ -47,7 +47,7 @@ pub const DEFAULT_EVE_MNEMONIC: &str =
 pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
 pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const FORBIDDEN_KEYS: [&str; 4] = [
@@ -241,14 +241,21 @@ pub struct StartupArgs {
     pub mnemonic_file: Option<PathBuf>,
 }
 
-pub async fn has_mnemonic(kv: &KvManager) -> bool {
+pub async fn has_mnemonic(kv: &KvManager) -> (bool, String) {
     let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
-
+    let mut account_id = "".to_string();
     if exists {
         tracing::debug!("Existing mnemonic found in keystore.");
+        let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
+        let pair = <sr25519::Pair as Pair>::from_phrase(
+            &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+            None,
+        )
+        .expect("Issue converting mnemonic to pair");
+        account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
     }
 
-    exists
+    (exists, account_id)
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
@@ -268,8 +275,8 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
-pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
-    if has_mnemonic(kv).await {
+pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) -> String {
+    if has_mnemonic(kv).await.0 {
         tracing::warn!("Deleting account related keys from KVDB.");
 
         kv.kv()
@@ -334,6 +341,7 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
 
     tracing::debug!("Starting process with account ID: `{id}`");
+    id.to_ss58check()
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {

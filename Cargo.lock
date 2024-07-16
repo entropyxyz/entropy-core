@@ -2463,6 +2463,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-create-test-keyshares"
+version = "0.2.0-rc.1"
+dependencies = [
+ "entropy-kvdb",
+ "entropy-shared",
+ "entropy-testing-utils",
+ "entropy-tss",
+ "synedrion",
+ "tokio",
+]
+
+[[package]]
 name = "entropy-kvdb"
 version = "0.2.0"
 dependencies = [
@@ -2526,11 +2538,13 @@ dependencies = [
  "hpke-rs-crypto",
  "hpke-rs-rust-crypto",
  "js-sys",
+ "num",
  "num_cpus",
  "rand_core 0.6.4",
  "schnorrkel",
  "serde",
  "serde_json",
+ "serial_test",
  "snow",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
@@ -2679,6 +2693,7 @@ dependencies = [
  "lazy_static",
  "parity-scale-codec",
  "project-root",
+ "rand",
  "rand_core 0.6.4",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
@@ -13874,8 +13889,7 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "719bd87aad0150020e25ba8a91e1766c6c67aa2f1b94ce71dba13a3a1bf16b6d"
+source = "git+https://github.com/entropyxyz/synedrion?rev=25373111cbb01e1a25d8a5c5bb8f4652c725b3f1#25373111cbb01e1a25d8a5c5bb8f4652c725b3f1"
 dependencies = [
  "base64 0.21.7",
  "bincode",
@@ -13883,6 +13897,7 @@ dependencies = [
  "crypto-bigint",
  "crypto-primes",
  "digest 0.10.7",
+ "displaydoc",
  "hex",
  "k256",
  "rand_core 0.6.4",

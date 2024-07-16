@@ -21,8 +21,8 @@ zeroize            ="1.8.1"
 hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
-synedrion          ="0.1"
-strum              ="0.26.3"
+synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
+strum              ="0.26.2"
 
 # Async
 futures="0.3"
@@ -68,6 +68,7 @@ hostname         ="0.4"
 sha1             ="0.10.6"
 sha2             ="0.10.8"
 hkdf             ="0.12.4"
+project-root     ={ version="0.2.2", optional=true }
 
 [dev-dependencies]
 serial_test ="3.1.1"
@@ -97,11 +98,12 @@ entropy-testing-utils={ path="../testing-utils" }
 vergen={ version="8.3.2", features=["build", "git", "gitcl"] }
 
 [features]
-default=['std']
-std    =["sp-core/std"]
-unsafe =[]
-alice  =[]
-bob    =[]
+default     =['std']
+std         =["sp-core/std"]
+test_helpers=["dep:project-root"]
+unsafe      =[]
+alice       =[]
+bob         =[]
 # Enable this feature to run the integration tests for the wasm API of entropy-protocol
 # This requires the entropy-protocol node-js module to be built and so is not run by default
 wasm_test=[]

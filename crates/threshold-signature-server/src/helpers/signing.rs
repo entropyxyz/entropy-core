@@ -19,7 +19,7 @@ use std::time::Duration;
 
 use entropy_client::user::UserSignatureRequest;
 use entropy_protocol::{Listener, RecoverableSignature, SessionId, SigningSessionInfo};
-use entropy_shared::{KeyVisibility, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use sp_core::Pair;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32};
 use tokio::time::timeout;
@@ -44,7 +44,6 @@ pub async fn do_signing(
     user_signature_request: UserSignatureRequest,
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
-    key_visibility: KeyVisibility,
     request_limit: u32,
 ) -> Result<RecoverableSignature, ProtocolErr> {
     tracing::debug!("Preparing to perform signing");
@@ -64,25 +63,15 @@ pub async fn do_signing(
     // set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone()).await?;
 
-    let mut tss_accounts: Vec<AccountId32> = user_signature_request
+    let tss_accounts: Vec<AccountId32> = user_signature_request
         .validators_info
         .iter()
         .map(|validator_info| validator_info.tss_account.clone())
         .collect();
 
-    // If key key visibility is private, add them to the list of parties and pass the user's ID to
-    // the listener
-    let user_details_option = if let KeyVisibility::Private(user_x25519_public_key) = key_visibility
-    {
-        tss_accounts.push(info.signing_session_info.request_author.clone());
-        Some((info.signing_session_info.request_author.clone(), user_x25519_public_key))
-    } else {
-        None
-    };
-
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(user_signature_request.validators_info, &account_id, user_details_option);
+        Listener::new(user_signature_request.validators_info, &account_id);
 
     let session_id = SessionId::Sign(sign_context.sign_init.signing_session_info.clone());
 
@@ -107,7 +96,14 @@ pub async fn do_signing(
     };
 
     let result = signing_service
-        .execute_sign(session_id, &sign_context.key_share, channels, signer, tss_accounts)
+        .execute_sign(
+            session_id,
+            &sign_context.key_share,
+            &sign_context.aux_info,
+            channels,
+            signer,
+            tss_accounts,
+        )
         .await?;
     increment_or_wipe_request_limit(
         rpc,
