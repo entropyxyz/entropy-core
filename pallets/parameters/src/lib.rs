@@ -71,8 +71,8 @@ pub mod module {
     pub struct GenesisConfig<T: Config> {
         pub request_limit: u32,
         pub max_instructions_per_programs: u64,
-        pub signers_size: u8,
         pub threshold: u8,
+        pub total_signers: u8,
         #[serde(skip)]
         pub _config: sp_std::marker::PhantomData<T>,
     }
@@ -93,8 +93,8 @@ pub mod module {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
     pub struct SignersSize {
-        pub signers_size: u8,
         pub threshold: u8,
+        pub total_signers: u8,
     }
 
     #[pallet::event]
