@@ -325,6 +325,23 @@ fn it_declares_synced() {
 }
 
 #[test]
-fn it_tests_randomness() {
-    new_test_ext().execute_with(|| Staking::get_randomness());
+fn it_tests_new_session_handler() {
+    new_test_ext().execute_with(|| {
+        // start with current validators as 6 and 5
+
+        // no next signers at start
+        assert_eq!(Staking::next_signers().len(), 0);
+
+        Staking::new_session_handler(&vec![1u64, 2u64, 3u64]);
+        // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
+        assert_eq!(Staking::next_signers(), vec![6u64, 1u64]);
+
+        Staking::new_session_handler(&vec![6u64, 5u64, 3u64]);
+        // takes 3 and leaves 5 and 6 since already in signer group
+        assert_eq!(Staking::next_signers(), vec![6u64, 3u64]);
+
+        Staking::new_session_handler(&vec![1u64]);
+        // does nothing as not enough validators
+        assert_eq!(Staking::next_signers(), vec![6u64, 3u64]);
+    });
 }

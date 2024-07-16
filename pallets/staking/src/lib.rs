@@ -328,7 +328,7 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
-
+            // TODO: do not allow unbonding of validator if not enough validators
             if pallet_staking::Pallet::<T>::bonded(&controller).is_none() {
                 let server_info =
                     ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
@@ -402,7 +402,7 @@ pub mod pallet {
             Ok(ledger.stash)
         }
 
-        pub fn get_randomness() -> u32 {
+        pub fn get_randomness() -> ChaCha20Rng {
             let phrase = b"signer_rotation";
             // TODO: Is randomness freshness an issue here
             // https://github.com/paritytech/substrate/issues/8312
@@ -410,18 +410,34 @@ pub mod pallet {
             // seed needs to be guaranteed to be 32 bytes.
             let seed = <[u8; 32]>::decode(&mut TrailingZeroInput::new(seed.as_ref()))
                 .expect("input is padded with zeroes; qed");
-            let mut rng = ChaChaRng::from_seed(seed);
-            rng.next_u32()
+            ChaChaRng::from_seed(seed)
         }
 
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
-            let phrase = b"signer_rotation";
-            let randomness = Self::get_randomness();
-            let index = randomness % validators.len() as u32;
-            let next_signer_up = &validators[index as usize];
-            // check to make sure signer selected does not exist in signer selection already
+            let mut current_signers = Self::signers();
+            // Since not enough validators do not allow rotation
+            // TODO: open issue to discuss
+            if validators.len() <= current_signers.len() {
+                return Ok(());
+            }
+            let mut randomness = Self::get_randomness();
+            // grab a current signer to initiate value
+            let mut next_signer_up = &current_signers[0].clone();
+            let mut index;
+            // loops to find signer in validator that is not already signer
+            while current_signers.contains(&next_signer_up) {
+                index = randomness.next_u32() % validators.len() as u32;
+                next_signer_up = &validators[index as usize];
+            }
+
+            // removes first signer and pushes new signer to back
+            current_signers.remove(0);
+            current_signers.push(next_signer_up.clone());
+            NextSigners::<T>::put(current_signers);
+
+            // for next PR
             // tell signers to do new key rotation with new signer group (dkg)
             // confirm action has taken place
 
