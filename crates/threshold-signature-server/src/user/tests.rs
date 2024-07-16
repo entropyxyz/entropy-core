@@ -789,7 +789,7 @@ async fn test_jumpstart_network() {
     let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
 
     // check to make sure keyshare is correct
-    let key_share: Option<ThresholdKeyShare<KeyParams, entropy_protocol::PartyId>> =
+    let key_share: Option<KeyShareWithAuxInfo> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
 
