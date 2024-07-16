@@ -292,14 +292,6 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-    // let block_hash = rpc
-    //     .chain_get_block_hash(None)
-    //     .await?
-    //     .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    // let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    // let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-    // for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
     for sig_request_account in data.sig_request_accounts.into_iter() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
@@ -324,7 +316,7 @@ async fn setup_dkg(
         }
         .to_string();
 
-        let serialized_key_share = key_serialize(&key_share)
+        let serialized_key_share = key_serialize(&(key_share, aux_info))
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
@@ -389,8 +381,7 @@ pub async fn confirm_registered(
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
     if who.encode() == NETWORK_PARENT_KEY.encode() {
-        // TODO (Nando): Remove the subgroup argument
-        let jump_start_request = entropy::tx().registry().confirm_jump_start(0);
+        let jump_start_request = entropy::tx().registry().confirm_jump_start();
         submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
     } else {
         let confirm_register_request = entropy::tx().registry().confirm_register(
