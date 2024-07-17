@@ -25,7 +25,7 @@ use synedrion::{
     k256::EncodedPoint,
     make_aux_gen_session, make_interactive_signing_session, make_key_init_session,
     make_key_resharing_session,
-    sessions::{FinalizeOutcome, Session},
+    sessions::{FinalizeOutcome, Session, SessionId as SynedrionSessionId},
     signature::{self, hazmat::RandomizedPrehashSigner},
     AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, PrehashedMessage,
     RecoverableSignature, ThresholdKeyShare,
@@ -178,7 +178,7 @@ pub async fn execute_signing_protocol(
 
     let session = make_interactive_signing_session(
         &mut OsRng,
-        &session_id_hash,
+        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
         pair,
         &party_ids,
         key_share,
@@ -221,9 +221,13 @@ pub async fn execute_dkg(
 
     let (verifying_key, old_holder, chans) = if includes_me {
         // First run the key init session.
-        let session =
-            make_key_init_session(&mut OsRng, &session_id_hash, pair.clone(), &key_init_parties)
-                .map_err(ProtocolExecutionErr::SessionCreation)?;
+        let session = make_key_init_session(
+            &mut OsRng,
+            SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+            pair.clone(),
+            &key_init_parties,
+        )
+        .map_err(ProtocolExecutionErr::SessionCreation)?;
 
         let (init_keyshare, rx) = execute_protocol_generic(chans, session, session_id_hash).await?;
 
@@ -289,9 +293,14 @@ pub async fn execute_dkg(
     };
 
     let session_id_hash = session_id.blake2(Some(DkgSubsession::Reshare))?;
-    let session =
-        make_key_resharing_session(&mut OsRng, &session_id_hash, pair.clone(), &party_ids, &inputs)
-            .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let session = make_key_resharing_session(
+        &mut OsRng,
+        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+        pair.clone(),
+        &party_ids,
+        &inputs,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
     let (new_key_share_option, rx) =
         execute_protocol_generic(chans, session, session_id_hash).await?;
     let new_key_share =
@@ -303,8 +312,13 @@ pub async fn execute_dkg(
 
     // Now run the aux gen protocol to get AuxInfo
     let session_id_hash = session_id.blake2(Some(DkgSubsession::AuxGen))?;
-    let session = make_aux_gen_session(&mut OsRng, &session_id_hash, pair, &party_ids)
-        .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let session = make_aux_gen_session(
+        &mut OsRng,
+        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+        pair,
+        &party_ids,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
     let aux_info = execute_protocol_generic(chans, session, session_id_hash).await?.0;
     tracing::info!("Finished aux gen protocol");
 
@@ -344,9 +358,14 @@ pub async fn execute_proactive_refresh(
         new_holders: party_ids.clone(),
         new_threshold: threshold,
     };
-    let session =
-        make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
-            .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let session = make_key_resharing_session(
+        &mut OsRng,
+        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+        pair,
+        &party_ids,
+        &inputs,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let new_key_share = execute_protocol_generic(chans, session, session_id_hash).await?.0;
 
