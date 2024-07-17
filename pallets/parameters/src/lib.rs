@@ -159,7 +159,7 @@ pub mod module {
             Ok(())
         }
 
-        /// Changes the signer info
+        /// Changes the threshold related parameters for signing.
         #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::change_signers_info())]
         pub fn change_signers_info(

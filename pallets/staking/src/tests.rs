@@ -327,7 +327,7 @@ fn it_declares_synced() {
 #[test]
 fn it_tests_new_session_handler() {
     new_test_ext().execute_with(|| {
-        // start with current validators as 6 and 5
+        // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
 
         // no next signers at start
         assert_eq!(Staking::next_signers().len(), 0);

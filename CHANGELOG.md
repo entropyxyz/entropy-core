@@ -14,7 +14,10 @@ At the moment this project **does not** adhere to
 - Add Signer groups and rotation ([#938](https://github.com/entropyxyz/entropy-core/pull/938))
 
 ### Breaking Changes
-- In [#938](https://github.com/entropyxyz/entropy-core/pull/938) As the network readys for signer subgroups `Signers` are added to the chain config, currently the creation of the config file should select and assign them
+- In [#938](https://github.com/entropyxyz/entropy-core/pull/938), the chainspec got a couple of new
+  fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
+  `pallet_parameters::threshold`, which are used to set up the initial threshold signing
+  configuration for the network.
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
