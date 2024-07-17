@@ -15,14 +15,14 @@
 
 use synedrion::{
     sessions, AuxGenResult, InteractiveSigningResult, KeyInitResult, KeyResharingResult,
-    MappedResult,
+    ProtocolResult,
 };
 use thiserror::Error;
 
 use crate::{protocol_message::ProtocolMessage, KeyParams, PartyId};
 
 #[derive(Debug, Error)]
-pub enum GenericProtocolError<Res: MappedResult<PartyId>> {
+pub enum GenericProtocolError<Res: ProtocolResult> {
     #[error("Synedrion session error {0}")]
     Joined(Box<sessions::Error<Res, PartyId>>),
     #[error("Incoming message stream error: {0}")]
@@ -33,21 +33,19 @@ pub enum GenericProtocolError<Res: MappedResult<PartyId>> {
     Mpsc(#[from] tokio::sync::mpsc::error::SendError<ProtocolMessage>),
 }
 
-impl<Res: MappedResult<PartyId>> From<sessions::LocalError> for GenericProtocolError<Res> {
+impl<Res: ProtocolResult> From<sessions::LocalError> for GenericProtocolError<Res> {
     fn from(err: sessions::LocalError) -> Self {
         Self::Joined(Box::new(sessions::Error::Local(err)))
     }
 }
 
-impl<Res: MappedResult<PartyId>> From<sessions::RemoteError<PartyId>>
-    for GenericProtocolError<Res>
-{
+impl<Res: ProtocolResult> From<sessions::RemoteError<PartyId>> for GenericProtocolError<Res> {
     fn from(err: sessions::RemoteError<PartyId>) -> Self {
         Self::Joined(Box::new(sessions::Error::Remote(err)))
     }
 }
 
-impl<Res: MappedResult<PartyId>> From<sessions::Error<Res, PartyId>> for GenericProtocolError<Res> {
+impl<Res: ProtocolResult> From<sessions::Error<Res, PartyId>> for GenericProtocolError<Res> {
     fn from(err: sessions::Error<Res, PartyId>) -> Self {
         Self::Joined(Box::new(err))
     }

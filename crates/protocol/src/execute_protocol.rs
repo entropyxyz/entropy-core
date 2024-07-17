@@ -67,11 +67,11 @@ impl RandomizedPrehashSigner<sr25519::Signature> for PairWrapper {
     }
 }
 
-async fn execute_protocol_generic<Res: synedrion::MappedResult<PartyId>>(
+async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
-) -> Result<(Res::MappedSuccess, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>> {
+) -> Result<(Res::Success, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>> {
     let tx = &chans.0;
     let rx = &mut chans.1;
 

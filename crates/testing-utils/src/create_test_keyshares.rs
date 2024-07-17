@@ -106,7 +106,7 @@ mod synedrion_test_environment {
     use rand_core::OsRng;
     use sp_core::sr25519;
     use std::collections::BTreeMap;
-    use synedrion::{CombinedMessage, FinalizeOutcome, MappedResult, Session};
+    use synedrion::{CombinedMessage, FinalizeOutcome, ProtocolResult, Session};
     use tokio::{
         sync::mpsc,
         time::{sleep, Duration},
@@ -119,11 +119,11 @@ mod synedrion_test_environment {
     }
 
     /// Run a generic synedrion session
-    async fn run_session<Res: MappedResult<PartyId>>(
+    async fn run_session<Res: ProtocolResult>(
         tx: mpsc::Sender<MessageOut>,
         rx: mpsc::Receiver<MessageIn>,
         session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
-    ) -> Res::MappedSuccess {
+    ) -> Res::Success {
         let mut rx = rx;
 
         let mut session = session;
@@ -239,10 +239,10 @@ mod synedrion_test_environment {
 
     pub async fn run_nodes<Res>(
         sessions: Vec<Session<Res, sr25519::Signature, PairWrapper, PartyId>>,
-    ) -> Vec<Res::MappedSuccess>
+    ) -> Vec<Res::Success>
     where
-        Res: MappedResult<PartyId> + Send + 'static,
-        Res::MappedSuccess: Send + 'static,
+        Res: ProtocolResult + Send + 'static,
+        Res::MappeSuccess: Send + 'static,
     {
         let num_parties = sessions.len();
 
@@ -257,7 +257,7 @@ mod synedrion_test_environment {
         let dispatcher_task = message_dispatcher(tx_map, dispatcher_rx);
         let dispatcher = tokio::spawn(dispatcher_task);
 
-        let handles: Vec<tokio::task::JoinHandle<Res::MappedSuccess>> = rxs
+        let handles: Vec<tokio::task::JoinHandle<Res::Success>> = rxs
             .into_iter()
             .zip(sessions.into_iter())
             .map(|(rx, session)| {
