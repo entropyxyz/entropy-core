@@ -26,7 +26,7 @@ use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
     DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
-    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -208,6 +208,10 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
+            inital_signers: initial_authorities.iter().map(|auth| {
+                auth.0.clone()
+            })
+            .collect::<Vec<_>>(),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -253,6 +257,8 @@ pub fn integration_tests_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
             ..Default::default()
         },
         "programs": ProgramsConfig {

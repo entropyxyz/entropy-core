@@ -62,3 +62,9 @@ pub const DEVICE_KEY_PROXY: &[u8] = include_bytes!("../device_key_proxy.wasm");
 
 /// Network parent key specific size to fit into [u8; 32] to save extra code
 pub const NETWORK_PARENT_KEY: &str = "NETWORK_PARENT_KEY_FOR_ENTROPY_";
+
+/// Total signers on the network with the parent key
+pub const TOTAL_SIGNERS: u8 = 3;
+
+/// Threshold for those signers
+pub const SIGNER_THRESHOLD: u8 = 2;

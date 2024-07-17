@@ -25,7 +25,8 @@ use entropy_runtime::{
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
-    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
+    TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -413,6 +414,10 @@ pub fn testnet_genesis_config(
                 })
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
+            inital_signers: initial_authorities.iter().map(|auth| {
+                auth.0.clone()
+            })
+            .collect::<Vec<_>>(),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -442,6 +447,8 @@ pub fn testnet_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
             ..Default::default()
         },
         "programs": ProgramsConfig {
