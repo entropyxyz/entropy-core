@@ -21,7 +21,7 @@ zeroize            ="1.8.1"
 hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
-synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="3bd9680dafc692b103fcb9c4b750fb1c6932b956" }
+synedrion          ={ git="https://github.com/entropyxyz/synedrion", branch="hc/impl-serde-for-cggmp21-params" }
 strum              ="0.26.2"
 backoff            ={ version="0.4.0", features=["tokio"] }
 
