@@ -181,6 +181,11 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn jumpstart_dkg)]
+    pub type JumpstartDkg<T: Config> =
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
@@ -284,11 +289,15 @@ pub mod pallet {
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
+
             // TODO (#923): Add checks for network state.
-            Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(NETWORK_PARENT_KEY.encode());
-                Ok(())
-            })?;
+            JumpstartDkg::<T>::try_mutate(
+                current_block_number,
+                |messages| -> Result<_, DispatchError> {
+                    messages.push(NETWORK_PARENT_KEY.encode());
+                    Ok(())
+                },
+            )?;
             JumpStartProgress::<T>::put(JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],

@@ -235,7 +235,7 @@ pub async fn sign_tx(
 ///
 /// This will trigger the Distributed Key Generation (DKG) process.
 #[tracing::instrument(skip_all, fields(block_number))]
-pub async fn new_user(
+pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
@@ -275,6 +275,14 @@ pub async fn new_user(
     Ok(StatusCode::OK)
 }
 
+#[tracing::instrument(skip_all, fields(block_number))]
+pub async fn new_user(
+    State(_app_state): State<AppState>,
+    _encoded_data: Bytes,
+) -> Result<StatusCode, UserErr> {
+    todo!()
+}
+
 /// Setup and execute DKG.
 ///
 /// Called internally by the [new_user] function.
@@ -308,6 +316,7 @@ async fn setup_dkg(
             data.block_number,
         )
         .await?;
+
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
         let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
             hex::encode(NETWORK_PARENT_KEY)
@@ -428,7 +437,7 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let verifying_data_query = entropy::storage().registry().dkg(chain_data.block_number);
+    let verifying_data_query = entropy::storage().registry().jumpstart_dkg(chain_data.block_number);
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 

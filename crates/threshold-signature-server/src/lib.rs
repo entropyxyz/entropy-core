@@ -172,6 +172,7 @@ impl AppState {
 
 pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
+        .route("/generate_network_key", post(generate_network_key))
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
         .route("/signer/proactive_refresh", post(proactive_refresh))

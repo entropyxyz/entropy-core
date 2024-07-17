@@ -355,7 +355,7 @@ pub fn new_full_base(
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"propagation",
-                &format!("{}/user/new", endpoint).into_bytes(),
+                &format!("{}/generate_network_key", endpoint).into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
