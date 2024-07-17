@@ -299,7 +299,7 @@ pub async fn execute_dkg(
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
         pair.clone(),
         &party_ids,
-        &inputs,
+        inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
     let (new_key_share_option, rx) =
@@ -365,7 +365,7 @@ pub async fn execute_proactive_refresh(
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
         pair,
         &party_ids,
-        &inputs,
+        inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
