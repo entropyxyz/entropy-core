@@ -209,7 +209,7 @@ pub async fn execute_dkg(
     tracing::debug!("Executing DKG");
     let broadcaster = chans.0.clone();
 
-    let mut party_ids: BTreeSet<PartyId> =
+    let party_ids: BTreeSet<PartyId> =
         threshold_accounts.iter().cloned().map(PartyId::new).collect();
 
     let pair = PairWrapper(threshold_pair.clone());
@@ -217,7 +217,7 @@ pub async fn execute_dkg(
     let my_party_id = PartyId::new(AccountId32(threshold_pair.public().0));
 
     let session_id_hash = session_id.blake2(Some(DkgSubsession::KeyInit))?;
-    let (mut key_init_parties, includes_me) =
+    let (key_init_parties, includes_me) =
         get_key_init_parties(&my_party_id, threshold, &party_ids, &session_id_hash)?;
 
     let (verifying_key, old_holder, chans) = if includes_me {
@@ -253,7 +253,7 @@ pub async fn execute_dkg(
         }
         (
             verifying_key,
-            Some(OldHolder { key_share: init_keyshare.to_threshold_key_share() }),
+            Some(OldHolder { key_share: ThresholdKeyShare::from_key_share(&init_keyshare) }),
             chans,
         )
     } else {
