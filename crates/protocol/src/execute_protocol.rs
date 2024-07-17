@@ -39,6 +39,8 @@ use crate::{
     DkgSubsession, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId,
 };
 
+use std::collections::BTreeSet;
+
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
 
@@ -170,7 +172,8 @@ pub async fn execute_signing_protocol(
     tracing::debug!("Executing signing protocol");
     tracing::trace!("Using key share with verifying key {:?}", &key_share.verifying_key());
 
-    let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
+    let party_ids: BTreeSet<PartyId> =
+        threshold_accounts.iter().cloned().map(PartyId::new).collect();
 
     let pair = PairWrapper(threshold_pair.clone());
 
@@ -206,9 +209,8 @@ pub async fn execute_dkg(
     tracing::debug!("Executing DKG");
     let broadcaster = chans.0.clone();
 
-    let mut party_ids: Vec<PartyId> =
+    let mut party_ids: BTreeSet<PartyId> =
         threshold_accounts.iter().cloned().map(PartyId::new).collect();
-    party_ids.sort();
 
     let pair = PairWrapper(threshold_pair.clone());
 
@@ -217,7 +219,6 @@ pub async fn execute_dkg(
     let session_id_hash = session_id.blake2(Some(DkgSubsession::KeyInit))?;
     let (mut key_init_parties, includes_me) =
         get_key_init_parties(&my_party_id, threshold, &party_ids, &session_id_hash)?;
-    key_init_parties.sort();
 
     let (verifying_key, old_holder, chans) = if includes_me {
         // First run the key init session.
@@ -341,7 +342,8 @@ pub async fn execute_proactive_refresh(
     tracing::debug!("Executing proactive refresh");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
-    let party_ids: Vec<PartyId> = threshold_accounts.iter().cloned().map(PartyId::new).collect();
+    let party_ids: BTreeSet<PartyId> =
+        threshold_accounts.iter().cloned().map(PartyId::new).collect();
     let pair = PairWrapper(threshold_pair.clone());
     let verifying_key = old_key.verifying_key();
 
@@ -376,10 +378,11 @@ pub async fn execute_proactive_refresh(
 fn get_key_init_parties(
     my_party_id: &PartyId,
     threshold: usize,
-    validators: &[PartyId],
+    validators: &BTreeSet<PartyId>,
     session_id_hash: &[u8],
-) -> Result<(Vec<PartyId>, bool), ProtocolExecutionErr> {
-    let mut parties = vec![];
+) -> Result<(BTreeSet<PartyId>, bool), ProtocolExecutionErr> {
+    let validators = validators.iter().cloned().collect::<Vec<PartyId>>();
+    let mut parties = BTreeSet::new();
     let mut includes_self = false;
     let number = BigUint::from_bytes_be(session_id_hash);
     let start_index_big = &number % validators.len();
@@ -391,7 +394,7 @@ fn get_key_init_parties(
         if member == my_party_id {
             includes_self = true;
         }
-        parties.push(member.clone());
+        parties.insert(member.clone());
     }
 
     Ok((parties, includes_self))
