@@ -58,7 +58,7 @@ where
 
     let mut sessions = signers
         .iter()
-        .filter(|&pair| pair.public() == charlie.public())
+        .filter(|&pair| pair.public() != charlie.public())
         .map(|pair| {
             let inputs = KeyResharingInputs {
                 old_holder: Some(OldHolder {
