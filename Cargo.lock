@@ -4051,6 +4051,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashing-serializer"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66c9b1a5e47c3bf40ae0f5705e84daa4cd6d8a74b2bdba43c06eb01dbc236f6e"
+dependencies = [
+ "digest 0.10.7",
+ "serde",
+]
+
+[[package]]
 name = "hashlink"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11276,6 +11286,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
 dependencies = [
+ "serde",
  "zeroize",
 ]
 
@@ -13906,22 +13917,24 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=25373111cbb01e1a25d8a5c5bb8f4652c725b3f1#25373111cbb01e1a25d8a5c5bb8f4652c725b3f1"
+source = "git+https://github.com/entropyxyz/synedrion?rev=3bd9680dafc692b103fcb9c4b750fb1c6932b956#3bd9680dafc692b103fcb9c4b750fb1c6932b956"
 dependencies = [
  "base64 0.21.7",
  "bincode",
- "cfg-if",
  "crypto-bigint",
  "crypto-primes",
  "digest 0.10.7",
  "displaydoc",
+ "hashing-serializer",
  "hex",
  "k256",
  "rand_core 0.6.4",
+ "secrecy",
  "serde",
  "sha2 0.10.8",
  "sha3",
  "signature",
+ "zeroize",
 ]
 
 [[package]]
