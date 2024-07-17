@@ -72,6 +72,14 @@ fn knows_how_to_mock_several_http_calls() {
             .to_vec(),
             ..Default::default()
         });
+        state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/validator/reshare".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [48, 120].to_vec(),
+            ..Default::default()
+        });
     });
 
     t.execute_with(|| {
@@ -117,6 +125,12 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_proactive_refresh(6).unwrap();
         Propagation::on_initialize(6);
         assert_eq!(Staking::proactive_refresh(), RefreshInfo::default());
+
+        // doesn't trigger no reshare block
+        Propagation::post_reshare(7).unwrap();
+        pallet_staking_extension::ReshareBlock::<Test>::put(7);
+        // now triggers
+        Propagation::post_reshare(7).unwrap();
     })
 }
 

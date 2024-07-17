@@ -331,16 +331,18 @@ fn it_tests_new_session_handler() {
 
         // no next signers at start
         assert_eq!(Staking::next_signers().len(), 0);
-
-        Staking::new_session_handler(&vec![1u64, 2u64, 3u64]);
+        assert_eq!(Staking::reshare_block(), 0, "Check reshare block start at zero");
+        System::set_block_number(100);
+        let _ = Staking::new_session_handler(&vec![1u64, 2u64, 3u64]);
         // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
         assert_eq!(Staking::next_signers(), vec![6u64, 1u64]);
+        assert_eq!(Staking::reshare_block(), 101, "Check reshare block start at 100 + 1");
 
-        Staking::new_session_handler(&vec![6u64, 5u64, 3u64]);
+        let _ = Staking::new_session_handler(&vec![6u64, 5u64, 3u64]);
         // takes 3 and leaves 5 and 6 since already in signer group
         assert_eq!(Staking::next_signers(), vec![6u64, 3u64]);
 
-        Staking::new_session_handler(&vec![1u64]);
+        let _ = Staking::new_session_handler(&vec![1u64]);
         // does nothing as not enough validators
         assert_eq!(Staking::next_signers(), vec![6u64, 3u64]);
     });

@@ -149,8 +149,8 @@ pub mod pallet {
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"reshare")
                 .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
-            let url = str::from_utf8(&from_local)
-                .unwrap_or("http://localhost:3001/validator/reshare");
+            let url =
+                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/validator/reshare");
 
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
@@ -175,7 +175,6 @@ pub mod pallet {
 
             Ok(())
         }
-    
 
         pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
