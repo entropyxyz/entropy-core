@@ -56,6 +56,7 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             let _ = Self::post_dkg(block_number);
+            let _ = Self::post_reshare(block_number);
             let _ = Self::post_proactive_refresh(block_number);
         }
 
@@ -137,6 +138,44 @@ pub mod pallet {
 
             Ok(())
         }
+
+        pub fn post_reshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+            let reshare_block_number = pallet_staking_extension::Pallet::<T>::reshare_block();
+            if reshare_block_number != block_number {
+                return Ok(());
+            }
+
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let kind = sp_core::offchain::StorageKind::PERSISTENT;
+            let from_local = sp_io::offchain::local_storage_get(kind, b"reshare")
+                .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
+            let url = str::from_utf8(&from_local)
+                .unwrap_or("http://localhost:3001/validator/reshare");
+
+            // We construct the request
+            // important: the header->Content-Type must be added and match that of the receiving
+            // party!!
+            let pending = http::Request::post(url, vec!["0x"])
+                .deadline(deadline)
+                .send()
+                .map_err(|_| http::Error::IoError)?;
+
+            // We await response, same as in fn get()
+            let response =
+                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+
+            // check response code
+            if response.code != 200 {
+                log::warn!("Unexpected status code: {}", response.code);
+                return Err(http::Error::Unknown);
+            }
+            let _res_body = response.body().collect::<Vec<u8>>();
+
+            // Self::deposit_event(Event::ProactiveRefreshMessagePassed(req_body));
+
+            Ok(())
+        }
+    
 
         pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
