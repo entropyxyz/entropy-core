@@ -31,6 +31,8 @@ use x25519_dalek::StaticSecret;
 mod helpers;
 use helpers::{server, ProtocolOutput};
 
+use std::collections::BTreeSet;
+
 #[test]
 #[serial]
 fn sign_protocol_with_time_logged() {
@@ -73,16 +75,15 @@ async fn test_sign_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
-    let verifying_key = keyshares[0].verifying_key();
+    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key();
 
     let parties: Vec<_> = pairs
         .iter()
-        .enumerate()
-        .map(|(i, pair)| ValidatorSecretInfo {
+        .map(|pair| ValidatorSecretInfo {
             pair: pair.clone(),
-            keyshare: Some(keyshares[i].clone()),
+            keyshare: Some(keyshares[&PartyId::from(pair.public())].clone()),
             threshold_keyshare: None,
-            aux_info: Some(aux_infos[i].clone()),
+            aux_info: Some(aux_infos[&PartyId::from(pair.public())].clone()),
         })
         .collect();
     let message_hash = [0u8; 32];
@@ -110,7 +111,7 @@ async fn test_sign_with_parties(num_parties: usize) {
 async fn test_refresh_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
-    let verifying_key = keyshares[0].verifying_key();
+    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key();
 
     let session_id = SessionId::ProactiveRefresh {
         verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
@@ -119,11 +120,12 @@ async fn test_refresh_with_parties(num_parties: usize) {
 
     let parties: Vec<_> = pairs
         .iter()
-        .enumerate()
-        .map(|(i, pair)| ValidatorSecretInfo {
+        .map(|pair| ValidatorSecretInfo {
             pair: pair.clone(),
             keyshare: None,
-            threshold_keyshare: Some(keyshares[i].to_threshold_key_share()),
+            threshold_keyshare: Some(ThresholdKeyShare::from_key_share(
+                &keyshares[&PartyId::from(pair.public())],
+            )),
             aux_info: None,
         })
         .collect();
@@ -159,7 +161,15 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
         pairs.iter().map(|pair| ValidatorSecretInfo::pair_only(pair.clone())).collect();
     let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
     let outputs = test_protocol_with_parties(dkg_parties, session_id, threshold).await;
-    let signing_committee = &ids[..threshold];
+
+    // TODO (Nando): Double check to see if this is actually equivalent to previous code
+    // let signing_committee = &ids[..threshold];
+    let signing_committee = (0..threshold)
+        .into_iter()
+        .map(|i| pairs[i].clone())
+        .map(|pair| ids.get(&PartyId::from(pair.public())).unwrap())
+        .cloned()
+        .collect::<BTreeSet<_>>();
 
     let parties: Vec<ValidatorSecretInfo> = outputs
         .clone()
@@ -329,9 +339,11 @@ fn get_tokio_runtime(num_cpus: usize) -> Runtime {
 }
 
 /// Generate keypair and make PartyId from public key
-fn get_keypairs_and_ids(num_parties: usize) -> (Vec<sr25519::Pair>, Vec<PartyId>) {
+fn get_keypairs_and_ids(num_parties: usize) -> (Vec<sr25519::Pair>, BTreeSet<PartyId>) {
     let pairs = (0..num_parties).map(|_| sr25519::Pair::generate().0).collect::<Vec<_>>();
-    let ids =
-        pairs.iter().map(|pair| PartyId::new(AccountId32(pair.public().0))).collect::<Vec<_>>();
+    let ids = pairs
+        .iter()
+        .map(|pair| PartyId::new(AccountId32(pair.public().0)))
+        .collect::<BTreeSet<_>>();
     (pairs, ids)
 }
