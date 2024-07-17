@@ -112,7 +112,7 @@ async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
                     ))
                 })?;
 
-                if let ProtocolMessagePayload::CombinedMessage(payload) = message.payload.clone() {
+                if let ProtocolMessagePayload::MessageBundle(payload) = message.payload.clone() {
                     if message.session_id_hash == session_id_hash {
                         break (message.from, *payload);
                     } else {

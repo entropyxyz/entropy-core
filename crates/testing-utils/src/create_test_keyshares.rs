@@ -106,13 +106,13 @@ mod synedrion_test_environment {
     use rand_core::OsRng;
     use sp_core::sr25519;
     use std::collections::BTreeMap;
-    use synedrion::{CombinedMessage, FinalizeOutcome, ProtocolResult, Session};
+    use synedrion::{FinalizeOutcome, MessageBundle, ProtocolResult, Session};
     use tokio::{
         sync::mpsc,
         time::{sleep, Duration},
     };
-    type MessageOut = (PartyId, PartyId, CombinedMessage<sr25519::Signature>);
-    type MessageIn = (PartyId, CombinedMessage<sr25519::Signature>);
+    type MessageOut = (PartyId, PartyId, MessageBundle<sr25519::Signature>);
+    type MessageIn = (PartyId, MessageBundle<sr25519::Signature>);
 
     fn key_to_str(key: &PartyId) -> String {
         key.to_string()
