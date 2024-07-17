@@ -87,5 +87,17 @@ fn signer_info_changed() {
             ),
             BadOrigin,
         );
+
+        // Fails threhsold greater then signers
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), 2, 3),
+            Error::<Runtime>::ThresholdGreaterThenSigners,
+        );
+
+        // Fails threhsold is 0
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), 0, 0),
+            Error::<Runtime>::ThrehsoldTooLow,
+        );
     });
 }

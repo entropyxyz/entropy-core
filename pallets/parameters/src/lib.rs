@@ -80,6 +80,8 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
+            assert!(self.threshold > 0, "Threhsold too low");
+            assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
             let signer_info =
@@ -89,7 +91,12 @@ pub mod module {
     }
 
     #[pallet::error]
-    pub enum Error<T> {}
+    pub enum Error<T> {
+        /// Threshold can not be greater then signers
+        ThresholdGreaterThenSigners,
+        /// Threhsold has to be more than 0
+        ThrehsoldTooLow,
+    }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
     pub struct SignersSize {
@@ -161,6 +168,8 @@ pub mod module {
             threshold: u8,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
+            ensure!(total_signers >= threshold, Error::<T>::ThresholdGreaterThenSigners);
+            ensure!(threshold > 0, Error::<T>::ThrehsoldTooLow);
             let signer_info = SignersSize { total_signers, threshold };
             // TODO: add checks to make sure threshold is not bigger then signature size
             SignersInfo::<T>::put(&signer_info);
