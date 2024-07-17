@@ -19,7 +19,7 @@ use frame_election_provider_support::{
 };
 use frame_support::{
     derive_impl, parameter_types,
-    traits::{ConstU32, FindAuthor, OneSessionHandler},
+    traits::{ConstU32, FindAuthor, OneSessionHandler, Randomness},
 };
 use frame_system as system;
 use pallet_session::historical as pallet_session_historical;
@@ -31,6 +31,7 @@ use sp_runtime::{
     BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
+use std::cell::RefCell;
 
 use crate as pallet_propagation;
 
@@ -281,12 +282,29 @@ impl pallet_session::historical::Config for Test {
     type FullIdentificationOf = pallet_staking::ExposureOf<Test>;
 }
 
+thread_local! {
+  pub static LAST_RANDOM: RefCell<Option<(H256, u64)>> = RefCell::new(None);
+}
+
+pub struct TestPastRandomness;
+impl Randomness<H256, BlockNumber> for TestPastRandomness {
+    fn random(_subject: &[u8]) -> (H256, u64) {
+        LAST_RANDOM.with(|p| {
+            if let Some((output, known_since)) = &*p.borrow() {
+                (*output, *known_since)
+            } else {
+                (H256::zero(), frame_system::Pallet::<Test>::block_number())
+            }
+        })
+    }
+}
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
