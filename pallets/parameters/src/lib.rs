@@ -171,7 +171,6 @@ pub mod module {
             ensure!(total_signers >= threshold, Error::<T>::ThresholdGreaterThenSigners);
             ensure!(threshold > 0, Error::<T>::ThrehsoldTooLow);
             let signer_info = SignersSize { total_signers, threshold };
-            // TODO: add checks to make sure threshold is not bigger then signature size
             SignersInfo::<T>::put(&signer_info);
             Self::deposit_event(Event::SignerInfoChanged { signer_info });
             Ok(())
