@@ -17,7 +17,7 @@ use std::str;
 
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
-use synedrion::sessions::CombinedMessage;
+use synedrion::sessions::MessageBundle;
 
 use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
@@ -41,7 +41,7 @@ pub struct ProtocolMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProtocolMessagePayload {
     /// The signed protocol message
-    CombinedMessage(Box<CombinedMessage<sr25519::Signature>>),
+    MessageBundle(Box<MessageBundle<sr25519::Signature>>),
     /// A verifying key for parties who were not present in the key init session
     VerifyingKey(Vec<u8>),
 }
@@ -59,13 +59,13 @@ impl ProtocolMessage {
     pub(crate) fn new(
         from: &PartyId,
         to: &PartyId,
-        payload: CombinedMessage<sr25519::Signature>,
+        payload: MessageBundle<sr25519::Signature>,
         session_id_hash: [u8; 32],
     ) -> Self {
         Self {
             from: from.clone(),
             to: to.clone(),
-            payload: ProtocolMessagePayload::CombinedMessage(Box::new(payload)),
+            payload: ProtocolMessagePayload::MessageBundle(Box::new(payload)),
             session_id_hash,
         }
     }
