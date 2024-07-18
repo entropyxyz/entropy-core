@@ -228,7 +228,8 @@ pub async fn sign_tx(
     Ok((StatusCode::OK, Body::from_stream(response_rx)))
 }
 
-/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
+/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during the network
+/// jumpstart.
 ///
 /// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
 /// are in the validator group.
@@ -242,12 +243,41 @@ pub async fn generate_network_key(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
+    Ok(distributed_key_generation(app_state, data).await?)
+}
+
+/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during user registration.
+///
+/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
+/// are in the validator group.
+///
+/// This will trigger the Distributed Key Generation (DKG) process.
+#[tracing::instrument(skip_all, fields(block_number))]
+pub async fn new_user(
+    State(app_state): State<AppState>,
+    encoded_data: Bytes,
+) -> Result<StatusCode, UserErr> {
+    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    tracing::Span::current().record("block_number", data.block_number);
+
+    Ok(distributed_key_generation(app_state, data).await?)
+}
+
+/// An internal helper which kicks off the distributed key generation (DKG) process.
+///
+/// Since the jumpstart and registration flows are both doing DKG at the moment, we've split this
+/// out. In the future though, only the jumpstart flow will require this.
+async fn distributed_key_generation(
+    app_state: AppState,
+    data: OcwMessageDkg,
+) -> Result<StatusCode, UserErr> {
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+
     let in_registration_group =
         check_in_registration_group(&data.validators_info, signer.account_id());
 
@@ -273,14 +303,6 @@ pub async fn generate_network_key(
     });
 
     Ok(StatusCode::OK)
-}
-
-#[tracing::instrument(skip_all, fields(block_number))]
-pub async fn new_user(
-    State(_app_state): State<AppState>,
-    _encoded_data: Bytes,
-) -> Result<StatusCode, UserErr> {
-    todo!()
 }
 
 /// Setup and execute DKG.
