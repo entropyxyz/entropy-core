@@ -2469,7 +2469,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3bd9680dafc692b103fcb9c4b750fb1c6932b956)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tracing",
@@ -2484,7 +2484,7 @@ dependencies = [
  "entropy-shared",
  "entropy-testing-utils",
  "entropy-tss",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?branch=hc/impl-serde-for-cggmp21-params)",
+ "synedrion",
  "tokio",
 ]
 
@@ -2503,7 +2503,7 @@ dependencies = [
  "serial_test",
  "sled",
  "sp-core 31.0.0",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3bd9680dafc692b103fcb9c4b750fb1c6932b956)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tracing",
@@ -2563,7 +2563,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?branch=hc/impl-serde-for-cggmp21-params)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -2712,7 +2712,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?branch=hc/impl-serde-for-cggmp21-params)",
+ "synedrion",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2767,7 +2767,7 @@ dependencies = [
  "strum 0.26.3",
  "subxt",
  "subxt-signer",
- "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?branch=hc/impl-serde-for-cggmp21-params)",
+ "synedrion",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -13917,30 +13917,7 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?branch=hc/impl-serde-for-cggmp21-params#b7d8af48bc0679025477c4d9d0df60f8cb230de3"
-dependencies = [
- "base64 0.21.7",
- "bincode",
- "crypto-bigint",
- "crypto-primes",
- "digest 0.10.7",
- "displaydoc",
- "hashing-serializer",
- "hex",
- "k256",
- "rand_core 0.6.4",
- "secrecy",
- "serde",
- "sha2 0.10.8",
- "sha3",
- "signature",
- "zeroize",
-]
-
-[[package]]
-name = "synedrion"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=3bd9680dafc692b103fcb9c4b750fb1c6932b956#3bd9680dafc692b103fcb9c4b750fb1c6932b956"
+source = "git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63#3be1339c21384a8e60a1534f1d3bfdd022662e63"
 dependencies = [
  "base64 0.21.7",
  "bincode",
