@@ -35,7 +35,10 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-pub use entropy_protocol::{errors::ProtocolExecutionErr, KeyParams, PartyId};
+pub use entropy_protocol::{
+    decode_verifying_key, errors::ProtocolExecutionErr, execute_protocol::PairWrapper, KeyParams,
+    PartyId, SessionId,
+};
 use entropy_shared::OcwMessageReshare;
 use parity_scale_codec::Decode;
 use rand_core::OsRng;
@@ -74,9 +77,11 @@ pub async fn new_reshare(
     let (signer, x25519_secret_key) =
         get_signer_and_x25519_secret(&app_state.kv_store).await.unwrap();
     // .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    // let verifying_key_query = entropy::storage().registry().jump_start_progress();
-    // let verifying_key =
-    //     query_chain(&api, &rpc, verifying_key_query, None).await?.unwrap().verifying_key;
+    let verifying_key_query = entropy::storage().registry().jump_start_progress();
+    let verifying_key =
+        query_chain(&api, &rpc, verifying_key_query, None).await?.unwrap().verifying_key.unwrap().0;
+    let decoded_verifying_key =
+        decode_verifying_key(&verifying_key.clone().try_into().unwrap()).unwrap();
 
     let is_proper_signer = &validators_info
         .iter()
@@ -88,22 +93,31 @@ pub async fn new_reshare(
     // dbg!(verifying_key);
     // get old key if have it
     let old_holder: Option<OldHolder<KeyParams, PartyId>> = None;
-    // get new holder data
-    let new_holder: Option<NewHolder<PartyId>> = None;
     let mut party_ids: Vec<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
     party_ids.sort();
+    let new_holder = NewHolder {
+        verifying_key: decoded_verifying_key,
+        old_threshold: party_ids.len(),
+        old_holders: party_ids.clone(),
+    };
     // need a network verifying key
     let inputs = KeyResharingInputs {
         old_holder,
-        new_holder,
+        new_holder: Some(new_holder),
         // todo get from chain
         new_holders: party_ids.clone(),
         new_threshold: 2,
     };
-    // let session =
-    //     make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
-    //         .map_err(ProtocolExecutionErr::SessionCreation)?;
+    // TODO rename to Reshare
+    let session_id = SessionId::ProactiveRefresh { verifying_key, block_number: data.block_number };
+    let session_id_hash = session_id.blake2(None).unwrap();
+    let pair = PairWrapper(signer.signer().clone());
+
+    let session =
+        make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
+            .unwrap();
+    // .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     // let new_key_share = execute_protocol_generic(chans, session, session_id_hash).await?.0;
 

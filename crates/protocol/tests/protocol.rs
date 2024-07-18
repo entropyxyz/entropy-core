@@ -17,7 +17,9 @@
 //! to the number of cpus available. Note that these should be run in release mode to get a realistic
 //! idea of how long things take in production.
 
-use entropy_protocol::{KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo};
+use entropy_protocol::{
+    KeyParams, PartyId, SessionId, SessionId, SigningSessionInfo, ValidatorInfo,
+};
 use futures::future;
 use rand_core::OsRng;
 use serial_test::serial;

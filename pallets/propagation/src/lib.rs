@@ -153,8 +153,14 @@ pub mod pallet {
                 .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
             let url =
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/validator/reshare");
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
 
-            let req_body = OcwMessageReshare { new_signer: reshare_data.new_signer };
+            let req_body = OcwMessageReshare {
+                new_signer: reshare_data.new_signer,
+                // subtract 1 from blocknumber since the request is from the last block
+                block_number: converted_block_number.saturating_sub(1),
+            };
 
             log::warn!("propagation::post::req_body reshare: {:?}", &[req_body.encode()]);
 

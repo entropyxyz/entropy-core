@@ -46,8 +46,10 @@ async fn test_reshare() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let mut onchain_reshare_request = OcwMessageReshare { new_signer: alice.public().encode() };
+    let mut onchain_reshare_request =
+        OcwMessageReshare { new_signer: alice.public().encode(), block_number };
 
     // fails repeated data
     let _ = client

@@ -56,6 +56,7 @@ pub struct OcwMessageDkg {
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessageReshare {
     pub new_signer: Vec<u8>,
+    pub block_number: BlockNumber,
 }
 
 /// Offchain worker message for initiating a proactive refresh
