@@ -800,7 +800,13 @@ async fn test_jumpstart_network() {
     let key_share: Option<KeyShareWithAuxInfo> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
+    let jump_start_progress_query = entropy::storage().registry().jump_start_progress();
+    let jump_start_progress =
+        query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
+    let verifying_key =
+        key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
+    assert_eq!(jump_start_progress.verifying_key.unwrap().0, verifying_key);
     clean_tests();
 }
 
