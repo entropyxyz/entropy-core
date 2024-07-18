@@ -20,8 +20,6 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(any(feature = "std", feature = "wasm"))]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm-no-std")]
-use sp_runtime::RuntimeDebug;
 #[cfg(any(feature = "std", feature = "wasm"))]
 use strum_macros::EnumIter;
 
