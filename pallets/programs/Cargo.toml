@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-programs'
-version   ='0.2.0-rc.1'
+version   ='0.2.0'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'

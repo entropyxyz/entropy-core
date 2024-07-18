@@ -82,9 +82,6 @@
 //!
 //! ### For other instances of the threshold server
 //!
-//! - [`/user/receive_key`](receive_key) - recieve a keyshare from another threshold server in the
-//!   same signing subgroup during registration or proactive refresh.
-//!
 //!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
 //!   in a [crate::validation::SignedMessage].
 //!
@@ -131,9 +128,9 @@ pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
 pub(crate) mod r#unsafe;
-pub(crate) mod user;
+pub mod user;
 pub mod validation;
-pub(crate) mod validator;
+pub mod validator;
 
 use axum::{
     http::Method,
@@ -146,23 +143,18 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
-use validator::api::get_random_server_info;
 
+pub use crate::helpers::{
+    launch,
+    validator::{get_signer, get_signer_and_x25519_secret},
+};
 use crate::{
     health::api::healthz,
     launch::Configuration,
-    node_info::api::{get_subgroup_signers, hashes, version as get_version},
+    node_info::api::{hashes, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
-    validator::api::sync_kvdb,
-};
-pub use crate::{
-    helpers::{
-        launch,
-        validator::{get_signer, get_signer_and_x25519_secret},
-    },
-    validator::api::sync_validator,
 };
 
 #[derive(Clone)]
@@ -182,10 +174,7 @@ pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/user/sign_tx", post(sign_tx))
         .route("/user/new", post(new_user))
-        .route("/user/receive_key", post(receive_key))
         .route("/signer/proactive_refresh", post(proactive_refresh))
-        .route("/validator/sync_kvdb", post(sync_kvdb))
-        .route("/subgroup_signers", post(get_subgroup_signers))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

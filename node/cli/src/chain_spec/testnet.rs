@@ -25,7 +25,8 @@ use entropy_runtime::{
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
-    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
+    TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -356,7 +357,6 @@ pub fn testnet_genesis_config(
 
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
-    const SIGNING_GROUPS: usize = 2;
 
     serde_json::json!( {
         "balances": BalancesConfig {
@@ -413,17 +413,11 @@ pub fn testnet_genesis_config(
                     (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
                 })
                 .collect::<Vec<_>>(),
-            // We place all Stash accounts into the specified number of signing groups
-            signing_groups: initial_authorities
-                .iter()
-                .map(|x| x.0.clone())
-                .collect::<Vec<_>>()
-                .as_slice()
-                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
-                .enumerate()
-                .map(|(i, v)| (i as u8, v.to_vec()))
-                .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
+            inital_signers: initial_authorities.iter().map(|auth| {
+                auth.0.clone()
+            })
+            .collect::<Vec<_>>(),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -453,6 +447,8 @@ pub fn testnet_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
             ..Default::default()
         },
         "programs": ProgramsConfig {

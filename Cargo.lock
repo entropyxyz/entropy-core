@@ -704,6 +704,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "backoff"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
+dependencies = [
+ "futures-core",
+ "getrandom 0.2.15",
+ "instant",
+ "pin-project-lite 0.2.14",
+ "rand",
+ "tokio",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -923,9 +937,9 @@ dependencies = [
 
 [[package]]
 name = "blake3"
-version = "1.5.1"
+version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30cca6d3674597c30ddf2c587bf8d9d65c9a84d2326d941cc79c9842dfe0ef52"
+checksum = "e9ec96fe9a81b5e365f9db71fe00edc4fe4ca2cc7dcb7861f0603012a7caa210"
 dependencies = [
  "arrayref",
  "arrayvec 0.7.4",
@@ -1036,9 +1050,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.6.0"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
+checksum = "a12916984aab3fa6e39d655a33e09c0071eb36d6ab3aea5c2d78551f1df6d952"
 dependencies = [
  "serde",
 ]
@@ -1264,9 +1278,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.8"
+version = "4.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84b3edb18336f4df585bc9aa31dd99c036dfa5dc5e9a2939a722a188f3a8970d"
+checksum = "64acc1846d54c1fe936a78dc189c34e28d3f5afc348403f28ecf53660b9b8462"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1274,9 +1288,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.8"
+version = "4.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1c09dd5ada6c6c78075d6fd0da3f90d8080651e2d6cc8eb2f1aaa4034ced708"
+checksum = "6fb8393d67ba2e7bfaf28a23458e4e2b543cc73a99595511eb207fdb8aede942"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2358,7 +2372,7 @@ dependencies = [
 
 [[package]]
 name = "entropy"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "clap",
  "entropy-runtime",
@@ -2434,7 +2448,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-client"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2466,8 +2480,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "entropy-kvdb"
+name = "entropy-create-test-keyshares"
 version = "0.2.0-rc.1"
+dependencies = [
+ "entropy-kvdb",
+ "entropy-shared",
+ "entropy-testing-utils",
+ "entropy-tss",
+ "synedrion",
+ "tokio",
+]
+
+[[package]]
+name = "entropy-kvdb"
+version = "0.2.0"
 dependencies = [
  "bincode",
  "chacha20poly1305 0.9.1",
@@ -2512,7 +2538,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-protocol"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2529,11 +2555,13 @@ dependencies = [
  "hpke-rs-crypto",
  "hpke-rs-rust-crypto",
  "js-sys",
+ "num",
  "num_cpus",
  "rand_core 0.6.4",
  "schnorrkel",
  "serde",
  "serde_json",
+ "serial_test",
  "snow",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
@@ -2552,7 +2580,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-runtime"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -2635,7 +2663,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-shared"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "hex-literal",
  "lazy_static",
@@ -2653,7 +2681,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-test-cli"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2670,7 +2698,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-testing-utils"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "axum",
  "entropy-kvdb",
@@ -2682,6 +2710,7 @@ dependencies = [
  "lazy_static",
  "parity-scale-codec",
  "project-root",
+ "rand",
  "rand_core 0.6.4",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
@@ -2694,10 +2723,11 @@ dependencies = [
 
 [[package]]
 name = "entropy-tss"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "axum",
+ "backoff",
  "base64 0.22.1",
  "bincode",
  "bip39",
@@ -6993,7 +7023,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-parameters"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7026,7 +7056,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-programs"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7044,7 +7074,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-propagation"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7109,7 +7139,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-registry"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7198,7 +7228,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-slashing"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -7248,7 +7278,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7263,8 +7293,10 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
+ "rand_chacha 0.3.1",
  "scale-info",
  "serde",
+ "sp-consensus-babe 0.33.0",
  "sp-core 29.0.0",
  "sp-io 31.0.0",
  "sp-npos-elections",
@@ -7345,7 +7377,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-pause"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -13877,8 +13909,7 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "719bd87aad0150020e25ba8a91e1766c6c67aa2f1b94ce71dba13a3a1bf16b6d"
+source = "git+https://github.com/entropyxyz/synedrion?rev=25373111cbb01e1a25d8a5c5bb8f4652c725b3f1#25373111cbb01e1a25d8a5c5bb8f4652c725b3f1"
 dependencies = [
  "base64 0.21.7",
  "bincode",
@@ -13886,6 +13917,7 @@ dependencies = [
  "crypto-bigint",
  "crypto-primes",
  "digest 0.10.7",
+ "displaydoc",
  "hex",
  "k256",
  "rand_core 0.6.4",
@@ -13979,18 +14011,18 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "thiserror"
-version = "1.0.61"
+version = "1.0.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
+checksum = "c0342370b38b6a11b6cc11d6a805569958d54cfa061a29969c3b5ce2ea405724"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.61"
+version = "1.0.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
+checksum = "a4558b58466b9ad7ca0f102865eccc95938dca1a74a856f2b57b6629050da261"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -14091,9 +14123,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.38.0"
+version = "1.38.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba4f4a02a7a80d6f274636f0aa95c7e383b912d41fe721a31f29e29698585a4a"
+checksum = "eb2caba9f80616f438e09748d5acda951967e1ea58508ef53d9c6402485a46df"
 dependencies = [
  "backtrace",
  "bytes",
@@ -14822,9 +14854,9 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "uuid"
-version = "1.9.1"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5de17fd2f7da591098415cff336e12965a28061ddace43b59cb3c430179c9439"
+checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
 dependencies = [
  "getrandom 0.2.15",
 ]
@@ -14843,9 +14875,9 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vergen"
-version = "8.3.1"
+version = "8.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e27d6bdd219887a9eadd19e1c34f32e47fa332301184935c6d9bca26f3cca525"
+checksum = "2990d9ea5967266ea0ccf413a4aa5c42a93dbcfda9cb49a97de6931726b12566"
 dependencies = [
  "anyhow",
  "cfg-if",

@@ -26,7 +26,7 @@ use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     X25519PublicKey as TssX25519PublicKey, DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE,
     DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY, EVE_VERIFYING_KEY,
-    FERDIE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    FERDIE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -37,9 +37,7 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sr25519;
 use sp_runtime::{BoundedVec, Perbill};
 
-const SIGNING_GROUPS: usize = 2;
-
-pub fn devnet_two_node_initial_tss_servers(
+pub fn devnet_three_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -53,10 +51,16 @@ pub fn devnet_two_node_initial_tss_servers(
         "127.0.0.1:3002".to_string(),
     );
 
-    vec![alice, bob]
+    let charlie = (
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_x25519_public_key::CHARLIE,
+        "127.0.0.1:3003".to_string(),
+    );
+
+    vec![alice, bob, charlie]
 }
 
-pub fn devnet_local_docker_two_node_initial_tss_servers(
+pub fn devnet_local_docker_three_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -70,7 +74,13 @@ pub fn devnet_local_docker_two_node_initial_tss_servers(
         "bob-tss-server:3002".to_string(),
     );
 
-    vec![alice, bob]
+    let charlie = (
+        crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_x25519_public_key::CHARLIE,
+        "charlie-tss-server:3003".to_string(),
+    );
+
+    vec![alice, bob, charlie]
 }
 
 pub fn devnet_local_docker_four_node_initial_tss_servers(
@@ -104,8 +114,8 @@ pub fn devnet_local_docker_four_node_initial_tss_servers(
 
 /// The configuration used for development.
 ///
-/// Since Entropy requires at least two signing groups to work properly we spin up this network with
-/// two validators, Alice and Bob.
+/// Since Entropy requires at two-of-three threshold setup, we spin up three validators: Alice, Bob,
+/// and Charlie.
 pub fn development_config() -> ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Development")
@@ -116,10 +126,11 @@ pub fn development_config() -> ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            devnet_two_node_initial_tss_servers(),
+            devnet_three_node_initial_tss_servers(),
         ))
         .build()
 }
@@ -127,9 +138,9 @@ pub fn development_config() -> ChainSpec {
 /// The configuration used for a local development network spun up with the `docker-compose` setup
 /// provided in this repository.
 ///
-/// Since Entropy requires at least two signing groups to work properly we spin up this network with
-/// two validators, Alice and Bob.
-pub fn devnet_local_two_node_config() -> crate::chain_spec::ChainSpec {
+/// Since Entropy requires at two-of-three threshold setup, we spin up three validators: Alice, Bob,
+/// and Charlie.
+pub fn devnet_local_three_node_config() -> crate::chain_spec::ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Devnet Local")
         .with_id("devnet_local")
@@ -139,17 +150,18 @@ pub fn devnet_local_two_node_config() -> crate::chain_spec::ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            devnet_local_docker_two_node_initial_tss_servers(),
+            devnet_local_docker_three_node_initial_tss_servers(),
         ))
         .build()
 }
 
 /// The configuration used for a local four-node development network spun up using `docker-compose`.
 ///
-/// Note that this repository does not provide an example of that, but the provided two-node
+/// Note that this repository does not provide an example of that, but the provided three-node
 /// `docker-compose` setup can be used as a reference.
 pub fn devnet_local_four_node_config() -> crate::chain_spec::ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
@@ -263,17 +275,11 @@ pub fn development_genesis_config(
                     (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
                 })
                 .collect::<Vec<_>>(),
-            // We place all Stash accounts into the specified number of signing groups
-            signing_groups: initial_authorities
-                .iter()
-                .map(|x| x.0.clone())
-                .collect::<Vec<_>>()
-                .as_slice()
-                .chunks((initial_authorities.len() + SIGNING_GROUPS - 1) / SIGNING_GROUPS)
-                .enumerate()
-                .map(|(i, v)| (i as u8, v.to_vec()))
-                .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
+            inital_signers: initial_authorities.iter().map(|auth| {
+                auth.0.clone()
+            })
+            .collect::<Vec<_>>(),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -304,20 +310,14 @@ pub fn development_genesis_config(
             registered_accounts: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    0,
-                    None,
                     BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    2,
-                    None,
                     BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
             ],
@@ -325,6 +325,8 @@ pub fn development_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
             ..Default::default()
         },
         "programs": ProgramsConfig {

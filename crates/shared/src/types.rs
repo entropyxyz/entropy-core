@@ -16,7 +16,7 @@
 use super::constants::VERIFICATION_KEY_LENGTH;
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(any(feature = "std", feature = "wasm"))]
 use serde::{Deserialize, Serialize};
@@ -32,18 +32,6 @@ pub type X25519PublicKey = [u8; 32];
 /// This should match the type found in `entropy-runtime`. We define it ourselves manually here
 /// since we don't want to pull that whole crate it just for a `u32`.
 pub type BlockNumber = u32;
-
-/// Defines an application's accessibility
-/// Public -> User does not hold a keyshare
-/// Private -> User holds keyshare
-#[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
-#[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
-pub enum KeyVisibility {
-    Public,
-    Private(X25519PublicKey),
-}
 
 /// Information from the validators in signing party
 #[cfg_attr(not(feature = "wasm"), derive(sp_runtime::Serialize, sp_runtime::Deserialize))]

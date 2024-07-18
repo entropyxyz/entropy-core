@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{NETWORK_PARENT_KEY, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -71,6 +71,9 @@ pub mod pallet {
     /// Max modifiable keys allowed for a program modification account
     pub const MAX_MODIFIABLE_KEYS: u32 = 25;
 
+    /// Blocks to wait until we agree jump start network failed and to allow a retry
+    pub const BLOCKS_TO_RESTART_JUMP_START: u32 = 50;
+
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config:
@@ -82,8 +85,6 @@ pub mod pallet {
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        /// The amount if signing parties that exist onchain
-        type SigningPartySize: Get<usize>;
         /// Max amount of programs associated for one account
         type MaxProgramHashes: Get<u32>;
         /// Current Version Number of keyshares
@@ -105,9 +106,8 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct RegisteringDetails<T: Config> {
         pub program_modification_account: T::AccountId,
-        pub confirmations: Vec<u8>,
+        pub confirmations: Vec<T::AccountId>,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
-        pub key_visibility: KeyVisibility,
         pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
     }
@@ -115,34 +115,53 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RegisteredInfo<T: Config> {
-        pub key_visibility: KeyVisibility,
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
+    }
+    /// Details of status of jump starting the network
+    #[derive(
+        Clone,
+        Encode,
+        Decode,
+        Eq,
+        PartialEqNoBound,
+        RuntimeDebug,
+        TypeInfo,
+        frame_support::DefaultNoBound,
+    )]
+    #[scale_info(skip_type_params(T))]
+    pub struct JumpStartDetails<T: Config> {
+        pub jump_start_status: JumpStartStatus,
+        pub confirmations: Vec<T::ValidatorId>,
     }
 
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, u8, Option<[u8; 32]>, VerifyingKey)>,
+        pub registered_accounts: Vec<(T::AccountId, VerifyingKey)>,
+    }
+
+    #[derive(
+        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+    )]
+    pub enum JumpStartStatus {
+        #[default]
+        Ready,
+        // u32 is block number process was started, after X blocks we assume failed and retry
+        InProgress(u32),
+        Done,
     }
 
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             for account_info in &self.registered_accounts {
-                assert!(account_info.3.len() as u32 == VERIFICATION_KEY_LENGTH);
-                let key_visibility = match account_info.1 {
-                    1 => KeyVisibility::Private(
-                        account_info.2.expect("Private key visibility needs x25519 public key"),
-                    ),
-                    _ => KeyVisibility::Public,
-                };
+                assert!(account_info.1.len() as u32 == VERIFICATION_KEY_LENGTH);
                 Registered::<T>::insert(
-                    account_info.3.clone(),
+                    account_info.1.clone(),
                     RegisteredInfo {
-                        key_visibility,
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_info.0.clone(),
                         version_number: T::KeyVersionNumber::get(),
@@ -182,15 +201,26 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    /// A concept of what progress status the jumpstart is
+    #[pallet::storage]
+    #[pallet::getter(fn jump_start_progress)]
+    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails<T>, ValueQuery>;
+
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// The network has been jump started.
+        StartedNetworkJumpStart(),
+        /// The network has been jump started successfully.
+        FinishedNetworkJumpStart(),
+        /// The network has had a jump start confirmation. [who, confirmation_count]
+        JumpStartConfirmation(T::ValidatorId, u8),
         /// An account has signaled to be registered. [signature request account]
         SignalRegister(T::AccountId),
-        /// An account has been registered. [who, signing_group, verifying_key]
-        RecievedConfirmation(T::AccountId, u8, VerifyingKey),
+        /// An account has been registered. [who, verifying_key]
+        RecievedConfirmation(T::AccountId, VerifyingKey),
         /// An account has been registered. \[who, verifying_key]
         AccountRegistered(T::AccountId, VerifyingKey),
         /// An account registration has failed
@@ -212,11 +242,8 @@ pub mod pallet {
         NoThresholdKey,
         NotRegistering,
         NotRegistered,
-        InvalidSubgroup,
         AlreadyConfirmed,
-        NotInSigningGroup,
         IpAddressError,
-        SigningGroupError,
         NoSyncedValidators,
         MaxProgramLengthExceeded,
         NoVerifyingKey,
@@ -225,10 +252,118 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+        NotValidator,
+        JumpStartProgressNotReady,
+        JumpStartNotInProgress,
+        NoRegisteringFromParentKey,
     }
 
+    /// Allows anyone to create a parent key for the network if the network is read and a parent key
+    /// does not exist
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::jump_start_network()
+        })]
+        pub fn jump_start_network(origin: OriginFor<T>) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+            let current_block_number = <frame_system::Pallet<T>>::block_number();
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(current_block_number).unwrap_or_default();
+
+            // make sure jumpstart is ready, or in progress but X amount of time has passed
+            match JumpStartProgress::<T>::get().jump_start_status {
+                JumpStartStatus::Ready => (),
+                JumpStartStatus::InProgress(started_block_number) => {
+                    if converted_block_number.saturating_sub(started_block_number)
+                        < BLOCKS_TO_RESTART_JUMP_START
+                    {
+                        return Err(Error::<T>::JumpStartProgressNotReady.into());
+                    };
+                },
+                _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
+            };
+            // TODO (#923): Add checks for network state.
+            Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
+                messages.push(NETWORK_PARENT_KEY.encode());
+                Ok(())
+            })?;
+            JumpStartProgress::<T>::put(JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(converted_block_number),
+                confirmations: vec![],
+            });
+            Self::deposit_event(Event::StartedNetworkJumpStart());
+            Ok(())
+        }
+
+        /// Allows validators to signal a successful network jumpstart
+        #[pallet::call_index(1)]
+        #[pallet::weight({
+                <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
+                .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
+        })]
+        pub fn confirm_jump_start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            // check is validator
+            let ts_server_account = ensure_signed(origin)?;
+
+            let validator_stash =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+            let validators = pallet_session::Pallet::<T>::validators();
+            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
+
+            let mut jump_start_info = JumpStartProgress::<T>::get();
+
+            // check in progress
+            ensure!(
+                matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
+                Error::<T>::JumpStartNotInProgress
+            );
+            ensure!(
+                !jump_start_info.confirmations.contains(&validator_stash),
+                Error::<T>::AlreadyConfirmed
+            );
+
+            // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
+            // ensure that registration was indeed successful.
+            //
+            // If it fails we'll need to allow another jumpstart.
+            if jump_start_info.confirmations.len() == (SIGNING_PARTY_SIZE - 1) {
+                // registration finished, lock call
+                jump_start_info.confirmations.push(validator_stash);
+                let confirmations = jump_start_info.confirmations.len();
+
+                JumpStartProgress::<T>::put(JumpStartDetails {
+                    jump_start_status: JumpStartStatus::Done,
+                    confirmations: vec![],
+                });
+
+                Self::deposit_event(Event::FinishedNetworkJumpStart());
+
+                return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_done(
+                    confirmations as u32,
+                ))
+                .into());
+            } else {
+                // Add confirmation wait for next one
+                jump_start_info.confirmations.push(validator_stash.clone());
+                let confirmations = jump_start_info.confirmations.len();
+
+                JumpStartProgress::<T>::put(jump_start_info);
+
+                Self::deposit_event(Event::JumpStartConfirmation(
+                    validator_stash,
+                    confirmations as u8,
+                ));
+
+                return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_confirm(
+                    confirmations as u32,
+                ))
+                .into());
+            }
+        }
+
         /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
         /// The caller provides an initial program pointer.
@@ -236,18 +371,21 @@ pub mod pallet {
         /// Note that a user needs to be confirmed by validators through the
         /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
         /// network.
-        #[pallet::call_index(0)]
+        #[pallet::call_index(2)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
         })]
         pub fn register(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
-            key_visibility: KeyVisibility,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
-
+            let encoded_sig_req_account = sig_req_account.encode();
+            ensure!(
+                encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
+                Error::<T>::NoRegisteringFromParentKey
+            );
             ensure!(
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
@@ -270,7 +408,7 @@ pub mod pallet {
             }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(sig_req_account.clone().encode());
+                messages.push(encoded_sig_req_account);
                 Ok(())
             })?;
 
@@ -281,7 +419,6 @@ pub mod pallet {
                     program_modification_account,
                     confirmations: vec![],
                     programs_data: programs_data.clone(),
-                    key_visibility,
                     verifying_key: None,
                     version_number: T::KeyVersionNumber::get(),
                 },
@@ -292,7 +429,7 @@ pub mod pallet {
         }
 
         /// Allows a user to remove themselves from registering state if it has been longer than prune block
-        #[pallet::call_index(1)]
+        #[pallet::call_index(3)]
         #[pallet::weight({
             <T as Config>::WeightInfo::prune_registration(<T as Config>::MaxProgramHashes::get())
         })]
@@ -316,7 +453,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change their program pointer
-        #[pallet::call_index(2)]
+        #[pallet::call_index(4)]
         #[pallet::weight({
              <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
@@ -377,7 +514,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change itself.
-        #[pallet::call_index(3)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
                  <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
              })]
@@ -436,18 +573,17 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(4)]
+        #[pallet::call_index(6)]
         #[pallet::weight({
             let weight =
-                <T as Config>::WeightInfo::confirm_register_registering(SIGNING_PARTY_SIZE as u32)
-                .max(<T as Config>::WeightInfo::confirm_register_registered(SIGNING_PARTY_SIZE as u32))
-                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(SIGNING_PARTY_SIZE as u32));
+                <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
+                .max(<T as Config>::WeightInfo::confirm_register_registered(pallet_session::Pallet::<T>::validators().len() as u32))
+                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(pallet_session::Pallet::<T>::validators().len() as u32));
             (weight, Pays::No)
         })]
         pub fn confirm_register(
             origin: OriginFor<T>,
             sig_req_account: T::AccountId,
-            signing_subgroup: u8,
             verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
         ) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
@@ -461,18 +597,14 @@ pub mod pallet {
 
             let mut registering_info =
                 Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
+
+            let validators = pallet_session::Pallet::<T>::validators();
+            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
             let confirmation_length = registering_info.confirmations.len() as u32;
             ensure!(
-                !registering_info.confirmations.contains(&signing_subgroup),
+                !registering_info.confirmations.contains(&ts_server_account),
                 Error::<T>::AlreadyConfirmed
             );
-
-            // Every active validator is expected to be assigned a subgroup. If they haven't it
-            // means they're probably still in the candidate stage.
-            let validator_subgroup =
-                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(&validator_stash)
-                    .ok_or(Error::<T>::SigningGroupError)?;
-            ensure!(validator_subgroup == signing_subgroup, Error::<T>::NotInSigningGroup);
 
             // if no one has sent in a verifying key yet, use current
             if registering_info.verifying_key.is_none() {
@@ -482,7 +614,7 @@ pub mod pallet {
             let registering_info_verifying_key =
                 registering_info.verifying_key.clone().ok_or(Error::<T>::NoVerifyingKey)?;
 
-            if registering_info.confirmations.len() == T::SigningPartySize::get() - 1 {
+            if registering_info.confirmations.len() == validators.len() - 1 {
                 // If verifying key does not match for everyone, registration failed
                 if registering_info_verifying_key != verifying_key {
                     Registering::<T>::remove(&sig_req_account);
@@ -506,7 +638,6 @@ pub mod pallet {
                 Registered::<T>::insert(
                     &verifying_key,
                     RegisteredInfo {
-                        key_visibility: registering_info.key_visibility,
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
                         version_number: registering_info.version_number,
@@ -531,11 +662,10 @@ pub mod pallet {
                     )
                     .into());
                 }
-                registering_info.confirmations.push(signing_subgroup);
+                registering_info.confirmations.push(ts_server_account);
                 Registering::<T>::insert(&sig_req_account, registering_info);
                 Self::deposit_event(Event::RecievedConfirmation(
                     sig_req_account,
-                    signing_subgroup,
                     registering_info_verifying_key,
                 ));
                 Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
@@ -548,24 +678,11 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         #[allow(clippy::type_complexity)]
-        pub fn get_validator_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
+        pub fn get_validators_info() -> Result<Vec<ServerInfo<T::AccountId>>, Error<T>> {
             let mut validators_info: Vec<ServerInfo<T::AccountId>> = vec![];
-            let block_number = <frame_system::Pallet<T>>::block_number();
+            let validators = pallet_session::Pallet::<T>::validators();
 
-            // This gets the first address from each signing group, and then walks through the rest
-            // of the signing group in order as rounds proceed.
-            //
-            // For example, if we have the following signing groups:
-            // Group 1: A, B, C
-            // Group 2: D, E
-            //
-            // Then the committee selection would look like this:
-            // Round 1: (A, D)
-            // Round 2: (B, E),
-            // Round 3: (C, D)
-            // Round 4: (A, E)
-            for i in 0..SIGNING_PARTY_SIZE {
-                let validator_address = Self::get_validator_rotation(i as u8, block_number)?;
+            for validator_address in validators {
                 let validator_info =
                     pallet_staking_extension::Pallet::<T>::threshold_server(&validator_address)
                         .ok_or(Error::<T>::IpAddressError)?;
@@ -573,52 +690,6 @@ pub mod pallet {
             }
 
             Ok(validators_info)
-        }
-
-        pub fn get_validator_rotation(
-            signing_group: u8,
-            block_number: BlockNumberFor<T>,
-        ) -> Result<<T as pallet_session::Config>::ValidatorId, Error<T>> {
-            let mut addresses =
-                pallet_staking_extension::Pallet::<T>::signing_groups(signing_group)
-                    .ok_or(Error::<T>::SigningGroupError)?;
-            let converted_block_number: u32 =
-                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
-            let address = loop {
-                ensure!(!addresses.is_empty(), Error::<T>::NoSyncedValidators);
-                let selection: u32 = converted_block_number % addresses.len() as u32;
-                let address = &addresses[selection as usize];
-                let address_state =
-                    pallet_staking_extension::Pallet::<T>::is_validator_synced(address);
-                if !address_state {
-                    addresses.remove(selection as usize);
-                } else {
-                    break address;
-                }
-            };
-
-            Ok(address.clone())
-        }
-
-        /// Check if the given validator was part of the registration committee for the given block
-        /// height.
-        ///
-        /// # Note
-        ///
-        /// This function only works for checking if a validator should be in the committe in the
-        /// **current** session. Any queries against a block that happened in a previous session may
-        /// yield incorrect results.
-        pub fn is_in_committee(
-            validator: &T::ValidatorId,
-            block_number: BlockNumberFor<T>,
-        ) -> Result<bool, Error<T>> {
-            let signing_group =
-                pallet_staking_extension::Pallet::<T>::validator_to_subgroup(validator)
-                    .ok_or(Error::<T>::NoThresholdKey)?;
-
-            let expected_validator = Self::get_validator_rotation(signing_group, block_number)?;
-
-            Ok(expected_validator == *validator)
         }
     }
 
@@ -686,9 +757,7 @@ pub mod pallet {
             _info: &DispatchInfoOf<Self::Call>,
             _len: usize,
         ) -> TransactionValidity {
-            if let Some(Call::confirm_register { sig_req_account, signing_subgroup, .. }) =
-                call.is_sub_type()
-            {
+            if let Some(Call::confirm_register { sig_req_account, .. }) = call.is_sub_type() {
                 let validator_stash =
                     pallet_staking_extension::Pallet::<T>::threshold_to_stash(who)
                         .ok_or(InvalidTransaction::Custom(1))?;
@@ -696,16 +765,12 @@ pub mod pallet {
                 let registering_info =
                     Registering::<T>::get(sig_req_account).ok_or(InvalidTransaction::Custom(2))?;
                 ensure!(
-                    !registering_info.confirmations.contains(signing_subgroup),
+                    !registering_info.confirmations.contains(who),
                     InvalidTransaction::Custom(3)
                 );
-                let signing_subgroup_addresses =
-                    pallet_staking_extension::Pallet::<T>::signing_groups(signing_subgroup)
-                        .ok_or(InvalidTransaction::Custom(4))?;
-                ensure!(
-                    signing_subgroup_addresses.contains(&validator_stash),
-                    InvalidTransaction::Custom(5)
-                );
+
+                let validators = pallet_session::Pallet::<T>::validators();
+                ensure!(validators.contains(&validator_stash), InvalidTransaction::Custom(4));
             }
             Ok(ValidTransaction::default())
         }

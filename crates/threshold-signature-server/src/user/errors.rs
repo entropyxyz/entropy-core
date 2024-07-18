@@ -151,12 +151,16 @@ pub enum UserErr {
     EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
+    #[error("No signing from parent key")]
+    NoSigningFromParentKey,
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),
     #[error("Error creating sr25519 keypair from seed: {0}")]
     SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
     #[error("Cannot get output from hasher in HKDF {0}")]
     Hkdf(hkdf::InvalidLength),
+    #[error("Error Joining threads: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
     #[error("Substrate: {0}")]
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("Cannot get subgroup signers: {0}")]

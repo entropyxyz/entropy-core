@@ -37,7 +37,6 @@
 #![allow(unused_imports)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use entropy_shared::SIGNING_PARTY_SIZE;
 use frame_election_provider_support::{
     bounds::ElectionBoundsBuilder, generate_solution_type, onchain, BalancingConfig,
     ElectionDataProvider, ExtendedBalance, NposSolution, SequentialPhragmen, VoteWeight,
@@ -715,6 +714,7 @@ parameter_types! {
 impl pallet_staking_extension::Config for Runtime {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
@@ -1447,14 +1447,12 @@ impl pallet_slashing::Config for Runtime {
 }
 
 parameter_types! {
-  pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
   pub const MaxProgramHashes: u32 = 5;
   pub const KeyVersionNumber: u8 = 1;
 }
 
 impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
     type WeightInfo = weights::pallet_registry::WeightInfo<Runtime>;

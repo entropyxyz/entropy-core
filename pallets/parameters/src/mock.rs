@@ -78,16 +78,16 @@ construct_runtime!(
   }
 );
 
-pub struct ExtBuilder;
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        ExtBuilder
-    }
-}
-
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap().into()
-    }
+// Build genesis storage according to the mock runtime.
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+    let pallet_parameters = pallet_parameters::GenesisConfig::<Runtime> {
+        request_limit: 5u32,
+        max_instructions_per_programs: 5u64,
+        total_signers: 5u8,
+        threshold: 3u8,
+        _config: Default::default(),
+    };
+    pallet_parameters.assimilate_storage(&mut t).unwrap();
+    t.into()
 }

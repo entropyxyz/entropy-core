@@ -22,6 +22,7 @@ use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
+use entropy_shared::NETWORK_PARENT_KEY;
 use serde::Deserialize;
 use serde_json::json;
 use subxt::ext::sp_core::{
@@ -46,11 +47,15 @@ pub const DEFAULT_EVE_MNEMONIC: &str =
 pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
 pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 3] =
-    [FORBIDDEN_KEY_MNEMONIC, FORBIDDEN_KEY_SHARED_SECRET, FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC];
+pub const FORBIDDEN_KEYS: [&str; 4] = [
+    FORBIDDEN_KEY_MNEMONIC,
+    FORBIDDEN_KEY_SHARED_SECRET,
+    FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC,
+    NETWORK_PARENT_KEY,
+];
 
 pub const FORBIDDEN_KEY_MNEMONIC: &str = "MNEMONIC";
 pub const FORBIDDEN_KEY_SHARED_SECRET: &str = "SHARED_SECRET";
@@ -97,11 +102,28 @@ pub async fn load_kv_store(
         )
         .unwrap();
     }
+
+    if validator_name == &Some(ValidatorName::Alice) {
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+
     if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
-    if validator_name == &Some(ValidatorName::Alice) {
+
+    if validator_name == &Some(ValidatorName::Charlie) {
+        root.push("charlie");
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+
+    if validator_name == &Some(ValidatorName::Dave) {
+        root.push("dave");
+        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    };
+
+    if validator_name == &Some(ValidatorName::Eve) {
+        root.push("eve");
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
 
@@ -314,6 +336,16 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     tracing::debug!("Starting process with account ID: `{id}`");
 }
 
+pub async fn threshold_account_id(kv: &KvManager) -> String {
+    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
+    let pair = <sr25519::Pair as Pair>::from_phrase(
+        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
+        None,
+    )
+    .expect("Issue converting mnemonic to pair");
+    AccountId32::new(pair.0.public().into()).to_ss58check()
+}
+
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
     let exists_result_new_user =
         kv.kv().exists(LATEST_BLOCK_NUMBER_NEW_USER).await.expect("issue querying DB");
@@ -361,4 +393,64 @@ pub async fn setup_only(kv: &KvManager) {
     });
 
     println!("{}", output);
+}
+
+pub async fn check_node_prerequisites(url: &str, account_id: &str) {
+    use crate::chain_api::{get_api, get_rpc};
+
+    let connect_to_substrate_node = || async {
+        tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
+
+        let api = get_api(url).await.map_err(|_| {
+            Err::<(), String>("Unable to connect to Substrate chain API".to_string())
+        })?;
+
+        let rpc = get_rpc(url)
+            .await
+            .map_err(|_| Err("Unable to connect to Substrate chain RPC".to_string()))?;
+
+        Ok((api, rpc))
+    };
+
+    // Note: By default this will wait 15 minutes before it stops retry attempts.
+    let backoff = backoff::ExponentialBackoff::default();
+    match backoff::future::retry(backoff, connect_to_substrate_node).await {
+        Ok((api, rpc)) => {
+            tracing::info!("Sucessfully connected to Substrate node!");
+
+            tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+            let balance_query = crate::validator::api::check_balance_for_fees(
+                &api,
+                &rpc,
+                account_id.to_string(),
+                entropy_shared::MIN_BALANCE,
+            )
+            .await
+            .map_err(|_| Err::<bool, String>("Failed to get balance of account.".to_string()));
+
+            match balance_query {
+                Ok(has_minimum_balance) => {
+                    if has_minimum_balance {
+                        tracing::info!(
+                            "The account `{}` has enough funds for submitting extrinsics.",
+                            &account_id
+                        )
+                    } else {
+                        tracing::warn!(
+                            "The account `{}` does not meet the minimum balance of `{}`",
+                            &account_id,
+                            entropy_shared::MIN_BALANCE,
+                        )
+                    }
+                },
+                Err(_) => {
+                    tracing::warn!("Unable to query the account balance of `{}`", &account_id)
+                },
+            }
+        },
+        Err(_err) => {
+            tracing::error!("Unable to establish connection with Substrate node at `{}`", url);
+            panic!("Unable to establish connection with Substrate node.");
+        },
+    }
 }
