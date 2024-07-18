@@ -249,7 +249,7 @@ pub async fn generate_network_key(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
-    Ok(distributed_key_generation(app_state, data, DkgFlow::Jumpstart).await?)
+    distributed_key_generation(app_state, data, DkgFlow::Jumpstart).await
 }
 
 /// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during user registration.
@@ -266,7 +266,7 @@ pub async fn new_user(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
-    Ok(distributed_key_generation(app_state, data, DkgFlow::Registration).await?)
+    distributed_key_generation(app_state, data, DkgFlow::Registration).await
 }
 
 /// An internal helper which kicks off the distributed key generation (DKG) process.
