@@ -18,7 +18,6 @@ use crate::{
     helpers::{launch::FORBIDDEN_KEYS, tests::initialize_test_logger},
     validator::errors::ValidatorErr,
 };
-use parity_scale_codec::Encode;
 use entropy_kvdb::clean_tests;
 use entropy_shared::{OcwMessageReshare, MIN_BALANCE};
 use entropy_testing_utils::{
@@ -27,6 +26,7 @@ use entropy_testing_utils::{
     substrate_context::testing_context,
     test_context_stationary,
 };
+use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 
@@ -47,8 +47,7 @@ async fn test_reshare() {
 
     let client = reqwest::Client::new();
 
-    let mut onchain_reshare_request =
-        OcwMessageReshare { new_signer: alice.public().encode() };
+    let mut onchain_reshare_request = OcwMessageReshare { new_signer: alice.public().encode() };
 
     // fails repeated data
     let _ = client
