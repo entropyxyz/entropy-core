@@ -162,8 +162,6 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
     let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
     let outputs = test_protocol_with_parties(dkg_parties, session_id, threshold).await;
 
-    // TODO (Nando): Double check to see if this is actually equivalent to previous code
-    // let signing_committee = &ids[..threshold];
     let signing_committee = (0..threshold)
         .into_iter()
         .map(|i| pairs[i].clone())
