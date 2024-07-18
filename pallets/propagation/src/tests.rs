@@ -20,7 +20,7 @@ use entropy_shared::ValidatorInfo;
 use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_registry::ProgramInstance;
-use pallet_staking_extension::RefreshInfo;
+use pallet_staking_extension::{RefreshInfo, ResharehInfo};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
@@ -77,7 +77,7 @@ fn knows_how_to_mock_several_http_calls() {
             uri: "http://localhost:3001/validator/reshare".into(),
             sent: true,
             response: Some([].to_vec()),
-            body: [48, 120].to_vec(),
+            body: [32, 1, 0, 0, 0, 0, 0, 0, 0].to_vec(),
             ..Default::default()
         });
     });
@@ -128,7 +128,10 @@ fn knows_how_to_mock_several_http_calls() {
 
         // doesn't trigger no reshare block
         Propagation::post_reshare(7).unwrap();
-        pallet_staking_extension::ReshareBlock::<Test>::put(7);
+        pallet_staking_extension::ReshareData::<Test>::put(ResharehInfo {
+            block_number: 7,
+            new_signer: 1u64.encode(),
+        });
         // now triggers
         Propagation::post_reshare(7).unwrap();
     })

@@ -28,6 +28,7 @@ use crate::{
     user::UserErr,
 };
 pub use entropy_client::substrate::{query_chain, submit_transaction};
+use entropy_shared::user::ValidatorInfo;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, Config, OnlineClient};
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
@@ -71,4 +72,42 @@ pub async fn get_registered_details(
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;
     Ok(result)
+}
+
+pub async fn get_validators_info(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validators: Vec<AccountId32>,
+) -> Result<Vec<ValidatorInfo>, UserErr> {
+    let mut handles = Vec::new();
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+    for validator in validators {
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, ()>> = tokio::task::spawn({
+            let api = api.clone();
+            let rpc = rpc.clone();
+
+            async move {
+                let threshold_address_query =
+                    entropy::storage().staking_extension().threshold_servers(validator);
+                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                // .ok_or_else(|| {
+                //     SubgroupGetError::ChainFetch("threshold_servers query error")
+                // })?;
+                Ok(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
+                    tss_account: server_info.tss_account,
+                })
+            }
+        });
+        handles.push(handle);
+    }
+    let mut all_signers: Vec<ValidatorInfo> = vec![];
+    for handle in handles {
+        all_signers.push(handle.await.unwrap().unwrap());
+    }
+    Ok(all_signers)
 }

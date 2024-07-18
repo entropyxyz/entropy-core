@@ -30,7 +30,9 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use codec::Encode;
-    use entropy_shared::{OcwMessageDkg, OcwMessageProactiveRefresh, ValidatorInfo};
+    use entropy_shared::{
+        OcwMessageDkg, OcwMessageProactiveRefresh, OcwMessageReshare, ValidatorInfo,
+    };
     use frame_support::{pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
@@ -140,8 +142,8 @@ pub mod pallet {
         }
 
         pub fn post_reshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
-            let reshare_block_number = pallet_staking_extension::Pallet::<T>::reshare_block();
-            if reshare_block_number != block_number {
+            let reshare_data = pallet_staking_extension::Pallet::<T>::reshare_data();
+            if reshare_data.block_number != block_number {
                 return Ok(());
             }
 
@@ -152,10 +154,14 @@ pub mod pallet {
             let url =
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/validator/reshare");
 
+            let req_body = OcwMessageReshare { new_signer: reshare_data.new_signer };
+
+            log::warn!("propagation::post::req_body reshare: {:?}", &[req_body.encode()]);
+
             // We construct the request
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
-            let pending = http::Request::post(url, vec!["0x"])
+            let pending = http::Request::post(url, vec![req_body.encode()])
                 .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;

@@ -18,7 +18,11 @@ use crate::{
         entropy::{self},
         get_api, get_rpc, EntropyConfig,
     },
-    helpers::{launch::FORBIDDEN_KEYS, substrate::query_chain},
+    get_signer_and_x25519_secret,
+    helpers::{
+        launch::FORBIDDEN_KEYS,
+        substrate::{get_validators_info, query_chain},
+    },
     validator::errors::ValidatorErr,
     AppState,
 };
@@ -30,6 +34,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use entropy_shared::OcwMessageReshare;
+use parity_scale_codec::Decode;
 use std::str::FromStr;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 
@@ -44,23 +50,58 @@ pub async fn new_reshare(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
+    let data = OcwMessageReshare::decode(&mut encoded_data.as_ref()).unwrap();
+
     // get block number from encoded data
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    // let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
-    //     .await
-    //     .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+
+    let signers_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signers_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Max instructions per program error"))?;
+
+    let next_signers_query = entropy::storage().staking_extension().signers();
+    let next_signers = query_chain(&api, &rpc, next_signers_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Max instructions per program error"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, next_signers).await.unwrap();
+    dbg!(validators_info);
+    let (signer, x25519_secret_key) =
+        get_signer_and_x25519_secret(&app_state.kv_store).await.unwrap();
+    // .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    // let verifying_key_query = entropy::storage().registry().jump_start_progress();
+    // let verifying_key =
+    //     query_chain(&api, &rpc, verifying_key_query, None).await?.unwrap().verifying_key;
+
+    // let is_in_current_signer = validators_info
+    //         .iter()
+    //         .any(|validator_info| validator_info.tss_account == validator_address.0.to_vec());
+    // .ok_or_else(|| ValidatorErr::ChainFetch("Max instructions per program error"))?;
+    // dbg!(verifying_key);
+    // get old key if have it
+    // let old_holder = None;
+    // let new_holder = None;
+
     // need a network verifying key
-    // let new_key_share = do_proactive_refresh(
-    //     &validators_info,
-    //     &signer,
-    //     &x25519_secret_key,
-    //     &app_state.listener_state,
-    //     encoded_key,
-    //     deserialized_old_key,
-    //     block_number,
-    // )
-    // .await?;
+    // let inputs = KeyResharingInputs {
+    //     old_holder: Some(OldHolder { key_share: old_key }),
+    //     new_holder: Some(NewHolder {
+    //         verifying_key,
+    //         old_threshold: party_ids.len(),
+    //         old_holders: party_ids.clone(),
+    //     }),
+    //     new_holders: party_ids.clone(),
+    //     new_threshold: threshold,
+    // };
+    // let session =
+    //     make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
+    //         .map_err(ProtocolExecutionErr::SessionCreation)?;
+
+    // let new_key_share = execute_protocol_generic(chans, session, session_id_hash).await?.0;
+
+    // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
     // validate message came from chain (check reshare block # against current block number)
     // get next signers see if I am one
     // If so do reshare call confirm_reshare (delete key when done)

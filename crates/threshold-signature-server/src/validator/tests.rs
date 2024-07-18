@@ -12,18 +12,53 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use entropy_shared::MIN_BALANCE;
-use entropy_testing_utils::{
-    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
-    substrate_context::testing_context,
-};
-
 use super::api::{check_balance_for_fees, check_forbidden_key};
 use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{launch::FORBIDDEN_KEYS, tests::initialize_test_logger},
     validator::errors::ValidatorErr,
 };
+use parity_scale_codec::Encode;
+use entropy_kvdb::clean_tests;
+use entropy_shared::{OcwMessageReshare, MIN_BALANCE};
+use entropy_testing_utils::{
+    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
+    spawn_testing_validators,
+    substrate_context::testing_context,
+    test_context_stationary,
+};
+use serial_test::serial;
+use sp_keyring::AccountKeyring;
+
+#[tokio::test]
+#[serial]
+async fn test_reshare() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let alice_program = AccountKeyring::Charlie;
+    let program_manager = AccountKeyring::Dave;
+
+    let cxt = test_context_stationary().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    let client = reqwest::Client::new();
+
+    let mut onchain_reshare_request =
+        OcwMessageReshare { new_signer: alice.public().encode() };
+
+    // fails repeated data
+    let _ = client
+        .post("http://127.0.0.1:3001/validator/reshare")
+        .body(onchain_reshare_request.clone().encode())
+        .send()
+        .await
+        .unwrap();
+    clean_tests();
+}
 
 #[tokio::test]
 #[should_panic = "Account does not exist, add balance"]
