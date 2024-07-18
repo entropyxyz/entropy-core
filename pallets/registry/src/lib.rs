@@ -382,7 +382,7 @@ pub mod pallet {
         /// network.
         #[pallet::call_index(2)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
         })]
         pub fn register(
             origin: OriginFor<T>,
