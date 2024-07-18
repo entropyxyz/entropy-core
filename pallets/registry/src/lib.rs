@@ -134,6 +134,7 @@ pub mod pallet {
     pub struct JumpStartDetails<T: Config> {
         pub jump_start_status: JumpStartStatus,
         pub confirmations: Vec<T::ValidatorId>,
+        pub verifying_key: Option<VerifyingKey>,
     }
 
     #[pallet::genesis_config]
@@ -252,6 +253,7 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+        MismatchedVerifyingKey,
         NotValidator,
         JumpStartProgressNotReady,
         JumpStartNotInProgress,
@@ -292,6 +294,7 @@ pub mod pallet {
             JumpStartProgress::<T>::put(JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
+                verifying_key: None,
             });
             Self::deposit_event(Event::StartedNetworkJumpStart());
             Ok(())
@@ -303,7 +306,10 @@ pub mod pallet {
                 <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
                 .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
         })]
-        pub fn confirm_jump_start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn confirm_jump_start(
+            origin: OriginFor<T>,
+            verifying_key: VerifyingKey,
+        ) -> DispatchResultWithPostInfo {
             // check is validator
             let ts_server_account = ensure_signed(origin)?;
 
@@ -314,6 +320,14 @@ pub mod pallet {
             ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
 
             let mut jump_start_info = JumpStartProgress::<T>::get();
+            if jump_start_info.verifying_key.is_some() {
+                ensure!(
+                    jump_start_info.verifying_key == Some(verifying_key.clone()),
+                    Error::<T>::MismatchedVerifyingKey
+                );
+            } else {
+                jump_start_info.verifying_key = Some(verifying_key.clone());
+            }
 
             // check in progress
             ensure!(
@@ -337,6 +351,7 @@ pub mod pallet {
                 JumpStartProgress::<T>::put(JumpStartDetails {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
+                    verifying_key: Some(verifying_key),
                 });
 
                 Self::deposit_event(Event::FinishedNetworkJumpStart());

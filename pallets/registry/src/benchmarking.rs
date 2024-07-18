@@ -82,6 +82,7 @@ benchmarks! {
     let c in 0 .. SIGNING_PARTY_SIZE as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
+    let expected_verifying_key = BoundedVec::default();
 
     let mut accounts = vec![];
     for i in 0..SIGNING_PARTY_SIZE {
@@ -98,12 +99,13 @@ benchmarks! {
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![validators[0].clone()],
+      verifying_key: None
       });
 
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
-  }: confirm_jump_start(RawOrigin::Signed(accounts[1].clone()))
+  }: confirm_jump_start(RawOrigin::Signed(accounts[1].clone()), expected_verifying_key)
   verify {
     assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
   }
@@ -113,6 +115,7 @@ benchmarks! {
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
+    let expected_verifying_key = BoundedVec::default();
 
     // add validators and a registering user
     for i in 0..SIGNING_PARTY_SIZE {
@@ -123,12 +126,13 @@ benchmarks! {
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![],
+      verifying_key: None
   });
 
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_jump_start(RawOrigin::Signed(threshold_account.clone()))
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account.clone()), expected_verifying_key)
   verify {
     let validator_stash =
         pallet_staking_extension::Pallet::<T>::threshold_to_stash(&threshold_account).unwrap();

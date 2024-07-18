@@ -447,7 +447,6 @@ pub mod pallet {
             ReshareBlock::<T>::put(current_block_number + sp_runtime::traits::One::one());
 
             // for next PR
-            // tell signers to do new key rotation with new signer group (dkg)
             // confirm action has taken place
 
             Ok(())
