@@ -45,6 +45,10 @@ jobs:
         with:
           tool-cache: false
           docker-images: false
+      - name: Create temporary directories
+        run: |
+          mkdir ${{ runner.temp }}/bin
+          mkdir ${{ runner.temp}}/artifacts
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -78,11 +82,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           push: true
-      - name: Create image export directory
-        id: export-dir
-        run: |
-          tmpdir=$(mktemp -d)
-          echo path=${tmpdir} >> $GITHUB_OUTPUT
       - name: Export plain binaries from built images
         uses: docker/build-push-action@v6
         with:
@@ -94,28 +93,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           outputs: |
-            type=local,dest=${{ steps.export-dir.outputs.path }}
+            type=local,dest=${{ runner.temp }}/bin
       - name: Disambiguate binaries by platform
         id: artifacts
         run: |
-          dirname=${{ steps.export-dir.outputs.path }}
+          dirname=${{ runner.temp }}/bin
           refname=${{ inputs.git_ref_basename }}
           package=${{ inputs.docker_build_arg_package }}
-          artifact_dir=$(mktemp -d)
+          artifact_dir=${{ runner.temp }}/artifacts
           for platform in linux_amd64 linux_arm64; do
             cp ${dirname}/${platform}/usr/local/bin/${package} ${artifact_dir}/${package}_${refname}_${platform}
           done
-          echo dir="${artifact_dir}" >> $GITHUB_OUTPUT
       - name: Create genesis runtime bytecode artifact
         if: inputs.docker_build_arg_package == 'entropy'
         run: |
-          ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}_${{ inputs.git_ref_basename }}_linux_amd64 \
+          ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}_${{ inputs.git_ref_basename }}_linux_amd64 \
             build-spec --chain testnet \
-              > ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}-chain-spec-${{ inputs.git_ref_basename }}-${{ github.sha }}.json
+              > ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}-chain-spec-${{ inputs.git_ref_basename }}-${{ github.sha }}.json
       - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.docker_build_arg_package}}_${{ inputs.git_ref_basename }}
-          path: ${{ steps.artifacts.outputs.dir }}/${{ inputs.docker_build_arg_package }}*
+          path: ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}*
           if-no-files-found: error
           retention-days: 5
