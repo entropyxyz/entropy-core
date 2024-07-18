@@ -56,6 +56,7 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             let _ = Self::post_dkg(block_number);
+            let _ = Self::post_user_registration(block_number);
             let _ = Self::post_proactive_refresh(block_number);
         }
 
