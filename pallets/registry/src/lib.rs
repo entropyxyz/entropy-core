@@ -320,13 +320,13 @@ pub mod pallet {
             ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
 
             let mut jump_start_info = JumpStartProgress::<T>::get();
-            if jump_start_info.verifying_key.is_some() {
-                ensure!(
-                    jump_start_info.verifying_key == Some(verifying_key.clone()),
-                    Error::<T>::MismatchedVerifyingKey
-                );
-            } else {
-                jump_start_info.verifying_key = Some(verifying_key.clone());
+            match jump_start_info.verifying_key {
+                Some(ref key) => {
+                    ensure!(key == &verifying_key, Error::<T>::MismatchedVerifyingKey);
+                },
+                None => {
+                    jump_start_info.verifying_key = Some(verifying_key);
+                },
             }
 
             // check in progress
@@ -334,6 +334,7 @@ pub mod pallet {
                 matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
                 Error::<T>::JumpStartNotInProgress
             );
+
             ensure!(
                 !jump_start_info.confirmations.contains(&validator_stash),
                 Error::<T>::AlreadyConfirmed
@@ -351,7 +352,7 @@ pub mod pallet {
                 JumpStartProgress::<T>::put(JumpStartDetails {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
-                    verifying_key: Some(verifying_key),
+                    verifying_key: jump_start_info.verifying_key,
                 });
 
                 Self::deposit_event(Event::FinishedNetworkJumpStart());
