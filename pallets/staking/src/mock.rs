@@ -360,9 +360,7 @@ impl pallet_session::historical::Config for Test {
 thread_local! {
     pub static LAST_RANDOM: RefCell<Option<(H256, u64)>> = RefCell::new(None);
 }
-fn set_last_random(output: H256, known_since: u64) {
-    LAST_RANDOM.with(|p| *p.borrow_mut() = Some((output, known_since)))
-}
+
 pub struct TestPastRandomness;
 impl Randomness<H256, BlockNumber> for TestPastRandomness {
     fn random(_subject: &[u8]) -> (H256, u64) {
