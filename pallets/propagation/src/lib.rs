@@ -83,6 +83,8 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {}
 
     impl<T: Config> Pallet<T> {
+        /// Submits a distributed key generation request to jumpstart the network to the threshold
+        /// servers.
         pub fn post_dkg(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let messages = pallet_registry::Pallet::<T>::jumpstart_dkg(
                 block_number.saturating_sub(1u32.into()),
@@ -141,6 +143,8 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Submits a distributed key generation request to register a set of users to the threshold
+        /// servers.
         pub fn post_user_registration(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let messages =
                 pallet_registry::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
@@ -197,6 +201,7 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Submits a request to perform a proactive refresh to the threshold servers.
         pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
             if refresh_info.validators_info.is_empty() {

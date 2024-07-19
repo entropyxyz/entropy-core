@@ -180,11 +180,15 @@ pub mod pallet {
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
+    /// Used for triggering a network wide distributed key generation request via an offchain
+    /// worker.
     #[pallet::storage]
     #[pallet::getter(fn jumpstart_dkg)]
     pub type JumpstartDkg<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
 
+    /// Used to store requests and trigger distributed key generation for users via an offchain
+    /// worker.
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
