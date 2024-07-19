@@ -51,6 +51,32 @@ fn it_tests_get_validators_info() {
 }
 
 #[test]
+fn it_registers_a_user_on_chain() {
+    new_test_ext().execute_with(|| {
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
+
+        let verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(verifying_key.to_vec()).unwrap()),
+        });
+
+        assert_ok!(Registry::on_chain_registration(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId,
+            programs_info,
+        ));
+    });
+}
+
+#[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
