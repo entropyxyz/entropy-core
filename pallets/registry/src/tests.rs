@@ -96,7 +96,7 @@ fn it_jumps_the_network() {
         );
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(
-            Registry::dkg(0),
+            Registry::jumpstart_dkg(0),
             vec![NETWORK_PARENT_KEY.encode()],
             "ensures a dkg message for the jump start network is prepped"
         );

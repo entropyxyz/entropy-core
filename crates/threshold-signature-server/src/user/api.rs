@@ -82,6 +82,12 @@ use crate::{
 pub use entropy_client::user::{get_signers_from_chain, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
+/// Used to differentiate different flows which perform distributed key generation.
+enum DkgFlow {
+    Jumpstart,
+    Registration,
+}
+
 /// Type for validators to send user key's back and forth
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
@@ -228,7 +234,25 @@ pub async fn sign_tx(
     Ok((StatusCode::OK, Body::from_stream(response_rx)))
 }
 
-/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
+/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during the network
+/// jumpstart.
+///
+/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
+/// are in the validator group.
+///
+/// This will trigger the Distributed Key Generation (DKG) process.
+#[tracing::instrument(skip_all, fields(block_number))]
+pub async fn generate_network_key(
+    State(app_state): State<AppState>,
+    encoded_data: Bytes,
+) -> Result<StatusCode, UserErr> {
+    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    tracing::Span::current().record("block_number", data.block_number);
+
+    distributed_key_generation(app_state, data, DkgFlow::Jumpstart).await
+}
+
+/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during user registration.
 ///
 /// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
 /// are in the validator group.
@@ -242,12 +266,25 @@ pub async fn new_user(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
+    distributed_key_generation(app_state, data, DkgFlow::Registration).await
+}
+
+/// An internal helper which kicks off the distributed key generation (DKG) process.
+///
+/// Since the jumpstart and registration flows are both doing DKG at the moment, we've split this
+/// out. In the future though, only the jumpstart flow will require this.
+async fn distributed_key_generation(
+    app_state: AppState,
+    data: OcwMessageDkg,
+    flow: DkgFlow,
+) -> Result<StatusCode, UserErr> {
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+
     let in_registration_group =
         check_in_registration_group(&data.validators_info, signer.account_id());
 
@@ -261,7 +298,7 @@ pub async fn new_user(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
-    validate_new_user(&data, &api, &rpc, &app_state.kv_store).await?;
+    validate_new_user(&data, &api, &rpc, &app_state.kv_store, flow).await?;
 
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
@@ -308,6 +345,7 @@ async fn setup_dkg(
             data.block_number,
         )
         .await?;
+
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
         let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
             hex::encode(NETWORK_PARENT_KEY)
@@ -396,11 +434,12 @@ pub async fn confirm_registered(
 
 /// Validates new user endpoint
 /// Checks the chain for validity of data and block number of data matches current block
-pub async fn validate_new_user(
+async fn validate_new_user(
     chain_data: &OcwMessageDkg,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
+    flow: DkgFlow,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     if u32::from_be_bytes(
@@ -428,7 +467,11 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let verifying_data_query = entropy::storage().registry().dkg(chain_data.block_number);
+    let verifying_data_query = match flow {
+        DkgFlow::Jumpstart => entropy::storage().registry().jumpstart_dkg(chain_data.block_number),
+        DkgFlow::Registration => entropy::storage().registry().dkg(chain_data.block_number),
+    };
+
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 
