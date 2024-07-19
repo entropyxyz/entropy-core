@@ -771,7 +771,7 @@ async fn test_jumpstart_network() {
             .iter()
             .map(|port| {
                 client
-                    .post(format!("http://127.0.0.1:{}/user/new", port))
+                    .post(format!("http://127.0.0.1:{}/generate_network_key", port))
                     .body(onchain_user_request.clone().encode())
                     .send()
             })

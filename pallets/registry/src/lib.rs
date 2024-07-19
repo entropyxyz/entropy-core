@@ -181,6 +181,15 @@ pub mod pallet {
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
+    /// Used for triggering a network wide distributed key generation request via an offchain
+    /// worker.
+    #[pallet::storage]
+    #[pallet::getter(fn jumpstart_dkg)]
+    pub type JumpstartDkg<T: Config> =
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
+
+    /// Used to store requests and trigger distributed key generation for users via an offchain
+    /// worker.
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
@@ -286,11 +295,15 @@ pub mod pallet {
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
+
             // TODO (#923): Add checks for network state.
-            Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(NETWORK_PARENT_KEY.encode());
-                Ok(())
-            })?;
+            JumpstartDkg::<T>::try_mutate(
+                current_block_number,
+                |messages| -> Result<_, DispatchError> {
+                    messages.push(NETWORK_PARENT_KEY.encode());
+                    Ok(())
+                },
+            )?;
             JumpStartProgress::<T>::put(JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
@@ -389,7 +402,7 @@ pub mod pallet {
         /// network.
         #[pallet::call_index(2)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
         })]
         pub fn register(
             origin: OriginFor<T>,
