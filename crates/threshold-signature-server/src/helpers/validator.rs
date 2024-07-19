@@ -61,14 +61,14 @@ async fn get_hkdf(kv: &KvManager) -> Result<Hkdf<Sha256>, UserErr> {
 }
 
 /// Given a mnemonic, setup hkdf
-fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
+pub fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
     let mnemonic = Mnemonic::parse_in_normalized(Language::English, mnemonic)
         .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
     Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
 }
 
 /// Derive signing keypair
-fn get_signer_from_hkdf(
+pub fn get_signer_from_hkdf(
     hkdf: &Hkdf<Sha256>,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let mut sr25519_seed = [0u8; 32];

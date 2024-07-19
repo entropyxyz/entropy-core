@@ -39,7 +39,8 @@ use crate::{
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
-use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY};
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
+use parity_scale_codec::Encode;
 use std::time::Duration;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
@@ -118,7 +119,7 @@ pub async fn create_clients(
 }
 
 /// Spawn 3 TSS nodes with pre-stored keyshares
-pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
+pub async fn spawn_testing_validators(add_parent_key: bool) -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
     let ports = [3001i64, 3002, 3003];
 
@@ -143,9 +144,9 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 
     let ids = vec![alice_id, bob_id, charlie_id];
 
-    put_keyshares_in_db("alice", alice_kv).await;
-    put_keyshares_in_db("bob", bob_kv).await;
-    put_keyshares_in_db("charlie", charlie_kv).await;
+    put_keyshares_in_db("alice", alice_kv, add_parent_key).await;
+    put_keyshares_in_db("bob", bob_kv, add_parent_key).await;
+    put_keyshares_in_db("charlie", charlie_kv, add_parent_key).await;
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -175,9 +176,12 @@ pub async fn spawn_testing_validators() -> (Vec<String>, Vec<PartyId>) {
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager) {
-    let user_names_and_verifying_keys = [("eve", EVE_VERIFYING_KEY), ("dave", DAVE_VERIFYING_KEY)];
-
+async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager, add_parent_key: bool) {
+    let mut user_names_and_verifying_keys =
+        vec![("eve", EVE_VERIFYING_KEY.to_vec()), ("dave", DAVE_VERIFYING_KEY.to_vec())];
+    if add_parent_key {
+        user_names_and_verifying_keys.push(("eve", NETWORK_PARENT_KEY.encode()))
+    }
     for (user_name, user_verifying_key) in user_names_and_verifying_keys {
         let keyshare_bytes = {
             let project_root =

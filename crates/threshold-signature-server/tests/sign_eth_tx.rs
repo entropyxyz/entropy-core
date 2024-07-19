@@ -48,7 +48,7 @@ async fn integration_test_sign_eth_tx() {
     clean_tests();
     let pre_registered_user = AccountKeyring::Eve;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();

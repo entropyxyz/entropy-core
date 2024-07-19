@@ -74,12 +74,12 @@ pub async fn new_reshare(
     let signers_query = entropy::storage().staking_extension().signers();
     let signers = query_chain(&api, &rpc, signers_query, None)
         .await?
-        .ok_or_else(|| ValidatorErr::ChainFetch("Max instructions per program error"))?;
+        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
 
     let next_signers_query = entropy::storage().staking_extension().signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
         .await?
-        .ok_or_else(|| ValidatorErr::ChainFetch("Max instructions per program error"))?;
+        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting next signers"))?;
 
     let validators_info = get_validators_info(&api, &rpc, next_signers).await.unwrap();
     let (signer, x25519_secret_key) =
