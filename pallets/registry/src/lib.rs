@@ -412,18 +412,6 @@ pub mod pallet {
             let sig_req_account = ensure_signed(origin)?;
             let encoded_sig_req_account = sig_req_account.encode();
 
-            let jumpstart_info = <JumpStartProgress<T>>::get();
-            let verifying_key = jumpstart_info.verifying_key.expect("TODO");
-            let verifying_key =
-                synedrion::ecdsa::VerifyingKey::try_from(verifying_key.as_slice()).expect("TODO");
-
-            use std::str::FromStr;
-            let path = bip32::DerivationPath::from_str("hello").unwrap();
-
-            use synedrion::DeriveChildKey;
-            let child_key = verifying_key.derive_verifying_key_bip32(&path).expect("TODO");
-            let verifying_key = child_key.to_encoded_point(true).as_bytes().to_vec();
-
             ensure!(
                 encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
@@ -461,7 +449,7 @@ pub mod pallet {
                     program_modification_account,
                     confirmations: vec![],
                     programs_data: programs_data.clone(),
-                    verifying_key: Some(BoundedVec::try_from(verifying_key).unwrap()), //None,
+                    verifying_key: None,
                     version_number: T::KeyVersionNumber::get(),
                 },
             );
@@ -715,6 +703,76 @@ pub mod pallet {
                 ))
                 .into())
             }
+        }
+
+        #[pallet::call_index(7)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
+        })]
+        pub fn on_chain_registration(
+            origin: OriginFor<T>,
+            program_modification_account: T::AccountId,
+            programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
+        ) -> DispatchResultWithPostInfo {
+            use std::str::FromStr;
+            use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+
+            let sig_req_account = ensure_signed(origin)?;
+            let encoded_sig_req_account = sig_req_account.encode();
+
+            ensure!(
+                encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
+                Error::<T>::NoRegisteringFromParentKey
+            );
+            ensure!(
+                !Registering::<T>::contains_key(&sig_req_account),
+                Error::<T>::AlreadySubmitted
+            );
+            ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
+
+            // Change program ref counter
+            for program_instance in &programs_data {
+                pallet_programs::Programs::<T>::try_mutate(
+                    program_instance.program_pointer,
+                    |maybe_program_info| {
+                        if let Some(program_info) = maybe_program_info {
+                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
+                            Ok(())
+                        } else {
+                            Err(Error::<T>::NoProgramSet)
+                        }
+                    },
+                )?;
+            }
+
+            let verifying_key = if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
+                SynedrionVerifyingKey::try_from(key.as_slice())
+                    .expect("The network verifying key must be valid.")
+            } else {
+                // TODO (Nando): We might be abusing this error type here
+                return Err(Error::<T>::JumpStartProgressNotReady.into());
+            };
+
+            let path = bip32::DerivationPath::from_str("hello").unwrap();
+
+            let child_verifying_key =
+                verifying_key.derive_verifying_key_bip32(&path).expect("TODO");
+            let child_verifying_key =
+                child_verifying_key.to_encoded_point(true).as_bytes().to_vec();
+            let child_verifying_key = BoundedVec::try_from(child_verifying_key).expect("TODO");
+
+            Registered::<T>::insert(
+                child_verifying_key.clone(),
+                RegisteredInfo {
+                    programs_data: programs_data.clone(), // TODO (Nando): Maybe don't clone here
+                    program_modification_account,
+                    version_number: T::KeyVersionNumber::get(),
+                },
+            );
+
+            Self::deposit_event(Event::AccountRegistered(sig_req_account, child_verifying_key));
+
+            Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
         }
     }
 
