@@ -7189,7 +7189,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "synedrion 0.1.0",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?branch=hc/make-derivation-independent-of-keyshare)",
 ]
 
 [[package]]
@@ -13936,6 +13936,7 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 [[package]]
 name = "synedrion"
 version = "0.1.0"
+source = "git+https://github.com/entropyxyz/synedrion?branch=hc/make-derivation-independent-of-keyshare#7e828a13ca9b4fa22b3323dd059ccd0771869f93"
 dependencies = [
  "base64 0.21.7",
  "bincode",
