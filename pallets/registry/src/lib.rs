@@ -753,13 +753,16 @@ pub mod pallet {
                 return Err(Error::<T>::JumpStartProgressNotReady.into());
             };
 
-            let path = bip32::DerivationPath::from_str("hello").unwrap();
-
+            // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
+            let path = sig_req_account.to_string();
+            let path = bip32::DerivationPath::from_str(&path).expect("Derivation Path");
             let child_verifying_key =
                 verifying_key.derive_verifying_key_bip32(&path).expect("TODO");
-            let child_verifying_key =
-                child_verifying_key.to_encoded_point(true).as_bytes().to_vec();
-            let child_verifying_key = BoundedVec::try_from(child_verifying_key).expect("TODO");
+
+            let child_verifying_key = BoundedVec::try_from(
+                child_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+            )
+            .expect("TODO");
 
             Registered::<T>::insert(
                 child_verifying_key.clone(),
