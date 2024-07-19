@@ -419,7 +419,9 @@ pub async fn confirm_registered(
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
     if who.encode() == NETWORK_PARENT_KEY.encode() {
-        let jump_start_request = entropy::tx().registry().confirm_jump_start();
+        let jump_start_request = entropy::tx().registry().confirm_jump_start(
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
         submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
     } else {
         let confirm_register_request = entropy::tx().registry().confirm_register(
