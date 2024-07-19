@@ -814,6 +814,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "bip32"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa13fae8b6255872fd86f7faf4b41168661d7d78609f7bfe6771b85c6739a15b"
+dependencies = [
+ "bs58 0.5.1",
+ "hmac 0.12.1",
+ "k256",
+ "rand_core 0.6.4",
+ "ripemd",
+ "sha2 0.10.8",
+ "subtle 2.5.0",
+ "zeroize",
+]
+
+[[package]]
 name = "bip39"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1006,6 +1022,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
 dependencies = [
+ "sha2 0.10.8",
  "tinyvec",
 ]
 
@@ -2469,7 +2486,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63)",
  "thiserror",
  "tokio",
  "tracing",
@@ -2484,7 +2501,7 @@ dependencies = [
  "entropy-shared",
  "entropy-testing-utils",
  "entropy-tss",
- "synedrion",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63)",
  "tokio",
 ]
 
@@ -2503,7 +2520,7 @@ dependencies = [
  "serial_test",
  "sled",
  "sp-core 31.0.0",
- "synedrion",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63)",
  "thiserror",
  "tokio",
  "tracing",
@@ -2563,7 +2580,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63)",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -2712,7 +2729,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63)",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2767,7 +2784,7 @@ dependencies = [
  "strum 0.26.3",
  "subxt",
  "subxt-signer",
- "synedrion",
+ "synedrion 0.1.0 (git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63)",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -7148,6 +7165,7 @@ dependencies = [
 name = "pallet-registry"
 version = "0.2.0"
 dependencies = [
+ "bip32",
  "entropy-shared",
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -7171,6 +7189,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
+ "synedrion 0.1.0",
 ]
 
 [[package]]
@@ -13913,6 +13932,29 @@ name = "sync_wrapper"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
+
+[[package]]
+name = "synedrion"
+version = "0.1.0"
+dependencies = [
+ "base64 0.21.7",
+ "bincode",
+ "bip32",
+ "crypto-bigint",
+ "crypto-primes",
+ "digest 0.10.7",
+ "displaydoc",
+ "hashing-serializer",
+ "hex",
+ "k256",
+ "rand_core 0.6.4",
+ "secrecy",
+ "serde",
+ "sha2 0.10.8",
+ "sha3",
+ "signature",
+ "zeroize",
+]
 
 [[package]]
 name = "synedrion"

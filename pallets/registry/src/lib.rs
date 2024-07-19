@@ -411,6 +411,19 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
             let encoded_sig_req_account = sig_req_account.encode();
+
+            let jumpstart_info = <JumpStartProgress<T>>::get();
+            let verifying_key = jumpstart_info.verifying_key.expect("TODO");
+            let verifying_key =
+                synedrion::ecdsa::VerifyingKey::try_from(verifying_key.as_slice()).expect("TODO");
+
+            use std::str::FromStr;
+            let path = bip32::DerivationPath::from_str("hello").unwrap();
+
+            use synedrion::DeriveChildKey;
+            let child_key = verifying_key.derive_verifying_key_bip32(&path).expect("TODO");
+            let verifying_key = child_key.to_encoded_point(true).as_bytes().to_vec();
+
             ensure!(
                 encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
@@ -448,7 +461,7 @@ pub mod pallet {
                     program_modification_account,
                     confirmations: vec![],
                     programs_data: programs_data.clone(),
-                    verifying_key: None,
+                    verifying_key: Some(BoundedVec::try_from(verifying_key).unwrap()), //None,
                     version_number: T::KeyVersionNumber::get(),
                 },
             );
