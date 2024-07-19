@@ -24,6 +24,10 @@ use crate::{
         substrate::{get_validators_info, query_chain},
         user::check_in_registration_group,
     },
+    signing_client::{
+        protocol_transport::{handle_socket, open_protocol_connections},
+        ListenerState, ProtocolErr,
+    },
     validator::errors::ValidatorErr,
     AppState,
 };
@@ -36,15 +40,19 @@ use axum::{
     Json, Router,
 };
 pub use entropy_protocol::{
-    decode_verifying_key, errors::ProtocolExecutionErr, execute_protocol::PairWrapper, KeyParams,
-    PartyId, SessionId,
+    decode_verifying_key,
+    errors::ProtocolExecutionErr,
+    execute_protocol::{execute_protocol_generic, Channels, PairWrapper},
+    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::OcwMessageReshare;
+use entropy_shared::{OcwMessageReshare, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use rand_core::OsRng;
-use std::str::FromStr;
+use sp_core::Pair;
+use std::{str::FromStr, time::Duration};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use synedrion::{make_key_resharing_session, KeyResharingInputs, NewHolder, OldHolder};
+use tokio::time::timeout;
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
 ///
@@ -111,21 +119,59 @@ pub async fn new_reshare(
     };
     // TODO rename to Reshare
     let session_id = SessionId::ProactiveRefresh { verifying_key, block_number: data.block_number };
+    let account_id = AccountId32(signer.signer().public().0);
     let session_id_hash = session_id.blake2(None).unwrap();
     let pair = PairWrapper(signer.signer().clone());
+
+    let mut converted_validator_info = vec![];
+    let mut tss_accounts = vec![];
+    for validator_info in validators_info {
+        let validator_info = ValidatorInfo {
+            x25519_public_key: validator_info.x25519_public_key,
+            ip_address: validator_info.ip_address,
+            tss_account: validator_info.tss_account.clone(),
+        };
+        converted_validator_info.push(validator_info.clone());
+        tss_accounts.push(validator_info.tss_account.clone());
+    }
+
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(converted_validator_info.clone(), &account_id);
+    app_state.listener_state
+    .listeners
+    .lock()
+    .unwrap()
+    // .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+    .insert(session_id.clone(), listener);
+
+    open_protocol_connections(
+        &converted_validator_info,
+        &session_id,
+        signer.signer(),
+        &app_state.listener_state,
+        &x25519_secret_key,
+    )
+    .await
+    .unwrap();
+
+    let channels = {
+        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await.unwrap();
+        let broadcast_out = ready.unwrap().unwrap();
+        Channels(broadcast_out, rx_from_others)
+    };
 
     let session =
         make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
             .unwrap();
     // .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    // let new_key_share = execute_protocol_generic(chans, session, session_id_hash).await?.0;
+    let new_key_share =
+        execute_protocol_generic(channels, session, session_id_hash).await.unwrap().0.unwrap();
+    // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
 
     // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
     // validate message came from chain (check reshare block # against current block number)
-    // get next signers see if I am one
     // If so do reshare call confirm_reshare (delete key when done)
-    // If not terminate
     Ok(StatusCode::OK)
 }
 
