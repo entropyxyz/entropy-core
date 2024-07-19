@@ -35,6 +35,10 @@ use entropy_testing_utils::{
     substrate_context::testing_context,
     test_context_stationary,
 };
+use futures::{
+    future::{self, join_all},
+    join, Future, SinkExt, StreamExt,
+};
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
@@ -64,12 +68,21 @@ async fn test_reshare() {
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
     setup_for_reshare(&api, &rpc).await;
     // fails repeated data
-    let _ = client
-        .post("http://127.0.0.1:3001/validator/reshare")
-        .body(onchain_reshare_request.clone().encode())
-        .send()
-        .await
-        .unwrap();
+    let response_results = join_all(
+        vec![3001, 3002, 3003]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/validator/reshare", port))
+                    .body(onchain_reshare_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
     clean_tests();
 }
 

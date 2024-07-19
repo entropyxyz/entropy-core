@@ -21,7 +21,7 @@ use crate::{
     get_signer_and_x25519_secret,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{get_validators_info, query_chain},
+        substrate::{get_stash_address, get_validators_info, query_chain},
         user::check_in_registration_group,
     },
     signing_client::{
@@ -39,14 +39,15 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use entropy_kvdb::kv_manager::helpers::serialize as key_serialize;
 pub use entropy_protocol::{
     decode_verifying_key,
     errors::ProtocolExecutionErr,
     execute_protocol::{execute_protocol_generic, Channels, PairWrapper},
-    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
+    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::{OcwMessageReshare, SETUP_TIMEOUT_SECONDS};
-use parity_scale_codec::Decode;
+use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, SETUP_TIMEOUT_SECONDS};
+use parity_scale_codec::{Decode, Encode};
 use rand_core::OsRng;
 use sp_core::Pair;
 use std::{str::FromStr, time::Duration};
@@ -94,13 +95,22 @@ pub async fn new_reshare(
     let is_proper_signer = &validators_info
         .iter()
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
-    dbg!(is_proper_signer);
+
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
-    // dbg!(verifying_key);
     // get old key if have it
-    let old_holder: Option<OldHolder<KeyParams, PartyId>> = None;
+    let my_stash_address = get_stash_address(&api, &rpc, &signer.account_id()).await.unwrap();
+    let old_holder: Option<OldHolder<KeyParams, PartyId>> =
+        if data.new_signer == my_stash_address.encode() {
+            None
+        } else {
+            let kvdb_result =
+                app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+            let key_share: KeyShareWithAuxInfo =
+                entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result).unwrap();
+            Some(OldHolder { key_share: key_share.0 })
+        };
     let mut party_ids: Vec<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
     party_ids.sort();
@@ -168,7 +178,8 @@ pub async fn new_reshare(
     let new_key_share =
         execute_protocol_generic(channels, session, session_id_hash).await.unwrap().0.unwrap();
     // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
-
+    let serialized_key_share = key_serialize(&new_key_share).unwrap();
+    // .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
     // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
     // validate message came from chain (check reshare block # against current block number)
     // If so do reshare call confirm_reshare (delete key when done)

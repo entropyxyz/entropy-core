@@ -178,9 +178,9 @@ pub async fn spawn_testing_validators(add_parent_key: bool) -> (Vec<String>, Vec
 /// Add the pre-generated test keyshares to a kvdb
 async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager, add_parent_key: bool) {
     let mut user_names_and_verifying_keys =
-        vec![("eve", EVE_VERIFYING_KEY.to_vec()), ("dave", DAVE_VERIFYING_KEY.to_vec())];
+        vec![("eve", hex::encode(EVE_VERIFYING_KEY)), ("dave", hex::encode(DAVE_VERIFYING_KEY))];
     if add_parent_key {
-        user_names_and_verifying_keys.push(("eve", NETWORK_PARENT_KEY.encode()))
+        user_names_and_verifying_keys.push(("eve", hex::encode(NETWORK_PARENT_KEY)))
     }
     for (user_name, user_verifying_key) in user_names_and_verifying_keys {
         let keyshare_bytes = {
@@ -192,7 +192,7 @@ async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager, add_parent_key:
             ));
             std::fs::read(file_path).unwrap()
         };
-        let reservation = kvdb.kv().reserve_key(hex::encode(user_verifying_key)).await.unwrap();
+        let reservation = kvdb.kv().reserve_key(user_verifying_key).await.unwrap();
         kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
     }
 }
