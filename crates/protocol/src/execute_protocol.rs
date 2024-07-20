@@ -74,6 +74,7 @@ async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
 ) -> Result<(Res::Success, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>> {
+    let session_id = synedrion::SessionId::from_seed(&session_id_hash);
     let tx = &chans.0;
     let rx = &mut chans.1;
 
@@ -90,7 +91,7 @@ async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
         // TODO (#641): this can happen in a spawned task
         for destination in destinations.iter() {
             let (message, artifact) = session.make_message(&mut OsRng, destination)?;
-            tx.send(ProtocolMessage::new(&my_id, destination, message, session_id_hash))?;
+            tx.send(ProtocolMessage::new(&my_id, destination, message))?;
 
             // This will happen in a host task
             accum.add_artifact(artifact)?;
@@ -115,7 +116,7 @@ async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
                 })?;
 
                 if let ProtocolMessagePayload::MessageBundle(payload) = message.payload.clone() {
-                    if message.session_id_hash == session_id_hash {
+                    if payload.session_id() == &session_id {
                         break (message.from, *payload);
                     } else {
                         tracing::warn!("Got protocol message with incorrect session ID - putting back in queue");
@@ -246,7 +247,6 @@ pub async fn execute_dkg(
                     payload: ProtocolMessagePayload::VerifyingKey(
                         verifying_key.to_encoded_point(true).as_bytes().to_vec(),
                     ),
-                    session_id_hash,
                 };
                 chans.0.send(message)?;
             }

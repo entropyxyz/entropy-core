@@ -33,8 +33,6 @@ pub struct ProtocolMessage {
     /// We need to send verifying keys during DKG to parties who were not present for the key init
     /// session.
     pub payload: ProtocolMessagePayload,
-    /// Identifier for this protocol session
-    pub session_id_hash: [u8; 32],
 }
 
 /// The payload of a message sent during one of the synedrion protocols
@@ -60,13 +58,11 @@ impl ProtocolMessage {
         from: &PartyId,
         to: &PartyId,
         payload: MessageBundle<sr25519::Signature>,
-        session_id_hash: [u8; 32],
     ) -> Self {
         Self {
             from: from.clone(),
             to: to.clone(),
             payload: ProtocolMessagePayload::MessageBundle(Box::new(payload)),
-            session_id_hash,
         }
     }
 }
