@@ -158,13 +158,14 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            for account_info in &self.registered_accounts {
-                assert!(account_info.1.len() as u32 == VERIFICATION_KEY_LENGTH);
+            for (account_id, verifying_key) in &self.registered_accounts {
+                assert!(verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH);
                 Registered::<T>::insert(
-                    account_info.1.clone(),
+                    verifying_key.clone(),
                     RegisteredInfo {
                         programs_data: BoundedVec::default(),
-                        program_modification_account: account_info.0.clone(),
+                        program_modification_account: account_id.clone(),
+                        verifying_key: Some(verifying_key.clone()),
                         version_number: T::KeyVersionNumber::get(),
                     },
                 );
