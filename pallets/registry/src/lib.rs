@@ -266,7 +266,10 @@ pub mod pallet {
         NotValidator,
         JumpStartProgressNotReady,
         JumpStartNotInProgress,
+        JumpStartNotCompleted,
         NoRegisteringFromParentKey,
+        InvalidBip32DerivationPath,
+        Bip32AccountDerivationFailed,
     }
 
     /// Allows anyone to create a parent key for the network if the network is read and a parent key
@@ -728,7 +731,9 @@ pub mod pallet {
                 !Registering::<T>::contains_key(&sig_req_account),
                 Error::<T>::AlreadySubmitted
             );
-            ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
+
+            let num_programs = programs_data.len();
+            ensure!(num_programs != 0, Error::<T>::NoProgramSet);
 
             // Change program ref counter
             for program_instance in &programs_data {
@@ -749,27 +754,27 @@ pub mod pallet {
                 SynedrionVerifyingKey::try_from(key.as_slice())
                     .expect("The network verifying key must be valid.")
             } else {
-                // TODO (Nando): We might be abusing this error type here
-                return Err(Error::<T>::JumpStartProgressNotReady.into());
+                return Err(Error::<T>::JumpStartNotCompleted.into());
             };
 
             // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
             // TODO (Nando): Check assumptions around this, e.g can this counter go down
             let count = Registered::<T>::count();
             let path = bip32::DerivationPath::from_str(&dbg!(format!("m/0/{}", count)))
-                .expect("Derivation Path");
-            let child_verifying_key =
-                verifying_key.derive_verifying_key_bip32(&path).expect("TODO");
+                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
+            let child_verifying_key = verifying_key
+                .derive_verifying_key_bip32(&path)
+                .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
 
             let child_verifying_key = BoundedVec::try_from(
                 child_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
             )
-            .expect("TODO");
+            .expect("Synedrion must have returned a valid verifying key.");
 
             Registered::<T>::insert(
                 child_verifying_key.clone(),
                 RegisteredInfo {
-                    programs_data: programs_data.clone(), // TODO (Nando): Maybe don't clone here
+                    programs_data,
                     program_modification_account,
                     version_number: T::KeyVersionNumber::get(),
                 },
@@ -777,7 +782,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::AccountRegistered(sig_req_account, child_verifying_key));
 
-            Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::register(num_programs as u32)).into())
         }
     }
 
