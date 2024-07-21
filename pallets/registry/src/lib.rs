@@ -198,7 +198,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
+        CountedStorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
     /// Mapping of program_modification accounts to verifying keys they can control
     #[pallet::storage]
@@ -754,8 +754,10 @@ pub mod pallet {
             };
 
             // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
-            let path = sig_req_account.to_string();
-            let path = bip32::DerivationPath::from_str(&path).expect("Derivation Path");
+            // TODO (Nando): Check assumptions around this, e.g can this counter go down
+            let count = Registered::<T>::count();
+            let path = bip32::DerivationPath::from_str(&dbg!(format!("m/0/{}", count)))
+                .expect("Derivation Path");
             let child_verifying_key =
                 verifying_key.derive_verifying_key_bip32(&path).expect("TODO");
 
