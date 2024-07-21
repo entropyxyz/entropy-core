@@ -53,27 +53,72 @@ fn it_tests_get_validators_info() {
 #[test]
 fn it_registers_a_user_on_chain() {
     new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
+        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
-        let verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
         pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
             jump_start_status: JumpStartStatus::Done,
             confirmations: vec![],
-            verifying_key: Some(BoundedVec::try_from(verifying_key.to_vec()).unwrap()),
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
         });
 
+        // Test: Run through registration
         assert_ok!(Registry::on_chain_registration(
-            RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
         ));
+
+        // Validate:
+        assert!(Registry::registered_on_chain(alice).is_some());
+        let RegisteredInfo {
+            programs_data: _,
+            program_modification_account,
+            verifying_key,
+            version_number: _,
+        } = Registry::registered_on_chain(alice).unwrap();
+
+        assert_eq!(program_modification_account, bob);
+
+        let network_verifying_key =
+            SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+        let expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&"m/0/0".parse().unwrap()).unwrap();
+        let expected_verifying_key =
+            BoundedVec::try_from(expected_verifying_key.to_encoded_point(true).as_bytes().to_vec())
+                .unwrap();
+
+        assert_eq!(verifying_key, Some(expected_verifying_key));
     });
+}
+
+fn setup_programs(
+) -> BoundedVec<ProgramInstance<Test>, <Test as pallet_registry::Config>::MaxProgramHashes> {
+    let empty_program = vec![];
+    let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+        program_pointer: program_hash,
+        program_config: vec![],
+    }])
+    .unwrap();
+    pallet_programs::Programs::<Test>::insert(
+        program_hash,
+        ProgramInfo {
+            bytecode: empty_program.clone(),
+            configuration_schema: empty_program.clone(),
+            auxiliary_data_schema: empty_program.clone(),
+            oracle_data_pointer: empty_program.clone(),
+            deployer: 1,
+            ref_counter: 0,
+        },
+    );
+
+    programs_info
 }
 
 #[test]
