@@ -117,6 +117,8 @@ pub mod pallet {
     pub struct RegisteredInfo<T: Config> {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
+        // TODO (Nando): This should be None for the old codepath
+        pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
     }
     /// Details of status of jump starting the network
@@ -199,7 +201,13 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn registered)]
     pub type Registered<T: Config> =
-        CountedStorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
+
+    /// TODO (Nando): Sig Req Account => RegisteredInfo { VerifyingKey, ... }
+    #[pallet::storage]
+    #[pallet::getter(fn registered_on_chain)]
+    pub type RegisteredOnChain<T: Config> =
+        CountedStorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T>, OptionQuery>;
 
     /// Mapping of program_modification accounts to verifying keys they can control
     #[pallet::storage]
@@ -417,7 +425,7 @@ pub mod pallet {
             let encoded_sig_req_account = sig_req_account.encode();
 
             ensure!(
-                encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
+                sig_req_account.encode() != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
             );
             ensure!(
@@ -674,6 +682,7 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
+                        verifying_key: None,
                         version_number: registering_info.version_number,
                     },
                 );
@@ -722,10 +731,9 @@ pub mod pallet {
             use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
             let sig_req_account = ensure_signed(origin)?;
-            let encoded_sig_req_account = sig_req_account.encode();
 
             ensure!(
-                encoded_sig_req_account != NETWORK_PARENT_KEY.encode(),
+                sig_req_account.encode() != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
             );
             ensure!(
@@ -760,7 +768,7 @@ pub mod pallet {
 
             // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
             // TODO (Nando): Check assumptions around this, e.g can this counter go down
-            let count = Registered::<T>::count();
+            let count = RegisteredOnChain::<T>::count();
             let path = bip32::DerivationPath::from_str(&dbg!(format!("m/0/{}", count)))
                 .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
             let child_verifying_key = verifying_key
@@ -772,11 +780,12 @@ pub mod pallet {
             )
             .expect("Synedrion must have returned a valid verifying key.");
 
-            Registered::<T>::insert(
-                child_verifying_key.clone(),
+            RegisteredOnChain::<T>::insert(
+                sig_req_account.clone(),
                 RegisteredInfo {
                     programs_data,
                     program_modification_account,
+                    verifying_key: Some(child_verifying_key.clone()),
                     version_number: T::KeyVersionNumber::get(),
                 },
             );
