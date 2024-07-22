@@ -2546,7 +2546,7 @@ dependencies = [
  "entropy-shared",
  "futures",
  "getrandom 0.2.15",
- "gloo-net",
+ "gloo-net 0.6.0",
  "hex",
  "hpke-rs",
  "hpke-rs-crypto",
@@ -3899,6 +3899,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-net"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06f627b1a58ca3d42b45d6104bf1e1a03799df472df00988b6ba21accc10580"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-sink",
+ "gloo-utils",
+ "http 1.1.0",
+ "js-sys",
+ "pin-project",
+ "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "gloo-timers"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4803,7 +4822,7 @@ checksum = "92f254f56af1ae84815b9b1325094743dcf05b92abb5e94da2e81a35cff0cada"
 dependencies = [
  "futures-channel",
  "futures-util",
- "gloo-net",
+ "gloo-net 0.5.0",
  "http 0.2.12",
  "jsonrpsee-core 0.22.4",
  "pin-project",
