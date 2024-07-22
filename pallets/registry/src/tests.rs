@@ -37,6 +37,31 @@ use crate::{
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
+fn setup_programs(
+) -> BoundedVec<ProgramInstance<Test>, <Test as pallet_registry::Config>::MaxProgramHashes> {
+    let alice = 1u64;
+    let empty_program = vec![];
+    let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+        program_pointer: program_hash,
+        program_config: vec![],
+    }])
+    .unwrap();
+    pallet_programs::Programs::<Test>::insert(
+        program_hash,
+        ProgramInfo {
+            bytecode: empty_program.clone(),
+            configuration_schema: empty_program.clone(),
+            auxiliary_data_schema: empty_program.clone(),
+            oracle_data_pointer: empty_program.clone(),
+            deployer: alice,
+            ref_counter: 0,
+        },
+    );
+
+    programs_info
+}
+
 #[test]
 fn it_tests_get_validators_info() {
     new_test_ext().execute_with(|| {
@@ -91,28 +116,63 @@ fn it_registers_a_user_on_chain() {
     });
 }
 
-fn setup_programs(
-) -> BoundedVec<ProgramInstance<Test>, <Test as pallet_registry::Config>::MaxProgramHashes> {
-    let empty_program = vec![];
-    let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-        program_pointer: program_hash,
-        program_config: vec![],
-    }])
-    .unwrap();
-    pallet_programs::Programs::<Test>::insert(
-        program_hash,
-        ProgramInfo {
-            bytecode: empty_program.clone(),
-            configuration_schema: empty_program.clone(),
-            auxiliary_data_schema: empty_program.clone(),
-            oracle_data_pointer: empty_program.clone(),
-            deployer: 1,
-            ref_counter: 0,
-        },
-    );
+#[test]
+fn it_registers_different_users_with_the_same_sig_req_account() {
+    new_test_ext().execute_with(|| {
+        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
-    programs_info
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+        });
+
+        // Test: Run through registration twice using the same signature request account. We should
+        // get different verifying keys.
+        assert_ok!(Registry::on_chain_registration(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        assert_ok!(Registry::on_chain_registration(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: We expect two different verifying keys to be registered
+        let network_verifying_key =
+            SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        let derivation_path = "m/0/0".parse().unwrap();
+        let first_expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let first_expected_verifying_key = BoundedVec::try_from(
+            first_expected_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .unwrap();
+
+        let derivation_path = "m/0/1".parse().unwrap();
+        let second_expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let second_expected_verifying_key = BoundedVec::try_from(
+            second_expected_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .unwrap();
+
+        // Knowing that the two keys are indeed different, we still expect both registration
+        // requests to have succeeded.
+        assert!(first_expected_verifying_key != second_expected_verifying_key);
+        assert!(Registry::registered_on_chain(first_expected_verifying_key).is_some());
+        assert!(Registry::registered_on_chain(second_expected_verifying_key).is_some());
+    });
 }
 
 #[test]
