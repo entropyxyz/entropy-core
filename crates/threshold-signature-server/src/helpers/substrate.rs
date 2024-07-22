@@ -74,6 +74,7 @@ pub async fn get_registered_details(
     Ok(result)
 }
 
+/// Takes Stash keys and returns validator info from chain
 pub async fn get_validators_info(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -82,7 +83,7 @@ pub async fn get_validators_info(
     let mut handles = Vec::new();
     let block_hash = rpc.chain_get_block_hash(None).await?;
     for validator in validators {
-        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, ()>> = tokio::task::spawn({
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, UserErr>> = tokio::task::spawn({
             let api = api.clone();
             let rpc = rpc.clone();
 
@@ -90,15 +91,14 @@ pub async fn get_validators_info(
                 let threshold_address_query =
                     entropy::storage().staking_extension().threshold_servers(validator);
                 let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
-                    .await
-                    .unwrap()
-                    .unwrap();
-                // .ok_or_else(|| {
-                //     SubgroupGetError::ChainFetch("threshold_servers query error")
-                // })?;
+                    .await?
+                    .ok_or_else(|| {
+                        UserErr::OptionUnwrapError("Failed to unwrap validator info".to_string())
+                    })?;
+
                 Ok(ValidatorInfo {
                     x25519_public_key: server_info.x25519_public_key,
-                    ip_address: std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
                     tss_account: server_info.tss_account,
                 })
             }

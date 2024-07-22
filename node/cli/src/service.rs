@@ -362,6 +362,11 @@ pub fn new_full_base(
                 b"refresh",
                 &format!("{}/signer/proactive_refresh", endpoint).into_bytes(),
             );
+            offchain_db.local_storage_set(
+                sp_core::offchain::StorageKind::PERSISTENT,
+                b"reshare_validators",
+                &format!("{}/validator/reshare", endpoint).into_bytes(),
+            );
             log::info!("Threshold Signing Sever (TSS) location changed to {}", endpoint);
         }
     }

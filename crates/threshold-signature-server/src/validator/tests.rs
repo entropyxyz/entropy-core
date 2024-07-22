@@ -61,7 +61,7 @@ async fn test_reshare() {
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
     setup_for_reshare(&api, &rpc).await;
-    // fails repeated data
+
     let response_results = join_all(
         vec![3001, 3002, 3003]
             .iter()

@@ -79,6 +79,10 @@ pub mod pallet {
         /// Proactive Refresh Message passed to validators
         /// parameters. [OcwMessageProactiveRefresh]
         ProactiveRefreshMessagePassed(OcwMessageProactiveRefresh),
+
+        /// Proactive Refresh Message passed to validators
+        /// parameters. [OcwMessageReshare]
+        KeyReshareMessagePassed(OcwMessageReshare),
     }
 
     #[pallet::call]
@@ -149,7 +153,7 @@ pub mod pallet {
 
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
-            let from_local = sp_io::offchain::local_storage_get(kind, b"reshare")
+            let from_local = sp_io::offchain::local_storage_get(kind, b"reshare_validators")
                 .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
             let url =
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/validator/reshare");
@@ -183,7 +187,7 @@ pub mod pallet {
             }
             let _res_body = response.body().collect::<Vec<u8>>();
 
-            // Self::deposit_event(Event::ProactiveRefreshMessagePassed(req_body));
+            Self::deposit_event(Event::KeyReshareMessagePassed(req_body));
 
             Ok(())
         }

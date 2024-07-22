@@ -50,7 +50,7 @@ pub struct OcwMessageDkg {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
-/// Offchain worker message for initiating a dkg
+/// Offchain worker message for initiating a refresh
 #[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]

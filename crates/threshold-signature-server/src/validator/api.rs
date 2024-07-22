@@ -44,12 +44,11 @@ use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient}
 use synedrion::{make_key_resharing_session, KeyResharingInputs, NewHolder, OldHolder};
 use tokio::time::timeout;
 
-/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
+/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
 ///
-/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
-/// are in the validator group.
+/// The HTTP request takes a Parity SCALE encoded [OcwMessageReshare] which indicates which validator is joining
 ///
-/// This will trigger the Distributed Key Generation (DKG) process.
+/// This will trigger the key reshare process.
 #[tracing::instrument(skip_all)]
 pub async fn new_reshare(
     State(app_state): State<AppState>,
@@ -102,7 +101,7 @@ pub async fn new_reshare(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
     // get old key if have it
-    let my_stash_address = get_stash_address(&api, &rpc, &signer.account_id())
+    let my_stash_address = get_stash_address(&api, &rpc, signer.account_id())
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
