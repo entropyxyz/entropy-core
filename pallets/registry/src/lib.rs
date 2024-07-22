@@ -774,7 +774,7 @@ pub mod pallet {
             // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
             // TODO (Nando): Check assumptions around this, e.g can this counter go down
             let count = RegisteredOnChain::<T>::count();
-            let path = bip32::DerivationPath::from_str(&dbg!(format!("m/0/{}", count)))
+            let path = bip32::DerivationPath::from_str(&format!("m/0/{}", count))
                 .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
             let child_verifying_key = network_verifying_key
                 .derive_verifying_key_bip32(&path)
