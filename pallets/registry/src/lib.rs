@@ -789,10 +789,20 @@ pub mod pallet {
                 child_verifying_key.clone(),
                 RegisteredInfo {
                     programs_data,
-                    program_modification_account,
+                    program_modification_account: program_modification_account.clone(),
                     version_number: T::KeyVersionNumber::get(),
                 },
             );
+
+            ModifiableKeys::<T>::try_mutate(
+                program_modification_account,
+                |verifying_keys| -> Result<(), DispatchError> {
+                    verifying_keys
+                        .try_push(child_verifying_key.clone())
+                        .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
+                    Ok(())
+                },
+            )?;
 
             Self::deposit_event(Event::AccountRegistered(
                 signature_request_account,
