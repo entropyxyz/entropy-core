@@ -204,6 +204,7 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
     /// TODO (Nando): Sig Req Account => RegisteredInfo { VerifyingKey, ... }
+    /// TODO (Nando): Need to add benchmarks
     #[pallet::storage]
     #[pallet::getter(fn registered_on_chain)]
     pub type RegisteredOnChain<T: Config> =
@@ -729,14 +730,15 @@ pub mod pallet {
             use std::str::FromStr;
             use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
-            let sig_req_account = ensure_signed(origin)?;
+            let signature_request_account = ensure_signed(origin)?;
 
             ensure!(
-                sig_req_account.encode() != NETWORK_PARENT_KEY.encode(),
+                signature_request_account.encode() != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
             );
+
             ensure!(
-                !Registering::<T>::contains_key(&sig_req_account),
+                !Registering::<T>::contains_key(&signature_request_account),
                 Error::<T>::AlreadySubmitted
             );
 
@@ -758,19 +760,20 @@ pub mod pallet {
                 )?;
             }
 
-            let verifying_key = if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
-                SynedrionVerifyingKey::try_from(key.as_slice())
-                    .expect("The network verifying key must be valid.")
-            } else {
-                return Err(Error::<T>::JumpStartNotCompleted.into());
-            };
+            let network_verifying_key =
+                if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
+                    SynedrionVerifyingKey::try_from(key.as_slice())
+                        .expect("The network verifying key must be valid.")
+                } else {
+                    return Err(Error::<T>::JumpStartNotCompleted.into());
+                };
 
             // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
             // TODO (Nando): Check assumptions around this, e.g can this counter go down
             let count = RegisteredOnChain::<T>::count();
             let path = bip32::DerivationPath::from_str(&dbg!(format!("m/0/{}", count)))
                 .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
-            let child_verifying_key = verifying_key
+            let child_verifying_key = network_verifying_key
                 .derive_verifying_key_bip32(&path)
                 .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
 
@@ -780,7 +783,7 @@ pub mod pallet {
             .expect("Synedrion must have returned a valid verifying key.");
 
             RegisteredOnChain::<T>::insert(
-                sig_req_account.clone(),
+                signature_request_account.clone(),
                 RegisteredInfo {
                     programs_data,
                     program_modification_account,
@@ -789,7 +792,10 @@ pub mod pallet {
                 },
             );
 
-            Self::deposit_event(Event::AccountRegistered(sig_req_account, child_verifying_key));
+            Self::deposit_event(Event::AccountRegistered(
+                signature_request_account,
+                child_verifying_key,
+            ));
 
             Ok(Some(<T as Config>::WeightInfo::register(num_programs as u32)).into())
         }
