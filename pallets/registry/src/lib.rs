@@ -117,8 +117,6 @@ pub mod pallet {
     pub struct RegisteredInfo<T: Config> {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
-        // TODO (Nando): This should be None for the old codepath
-        pub verifying_key: Option<VerifyingKey>,
         pub version_number: u8,
     }
     /// Details of status of jump starting the network
@@ -167,7 +165,6 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_id.clone(),
-                        verifying_key: Some(verifying_key.clone()),
                         version_number: T::KeyVersionNumber::get(),
                     },
                 );
@@ -203,12 +200,10 @@ pub mod pallet {
     pub type Registered<T: Config> =
         StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
-    /// TODO (Nando): Sig Req Account => RegisteredInfo { VerifyingKey, ... }
-    /// TODO (Nando): Need to add benchmarks
     #[pallet::storage]
     #[pallet::getter(fn registered_on_chain)]
     pub type RegisteredOnChain<T: Config> =
-        CountedStorageMap<_, Blake2_128Concat, T::AccountId, RegisteredInfo<T>, OptionQuery>;
+        CountedStorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
     /// Mapping of program_modification accounts to verifying keys they can control
     #[pallet::storage]
@@ -682,7 +677,6 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
-                        verifying_key: None,
                         version_number: registering_info.version_number,
                     },
                 );
@@ -718,6 +712,7 @@ pub mod pallet {
             }
         }
 
+        /// TODO (Nando): Need to add benchmarks
         #[pallet::call_index(7)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
@@ -783,11 +778,10 @@ pub mod pallet {
             .expect("Synedrion must have returned a valid verifying key.");
 
             RegisteredOnChain::<T>::insert(
-                signature_request_account.clone(),
+                child_verifying_key.clone(),
                 RegisteredInfo {
                     programs_data,
                     program_modification_account,
-                    verifying_key: Some(child_verifying_key.clone()),
                     version_number: T::KeyVersionNumber::get(),
                 },
             );

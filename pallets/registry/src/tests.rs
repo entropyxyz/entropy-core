@@ -74,26 +74,20 @@ fn it_registers_a_user_on_chain() {
             programs_info.clone(),
         ));
 
-        // Validate:
-        assert!(Registry::registered_on_chain(alice).is_some());
-        let RegisteredInfo {
-            programs_data: _,
-            program_modification_account,
-            verifying_key,
-            version_number: _,
-        } = Registry::registered_on_chain(alice).unwrap();
-
-        assert_eq!(program_modification_account, bob);
-
+        // Validate: Our expected verifying key is registered correctly
         let network_verifying_key =
             SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        let derivation_path = "m/0/0".parse().unwrap();
         let expected_verifying_key =
-            network_verifying_key.derive_verifying_key_bip32(&"m/0/0".parse().unwrap()).unwrap();
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
         let expected_verifying_key =
             BoundedVec::try_from(expected_verifying_key.to_encoded_point(true).as_bytes().to_vec())
                 .unwrap();
 
-        assert_eq!(verifying_key, Some(expected_verifying_key));
+        let registered_info = Registry::registered_on_chain(expected_verifying_key.clone());
+        assert!(registered_info.is_some());
+        assert_eq!(registered_info.unwrap().program_modification_account, bob);
     });
 }
 
@@ -355,7 +349,6 @@ fn it_confirms_registers_a_user() {
             RegisteredInfo {
                 programs_data: programs_info.clone(),
                 program_modification_account: 2,
-                verifying_key: None,
                 version_number: 1,
             }
         );
@@ -415,7 +408,6 @@ fn it_changes_a_program_pointer() {
         let mut registered_info = RegisteredInfo {
             programs_data: programs_info,
             program_modification_account: 2,
-            verifying_key: None,
             version_number: 1,
         };
 
@@ -496,7 +488,6 @@ fn it_changes_a_program_mod_account() {
         let mut registered_info = RegisteredInfo {
             programs_data: programs_info,
             program_modification_account: 2,
-            verifying_key: None,
             version_number: 1,
         };
 
