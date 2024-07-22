@@ -422,7 +422,6 @@ pub mod pallet {
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             let sig_req_account = ensure_signed(origin)?;
-            let encoded_sig_req_account = sig_req_account.encode();
 
             ensure!(
                 sig_req_account.encode() != NETWORK_PARENT_KEY.encode(),
@@ -450,7 +449,7 @@ pub mod pallet {
             }
 
             Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(encoded_sig_req_account);
+                messages.push(sig_req_account.encode());
                 Ok(())
             })?;
 
