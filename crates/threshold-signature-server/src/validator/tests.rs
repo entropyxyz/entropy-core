@@ -24,7 +24,6 @@ use crate::{
         tests::initialize_test_logger,
         validator::{get_hkdf_from_mnemonic, get_signer_from_hkdf},
     },
-    r#unsafe::api::UnsafeQuery,
     validator::errors::ValidatorErr,
 };
 use entropy_kvdb::clean_tests;
@@ -35,10 +34,7 @@ use entropy_testing_utils::{
     substrate_context::testing_context,
     test_context_stationary,
 };
-use futures::{
-    future::{self, join_all},
-    join, Future, SinkExt, StreamExt,
-};
+use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
@@ -53,8 +49,6 @@ async fn test_reshare() {
     clean_tests();
 
     let alice = AccountKeyring::Alice;
-    let alice_program = AccountKeyring::Charlie;
-    let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
@@ -64,7 +58,7 @@ async fn test_reshare() {
     let client = reqwest::Client::new();
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let mut onchain_reshare_request =
+    let onchain_reshare_request =
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
     setup_for_reshare(&api, &rpc).await;
     // fails repeated data
@@ -90,7 +84,6 @@ async fn setup_for_reshare(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) {
-    let client = reqwest::Client::new();
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
 

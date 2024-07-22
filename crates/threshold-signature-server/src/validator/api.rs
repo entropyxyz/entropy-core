@@ -22,23 +22,12 @@ use crate::{
     helpers::{
         launch::FORBIDDEN_KEYS,
         substrate::{get_stash_address, get_validators_info, query_chain},
-        user::check_in_registration_group,
     },
-    signing_client::{
-        protocol_transport::{handle_socket, open_protocol_connections},
-        ListenerState, ProtocolErr,
-    },
+    signing_client::{protocol_transport::open_protocol_connections, ProtocolErr},
     validator::errors::ValidatorErr,
     AppState,
 };
-use axum::{
-    body::{Body, Bytes},
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_kvdb::kv_manager::helpers::serialize as key_serialize;
 pub use entropy_protocol::{
     decode_verifying_key,
@@ -205,7 +194,7 @@ pub async fn new_reshare(
         .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
         .0
         .ok_or(ValidatorErr::NoOutputFromReshareProtocol)?;
-    let serialized_key_share = key_serialize(&new_key_share)
+    let _serialized_key_share = key_serialize(&new_key_share)
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
     // TODO: do reshare call confirm_reshare (delete key when done) see #941
     Ok(StatusCode::OK)

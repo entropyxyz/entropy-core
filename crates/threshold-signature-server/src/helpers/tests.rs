@@ -40,7 +40,6 @@ use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
-use parity_scale_codec::Encode;
 use std::time::Duration;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
