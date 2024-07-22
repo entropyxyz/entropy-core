@@ -67,8 +67,8 @@ pub async fn new_reshare(
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref()).unwrap();
+    // TODO: validate message came from chain (check reshare block # against current block number)
 
-    // get block number from encoded data
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
@@ -114,18 +114,30 @@ pub async fn new_reshare(
     let mut party_ids: Vec<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
     party_ids.sort();
+
+    let old_holders_info = get_validators_info(&api, &rpc, signers).await.unwrap();
+    let mut old_holders: Vec<PartyId> =
+        old_holders_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
+    old_holders.sort();
+    dbg!(party_ids.clone());
+    dbg!(old_holders.clone());
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
+        // TODO: get from chain
         old_threshold: party_ids.len(),
-        old_holders: party_ids.clone(),
+        old_holders,
     };
-    // need a network verifying key
+    let key_info_query = entropy::storage().parameters().signers_info();
+    let threshold = query_chain(&api, &rpc, key_info_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Failed to get signers info"))?
+        .threshold;
+
     let inputs = KeyResharingInputs {
         old_holder,
         new_holder: Some(new_holder),
-        // todo get from chain
         new_holders: party_ids.clone(),
-        new_threshold: 2,
+        new_threshold: threshold as usize,
     };
     // TODO rename to Reshare
     let session_id = SessionId::ProactiveRefresh { verifying_key, block_number: data.block_number };
@@ -181,7 +193,6 @@ pub async fn new_reshare(
     let serialized_key_share = key_serialize(&new_key_share).unwrap();
     // .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
     // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
-    // validate message came from chain (check reshare block # against current block number)
     // If so do reshare call confirm_reshare (delete key when done)
     Ok(StatusCode::OK)
 }
