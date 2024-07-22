@@ -18,12 +18,13 @@
 use entropy_protocol::{execute_protocol::PairWrapper, PartyId};
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
-use subxt::utils::AccountId32;
 use synedrion::{
-    ecdsa::SigningKey, make_key_resharing_session, AuxInfo, KeyResharingInputs, KeyShare,
-    NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
+    ecdsa::SigningKey, make_key_resharing_session, sessions::SessionId, AuxInfo,
+    KeyResharingInputs, KeyShare, NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
 };
 use synedrion_test_environment::run_nodes;
+
+use std::collections::BTreeSet;
 
 /// Given a secp256k1 secret key and 3 signing keypairs for the TSS parties, generate a set of
 /// threshold keyshares with auxiliary info
@@ -37,34 +38,44 @@ where
     Params: SchemeParams,
 {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
-    let signers = vec![alice, bob, charlie.clone()];
-    let shared_randomness = b"12345";
+    let signers = vec![alice.clone(), bob, charlie.clone()];
+    let session_id = SessionId::from_seed(b"12345".as_slice());
     let all_parties =
-        signers.iter().map(|pair| PartyId::new(AccountId32(pair.public().0))).collect::<Vec<_>>();
+        signers.iter().map(|pair| PartyId::from(pair.public())).collect::<BTreeSet<_>>();
 
-    let old_holders = all_parties.clone().into_iter().take(2).collect::<Vec<_>>();
+    let old_holders = all_parties.clone().into_iter().take(2).collect::<BTreeSet<_>>();
 
     let keyshares =
         KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
     let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
-    let new_holder =
-        NewHolder { verifying_key: keyshares[0].verifying_key(), old_threshold: 2, old_holders };
+    let alice_id = PartyId::from(alice.public());
+    let new_holder = NewHolder {
+        verifying_key: keyshares[&alice_id].verifying_key(),
+        old_threshold: 2,
+        old_holders,
+    };
 
-    let mut sessions = (0..2)
-        .map(|idx| {
+    let mut sessions = signers
+        .iter()
+        .filter(|&pair| pair.public() != charlie.public())
+        .map(|pair| {
             let inputs = KeyResharingInputs {
-                old_holder: Some(OldHolder { key_share: keyshares[idx].to_threshold_key_share() }),
+                old_holder: Some(OldHolder {
+                    key_share: ThresholdKeyShare::from_key_share(
+                        &keyshares[&PartyId::from(pair.public())],
+                    ),
+                }),
                 new_holder: Some(new_holder.clone()),
                 new_holders: all_parties.clone(),
                 new_threshold: 2,
             };
             make_key_resharing_session(
                 &mut OsRng,
-                shared_randomness,
-                PairWrapper(signers[idx].clone()),
+                session_id,
+                PairWrapper(pair.clone()),
                 &all_parties,
-                &inputs,
+                inputs,
             )
             .unwrap()
         })
@@ -79,10 +90,10 @@ where
         };
         make_key_resharing_session(
             &mut OsRng,
-            shared_randomness,
+            session_id,
             PairWrapper(charlie),
             &all_parties,
-            &inputs,
+            inputs,
         )
         .unwrap()
     };
@@ -92,8 +103,8 @@ where
     let new_t_key_shares = run_nodes(sessions).await;
 
     let mut output = Vec::new();
-    for i in 0..3 {
-        output.push((new_t_key_shares[i].clone().unwrap(), aux_infos[i].clone()));
+    for (i, party_id) in signers.iter().map(|pair| PartyId::from(pair.public())).enumerate() {
+        output.push((new_t_key_shares[i].clone().unwrap(), aux_infos[&party_id].clone()));
     }
     output
 }
@@ -106,24 +117,24 @@ mod synedrion_test_environment {
     use rand_core::OsRng;
     use sp_core::sr25519;
     use std::collections::BTreeMap;
-    use synedrion::{CombinedMessage, FinalizeOutcome, MappedResult, Session};
+    use synedrion::{FinalizeOutcome, MessageBundle, ProtocolResult, Session};
     use tokio::{
         sync::mpsc,
         time::{sleep, Duration},
     };
-    type MessageOut = (PartyId, PartyId, CombinedMessage<sr25519::Signature>);
-    type MessageIn = (PartyId, CombinedMessage<sr25519::Signature>);
+    type MessageOut = (PartyId, PartyId, MessageBundle<sr25519::Signature>);
+    type MessageIn = (PartyId, MessageBundle<sr25519::Signature>);
 
     fn key_to_str(key: &PartyId) -> String {
         key.to_string()
     }
 
     /// Run a generic synedrion session
-    async fn run_session<Res: MappedResult<PartyId>>(
+    async fn run_session<Res: ProtocolResult>(
         tx: mpsc::Sender<MessageOut>,
         rx: mpsc::Receiver<MessageIn>,
         session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
-    ) -> Res::MappedSuccess {
+    ) -> Res::Success {
         let mut rx = rx;
 
         let mut session = session;
@@ -239,10 +250,10 @@ mod synedrion_test_environment {
 
     pub async fn run_nodes<Res>(
         sessions: Vec<Session<Res, sr25519::Signature, PairWrapper, PartyId>>,
-    ) -> Vec<Res::MappedSuccess>
+    ) -> Vec<Res::Success>
     where
-        Res: MappedResult<PartyId> + Send + 'static,
-        Res::MappedSuccess: Send + 'static,
+        Res: ProtocolResult + Send + 'static,
+        Res::Success: Send + 'static,
     {
         let num_parties = sessions.len();
 
@@ -257,7 +268,7 @@ mod synedrion_test_environment {
         let dispatcher_task = message_dispatcher(tx_map, dispatcher_rx);
         let dispatcher = tokio::spawn(dispatcher_task);
 
-        let handles: Vec<tokio::task::JoinHandle<Res::MappedSuccess>> = rxs
+        let handles: Vec<tokio::task::JoinHandle<Res::Success>> = rxs
             .into_iter()
             .zip(sessions.into_iter())
             .map(|(rx, session)| {

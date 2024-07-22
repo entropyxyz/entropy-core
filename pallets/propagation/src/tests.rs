@@ -32,7 +32,7 @@ fn knows_how_to_mock_several_http_calls() {
     let mut t = offchain_worker_env(|state| {
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/user/new".into(),
+            uri: "http://localhost:3001/generate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [
@@ -44,21 +44,22 @@ fn knows_how_to_mock_several_http_calls() {
             .to_vec(),
             ..Default::default()
         });
+
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/user/new".into(),
+            uri: "http://localhost:3001/generate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [
-                3, 0, 0, 0, 8, 32, 1, 0, 0, 0, 0, 0, 0, 0, 32, 2, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 4, 10, 32, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 11, 32, 4, 0, 0, 0, 0, 0, 0,
-                0,
+                3, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 10, 32, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
+                11, 32, 4, 0, 0, 0, 0, 0, 0, 0,
             ]
             .to_vec(),
             ..Default::default()
         });
+
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
             uri: "http://localhost:3001/signer/proactive_refresh".into(),
@@ -105,8 +106,10 @@ fn knows_how_to_mock_several_http_calls() {
         .unwrap();
         assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
         assert_ok!(Registry::register(RuntimeOrigin::signed(2), 3, programs_info,));
+
         // full send
         Propagation::post_dkg(4).unwrap();
+
         // test pruning
         assert_eq!(Registry::dkg(3).len(), 2);
         Propagation::on_initialize(5);

@@ -11,7 +11,7 @@ edition    ='2021'
 [dependencies]
 async-trait        ="0.1.81"
 entropy-shared     ={ version="0.2.0", path="../shared", default-features=false }
-synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="25373111cbb01e1a25d8a5c5bb8f4652c725b3f1" }
+synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="3be1339c21384a8e60a1534f1d3bfdd022662e63" }
 serde              ={ version="1.0", features=["derive"], default-features=false }
 subxt              ={ version="0.35.3", default-features=false }
 sp-core            ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
@@ -20,7 +20,7 @@ x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
 futures            ="0.3"
 hex                ="0.4.3"
 blake2             ="0.10.4"
-thiserror          ="1.0.62"
+thiserror          ="1.0.63"
 snow               ="0.9.6"
 getrandom          ={ version="0.2", features=["js"] }
 rand_core          ={ version="0.6.4", features=["getrandom"] }
@@ -38,7 +38,7 @@ axum             ={ version="0.7.5", features=["ws"], optional=true }
 tokio-tungstenite={ version="0.23.1", optional=true }
 
 # Used only with the `wasm` feature
-gloo-net            ={ version="0.5.0", default-features=false, features=["websocket"], optional=true }
+gloo-net            ={ version="0.6.0", default-features=false, features=["websocket"], optional=true }
 wasm-bindgen-futures={ version="0.4.42", optional=true }
 wasm-bindgen        ={ version="0.2.92", optional=true }
 wasm-bindgen-derive ={ version="0.3", optional=true }

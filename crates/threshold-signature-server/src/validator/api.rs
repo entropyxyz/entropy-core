@@ -39,9 +39,12 @@ use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, SETUP_TIMEOUT_SECOND
 use parity_scale_codec::{Decode, Encode};
 use rand_core::OsRng;
 use sp_core::Pair;
-use std::{str::FromStr, time::Duration};
+use std::{collections::BTreeSet, str::FromStr, time::Duration};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
-use synedrion::{make_key_resharing_session, KeyResharingInputs, NewHolder, OldHolder};
+use synedrion::{
+    make_key_resharing_session, sessions::SessionId as SynedrionSessionId, KeyResharingInputs,
+    NewHolder, OldHolder,
+};
 use tokio::time::timeout;
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
@@ -114,16 +117,13 @@ pub async fn new_reshare(
                 entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result).unwrap();
             Some(OldHolder { key_share: key_share.0 })
         };
-    let mut party_ids: Vec<PartyId> =
+    let party_ids: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
-    party_ids.sort();
 
     let old_holders_info = get_validators_info(&api, &rpc, signers).await.unwrap();
-    let mut old_holders: Vec<PartyId> =
+    let old_holders: BTreeSet<PartyId> =
         old_holders_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
-    old_holders.sort();
-    dbg!(party_ids.clone());
-    dbg!(old_holders.clone());
+
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
         // TODO: get from chain see #941
@@ -184,9 +184,14 @@ pub async fn new_reshare(
         Channels(broadcast_out, rx_from_others)
     };
 
-    let session =
-        make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
-            .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let session = make_key_resharing_session(
+        &mut OsRng,
+        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+        pair,
+        &party_ids,
+        inputs,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let new_key_share = execute_protocol_generic(channels, session, session_id_hash)
         .await

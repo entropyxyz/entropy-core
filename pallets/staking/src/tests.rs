@@ -333,9 +333,11 @@ fn it_tests_new_session_handler() {
         assert_eq!(Staking::next_signers().len(), 0);
         assert_eq!(Staking::reshare_data().block_number, 0, "Check reshare block start at zero");
         System::set_block_number(100);
-        let _ = Staking::new_session_handler(&vec![1u64, 2u64, 3u64]);
+
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
         // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
-        assert_eq!(Staking::next_signers(), vec![6u64, 1u64]);
+        assert_eq!(Staking::next_signers(), vec![6, 1]);
+
         assert_eq!(
             Staking::reshare_data().block_number,
             101,
@@ -347,12 +349,12 @@ fn it_tests_new_session_handler() {
             "Check reshare next signer up is 1"
         );
 
-        let _ = Staking::new_session_handler(&vec![6u64, 5u64, 3u64]);
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
         // takes 3 and leaves 5 and 6 since already in signer group
-        assert_eq!(Staking::next_signers(), vec![6u64, 3u64]);
+        assert_eq!(Staking::next_signers(), vec![6, 3]);
 
-        let _ = Staking::new_session_handler(&vec![1u64]);
+        assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
-        assert_eq!(Staking::next_signers(), vec![6u64, 3u64]);
+        assert_eq!(Staking::next_signers(), vec![6, 3]);
     });
 }

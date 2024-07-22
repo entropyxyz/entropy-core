@@ -2546,7 +2546,7 @@ dependencies = [
  "entropy-shared",
  "futures",
  "getrandom 0.2.15",
- "gloo-net",
+ "gloo-net 0.6.0",
  "hex",
  "hpke-rs",
  "hpke-rs-crypto",
@@ -3899,6 +3899,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-net"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06f627b1a58ca3d42b45d6104bf1e1a03799df472df00988b6ba21accc10580"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-sink",
+ "gloo-utils",
+ "http 1.1.0",
+ "js-sys",
+ "pin-project",
+ "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "gloo-timers"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4047,6 +4066,16 @@ checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 dependencies = [
  "ahash 0.8.11",
  "allocator-api2",
+ "serde",
+]
+
+[[package]]
+name = "hashing-serializer"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66c9b1a5e47c3bf40ae0f5705e84daa4cd6d8a74b2bdba43c06eb01dbc236f6e"
+dependencies = [
+ "digest 0.10.7",
  "serde",
 ]
 
@@ -4793,7 +4822,7 @@ checksum = "92f254f56af1ae84815b9b1325094743dcf05b92abb5e94da2e81a35cff0cada"
 dependencies = [
  "futures-channel",
  "futures-util",
- "gloo-net",
+ "gloo-net 0.5.0",
  "http 0.2.12",
  "jsonrpsee-core 0.22.4",
  "pin-project",
@@ -7290,7 +7319,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
- "rand_chacha 0.2.2",
+ "rand_chacha 0.3.1",
  "scale-info",
  "serde",
  "sp-consensus-babe 0.33.0",
@@ -11276,6 +11305,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
 dependencies = [
+ "serde",
  "zeroize",
 ]
 
@@ -13906,22 +13936,24 @@ checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=25373111cbb01e1a25d8a5c5bb8f4652c725b3f1#25373111cbb01e1a25d8a5c5bb8f4652c725b3f1"
+source = "git+https://github.com/entropyxyz/synedrion?rev=3be1339c21384a8e60a1534f1d3bfdd022662e63#3be1339c21384a8e60a1534f1d3bfdd022662e63"
 dependencies = [
  "base64 0.21.7",
  "bincode",
- "cfg-if",
  "crypto-bigint",
  "crypto-primes",
  "digest 0.10.7",
  "displaydoc",
+ "hashing-serializer",
  "hex",
  "k256",
  "rand_core 0.6.4",
+ "secrecy",
  "serde",
  "sha2 0.10.8",
  "sha3",
  "signature",
+ "zeroize",
 ]
 
 [[package]]
@@ -14008,18 +14040,18 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "thiserror"
-version = "1.0.62"
+version = "1.0.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2675633b1499176c2dff06b0856a27976a8f9d436737b4cf4f312d4d91d8bbb"
+checksum = "c0342370b38b6a11b6cc11d6a805569958d54cfa061a29969c3b5ce2ea405724"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.62"
+version = "1.0.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d20468752b09f49e909e55a5d338caa8bedf615594e9d80bc4c565d30faf798c"
+checksum = "a4558b58466b9ad7ca0f102865eccc95938dca1a74a856f2b57b6629050da261"
 dependencies = [
  "proc-macro2",
  "quote",
