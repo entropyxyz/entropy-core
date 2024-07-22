@@ -157,7 +157,7 @@ pub async fn do_proactive_refresh(
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
-    let session_id = SessionId::ProactiveRefresh { verifying_key, block_number };
+    let session_id = SessionId::Reshare { verifying_key, block_number };
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];

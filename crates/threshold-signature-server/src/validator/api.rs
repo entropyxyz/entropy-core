@@ -66,8 +66,8 @@ pub async fn new_reshare(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
-    let data = OcwMessageReshare::decode(&mut encoded_data.as_ref()).unwrap();
-    // TODO: validate message came from chain (check reshare block # against current block number)
+    let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
+    // TODO: validate message came from chain (check reshare block # against current block number) see #941
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
@@ -82,15 +82,28 @@ pub async fn new_reshare(
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting next signers"))?;
 
-    let validators_info = get_validators_info(&api, &rpc, next_signers).await.unwrap();
-    let (signer, x25519_secret_key) =
-        get_signer_and_x25519_secret(&app_state.kv_store).await.unwrap();
-    // .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let validators_info = get_validators_info(&api, &rpc, next_signers)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
     let verifying_key_query = entropy::storage().registry().jump_start_progress();
-    let verifying_key =
-        query_chain(&api, &rpc, verifying_key_query, None).await?.unwrap().verifying_key.unwrap().0;
-    let decoded_verifying_key =
-        decode_verifying_key(&verifying_key.clone().try_into().unwrap()).unwrap();
+    let verifying_key = query_chain(&api, &rpc, verifying_key_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Parent verifying key error"))?
+        .verifying_key
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get verifying key".to_string()))?
+        .0;
+
+    let decoded_verifying_key = decode_verifying_key(
+        &verifying_key
+            .clone()
+            .try_into()
+            .map_err(|_| ValidatorErr::Conversion("Verifying key conversion"))?,
+    )
+    .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
     let is_proper_signer = &validators_info
         .iter()
@@ -100,7 +113,9 @@ pub async fn new_reshare(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
     // get old key if have it
-    let my_stash_address = get_stash_address(&api, &rpc, &signer.account_id()).await.unwrap();
+    let my_stash_address = get_stash_address(&api, &rpc, &signer.account_id())
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
         if data.new_signer == my_stash_address.encode() {
             None
@@ -123,7 +138,7 @@ pub async fn new_reshare(
     dbg!(old_holders.clone());
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
-        // TODO: get from chain
+        // TODO: get from chain see #941
         old_threshold: party_ids.len(),
         old_holders,
     };
@@ -139,8 +154,8 @@ pub async fn new_reshare(
         new_holders: party_ids.clone(),
         new_threshold: threshold as usize,
     };
-    // TODO rename to Reshare
-    let session_id = SessionId::ProactiveRefresh { verifying_key, block_number: data.block_number };
+
+    let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
     let account_id = AccountId32(signer.signer().public().0);
     let session_id_hash = session_id.blake2(None).unwrap();
     let pair = PairWrapper(signer.signer().clone());
@@ -159,12 +174,12 @@ pub async fn new_reshare(
 
     let (rx_ready, rx_from_others, listener) =
         Listener::new(converted_validator_info.clone(), &account_id);
-    app_state.listener_state
-    .listeners
-    .lock()
-    .unwrap()
-    // .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
-    .insert(session_id.clone(), listener);
+    app_state
+        .listener_state
+        .listeners
+        .lock()
+        .map_err(|_| ValidatorErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
 
     open_protocol_connections(
         &converted_validator_info,
@@ -173,27 +188,26 @@ pub async fn new_reshare(
         &app_state.listener_state,
         &x25519_secret_key,
     )
-    .await
-    .unwrap();
+    .await?;
 
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await.unwrap();
-        let broadcast_out = ready.unwrap().unwrap();
+        let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };
 
     let session =
         make_key_resharing_session(&mut OsRng, &session_id_hash, pair, &party_ids, &inputs)
-            .unwrap();
-    // .map_err(ProtocolExecutionErr::SessionCreation)?;
+            .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let new_key_share =
-        execute_protocol_generic(channels, session, session_id_hash).await.unwrap().0.unwrap();
-    // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
-    let serialized_key_share = key_serialize(&new_key_share).unwrap();
-    // .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-    // new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
-    // If so do reshare call confirm_reshare (delete key when done)
+    let new_key_share = execute_protocol_generic(channels, session, session_id_hash)
+        .await
+        .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
+        .0
+        .ok_or(ValidatorErr::NoOutputFromReshareProtocol)?;
+    let serialized_key_share = key_serialize(&new_key_share)
+        .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
+    // TODO: do reshare call confirm_reshare (delete key when done) see #941
     Ok(StatusCode::OK)
 }
 

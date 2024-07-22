@@ -114,7 +114,7 @@ async fn test_refresh_with_parties(num_parties: usize) {
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let verifying_key = keyshares[0].verifying_key();
 
-    let session_id = SessionId::ProactiveRefresh {
+    let session_id = SessionId::Reshare {
         verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
         block_number: 0,
     };
@@ -131,7 +131,7 @@ async fn test_refresh_with_parties(num_parties: usize) {
         .collect();
     let threshold = parties.len();
     let mut outputs = test_protocol_with_parties(parties, session_id, threshold).await;
-    if let ProtocolOutput::ProactiveRefresh(keyshare) = outputs.pop().unwrap() {
+    if let ProtocolOutput::Reshare(keyshare) = outputs.pop().unwrap() {
         assert!(keyshare.verifying_key() == verifying_key);
     } else {
         panic!("Unexpected protocol output");
