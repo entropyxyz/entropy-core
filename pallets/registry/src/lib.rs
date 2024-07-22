@@ -160,7 +160,17 @@ pub mod pallet {
         fn build(&self) {
             for (account_id, verifying_key) in &self.registered_accounts {
                 assert!(verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH);
+
                 Registered::<T>::insert(
+                    verifying_key.clone(),
+                    RegisteredInfo {
+                        programs_data: BoundedVec::default(),
+                        program_modification_account: account_id.clone(),
+                        version_number: T::KeyVersionNumber::get(),
+                    },
+                );
+
+                RegisteredOnChain::<T>::insert(
                     verifying_key.clone(),
                     RegisteredInfo {
                         programs_data: BoundedVec::default(),
