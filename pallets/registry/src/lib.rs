@@ -723,6 +723,9 @@ pub mod pallet {
         }
 
         /// TODO (Nando): Need to add benchmarks
+        ///
+        /// Note: Substrate origins are allowed to registered as many accounts as they wish. Each
+        /// registration request will produce a different verifying key.
         #[pallet::call_index(7)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
@@ -740,11 +743,6 @@ pub mod pallet {
             ensure!(
                 signature_request_account.encode() != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
-            );
-
-            ensure!(
-                !Registering::<T>::contains_key(&signature_request_account),
-                Error::<T>::AlreadySubmitted
             );
 
             let num_programs = programs_data.len();
