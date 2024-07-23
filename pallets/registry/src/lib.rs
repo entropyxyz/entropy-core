@@ -210,6 +210,11 @@ pub mod pallet {
     pub type Registered<T: Config> =
         StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
+    /// An item tracking all the users registered on the Entropy network.
+    ///
+    /// Notice that the registration state does not depend on any Substrate account being
+    /// registered, but rather a _verifying key_, which represents the user beyond the scope of the
+    /// Entropy network itself (e.g it can be an account on Bitcoin or Ethereum).
     #[pallet::storage]
     #[pallet::getter(fn registered_on_chain)]
     pub type RegisteredOnChain<T: Config> =
@@ -722,12 +727,15 @@ pub mod pallet {
             }
         }
 
-        /// TODO (Nando): Need to add benchmarks
+        /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
-        /// Note: Substrate origins are allowed to registered as many accounts as they wish. Each
+        /// The caller provides an initial program pointer.
+        ///
+        /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
         /// registration request will produce a different verifying key.
         #[pallet::call_index(7)]
         #[pallet::weight({
+            // TODO (Nando): Use actual benchmark
             <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
         })]
         pub fn on_chain_registration(
@@ -771,8 +779,14 @@ pub mod pallet {
                     return Err(Error::<T>::JumpStartNotCompleted.into());
                 };
 
-            // TODO (Nando): We need to some how transform the account ID into a valid BIP-32 path
-            // TODO (Nando): Check assumptions around this, e.g can this counter go down
+            // TODO (Nando): For a `CountedStorageMap` there is the possibility that the counter
+            // can decrease as storage entries are removed from the map. In our case we don't ever
+            // remove entries from the `RegisteredOnChain` map so the counter should never
+            // decrease. If it does we will end up with the same verifying key for different
+            // accounts, which would be bad.
+            //
+            // For a V1 of this flow it's fine, but we'll need to think about a better solution
+            // down the line.
             let count = RegisteredOnChain::<T>::count();
             let path = bip32::DerivationPath::from_str(&format!("m/0/{}", count))
                 .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
