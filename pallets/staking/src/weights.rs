@@ -58,6 +58,8 @@ pub trait WeightInfo {
 	fn validate() -> Weight;
 	fn declare_synced() -> Weight;
 	fn new_session_handler_helper(c: u32, n: u32, ) -> Weight;
+	fn confirm_key_reshare_confirmed() -> Weight;
+	fn confirm_key_reshare_completed() -> Weight;
 }
 
 /// Weights for pallet_staking_extension using the Substrate node and recommended hardware.
@@ -176,6 +178,36 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
 	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:1 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn confirm_key_reshare_confirmed() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `445`
+		//  Estimated: `3910`
+		// Minimum execution time: 11_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3910))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:1 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::Signers` (r:0 w:1)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn confirm_key_reshare_completed() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `477`
+		//  Estimated: `3942`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3942))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 }
 
 // For backwards compatibility and tests
@@ -292,5 +324,35 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:1 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn confirm_key_reshare_confirmed() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `445`
+		//  Estimated: `3910`
+		// Minimum execution time: 11_000_000 picoseconds.
+		Weight::from_parts(12_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3910))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:1 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::Signers` (r:0 w:1)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn confirm_key_reshare_completed() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `477`
+		//  Estimated: `3942`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3942))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 }

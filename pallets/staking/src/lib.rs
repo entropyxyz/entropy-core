@@ -71,6 +71,7 @@ pub mod pallet {
     };
     use sp_runtime::traits::TrailingZeroInput;
     use sp_staking::StakingAccount;
+    use sp_std::vec;
     use sp_std::vec::Vec;
 
     use super::*;
@@ -418,8 +419,10 @@ pub mod pallet {
         }
 
         #[pallet::call_index(5)]
-        // TODO fix
-        #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::confirm_key_reshare_confirmed()
+            .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
+    })]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResult {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
@@ -443,13 +446,13 @@ pub mod pallet {
             if signers_info.confirmations.len() == (signers_info.next_signers.len() - 1) {
                 Signers::<T>::put(signers_info.next_signers.clone());
                 Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
+                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_confirmed()).into())
             } else {
                 signers_info.confirmations.push(validator_stash.clone());
                 NextSigners::<T>::put(signers_info);
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
+                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_completed()).into())
             }
-
-            Ok(())
         }
     }
 

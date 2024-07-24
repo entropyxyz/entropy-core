@@ -177,6 +177,7 @@ benchmarks! {
   }
 
   confirm_key_reshare_confirmed {
+    // TODO: add proper validator sized and looping for confirmations
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let second_signer: T::AccountId = account("second_signer", 0, SEED);
@@ -195,6 +196,7 @@ benchmarks! {
   }
 
   confirm_key_reshare_completed {
+    // TODO: add proper validator sized
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let second_signer: T::AccountId = account("second_signer", 0, SEED);
