@@ -175,6 +175,43 @@ benchmarks! {
   verify {
     assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
   }
+
+  confirm_key_reshare_confirmed {
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
+
+    Signers::<T>::put(vec![validator_id_res.clone(), second_signer_id.clone()]);
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: vec![validator_id_res.clone(), second_signer_id],
+      confirmations: vec![],
+  });
+
+  }: confirm_key_reshare(RawOrigin::Signed(caller.clone()))
+  verify {
+    assert_last_event::<T>(Event::<T>::SignerConfirmed(validator_id_res).into());
+  }
+
+  confirm_key_reshare_completed {
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
+    let signers = vec![validator_id_res.clone(), second_signer_id.clone()];
+
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers.clone(),
+      confirmations: vec![second_signer_id],
+  });
+
+  }:  confirm_key_reshare(RawOrigin::Signed(caller.clone()))
+  verify {
+    assert_last_event::<T>(Event::<T>::SignersRotation(signers.clone()).into());
+  }
 }
 
 impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test);
