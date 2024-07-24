@@ -266,6 +266,10 @@ pub mod pallet {
             Vec<Vec<<T as pallet_session::Config>::ValidatorId>>,
             Vec<Vec<<T as pallet_session::Config>::ValidatorId>>,
         ),
+        /// Validators in new signer group [new_signers]
+        SignerConfirmed(<T as pallet_session::Config>::ValidatorId),
+        /// Validators subgroups rotated [old, new]
+        SignersRotation(Vec<<T as pallet_session::Config>::ValidatorId>),
     }
 
     #[pallet::call]
@@ -437,12 +441,12 @@ pub mod pallet {
             // ensure that rotation was indeed successful.
 
             if signers_info.confirmations.len() == (signers_info.next_signers.len() - 1) {
-                Signers::<T>::put(signers_info.next_signers);
-                // TODO: event
+                Signers::<T>::put(signers_info.next_signers.clone());
+                Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
             } else {
-                signers_info.confirmations.push(validator_stash);
+                signers_info.confirmations.push(validator_stash.clone());
                 NextSigners::<T>::put(signers_info);
-                // TODO: event
+                Self::deposit_event(Event::SignerConfirmed(validator_stash));
             }
 
             Ok(())
