@@ -119,6 +119,12 @@ pub mod pallet {
         pub new_signer: Vec<u8>,
         pub block_number: BlockNumber,
     }
+
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    pub struct NextSignerInfo<ValidatorId> {
+        pub next_signers: Vec<ValidatorId>,
+        pub confirmations: Vec<ValidatorId>,
+    }
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
@@ -173,7 +179,7 @@ pub mod pallet {
     /// The next signers ready to take the Signers place when a reshare is done
     #[pallet::storage]
     #[pallet::getter(fn next_signers)]
-    pub type NextSigners<T: Config> = StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
+    pub type NextSigners<T: Config> = StorageValue<_, NextSignerInfo<T::ValidatorId>, OptionQuery>;
 
     /// The next time a reshare should happen
     #[pallet::storage]
@@ -234,6 +240,9 @@ pub mod pallet {
         InvalidValidatorId,
         SigningGroupError,
         TssAccountAlreadyExists,
+        NotNextSigner,
+        ReshareNotInProgress,
+        AlreadyConfirmed,
     }
 
     #[pallet::event]
@@ -403,6 +412,41 @@ pub mod pallet {
             Self::deposit_event(Event::ValidatorSyncStatus(stash, synced));
             Ok(())
         }
+
+        #[pallet::call_index(5)]
+        // TODO fix
+        #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
+        pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResult {
+            let ts_server_account = ensure_signed(origin)?;
+            let validator_stash =
+                Self::threshold_to_stash(&ts_server_account).ok_or(Error::<T>::NoThresholdKey)?;
+
+            let mut signers_info =
+                NextSigners::<T>::take().ok_or(Error::<T>::ReshareNotInProgress)?;
+            ensure!(
+                signers_info.next_signers.contains(&validator_stash),
+                Error::<T>::NotNextSigner
+            );
+
+            ensure!(
+                !signers_info.confirmations.contains(&validator_stash),
+                Error::<T>::AlreadyConfirmed
+            );
+
+            // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
+            // ensure that rotation was indeed successful.
+
+            if signers_info.confirmations.len() == (signers_info.next_signers.len() - 1) {
+                Signers::<T>::put(signers_info.next_signers);
+                // TODO: event
+            } else {
+                signers_info.confirmations.push(validator_stash);
+                NextSigners::<T>::put(signers_info);
+                // TODO: event
+            }
+
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -446,7 +490,10 @@ pub mod pallet {
             // removes first signer and pushes new signer to back
             current_signers.remove(0);
             current_signers.push(next_signer_up.clone());
-            NextSigners::<T>::put(current_signers);
+            NextSigners::<T>::put(NextSignerInfo {
+                next_signers: current_signers,
+                confirmations: vec![],
+            });
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ResharehInfo {
@@ -454,10 +501,6 @@ pub mod pallet {
                 new_signer: next_signer_up.encode(),
             };
             ReshareData::<T>::put(reshare_info);
-
-            // for next PR
-            // confirm action has taken place
-
             Ok(())
         }
     }
