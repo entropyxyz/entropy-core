@@ -59,7 +59,7 @@ use sp_staking::SessionIndex;
 pub mod pallet {
     use entropy_shared::{ValidatorInfo, X25519PublicKey};
     use frame_support::{
-        dispatch::DispatchResult,
+        dispatch::{DispatchResult, DispatchResultWithPostInfo},
         pallet_prelude::*,
         traits::{Currency, Randomness},
         DefaultNoBound,
@@ -423,7 +423,7 @@ pub mod pallet {
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed()
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
     })]
-        pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResult {
+        pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
                 Self::threshold_to_stash(&ts_server_account).ok_or(Error::<T>::NoThresholdKey)?;
