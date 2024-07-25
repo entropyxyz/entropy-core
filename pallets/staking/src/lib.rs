@@ -449,7 +449,7 @@ pub mod pallet {
             NextSigners::<T>::put(current_signers);
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
-            let reshare_info = ResharehInfo {
+            let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
                 new_signer: next_signer_up.encode(),
             };
