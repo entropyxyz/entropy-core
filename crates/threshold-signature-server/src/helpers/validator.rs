@@ -61,7 +61,7 @@ async fn get_hkdf(kv: &KvManager) -> Result<Hkdf<Sha256>, UserErr> {
 }
 
 /// Given a mnemonic, setup hkdf
-pub fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
+fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
     let mnemonic = Mnemonic::parse_in_normalized(Language::English, mnemonic)
         .map_err(|e| UserErr::Mnemonic(e.to_string()))?;
     Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
