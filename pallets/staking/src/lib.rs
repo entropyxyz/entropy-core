@@ -115,7 +115,7 @@ pub mod pallet {
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
-    pub struct ResharehInfo<BlockNumber> {
+    pub struct ReshareInfo<BlockNumber> {
         pub new_signer: Vec<u8>,
         pub block_number: BlockNumber,
     }
@@ -178,7 +178,7 @@ pub mod pallet {
     /// The next time a reshare should happen
     #[pallet::storage]
     #[pallet::getter(fn reshare_data)]
-    pub type ReshareData<T: Config> = StorageValue<_, ResharehInfo<BlockNumberFor<T>>, ValueQuery>;
+    pub type ReshareData<T: Config> = StorageValue<_, ReshareInfo<BlockNumberFor<T>>, ValueQuery>;
 
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
