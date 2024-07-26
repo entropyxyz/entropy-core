@@ -20,7 +20,7 @@ use entropy_shared::ValidatorInfo;
 use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_registry::ProgramInstance;
-use pallet_staking_extension::{RefreshInfo, ResharehInfo};
+use pallet_staking_extension::{RefreshInfo, ReshareInfo};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
@@ -131,7 +131,7 @@ fn knows_how_to_mock_several_http_calls() {
 
         // doesn't trigger no reshare block
         Propagation::post_reshare(7).unwrap();
-        pallet_staking_extension::ReshareData::<Test>::put(ResharehInfo {
+        pallet_staking_extension::ReshareData::<Test>::put(ReshareInfo {
             block_number: 7,
             new_signer: 1u64.encode(),
         });
