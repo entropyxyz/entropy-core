@@ -20,7 +20,7 @@ use entropy_shared::ValidatorInfo;
 use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_registry::ProgramInstance;
-use pallet_staking_extension::RefreshInfo;
+use pallet_staking_extension::{RefreshInfo, ReshareInfo};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
@@ -73,6 +73,14 @@ fn knows_how_to_mock_several_http_calls() {
             .to_vec(),
             ..Default::default()
         });
+        state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/validator/reshare".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [32, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0].to_vec(),
+            ..Default::default()
+        });
     });
 
     t.execute_with(|| {
@@ -120,6 +128,15 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_proactive_refresh(6).unwrap();
         Propagation::on_initialize(6);
         assert_eq!(Staking::proactive_refresh(), RefreshInfo::default());
+
+        // doesn't trigger no reshare block
+        Propagation::post_reshare(7).unwrap();
+        pallet_staking_extension::ReshareData::<Test>::put(ReshareInfo {
+            block_number: 7,
+            new_signer: 1u64.encode(),
+        });
+        // now triggers
+        Propagation::post_reshare(7).unwrap();
     })
 }
 

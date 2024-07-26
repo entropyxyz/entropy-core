@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, ServerInfo, ThresholdToStash};
+use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
 use pallet_session::SessionManager;
-
 const NULL_ARR: [u8; 32] = [0; 32];
 
 #[test]
@@ -331,10 +331,23 @@ fn it_tests_new_session_handler() {
 
         // no next signers at start
         assert_eq!(Staking::next_signers().len(), 0);
+        assert_eq!(Staking::reshare_data().block_number, 0, "Check reshare block start at zero");
+        System::set_block_number(100);
 
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
         // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
         assert_eq!(Staking::next_signers(), vec![6, 1]);
+
+        assert_eq!(
+            Staking::reshare_data().block_number,
+            101,
+            "Check reshare block start at 100 + 1"
+        );
+        assert_eq!(
+            Staking::reshare_data().new_signer,
+            1u64.encode(),
+            "Check reshare next signer up is 1"
+        );
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
         // takes 3 and leaves 5 and 6 since already in signer group

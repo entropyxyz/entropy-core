@@ -69,7 +69,7 @@ impl RandomizedPrehashSigner<sr25519::Signature> for PairWrapper {
     }
 }
 
-async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
+pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
