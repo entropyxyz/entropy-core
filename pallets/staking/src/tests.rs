@@ -352,6 +352,17 @@ fn it_tests_new_session_handler() {
             "Check reshare next signer up is 1"
         );
 
+        assert_eq!(
+            Staking::reshare_data().block_number,
+            101,
+            "Check reshare block start at 100 + 1"
+        );
+        assert_eq!(
+            Staking::reshare_data().new_signer,
+            1u64.encode(),
+            "Check reshare next signer up is 1"
+        );
+
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
         // takes 3 and leaves 5 and 6 since already in signer group
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);

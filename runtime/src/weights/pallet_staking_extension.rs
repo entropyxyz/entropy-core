@@ -181,4 +181,22 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	/// Storage: `StakingExtension::SigningGroups` (r:2 w:2)
+	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 1000]`.
+	/// The range of component `n` is `[0, 1000]`.
+	fn new_session_handler_helper(c: u32, n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `218 + c * (32 ±0)`
+		//  Estimated: `6156 + c * (32 ±0)`
+		// Minimum execution time: 20_000_000 picoseconds.
+		Weight::from_parts(20_000_000, 6156)
+			// Standard Error: 24_941
+			.saturating_add(Weight::from_parts(798_680, 0).saturating_mul(c.into()))
+			// Standard Error: 24_941
+			.saturating_add(Weight::from_parts(821_922, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
+	}
 }

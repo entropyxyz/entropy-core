@@ -85,6 +85,8 @@ pub enum ValidatorErr {
     ProtocolError(String),
     #[error("Kv Fatal error")]
     KvSerialize(String),
+    #[error("Kv Deserialization Error: {0}")]
+    KvDeserialize(String),
 }
 
 impl IntoResponse for ValidatorErr {

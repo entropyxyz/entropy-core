@@ -111,16 +111,18 @@ pub async fn new_reshare(
         if data.new_signer == my_stash_address.encode() {
             None
         } else {
-            let kvdb_result =
-                app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+            let kvdb_result = app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await?;
             let key_share: KeyShareWithAuxInfo =
-                entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result).unwrap();
+                entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result)
+                    .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
             Some(OldHolder { key_share: key_share.0 })
         };
     let party_ids: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
-    let old_holders_info = get_validators_info(&api, &rpc, signers).await.unwrap();
+    let old_holders_info = get_validators_info(&api, &rpc, signers)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
     let old_holders: BTreeSet<PartyId> =
         old_holders_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
@@ -145,7 +147,7 @@ pub async fn new_reshare(
 
     let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
     let account_id = AccountId32(signer.signer().public().0);
-    let session_id_hash = session_id.blake2(None).unwrap();
+    let session_id_hash = session_id.blake2(None)?;
     let pair = PairWrapper(signer.signer().clone());
 
     let mut converted_validator_info = vec![];
@@ -179,7 +181,7 @@ pub async fn new_reshare(
     .await?;
 
     let channels = {
-        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await.unwrap();
+        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
         Channels(broadcast_out, rx_from_others)
     };

@@ -208,6 +208,7 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Submits a request to do a key refresh on the signers parent key.
         pub fn post_reshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let reshare_data = pallet_staking_extension::Pallet::<T>::reshare_data();
             if reshare_data.block_number != block_number {
@@ -255,6 +256,7 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Submits a request to perform a proactive refresh to the threshold servers.
         pub fn post_proactive_refresh(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let refresh_info = pallet_staking_extension::Pallet::<T>::proactive_refresh();
             if refresh_info.validators_info.is_empty() {

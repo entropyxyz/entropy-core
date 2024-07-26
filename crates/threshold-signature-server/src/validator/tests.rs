@@ -22,7 +22,7 @@ use crate::{
         launch::{development_mnemonic, ValidatorName, FORBIDDEN_KEYS},
         substrate::submit_transaction,
         tests::initialize_test_logger,
-        validator::{get_hkdf_from_mnemonic, get_signer_from_hkdf},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::errors::ValidatorErr,
 };
@@ -93,9 +93,8 @@ async fn setup_for_reshare(
     let validators_names = vec![ValidatorName::Alice, ValidatorName::Bob];
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name));
-        let hkdf = get_hkdf_from_mnemonic(&mnemonic.to_string()).unwrap();
-        let tss_signer = get_signer_from_hkdf(&hkdf).unwrap();
-
+        let (tss_signer, _static_secret) =
+            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
         let jump_start_confirm_request = entropy::tx()
             .registry()
             .confirm_jump_start(bounded_vec::BoundedVec(EVE_VERIFYING_KEY.to_vec()));
