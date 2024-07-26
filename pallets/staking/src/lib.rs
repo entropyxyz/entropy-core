@@ -57,7 +57,7 @@ use sp_staking::SessionIndex;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{ValidatorInfo, X25519PublicKey};
+    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         pallet_prelude::*,
@@ -420,7 +420,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::confirm_key_reshare_confirmed()
+            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(SIGNING_PARTY_SIZE as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
     })]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -442,16 +442,19 @@ pub mod pallet {
 
             // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
             // ensure that rotation was indeed successful.
-
-            if signers_info.confirmations.len() == (signers_info.next_signers.len() - 1) {
+            let current_signer_length = signers_info.next_signers.len();
+            if signers_info.confirmations.len() == (current_signer_length - 1) {
                 Signers::<T>::put(signers_info.next_signers.clone());
                 Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
-                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_confirmed()).into())
+                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_completed()).into())
             } else {
                 signers_info.confirmations.push(validator_stash.clone());
                 NextSigners::<T>::put(signers_info);
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
-                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_completed()).into())
+                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_confirmed(
+                    current_signer_length as u32,
+                ))
+                .into())
             }
         }
     }
