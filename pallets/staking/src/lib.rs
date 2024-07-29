@@ -455,15 +455,12 @@ pub mod pallet {
             if signers_info.confirmations.len() == (current_signer_length - 1) {
                 Signers::<T>::put(signers_info.next_signers.clone());
                 Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
-                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_completed()).into())
+                Ok(Pays::No.into())
             } else {
                 signers_info.confirmations.push(validator_stash.clone());
                 NextSigners::<T>::put(signers_info);
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
-                Ok(Some(<T as Config>::WeightInfo::confirm_key_reshare_confirmed(
-                    current_signer_length as u32,
-                ))
-                .into())
+                Ok(Pays::No.into())
             }
         }
     }
