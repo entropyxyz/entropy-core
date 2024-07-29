@@ -2,7 +2,7 @@
 
 This is JS bindings for a basic client library for [Entropy](https://entropy.xyz).
 
-For a full-featured client library, you probably want the [SDK](https://www.npmjs.com/package/@entropyxyz/SDK).
+For a full-featured client library, you probably want the [SDK](https://www.npmjs.com/package/@entropyxyz/sdk).
 
 ## A note on using this on NodeJS
 
