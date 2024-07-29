@@ -428,10 +428,10 @@ pub mod pallet {
         }
 
         #[pallet::call_index(5)]
-        #[pallet::weight({
+        #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(SIGNING_PARTY_SIZE as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
-    })]
+    }, DispatchClass::Operational))]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
