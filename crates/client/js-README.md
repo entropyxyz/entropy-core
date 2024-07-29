@@ -2,12 +2,12 @@
 
 This is JS bindings for a basic client library for [Entropy](https://entropy.xyz).
 
-For a full featured client library you probably want the [SDK](https://www.npmjs.com/package/@entropyxyz/sdk).
+For a full-featured client library, you probably want the [SDK](https://www.npmjs.com/package/@entropyxyz/SDK).
 
 ## A note on using this on NodeJS
 
-This expects to have access to the browser websockets API, which is not present on NodeJS. To use
-this on NodeJS you must have the dependency [`ws`](https://www.npmjs.com/package/ws) as a property
+This expects to have access to the browser WebSockets API, which is not present on NodeJS. To use
+this on NodeJS, you must have the dependency [`ws`](https://www.npmjs.com/package/ws) as a property
 of the `global` object like so:
 
 ```js
@@ -24,7 +24,7 @@ const client = require('entropy-client')
 
 ### `EntropyApi`
 
-To interact with an Entropy chain node you need to instantiate the `EntropyApi` object, giving the
+To interact with an Entropy chain node, you need to instantiate the `EntropyApi` object, giving the
 chain endpoint URL as a string to the constructor:
 
 ```js
@@ -57,7 +57,7 @@ The `StoreProgram` async function takes the following arguments:
 - `oracleDataPointer: Uint8Array` this should be a `Uint8Array` of length zero since oracle data is
   not yet fully implemented.
 
-If successful it returns a `Promise<string>` containing the hex encoded hash of the stored program.
+If successful, it returns a `Promise<string>` containing the hex-encoded hash of the stored program.
 
 ```js
 const programBinary = new Uint8Array(fs.readFileSync('my-program.wasm'))
@@ -69,11 +69,10 @@ const programHash = await client.storeProgram(api, userKeypair, programBinary, c
 
 ### `programInstance`
 
-When registering or updating a program, we have a specify the program hash as well as the program
+When registering or updating a program, we have to specify the program hash and
 configuration (if present). The `programInstance` object bundles these two things together.
 
-The constructor takes a program hash and configuration interface, both given as `Uint8Array`s. If
-you have a hex-encoded hash from the output from `StroreProgram`, you need to convert it to a `Uint8Array`.
+The constructor takes a program hash and configuration interface, both given as `Uint8Array`s. If you have a hex-encoded hash from the output from `StroreProgram`, you need to convert it to a `Uint8Array`.
 If no configuration interface is needed, it should be an empty `Uint8Array`:
 
 ```js
@@ -90,15 +89,14 @@ function, and attempt to get the verifying key if registration was successful wi
 The `register` function takes the following arguments:
 - `api: entropyapi` an instance of the api to interact with a chain node,
 - `userkeypair: sr25519pair` a funded entropy account from which to submit the register extrinsic,
-- `programaccount: uint8array` - the 32 byte account id (public key) of the program modification account,
+- `programaccount: uint8array` - the 32-byte account ID (public key) of the program modification account,
 - `programs: programinstance[]` - an array of programs to be associated with the account.
 
 The `pollForRegistration` function takes the following arguments:
 - `api: EntropyApi` an instance of the API to interact with a chain node,
 - `userAccountId: Uint8Array` the public key of the account which submitted the registration.
 
-If a successful registration was made, the returned promise will resolve to a `VerifyingKey`,
-otherwise it will resolve to `undefined`.
+If a successful registration was made, the returned promise resolves to a `VerifyingKey`; otherwise, it resolves to `undefined`.
 
 ```js
 await client.register(api, userKeypair, programAccount, [program])
@@ -128,9 +126,9 @@ The `sign` function takes the following arguments:
   to be funded.
 - `verifyingKey: VerifyingKey` the public verifying key of the Entropy account.
 - `message: Uint8Array` the message to sign.
-- `auxData: Uint8Array | undefined` auxiliary data to be passed to the program, if present.
+- `auxData: Uint8Array | undefined` auxiliary data to be passed to the program if present.
 
-If successful it returns the signature encoded as a string. A `Signature` type will be implemented
+If successful, it returns the signature encoded as a string. A `Signature` type will be implemented
 soon.
 
 ```js
