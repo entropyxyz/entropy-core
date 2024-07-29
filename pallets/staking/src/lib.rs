@@ -200,6 +200,8 @@ pub mod pallet {
         pub inital_signers: Vec<T::ValidatorId>,
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
+        /// validator info and account to take part in a reshare
+        pub mock_signer_rotate: bool,
     }
 
     #[pallet::genesis_build]
@@ -229,6 +231,13 @@ pub mod pallet {
                 proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
             };
             ProactiveRefresh::<T>::put(refresh_info);
+
+            if self.mock_signer_rotate {
+                NextSigners::<T>::put(NextSignerInfo {
+                    next_signers: self.inital_signers.clone(),
+                    confirmations: vec![],
+                });
+            }
         }
     }
     // Errors inform users that something went wrong.

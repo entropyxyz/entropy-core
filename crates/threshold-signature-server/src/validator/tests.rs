@@ -31,7 +31,7 @@ use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     spawn_testing_validators,
-    substrate_context::testing_context,
+    substrate_context::{testing_context, test_node_process_testing_state},
     test_context_stationary,
 };
 use futures::future::join_all;
@@ -50,10 +50,10 @@ async fn test_reshare() {
 
     let alice = AccountKeyring::Alice;
 
-    let cxt = test_context_stationary().await;
+    let cxt = test_node_process_testing_state(true).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;

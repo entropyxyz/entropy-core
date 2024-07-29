@@ -21,7 +21,7 @@ use crate::{
     get_signer_and_x25519_secret,
     helpers::{
         launch::FORBIDDEN_KEYS,
-        substrate::{get_stash_address, get_validators_info, query_chain},
+        substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
     signing_client::{protocol_transport::open_protocol_connections, ProtocolErr},
     validator::errors::ValidatorErr,
@@ -40,7 +40,10 @@ use parity_scale_codec::{Decode, Encode};
 use rand_core::OsRng;
 use sp_core::Pair;
 use std::{collections::BTreeSet, str::FromStr, time::Duration};
-use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
+    OnlineClient,
+};
 use synedrion::{
     make_key_resharing_session, sessions::SessionId as SynedrionSessionId, KeyResharingInputs,
     NewHolder, OldHolder,
@@ -203,7 +206,33 @@ pub async fn new_reshare(
     let _serialized_key_share = key_serialize(&new_key_share)
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
     // TODO: do reshare call confirm_reshare (delete key when done) see #941
+
+    // TODO: Error handling really complex needs to be thought about.
+    confirm_key_reshare(&api, &rpc, &signer).await?;
     Ok(StatusCode::OK)
+}
+
+/// Confirms that a address has finished registering on chain.
+pub async fn confirm_key_reshare(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+) -> Result<(), ValidatorErr> {
+    // TODO error handling + return error
+    // TODO fire and forget, or wait for in block maybe Ddos error
+    // TODO: Understand this better, potentially use sign_and_submit_default
+    // or other method under sign_and_*
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
+
+    let confirm_key_reshare_request = entropy::tx().staking_extension().confirm_key_reshare();
+    submit_transaction(api, rpc, signer, &confirm_key_reshare_request, Some(nonce)).await?;
+    Ok(())
 }
 
 /// Validation for if an account can cover tx fees for a tx

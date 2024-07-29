@@ -414,6 +414,7 @@ pub fn testnet_genesis_config(
                 })
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
+            mock_signer_rotate: false,
             inital_signers: initial_authorities.iter().map(|auth| {
                 auth.0.clone()
             })
