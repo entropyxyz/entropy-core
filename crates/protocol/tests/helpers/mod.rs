@@ -55,7 +55,7 @@ struct ServerState {
 #[derive(Clone)]
 pub enum ProtocolOutput {
     Sign(RecoverableSignature),
-    ProactiveRefresh(ThresholdKeyShare<KeyParams, PartyId>),
+    Reshare(ThresholdKeyShare<KeyParams, PartyId>),
     Dkg(KeyShareWithAuxInfo),
 }
 
@@ -130,7 +130,7 @@ pub async fn server(
             let (signature, recovery_id) = rsig.to_backend();
             Ok(ProtocolOutput::Sign(RecoverableSignature { signature, recovery_id }))
         },
-        SessionId::ProactiveRefresh { .. } => {
+        SessionId::Reshare { .. } => {
             let new_keyshare = execute_proactive_refresh(
                 session_id,
                 channels,
@@ -139,7 +139,7 @@ pub async fn server(
                 threshold_keyshare.unwrap(),
             )
             .await?;
-            Ok(ProtocolOutput::ProactiveRefresh(new_keyshare))
+            Ok(ProtocolOutput::Reshare(new_keyshare))
         },
         SessionId::Dkg { .. } => {
             let keyshare_and_aux_info =

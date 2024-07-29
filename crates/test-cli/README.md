@@ -26,6 +26,7 @@ When using the local docker compose setup, be aware you need to set the TSS host
 ```
 127.0.0.1 alice-tss-server
 127.0.0.1 bob-tss-server
+127.0.0.1 charlie-tss-server
 ```
 
 You'll also need the following packages:
@@ -39,9 +40,9 @@ You'll also need the following packages:
 
     ```shell
     # MacOS
-    brew install openssl 
+    brew install openssl
     ```
-    
+
 2. `pkg-config`:
 
     ```shell

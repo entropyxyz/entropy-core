@@ -68,7 +68,7 @@ fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
 }
 
 /// Derive signing keypair
-fn get_signer_from_hkdf(
+pub fn get_signer_from_hkdf(
     hkdf: &Hkdf<Sha256>,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let mut sr25519_seed = [0u8; 32];

@@ -167,7 +167,7 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -369,7 +369,7 @@ async fn test_sign_tx_no_chain_fail() {
 
     let one = AccountKeyring::Dave;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -493,7 +493,7 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -559,7 +559,7 @@ async fn test_store_share() {
     let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -730,7 +730,7 @@ async fn test_jumpstart_network() {
     let alice = AccountKeyring::Alice;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -771,7 +771,7 @@ async fn test_jumpstart_network() {
             .iter()
             .map(|port| {
                 client
-                    .post(format!("http://127.0.0.1:{}/user/new", port))
+                    .post(format!("http://127.0.0.1:{}/generate_network_key", port))
                     .body(onchain_user_request.clone().encode())
                     .send()
             })
@@ -800,7 +800,13 @@ async fn test_jumpstart_network() {
     let key_share: Option<KeyShareWithAuxInfo> =
         entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
     assert_eq!(key_share.is_some(), true);
+    let jump_start_progress_query = entropy::storage().registry().jump_start_progress();
+    let jump_start_progress =
+        query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
+    let verifying_key =
+        key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
+    assert_eq!(jump_start_progress.verifying_key.unwrap().0, verifying_key);
     clean_tests();
 }
 
@@ -921,7 +927,7 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1020,7 +1026,7 @@ async fn test_device_key_proxy() {
 
     let one = AccountKeyring::Dave;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1128,7 +1134,7 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (validator_ips, _validator_ids) = spawn_testing_validators(false).await;
     let substrate_context = test_node_process_testing_state(true).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();

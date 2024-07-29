@@ -91,12 +91,16 @@ fn it_jumps_the_network() {
     new_test_ext().execute_with(|| {
         assert_eq!(
             Registry::jump_start_progress(),
-            JumpStartDetails { jump_start_status: JumpStartStatus::Ready, confirmations: vec![] },
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::Ready,
+                confirmations: vec![],
+                verifying_key: None
+            },
             "Checks default status of jump start detail"
         );
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(
-            Registry::dkg(0),
+            Registry::jumpstart_dkg(0),
             vec![NETWORK_PARENT_KEY.encode()],
             "ensures a dkg message for the jump start network is prepped"
         );
@@ -105,6 +109,7 @@ fn it_jumps_the_network() {
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![],
+                verifying_key: None
             },
             "Checks that jump start is in progress"
         );
@@ -121,7 +126,8 @@ fn it_jumps_the_network() {
             Registry::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(100),
-                confirmations: vec![]
+                confirmations: vec![],
+                verifying_key: None
             },
             "ensures jump start is called again if too many blocks passed"
         );
@@ -131,44 +137,64 @@ fn it_jumps_the_network() {
 #[test]
 fn it_tests_jump_start_result() {
     new_test_ext().execute_with(|| {
+        let expected_verifying_key = BoundedVec::default();
+
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::NoThresholdKey
         );
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(7, 7);
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(7)),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7), expected_verifying_key.clone()),
             Error::<Test>::NotValidator
         );
 
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::JumpStartNotInProgress
         );
         // trigger jump start
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
 
-        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(1)));
+        assert_ok!(Registry::confirm_jump_start(
+            RuntimeOrigin::signed(1),
+            expected_verifying_key.clone()
+        ));
         assert_eq!(
             Registry::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
-                confirmations: vec![1]
+                confirmations: vec![1],
+                verifying_key: Some(expected_verifying_key.clone())
             },
             "Jump start recieves a confirmation"
         );
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1)),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::AlreadyConfirmed
         );
 
+        let bad_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), bad_verifying_key.clone()),
+            Error::<Test>::MismatchedVerifyingKey
+        );
+
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-        assert_ok!(Registry::confirm_jump_start(RuntimeOrigin::signed(2)));
+        assert_ok!(Registry::confirm_jump_start(
+            RuntimeOrigin::signed(2),
+            expected_verifying_key.clone()
+        ));
         assert_eq!(
             Registry::jump_start_progress(),
-            JumpStartDetails { jump_start_status: JumpStartStatus::Done, confirmations: vec![] },
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::Done,
+                confirmations: vec![],
+                verifying_key: Some(expected_verifying_key)
+            },
             "Jump start in done status after all confirmations"
         );
     });

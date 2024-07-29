@@ -33,6 +33,8 @@ use crate::{
     signing_client::{ListenerState, ProtocolErr},
 };
 
+use std::collections::BTreeSet;
+
 /// Thin wrapper around [ListenerState], manages execution of a signing party.
 #[derive(Clone)]
 pub struct ThresholdSigningService<'a> {
@@ -98,7 +100,7 @@ impl<'a> ThresholdSigningService<'a> {
             return Err(ProtocolErr::BadSessionId);
         };
 
-        let parties: Vec<PartyId> =
+        let parties: BTreeSet<PartyId> =
             threshold_accounts.iter().map(|t| PartyId::new(t.clone())).collect();
 
         let rsig = execute_signing_protocol(

@@ -134,6 +134,7 @@ pub mod pallet {
     pub struct JumpStartDetails<T: Config> {
         pub jump_start_status: JumpStartStatus,
         pub confirmations: Vec<T::ValidatorId>,
+        pub verifying_key: Option<VerifyingKey>,
     }
 
     #[pallet::genesis_config]
@@ -180,6 +181,15 @@ pub mod pallet {
     pub type Registering<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
+    /// Used for triggering a network wide distributed key generation request via an offchain
+    /// worker.
+    #[pallet::storage]
+    #[pallet::getter(fn jumpstart_dkg)]
+    pub type JumpstartDkg<T: Config> =
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
+
+    /// Used to store requests and trigger distributed key generation for users via an offchain
+    /// worker.
     #[pallet::storage]
     #[pallet::getter(fn dkg)]
     pub type Dkg<T: Config> =
@@ -252,6 +262,7 @@ pub mod pallet {
         NoProgramSet,
         TooManyModifiableKeys,
         MismatchedVerifyingKeyLength,
+        MismatchedVerifyingKey,
         NotValidator,
         JumpStartProgressNotReady,
         JumpStartNotInProgress,
@@ -284,14 +295,19 @@ pub mod pallet {
                 },
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
+
             // TODO (#923): Add checks for network state.
-            Dkg::<T>::try_mutate(current_block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(NETWORK_PARENT_KEY.encode());
-                Ok(())
-            })?;
+            JumpstartDkg::<T>::try_mutate(
+                current_block_number,
+                |messages| -> Result<_, DispatchError> {
+                    messages.push(NETWORK_PARENT_KEY.encode());
+                    Ok(())
+                },
+            )?;
             JumpStartProgress::<T>::put(JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
+                verifying_key: None,
             });
             Self::deposit_event(Event::StartedNetworkJumpStart());
             Ok(())
@@ -303,7 +319,10 @@ pub mod pallet {
                 <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
                 .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
         })]
-        pub fn confirm_jump_start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn confirm_jump_start(
+            origin: OriginFor<T>,
+            verifying_key: VerifyingKey,
+        ) -> DispatchResultWithPostInfo {
             // check is validator
             let ts_server_account = ensure_signed(origin)?;
 
@@ -314,12 +333,21 @@ pub mod pallet {
             ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
 
             let mut jump_start_info = JumpStartProgress::<T>::get();
+            match jump_start_info.verifying_key {
+                Some(ref key) => {
+                    ensure!(key == &verifying_key, Error::<T>::MismatchedVerifyingKey);
+                },
+                None => {
+                    jump_start_info.verifying_key = Some(verifying_key);
+                },
+            }
 
             // check in progress
             ensure!(
                 matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
                 Error::<T>::JumpStartNotInProgress
             );
+
             ensure!(
                 !jump_start_info.confirmations.contains(&validator_stash),
                 Error::<T>::AlreadyConfirmed
@@ -337,6 +365,7 @@ pub mod pallet {
                 JumpStartProgress::<T>::put(JumpStartDetails {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
+                    verifying_key: jump_start_info.verifying_key,
                 });
 
                 Self::deposit_event(Event::FinishedNetworkJumpStart());
@@ -373,7 +402,7 @@ pub mod pallet {
         /// network.
         #[pallet::call_index(2)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::register( <T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
         })]
         pub fn register(
             origin: OriginFor<T>,

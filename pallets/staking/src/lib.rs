@@ -114,6 +114,11 @@ pub mod pallet {
         pub proactive_refresh_keys: Vec<Vec<u8>>,
     }
 
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
+    pub struct ReshareInfo<BlockNumber> {
+        pub new_signer: Vec<u8>,
+        pub block_number: BlockNumber,
+    }
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
@@ -169,6 +174,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn next_signers)]
     pub type NextSigners<T: Config> = StorageValue<_, Vec<T::ValidatorId>, ValueQuery>;
+
+    /// The next time a reshare should happen
+    #[pallet::storage]
+    #[pallet::getter(fn reshare_data)]
+    pub type ReshareData<T: Config> = StorageValue<_, ReshareInfo<BlockNumberFor<T>>, ValueQuery>;
 
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
@@ -437,9 +447,15 @@ pub mod pallet {
             current_signers.remove(0);
             current_signers.push(next_signer_up.clone());
             NextSigners::<T>::put(current_signers);
+            // trigger reshare at next block
+            let current_block_number = <frame_system::Pallet<T>>::block_number();
+            let reshare_info = ReshareInfo {
+                block_number: current_block_number + sp_runtime::traits::One::one(),
+                new_signer: next_signer_up.encode(),
+            };
+            ReshareData::<T>::put(reshare_info);
 
             // for next PR
-            // tell signers to do new key rotation with new signer group (dkg)
             // confirm action has taken place
 
             Ok(())

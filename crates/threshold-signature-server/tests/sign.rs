@@ -40,7 +40,7 @@ async fn integration_test_sign_public() {
     let eve = AccountKeyring::Eve;
     let request_author = AccountKeyring::One;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators().await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
 
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();

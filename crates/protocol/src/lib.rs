@@ -160,7 +160,7 @@ pub enum SessionId {
     /// A distributed key generation protocol session for registering
     Dkg { user: AccountId32, block_number: u32 },
     /// A proactive refresh session
-    ProactiveRefresh { verifying_key: Vec<u8>, block_number: u32 },
+    Reshare { verifying_key: Vec<u8>, block_number: u32 },
     /// A signing session
     Sign(SigningSessionInfo),
 }
@@ -185,7 +185,7 @@ impl Hash for SessionId {
                 user.0.hash(state);
                 block_number.hash(state);
             },
-            SessionId::ProactiveRefresh { verifying_key, block_number } => {
+            SessionId::Reshare { verifying_key, block_number } => {
                 verifying_key.hash(state);
                 block_number.hash(state);
             },

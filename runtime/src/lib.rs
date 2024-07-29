@@ -1384,8 +1384,8 @@ impl pallet_transaction_storage::Config for Runtime {
 parameter_types! {
     pub const BagThresholds: &'static [u64] = &voter_bags::THRESHOLDS;
 }
-type VoterBagsListInstance = pallet_bags_list::Instance1;
-impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
+
+impl pallet_bags_list::Config<pallet_bags_list::Instance1> for Runtime {
     type BagThresholds = BagThresholds;
     type RuntimeEvent = RuntimeEvent;
     type Score = VoteWeight;

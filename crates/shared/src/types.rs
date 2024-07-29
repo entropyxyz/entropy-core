@@ -50,6 +50,16 @@ pub struct OcwMessageDkg {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
+/// Offchain worker message for initiating a refresh
+#[cfg(not(feature = "wasm"))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OcwMessageReshare {
+    // Stash address of new signer
+    pub new_signer: Vec<u8>,
+    pub block_number: BlockNumber,
+}
+
 /// Offchain worker message for initiating a proactive refresh
 #[cfg(not(feature = "wasm"))]
 #[derive(

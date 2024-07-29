@@ -31,7 +31,7 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
     ```
 1. If you need to communicate directly with the threshold signature scheme server from your Docker host machine, you may also need to include its address in your local `/etc/hosts` file:
     ```sh
-    echo "127.0.0.1	alice-tss-server bob-tss-server" | sudo tee -a /etc/hosts
+    echo "127.0.0.1	alice-tss-server bob-tss-server charlie-tss-server" | sudo tee -a /etc/hosts
     ```
 1. Confirm your local development network is up and running. You can:
     * look at server logs:
@@ -40,7 +40,7 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
         ```
     * [use the Entropy Test CLI](https://docs.entropy.xyz/reference/rust-testing-interface) to interact with the locally running network:
         ```sh
-        cargo run -p entropy-test-cli -- --chain-endpoint="ws://127.0.0.1:9944" status 
+        cargo run -p entropy-test-cli -- --chain-endpoint="ws://127.0.0.1:9944" status
         ```
 
 ### Building from source

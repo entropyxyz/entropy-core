@@ -202,7 +202,7 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
 /// However, this can be done by:
 /// - First, spinning up the machines you expect to be running at genesis
 /// - Then, running each TSS server with the `--setup-only` flag to get the `TssAccountId` and
-/// `TssX25519PublicKey`
+///     `TssX25519PublicKey`
 /// - Finally, writing all that information back here, and generating the chainspec from that.
 ///
 /// Note that if the KVDB of the TSS is deleted at any point during this process you will end up
