@@ -203,9 +203,16 @@ pub async fn new_reshare(
         .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
         .0
         .ok_or(ValidatorErr::NoOutputFromReshareProtocol)?;
-    let _serialized_key_share = key_serialize(&new_key_share)
+    let serialized_key_share = key_serialize(&new_key_share)
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-    // TODO: do reshare call confirm_reshare (delete key when done) see #941
+    let network_parent_key = hex::encode(NETWORK_PARENT_KEY);
+    // TODO: should this be a two step process? see # https://github.com/entropyxyz/entropy-core/issues/968
+    if app_state.kv_store.kv().exists(&network_parent_key).await? {
+        app_state.kv_store.kv().delete(&network_parent_key).await?
+    };
+
+    let reservation = app_state.kv_store.kv().reserve_key(network_parent_key).await?;
+    app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(&api, &rpc, &signer).await?;

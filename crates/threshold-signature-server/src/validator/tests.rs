@@ -21,18 +21,16 @@ use crate::{
     helpers::{
         launch::{development_mnemonic, ValidatorName, FORBIDDEN_KEYS},
         substrate::submit_transaction,
-        tests::initialize_test_logger,
+        tests::{initialize_test_logger, spawn_testing_validators, unsafe_get},
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::errors::ValidatorErr,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE};
+use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
-    spawn_testing_validators,
-    substrate_context::{testing_context, test_node_process_testing_state},
-    test_context_stationary,
+    substrate_context::{test_node_process_testing_state, testing_context},
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
@@ -57,6 +55,7 @@ async fn test_reshare() {
 
     let client = reqwest::Client::new();
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let key_share_before = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
 
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
@@ -77,6 +76,9 @@ async fn test_reshare() {
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
+    let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
+    assert_ne!(key_share_before, key_share_after);
+
     clean_tests();
 }
 
