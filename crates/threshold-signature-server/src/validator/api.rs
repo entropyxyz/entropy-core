@@ -252,8 +252,7 @@ pub async fn validate_new_reshare(
     let reshare_data = query_chain(api, rpc, reshare_data_info_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
-    dbg!(&reshare_data);
-    dbg!(&chain_data.block_number);
+
     if reshare_data.new_signer != chain_data.new_signer
         || chain_data.block_number != reshare_data.block_number
     {

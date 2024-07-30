@@ -19,18 +19,24 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
-        launch::{development_mnemonic, ValidatorName, FORBIDDEN_KEYS},
+        launch::{
+            development_mnemonic, ValidatorName, FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE,
+        },
         substrate::submit_transaction,
-        tests::{initialize_test_logger, run_to_block, spawn_testing_validators, unsafe_get},
+        tests::{
+            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            unsafe_get,
+        },
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    validator::errors::ValidatorErr,
+    validator::{api::validate_new_reshare, errors::ValidatorErr},
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{test_node_process_testing_state, testing_context},
+    test_context_stationary,
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
@@ -47,7 +53,7 @@ async fn test_reshare() {
     clean_tests();
 
     let alice = AccountKeyring::Alice;
-    dbg!(alice.public().encode());
+
     let cxt = test_node_process_testing_state(true).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
     let validator_ports = vec![3001, 3002, 3003];
@@ -89,6 +95,67 @@ async fn test_reshare() {
             unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await
         );
     }
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_reshare_validation_fail() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let dave = AccountKeyring::Dave;
+    let cxt = test_node_process_testing_state(true).await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let kv = setup_client().await;
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let mut ocw_message = OcwMessageReshare { new_signer: dave.public().encode(), block_number };
+
+    let err_stale_data =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Data is stale".to_string()));
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    ocw_message.block_number = block_number;
+    run_to_block(&rpc, block_number + 1).await;
+
+    let err_incorrect_data =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
+
+    // manipulates kvdb to get to repeated data error
+    kv.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await.unwrap();
+    let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await.unwrap();
+    kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+
+    let err_stale_data =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_reshare_validation_fail_not_in_reshare() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let kv = setup_client().await;
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let ocw_message = OcwMessageReshare { new_signer: alice.public().encode(), block_number };
+
+    run_to_block(&rpc, block_number + 1).await;
+
+    let err_not_in_reshare =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_not_in_reshare, Err("Chain Fetch: Not Currently in a reshare".to_string()));
 
     clean_tests();
 }
