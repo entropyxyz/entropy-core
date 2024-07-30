@@ -219,7 +219,7 @@ pub async fn new_reshare(
     Ok(StatusCode::OK)
 }
 
-/// Confirms that a address has finished registering on chain.
+/// Confirms that a validator has succefully reshared.
 pub async fn confirm_key_reshare(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
