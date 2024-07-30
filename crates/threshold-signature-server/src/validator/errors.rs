@@ -87,6 +87,12 @@ pub enum ValidatorErr {
     KvSerialize(String),
     #[error("Kv Deserialization Error: {0}")]
     KvDeserialize(String),
+    #[error("Data is stale")]
+    StaleData,
+    #[error("Data is not verifiable")]
+    InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
 }
 
 impl IntoResponse for ValidatorErr {

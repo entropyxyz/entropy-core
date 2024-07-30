@@ -20,7 +20,7 @@ use crate::{
     },
     get_signer_and_x25519_secret,
     helpers::{
-        launch::FORBIDDEN_KEYS,
+        launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
     signing_client::{protocol_transport::open_protocol_connections, ProtocolErr},
@@ -28,7 +28,7 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
-use entropy_kvdb::kv_manager::helpers::serialize as key_serialize;
+use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 pub use entropy_protocol::{
     decode_verifying_key,
     errors::ProtocolExecutionErr,
@@ -65,7 +65,7 @@ pub async fn new_reshare(
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
+    validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
     let signers_query = entropy::storage().staking_extension().signers();
     let signers = query_chain(&api, &rpc, signers_query, None)
         .await?
@@ -217,6 +217,53 @@ pub async fn new_reshare(
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(&api, &rpc, &signer).await?;
     Ok(StatusCode::OK)
+}
+
+// Validates new reshare endpoint
+/// Checks the chain for validity of data and block number of data matches current block
+pub async fn validate_new_reshare(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    chain_data: &OcwMessageReshare,
+    kv_manager: &KvManager,
+) -> Result<(), ValidatorErr> {
+    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_RESHARE).await?;
+    if u32::from_be_bytes(
+        last_block_number_recorded
+            .try_into()
+            .map_err(|_| ValidatorErr::Conversion("Block number conversion"))?,
+    ) >= chain_data.block_number
+    {
+        return Err(ValidatorErr::RepeatedData);
+    }
+
+    let latest_block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get block number".to_string()))?
+        .number;
+
+    // we subtract 1 as the message info is coming from the previous block
+    if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        return Err(ValidatorErr::StaleData);
+    }
+
+    let reshare_data_info_query = entropy::storage().staking_extension().reshare_data();
+    let reshare_data = query_chain(api, rpc, reshare_data_info_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
+    dbg!(&reshare_data);
+    dbg!(&chain_data.block_number);
+    if reshare_data.new_signer != chain_data.new_signer
+        || chain_data.block_number != reshare_data.block_number
+    {
+        return Err(ValidatorErr::InvalidData);
+    }
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await?;
+    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await?;
+    kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
+
+    Ok(())
 }
 
 /// Confirms that a validator has succefully reshared.

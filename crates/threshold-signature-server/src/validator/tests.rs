@@ -21,7 +21,7 @@ use crate::{
     helpers::{
         launch::{development_mnemonic, ValidatorName, FORBIDDEN_KEYS},
         substrate::submit_transaction,
-        tests::{initialize_test_logger, spawn_testing_validators, unsafe_get},
+        tests::{initialize_test_logger, run_to_block, spawn_testing_validators, unsafe_get},
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::errors::ValidatorErr,
@@ -47,7 +47,7 @@ async fn test_reshare() {
     clean_tests();
 
     let alice = AccountKeyring::Alice;
-
+    dbg!(alice.public().encode());
     let cxt = test_node_process_testing_state(true).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
     let validator_ports = vec![3001, 3002, 3003];
@@ -55,15 +55,18 @@ async fn test_reshare() {
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let mut key_shares_before = vec![];
     for port in &validator_ports {
         key_shares_before.push(unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), *port).await);
     }
 
+    setup_for_reshare(&api, &rpc).await;
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
-    setup_for_reshare(&api, &rpc).await;
+
+    run_to_block(&rpc, block_number + 1).await;
 
     let response_results = join_all(
         validator_ports
