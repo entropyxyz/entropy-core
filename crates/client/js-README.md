@@ -130,8 +130,7 @@ The `sign` function takes the following arguments:
 - `message: Uint8Array` the message to sign.
 - `auxData: Uint8Array | undefined` auxiliary data to be passed to the program, if present.
 
-If successful it returns the signature encoded as a string. A `Signature` type will be implemented
-soon.
+If successful it returns a `Signature`.
 
 ```js
 const signature = await client.sign(
@@ -152,6 +151,15 @@ Represents the public key of a registered Entropy account.
 - `static fromBytes(input: Uint8Array): VerifyingKey` - Create a `VerifyingKey` from a bytes.
 - `toBytes(): Uint8Array` - return a byte array.
 - `toString(): string` - return a hex-encoded string.
+
+### `Signature`
+
+Represents a recoverable ECDSA signature.
+
+- `recoverVerifyingKey(message: Uint8Array): VerifyingKey` - Given the associated message, recover
+  the public verifying key for this signature.
+- `toBytes(): Uint8Array` - return the signature as a byte array.
+- `toString(): string` - return the signature as a hex-encoded string.
 
 ### `updateProgram`
 
