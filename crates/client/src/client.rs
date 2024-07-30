@@ -87,7 +87,7 @@ pub async fn register(
     )
     .await?;
 
-    let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
+    let account_id = SubxtAccountId32(signature_request_keypair.public().0);
 
     for _ in 0..50 {
         if let Ok((verifying_key, registration_status)) =

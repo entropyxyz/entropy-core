@@ -5,7 +5,6 @@ use crate::{
     },
     client, VERIFYING_KEY_LENGTH,
 };
-use entropy_shared::KeyVisibility;
 use js_sys::Error;
 use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
@@ -130,7 +129,6 @@ pub async fn register(
         &entropy_api.rpc,
         user_keypair.0.clone(),
         AccountId32(program_account),
-        KeyVisibility::Public,
         BoundedVec(programs),
     )
     .await
@@ -171,7 +169,6 @@ pub async fn sign(
         user_keypair.0.clone(),
         verifying_key.0,
         message,
-        None,
         auxilary_data,
     )
     .await
