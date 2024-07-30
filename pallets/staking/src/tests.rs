@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, ServerInfo, ThresholdToStash};
+use crate::{
+    mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, NextSignerInfo, NextSigners,
+    ServerInfo, ThresholdToStash,
+};
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
@@ -330,13 +333,24 @@ fn it_tests_new_session_handler() {
         // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
 
         // no next signers at start
-        assert_eq!(Staking::next_signers().len(), 0);
+        assert_eq!(Staking::next_signers(), None);
         assert_eq!(Staking::reshare_data().block_number, 0, "Check reshare block start at zero");
         System::set_block_number(100);
 
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
         // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
-        assert_eq!(Staking::next_signers(), vec![6, 1]);
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
+
+        assert_eq!(
+            Staking::reshare_data().block_number,
+            101,
+            "Check reshare block start at 100 + 1"
+        );
+        assert_eq!(
+            Staking::reshare_data().new_signer,
+            1u64.encode(),
+            "Check reshare next signer up is 1"
+        );
 
         assert_eq!(
             Staking::reshare_data().block_number,
@@ -351,10 +365,56 @@ fn it_tests_new_session_handler() {
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
         // takes 3 and leaves 5 and 6 since already in signer group
-        assert_eq!(Staking::next_signers(), vec![6, 3]);
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
 
         assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
-        assert_eq!(Staking::next_signers(), vec![6, 3]);
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+    });
+}
+
+#[test]
+fn it_confirms_keyshare() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(10)),
+            Error::<Test>::NoThresholdKey
+        );
+
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(7)),
+            Error::<Test>::ReshareNotInProgress
+        );
+
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![7, 5],
+            confirmations: vec![5],
+        });
+
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(8)),
+            Error::<Test>::NotNextSigner
+        );
+
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(7)),
+            Error::<Test>::AlreadyConfirmed
+        );
+
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![6, 5],
+            confirmations: vec![],
+        });
+
+        let mock_next_signer_info =
+            NextSignerInfo { next_signers: vec![6, 5], confirmations: vec![5] };
+
+        assert_ok!(Staking::confirm_key_reshare(RuntimeOrigin::signed(7)));
+        assert_eq!(Staking::next_signers().unwrap(), mock_next_signer_info, "Confirmation added");
+        assert_eq!(Staking::signers(), [5, 6], "check current signers so we can see it changed");
+
+        assert_ok!(Staking::confirm_key_reshare(RuntimeOrigin::signed(8)));
+        assert_eq!(Staking::next_signers(), None, "Next Signers cleared");
+        assert_eq!(Staking::signers(), [6, 5], "next signers rotated into current signers");
     });
 }

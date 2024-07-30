@@ -208,6 +208,7 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
+            mock_signer_rotate: true,
             inital_signers: initial_authorities.iter().map(|auth| {
                 auth.0.clone()
             })

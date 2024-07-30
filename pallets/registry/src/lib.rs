@@ -608,7 +608,7 @@ pub mod pallet {
                 <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
                 .max(<T as Config>::WeightInfo::confirm_register_registered(pallet_session::Pallet::<T>::validators().len() as u32))
                 .max(<T as Config>::WeightInfo::confirm_register_failed_registering(pallet_session::Pallet::<T>::validators().len() as u32));
-            (weight, Pays::No)
+            (weight, DispatchClass::Operational, Pays::No)
         })]
         pub fn confirm_register(
             origin: OriginFor<T>,

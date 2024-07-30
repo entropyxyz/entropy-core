@@ -396,6 +396,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
         inital_signers: vec![5, 6],
         proactive_refresh_data: (vec![], vec![]),
+        mock_signer_rotate: false,
     };
 
     pallet_balances.assimilate_storage(&mut t).unwrap();

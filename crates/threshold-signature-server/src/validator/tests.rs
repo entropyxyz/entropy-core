@@ -21,18 +21,16 @@ use crate::{
     helpers::{
         launch::{development_mnemonic, ValidatorName, FORBIDDEN_KEYS},
         substrate::submit_transaction,
-        tests::initialize_test_logger,
+        tests::{initialize_test_logger, spawn_testing_validators, unsafe_get},
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::errors::ValidatorErr,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE};
+use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
-    spawn_testing_validators,
-    substrate_context::testing_context,
-    test_context_stationary,
+    substrate_context::{test_node_process_testing_state, testing_context},
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
@@ -50,20 +48,25 @@ async fn test_reshare() {
 
     let alice = AccountKeyring::Alice;
 
-    let cxt = test_context_stationary().await;
+    let cxt = test_node_process_testing_state(true).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let validator_ports = vec![3001, 3002, 3003];
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let mut key_shares_before = vec![];
+    for port in &validator_ports {
+        key_shares_before.push(unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), *port).await);
+    }
 
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
     setup_for_reshare(&api, &rpc).await;
 
     let response_results = join_all(
-        vec![3001, 3002, 3003]
+        validator_ports
             .iter()
             .map(|port| {
                 client
@@ -77,6 +80,13 @@ async fn test_reshare() {
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
+    for i in 0..validator_ports.len() {
+        assert_ne!(
+            key_shares_before[i],
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await
+        );
+    }
+
     clean_tests();
 }
 
