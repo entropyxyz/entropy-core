@@ -3,8 +3,9 @@ use crate::{
         entropy::runtime_types::{bounded_collections::bounded_vec::BoundedVec, pallet_registry},
         get_api, get_rpc, EntropyConfig,
     },
-    client, VERIFYING_KEY_LENGTH,
+    client, Hasher, VERIFYING_KEY_LENGTH,
 };
+use entropy_protocol::RecoverableSignature;
 use js_sys::Error;
 use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
@@ -111,6 +112,43 @@ impl VerifyingKey {
     }
 }
 
+/// An ECDSA recoverable signature
+#[wasm_bindgen(inspectable)]
+pub struct Signature(RecoverableSignature);
+
+#[wasm_bindgen]
+impl Signature {
+    /// Given the associated message, recover the public key for this signature
+    #[wasm_bindgen(js_name=recoverVerifyingKey)]
+    pub fn recover_verifying_key(&self, message: Vec<u8>) -> Result<VerifyingKey, Error> {
+        let message_hash = Hasher::keccak(&message);
+        let verifying_key = synedrion::k256::ecdsa::VerifyingKey::recover_from_prehash(
+            &message_hash,
+            &self.0.signature,
+            self.0.recovery_id,
+        )
+        .map_err(|err| Error::new(&format!("{:?}", err)))?;
+
+        Ok(VerifyingKey(
+            verifying_key
+                .to_encoded_point(true)
+                .as_bytes()
+                .try_into()
+                .map_err(|_| Error::new("Bad verifying key length"))?,
+        ))
+    }
+
+    #[wasm_bindgen(js_name=toBytes)]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.0.to_rsv_bytes().to_vec()
+    }
+
+    #[wasm_bindgen(js_name=toString)]
+    pub fn to_string(&self) -> String {
+        hex::encode(self.to_bytes())
+    }
+}
+
 /// Register an Entropy account
 #[wasm_bindgen]
 pub async fn register(
@@ -162,7 +200,7 @@ pub async fn sign(
     verifying_key: &VerifyingKey,
     message: Vec<u8>,
     auxilary_data: Option<Vec<u8>>,
-) -> Result<String, Error> {
+) -> Result<Signature, Error> {
     let recoverable_signature = client::sign(
         &entropy_api.api,
         &entropy_api.rpc,
@@ -174,8 +212,7 @@ pub async fn sign(
     .await
     .map_err(|err| Error::new(&format!("{:?}", err)))?;
 
-    // TODO type for signature
-    Ok(format!("{:?}", recoverable_signature))
+    Ok(Signature(recoverable_signature))
 }
 
 /// Store a given program binary and return its hash

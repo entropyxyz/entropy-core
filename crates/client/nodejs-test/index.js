@@ -49,7 +49,7 @@ async function main () {
         new Uint8Array(Buffer.from('my message to sign')),
         undefined // Aux data goes here
       )
-      console.log(`Signed message ${signature}`)
+      console.log(`Signature: ${signature.toString()}`)
       break
     case 'accounts':
       // Display information about all registered accounts
