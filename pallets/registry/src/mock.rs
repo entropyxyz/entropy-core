@@ -365,12 +365,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (7, (4, NULL_ARR, vec![50])),
         ],
         proactive_refresh_data: (vec![], vec![]),
-        mock_signer_rotate: (false, vec![]),
+        mock_signer_rotate: (false, vec![], vec![]),
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
 
-    let stakers = vec![1, 2];
+    let stakers = vec![1, 2, 5];
     let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
 
     pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();

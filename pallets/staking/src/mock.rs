@@ -395,9 +395,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
         threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
         proactive_refresh_data: (vec![], vec![]),
-        mock_signer_rotate: (false, vec![]),
+        mock_signer_rotate: (false, vec![], vec![]),
     };
-
     pallet_balances.assimilate_storage(&mut t).unwrap();
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
 

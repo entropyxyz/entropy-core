@@ -15,7 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
-use entropy_shared::TOTAL_SIGNERSZE;
+use entropy_shared::TOTAL_SIGNERS;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -178,10 +178,10 @@ benchmarks! {
   }
 
   confirm_key_reshare_confirmed {
-    let c in 0 .. TOTAL_SIGNERSZE as u32;
+    let c in 0 .. TOTAL_SIGNERS as u32;
     // leave a space for two as not to rotate and only confirm rotation
     let confirmation_num = c.checked_sub(2).unwrap_or(0);
-    let signer_num =  TOTAL_SIGNERSZE - 1;
+    let signer_num =  TOTAL_SIGNERS - 1;
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let second_signer: T::AccountId = account("second_signer", 0, SEED);
@@ -205,7 +205,7 @@ benchmarks! {
 
   confirm_key_reshare_completed {
     // once less confirmation to always flip to rotate
-    let confirmation_num = TOTAL_SIGNERSZE - 1;
+    let confirmation_num = TOTAL_SIGNERS as usize - 1;
 
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();

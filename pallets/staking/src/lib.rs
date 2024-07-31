@@ -58,7 +58,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, TOTAL_SIGNERSZE, TEST_RESHARE_BLOCK_NUMBER,
+        ValidatorInfo, X25519PublicKey, TEST_RESHARE_BLOCK_NUMBER, TOTAL_SIGNERS,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -202,7 +202,7 @@ pub mod pallet {
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
         /// validator info and account to take part in a reshare
-        pub mock_signer_rotate: (bool, Vec<T::ValidatorId>),
+        pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
     }
 
     #[pallet::genesis_build]
@@ -233,6 +233,10 @@ pub mod pallet {
             ProactiveRefresh::<T>::put(refresh_info);
             // mocks a signer rotation for tss new_reshare tests
             if self.mock_signer_rotate.0 {
+                self.mock_signer_rotate
+                    .clone()
+                    .1
+                    .push(self.mock_signer_rotate.clone().2[0].clone());
                 NextSigners::<T>::put(NextSignerInfo {
                     next_signers: self.mock_signer_rotate.clone().1,
                     confirmations: vec![],
@@ -242,10 +246,7 @@ pub mod pallet {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
                     // Alice signer public key
-                    new_signer: vec![
-                        212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214,
-                        130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
-                    ],
+                    new_signer: self.mock_signer_rotate.clone().2[0].encode(),
                 })
             }
         }
@@ -439,7 +440,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight(({
-            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(TOTAL_SIGNERSZE as u32)
+            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(TOTAL_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
     }, DispatchClass::Operational))]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {

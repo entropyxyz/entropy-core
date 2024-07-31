@@ -62,7 +62,6 @@ pub async fn new_reshare(
 ) -> Result<StatusCode, ValidatorErr> {
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
     // TODO: validate message came from chain (check reshare block # against current block number) see #941
-
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
@@ -70,12 +69,10 @@ pub async fn new_reshare(
     let signers = query_chain(&api, &rpc, signers_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
-
     let next_signers_query = entropy::storage().staking_extension().signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting next signers"))?;
-
     let validators_info = get_validators_info(&api, &rpc, next_signers)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
@@ -104,6 +101,7 @@ pub async fn new_reshare(
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
     if !is_proper_signer {
+        dbg!("not proper");
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
     // get old key if have it

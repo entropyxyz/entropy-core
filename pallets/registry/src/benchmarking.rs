@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::{TOTAL_SIGNERSZE, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{TOTAL_SIGNERS, VERIFICATION_KEY_LENGTH};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -79,20 +79,20 @@ benchmarks! {
   }
 
   confirm_jump_start_done {
-    let c in 0 .. TOTAL_SIGNERSZE as u32;
+    let c in 0 .. TOTAL_SIGNERS as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let expected_verifying_key = BoundedVec::default();
 
     let mut accounts = vec![];
-    for i in 0..TOTAL_SIGNERSZE {
+    for i in 0..TOTAL_SIGNERS {
         accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
     }
 
-    let validators = add_non_syncing_validators::<T>(TOTAL_SIGNERSZE as u32, 0);
+    let validators = add_non_syncing_validators::<T>(TOTAL_SIGNERS as u32, 0);
     <Validators<T>>::set(validators.clone());
 
-    for i in 0..TOTAL_SIGNERSZE {
+    for i in 0..TOTAL_SIGNERS {
         <ThresholdToStash<T>>::insert(accounts[i].clone(), &validators[i]);
     }
 
@@ -111,15 +111,15 @@ benchmarks! {
   }
 
   confirm_jump_start_confirm {
-    let c in 0 .. TOTAL_SIGNERSZE as u32;
+    let c in 0 .. TOTAL_SIGNERS as u32;
     let sig_req_account: T::AccountId = whitelisted_caller();
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let expected_verifying_key = BoundedVec::default();
 
     // add validators and a registering user
-    for i in 0..TOTAL_SIGNERSZE {
-        let validators = add_non_syncing_validators::<T>(TOTAL_SIGNERSZE as u32, 0);
+    for i in 0..TOTAL_SIGNERS {
+        let validators = add_non_syncing_validators::<T>(TOTAL_SIGNERS as u32, 0);
         <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
     }
