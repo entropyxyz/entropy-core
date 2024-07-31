@@ -32,7 +32,10 @@ use crate::{
     validator::{api::validate_new_reshare, errors::ValidatorErr},
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::{OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY};
+use entropy_shared::{
+    OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY,
+    TEST_RESHARE_BLOCK_NUMBER,
+};
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{test_node_process_testing_state, testing_context},
@@ -68,7 +71,7 @@ async fn test_reshare() {
 
     setup_for_reshare(&api, &rpc).await;
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: alice.public().encode(), block_number };
 
