@@ -69,13 +69,16 @@ pub async fn new_reshare(
     let signers = query_chain(&api, &rpc, signers_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
+
     let next_signers_query = entropy::storage().staking_extension().signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting next signers"))?;
+
     let validators_info = get_validators_info(&api, &rpc, next_signers)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
