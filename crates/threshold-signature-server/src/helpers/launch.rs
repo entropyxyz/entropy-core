@@ -377,7 +377,7 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
     }
     let exists_result_reshare =
         kv.kv().exists(LATEST_BLOCK_NUMBER_RESHARE).await.expect("issue querying DB");
-    if !exists_result_new_user {
+    if !exists_result_reshare {
         let reservation = kv
             .kv()
             .reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string())
