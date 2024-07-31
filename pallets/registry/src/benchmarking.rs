@@ -93,12 +93,12 @@ benchmarks! {
     <Validators<T>>::set(validators.clone());
 
     for i in 0..TOTAL_SIGNERS {
-        <ThresholdToStash<T>>::insert(accounts[i].clone(), &validators[i]);
+        <ThresholdToStash<T>>::insert(accounts[i as usize].clone(), &validators[i as usize]);
     }
 
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
-      confirmations: vec![validators[0].clone()],
+      confirmations: vec![validators[0].clone(), validators[0].clone()],
       verifying_key: None
       });
 
@@ -121,7 +121,7 @@ benchmarks! {
     for i in 0..TOTAL_SIGNERS {
         let validators = add_non_syncing_validators::<T>(TOTAL_SIGNERS as u32, 0);
         <Validators<T>>::set(validators.clone());
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
     }
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
