@@ -57,7 +57,9 @@ use sp_staking::SessionIndex;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE};
+    use entropy_shared::{
+        ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE, TEST_RESHARE_BLOCK_NUMBER,
+    };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         pallet_prelude::*,
@@ -231,12 +233,22 @@ pub mod pallet {
                 proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
             };
             ProactiveRefresh::<T>::put(refresh_info);
-
+            // mocks a signer rotation for tss new_reshare tests
             if self.mock_signer_rotate {
                 NextSigners::<T>::put(NextSignerInfo {
                     next_signers: self.inital_signers.clone(),
                     confirmations: vec![],
                 });
+
+                ReshareData::<T>::put(ReshareInfo {
+                    // To give enough time for test_reshare setup
+                    block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
+                    // Alice signer public key
+                    new_signer: vec![
+                        212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214,
+                        130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
+                    ],
+                })
             }
         }
     }

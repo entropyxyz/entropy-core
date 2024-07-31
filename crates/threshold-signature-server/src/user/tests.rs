@@ -784,15 +784,18 @@ async fn test_jumpstart_network() {
     }
 
     // wait for jump start event check that key exists in kvdb
+    let mut got_jumpstart_event = false;
     for _ in 0..45 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
         for _event in jump_start_event.flatten() {
+            got_jumpstart_event = true;
             break;
         }
     }
+    assert!(got_jumpstart_event);
 
     let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
 
