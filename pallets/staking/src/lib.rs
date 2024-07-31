@@ -58,7 +58,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, SIGNING_PARTY_SIZE, TEST_RESHARE_BLOCK_NUMBER,
+        ValidatorInfo, X25519PublicKey, TOTAL_SIGNERSZE, TEST_RESHARE_BLOCK_NUMBER,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -199,11 +199,10 @@ pub mod pallet {
     #[derive(DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         pub threshold_servers: Vec<ThresholdServersConfig<T>>,
-        pub inital_signers: Vec<T::ValidatorId>,
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
         /// validator info and account to take part in a reshare
-        pub mock_signer_rotate: bool,
+        pub mock_signer_rotate: (bool, Vec<T::ValidatorId>),
     }
 
     #[pallet::genesis_build]
@@ -225,7 +224,6 @@ pub mod pallet {
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
                 IsValidatorSynced::<T>::insert(validator_stash, true);
-                Signers::<T>::put(&self.inital_signers);
             }
 
             let refresh_info = RefreshInfo {
@@ -234,9 +232,9 @@ pub mod pallet {
             };
             ProactiveRefresh::<T>::put(refresh_info);
             // mocks a signer rotation for tss new_reshare tests
-            if self.mock_signer_rotate {
+            if self.mock_signer_rotate.0 {
                 NextSigners::<T>::put(NextSignerInfo {
-                    next_signers: self.inital_signers.clone(),
+                    next_signers: self.mock_signer_rotate.clone().1,
                     confirmations: vec![],
                 });
 
@@ -441,7 +439,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight(({
-            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(SIGNING_PARTY_SIZE as u32)
+            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(TOTAL_SIGNERSZE as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
     }, DispatchClass::Operational))]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {

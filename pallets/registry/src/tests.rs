@@ -197,6 +197,11 @@ fn it_tests_jump_start_result() {
             },
             "Jump start in done status after all confirmations"
         );
+        assert_eq!(
+            pallet_staking_extension::Signers::<Test>::get(),
+            vec![1, 2],
+            "Jumpstart sets inital signers"
+        );
     });
 }
 
