@@ -7113,6 +7113,7 @@ dependencies = [
  "pallet-babe",
  "pallet-bags-list",
  "pallet-balances",
+ "pallet-parameters",
  "pallet-programs",
  "pallet-registry",
  "pallet-session",
