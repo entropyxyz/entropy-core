@@ -62,7 +62,6 @@ pub async fn new_reshare(
 ) -> Result<StatusCode, ValidatorErr> {
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
     // TODO: validate message came from chain (check reshare block # against current block number) see #941
-
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
@@ -79,6 +78,7 @@ pub async fn new_reshare(
     let validators_info = get_validators_info(&api, &rpc, next_signers)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;

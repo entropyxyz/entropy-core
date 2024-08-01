@@ -45,8 +45,10 @@ fn it_tests_get_validators_info() {
             ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] };
         let server_info_2 =
             ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] };
+        let server_info_3 =
+            ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] };
 
-        assert_eq!(result_1, vec![server_info_1, server_info_2]);
+        assert_eq!(result_1, vec![server_info_1, server_info_2, server_info_3]);
     });
 }
 
@@ -184,8 +186,13 @@ fn it_tests_jump_start_result() {
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(5, 5);
         assert_ok!(Registry::confirm_jump_start(
             RuntimeOrigin::signed(2),
+            expected_verifying_key.clone()
+        ));
+        assert_ok!(Registry::confirm_jump_start(
+            RuntimeOrigin::signed(5),
             expected_verifying_key.clone()
         ));
         assert_eq!(
@@ -196,6 +203,11 @@ fn it_tests_jump_start_result() {
                 verifying_key: Some(expected_verifying_key)
             },
             "Jump start in done status after all confirmations"
+        );
+        assert_eq!(
+            pallet_staking_extension::Signers::<Test>::get(),
+            vec![1, 2, 5],
+            "Jumpstart sets inital signers"
         );
     });
 }
@@ -258,7 +270,7 @@ fn it_confirms_registers_a_user() {
         );
 
         assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(7), 1, expected_verifying_key.clone()),
+            Registry::confirm_register(RuntimeOrigin::signed(8), 1, expected_verifying_key.clone()),
             Error::<Test>::NotValidator
         );
 
@@ -274,6 +286,12 @@ fn it_confirms_registers_a_user() {
 
         assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(2),
+            1,
+            expected_verifying_key.clone()
+        ));
+
+        assert_ok!(Registry::confirm_register(
+            RuntimeOrigin::signed(7),
             1,
             expected_verifying_key.clone()
         ));
@@ -794,7 +812,7 @@ fn it_provides_free_txs_confirm_done_fails_4() {
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&7, &c, &di, 20);
+        let r = p.validate(&8, &c, &di, 20);
         assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }

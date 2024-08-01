@@ -15,7 +15,7 @@
 
 use crate::{
     mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, NextSignerInfo, NextSigners,
-    ServerInfo, ThresholdToStash,
+    ServerInfo, Signers, ThresholdToStash,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -241,6 +241,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
 #[test]
 fn it_deletes_when_no_bond_left() {
     new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![5, 6]);
         start_active_era(1);
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(2),
@@ -331,7 +332,7 @@ fn it_declares_synced() {
 fn it_tests_new_session_handler() {
     new_test_ext().execute_with(|| {
         // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
-
+        Signers::<Test>::put(vec![5, 6]);
         // no next signers at start
         assert_eq!(Staking::next_signers(), None);
         assert_eq!(Staking::reshare_data().block_number, 0, "Check reshare block start at zero");
@@ -376,6 +377,7 @@ fn it_tests_new_session_handler() {
 #[test]
 fn it_confirms_keyshare() {
     new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![5, 6]);
         assert_noop!(
             Staking::confirm_key_reshare(RuntimeOrigin::signed(10)),
             Error::<Test>::NoThresholdKey
