@@ -24,8 +24,8 @@ use frame_system::{EventRecord, RawOrigin};
 use pallet_programs::{ProgramInfo, Programs};
 use pallet_session::Validators;
 use pallet_staking_extension::{
-    benchmarking::create_validators, IsValidatorSynced, ServerInfo, ThresholdServers,
-    ThresholdToStash,
+    benchmarking::create_validators, IsValidatorSynced, JumpStartDetails, JumpStartProgress,
+    JumpStartStatus, ServerInfo, ThresholdServers, ThresholdToStash,
 };
 use sp_runtime::traits::Hash;
 use sp_std::{vec, vec::Vec};
@@ -99,7 +99,8 @@ benchmarks! {
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![validators[0].clone(), validators[0].clone()],
-      verifying_key: None
+      verifying_key: None,
+      parent_key_threhsold: 2
       });
 
 
@@ -126,7 +127,8 @@ benchmarks! {
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![],
-      verifying_key: None
+      verifying_key: None,
+      parent_key_threhsold: 2
   });
 
 
