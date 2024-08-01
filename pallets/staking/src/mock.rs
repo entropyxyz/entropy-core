@@ -24,7 +24,7 @@ use frame_support::{
     derive_impl, parameter_types,
     traits::{ConstU32, Get, Hooks, OneSessionHandler, Randomness},
 };
-use frame_system as system;
+use frame_system::{self as system, EnsureRoot};
 use pallet_session::{historical as pallet_session_historical, ShouldEndSession};
 use sp_core::H256;
 use sp_runtime::{
@@ -58,6 +58,7 @@ frame_support::construct_runtime!(
     Session: pallet_session,
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
+    Parameters: pallet_parameters,
   }
 );
 
@@ -385,6 +386,12 @@ impl pallet_staking_extension::Config for Test {
     type WeightInfo = ();
 }
 
+impl pallet_parameters::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<Self::AccountId>;
+    type WeightInfo = ();
+}
+
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
@@ -399,6 +406,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     };
     pallet_balances.assimilate_storage(&mut t).unwrap();
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+    pallet_parameters::GenesisConfig::<Test> {
+        request_limit: 5u32,
+        max_instructions_per_programs: 5u64,
+        total_signers: 5u8,
+        threshold: 2u8,
+        _config: Default::default(),
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
     t.into()
 }

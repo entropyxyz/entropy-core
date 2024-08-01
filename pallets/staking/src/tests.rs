@@ -336,6 +336,12 @@ fn it_tests_new_session_handler() {
         // no next signers at start
         assert_eq!(Staking::next_signers(), None);
         assert_eq!(Staking::reshare_data().block_number, 0, "Check reshare block start at zero");
+        assert_eq!(
+            Staking::jump_start_progress().parent_key_threhsold,
+            0,
+            "parent key threhsold start at zero"
+        );
+
         System::set_block_number(100);
 
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
@@ -351,6 +357,11 @@ fn it_tests_new_session_handler() {
             Staking::reshare_data().new_signer,
             1u64.encode(),
             "Check reshare next signer up is 1"
+        );
+        assert_eq!(
+            Staking::jump_start_progress().parent_key_threhsold,
+            2,
+            "parent key threhsold updated"
         );
 
         assert_eq!(

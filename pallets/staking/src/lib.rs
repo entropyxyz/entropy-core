@@ -59,6 +59,7 @@ use sp_staking::SessionIndex;
 pub mod pallet {
     use entropy_shared::{
         ValidatorInfo, X25519PublicKey, TEST_RESHARE_BLOCK_NUMBER, TOTAL_SIGNERS,
+        VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -78,9 +79,14 @@ pub mod pallet {
 
     use super::*;
 
+    pub type VerifyingKey = BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>;
+
     #[pallet::config]
     pub trait Config:
-        pallet_session::Config + frame_system::Config + pallet_staking::Config
+        pallet_session::Config
+        + frame_system::Config
+        + pallet_staking::Config
+        + pallet_parameters::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Something that provides randomness in the runtime.
@@ -169,6 +175,36 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    #[derive(
+        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+    )]
+    pub enum JumpStartStatus {
+        #[default]
+        Ready,
+        // u32 is block number process was started, after X blocks we assume failed and retry
+        InProgress(u32),
+        Done,
+    }
+
+    /// Details of status of jump starting the network
+    #[derive(
+        Clone,
+        Encode,
+        Decode,
+        Eq,
+        PartialEqNoBound,
+        RuntimeDebug,
+        TypeInfo,
+        frame_support::DefaultNoBound,
+    )]
+    #[scale_info(skip_type_params(T))]
+    pub struct JumpStartDetails<T: Config> {
+        pub jump_start_status: JumpStartStatus,
+        pub confirmations: Vec<T::ValidatorId>,
+        pub verifying_key: Option<VerifyingKey>,
+        pub parent_key_threhsold: u8,
+    }
+
     /// A trigger for the proactive refresh OCW
     #[pallet::storage]
     #[pallet::getter(fn proactive_refresh)]
@@ -188,6 +224,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn reshare_data)]
     pub type ReshareData<T: Config> = StorageValue<_, ReshareInfo<BlockNumberFor<T>>, ValueQuery>;
+
+    /// A concept of what progress status the jumpstart is
+    #[pallet::storage]
+    #[pallet::getter(fn jump_start_progress)]
+    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails<T>, ValueQuery>;
 
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
@@ -527,10 +568,10 @@ pub mod pallet {
                 new_signer: next_signer_up.encode(),
             };
             ReshareData::<T>::put(reshare_info);
-
-            // for next PR
-            // confirm action has taken place
-
+            JumpStartProgress::<T>::mutate(|jump_start_details| {
+                jump_start_details.parent_key_threhsold =
+                    pallet_parameters::Pallet::<T>::signers_info().threshold;
+            });
             Ok(())
         }
     }
