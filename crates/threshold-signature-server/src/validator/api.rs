@@ -104,7 +104,6 @@ pub async fn new_reshare(
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
     if !is_proper_signer {
-        dbg!("not proper");
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
     // get old key if have it

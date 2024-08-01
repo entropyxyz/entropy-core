@@ -201,7 +201,7 @@ pub mod pallet {
         pub threshold_servers: Vec<ThresholdServersConfig<T>>,
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
-        /// validator info and account to take part in a reshare
+        /// validator info and account new signer to take part in a reshare
         pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
     }
 
@@ -245,7 +245,6 @@ pub mod pallet {
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    // Alice signer public key
                     new_signer: self.mock_signer_rotate.clone().2[0].encode(),
                 })
             }
