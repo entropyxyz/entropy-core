@@ -743,7 +743,7 @@ pub mod pallet {
             program_modification_account: T::AccountId,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
-            use std::str::FromStr;
+            use core::str::FromStr;
             use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
             let signature_request_account = ensure_signed(origin)?;
@@ -788,8 +788,9 @@ pub mod pallet {
             // For a V1 of this flow it's fine, but we'll need to think about a better solution
             // down the line.
             let count = RegisteredOnChain::<T>::count();
-            let path = bip32::DerivationPath::from_str(&format!("m/0/{}", count))
-                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
+            let path =
+                bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count))
+                    .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
             let child_verifying_key = network_verifying_key
                 .derive_verifying_key_bip32(&path)
                 .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
