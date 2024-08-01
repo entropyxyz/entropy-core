@@ -16,7 +16,7 @@ bip32     ={ version="0.5.2", default-features=false, features=["alloc"] }
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 log       ={ version="0.4.22", default-features=false }
 scale-info={ version="2.11", default-features=false, features=["derive"] }
-synedrion ={ git="https://github.com/entropyxyz/synedrion", branch="hc/make-derivation-independent-of-keyshare", default-features=false }
+synedrion ={ path="/Users/hcastano/Workspace/Entropy/synedrion/synedrion", default-features=false }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 frame-support     ={ version="29.0.0", default-features=false }
