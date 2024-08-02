@@ -737,7 +737,7 @@ pub mod pallet {
         #[pallet::call_index(7)]
         #[pallet::weight({
             // TODO (Nando): Use actual benchmark
-            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::on_chain_registration(<T as Config>::MaxProgramHashes::get())
         })]
         pub fn on_chain_registration(
             origin: OriginFor<T>,

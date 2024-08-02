@@ -52,6 +52,7 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_registry.
 pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
+	fn on_chain_registration(_p: u32) -> Weight;
 	fn jump_start_network() -> Weight;
 	fn prune_registration(p: u32) -> Weight;
 	fn confirm_jump_start_done(c: u32, ) -> Weight;
@@ -134,6 +135,27 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(2_000_000, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:0)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::CounterForRegisteredOnChain` (r:1 w:1)
+	/// Proof: `Registry::CounterForRegisteredOnChain` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Registry::RegisteredOnChain` (r:1 w:1)
+	/// Proof: `Registry::RegisteredOnChain` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
+	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 5]`.
+	fn on_chain_registration(_p: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `563`
+		//  Estimated: `4028`
+		// Minimum execution time: 525_000_000 picoseconds.
+		Weight::from_parts(540_700_000, 0)
+			.saturating_add(Weight::from_parts(0, 4028))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	/// Storage: `Registry::Registering` (r:1 w:1)
 	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -311,6 +333,27 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(2_000_000, 0).saturating_mul(p.into()))
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(3))
+	}
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:0)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::CounterForRegisteredOnChain` (r:1 w:1)
+	/// Proof: `Registry::CounterForRegisteredOnChain` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Registry::RegisteredOnChain` (r:1 w:1)
+	/// Proof: `Registry::RegisteredOnChain` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
+	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 5]`.
+	fn on_chain_registration(_p: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `563`
+		//  Estimated: `4028`
+		// Minimum execution time: 525_000_000 picoseconds.
+		Weight::from_parts(540_700_000, 0)
+			.saturating_add(Weight::from_parts(0, 4028))
+			.saturating_add(RocksDbWeight::get().reads(5))
+			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	/// Storage: `Registry::Registering` (r:1 w:1)
 	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
