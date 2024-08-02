@@ -29,6 +29,7 @@ use crate::{
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
+use entropy_protocol::Subsession;
 pub use entropy_protocol::{
     decode_verifying_key,
     errors::ProtocolExecutionErr,
@@ -45,8 +46,8 @@ use subxt::{
     OnlineClient,
 };
 use synedrion::{
-    make_key_resharing_session, sessions::SessionId as SynedrionSessionId, KeyResharingInputs,
-    NewHolder, OldHolder,
+    make_aux_gen_session, make_key_resharing_session, sessions::SessionId as SynedrionSessionId,
+    AuxInfo, KeyResharingInputs, NewHolder, OldHolder,
 };
 use tokio::time::timeout;
 
@@ -150,7 +151,7 @@ pub async fn new_reshare(
 
     let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
     let account_id = AccountId32(signer.signer().public().0);
-    let session_id_hash = session_id.blake2(None)?;
+    let session_id_hash = session_id.blake2(Some(Subsession::Reshare))?;
     let pair = PairWrapper(signer.signer().clone());
 
     let mut converted_validator_info = vec![];
@@ -183,27 +184,47 @@ pub async fn new_reshare(
     )
     .await?;
 
-    let channels = {
+    let (channels, broadcaster) = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
-        Channels(broadcast_out, rx_from_others)
+        (Channels(broadcast_out.clone(), rx_from_others), broadcast_out)
     };
 
     let session = make_key_resharing_session(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
-        pair,
+        pair.clone(),
         &party_ids,
         inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let new_key_share = execute_protocol_generic(channels, session, session_id_hash)
+    let (new_key_share_option, rx) = execute_protocol_generic(channels, session, session_id_hash)
         .await
-        .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
-        .0
-        .ok_or(ValidatorErr::NoOutputFromReshareProtocol)?;
-    let serialized_key_share = key_serialize(&new_key_share)
+        .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?;
+
+    let new_key_share = new_key_share_option.ok_or(ValidatorErr::NoOutputFromReshareProtocol)?;
+
+    // Setup channels for the next session
+    let channels = Channels(broadcaster, rx);
+
+    // Now run an aux gen session
+    let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
+    let session = make_aux_gen_session(
+        &mut OsRng,
+        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+        pair,
+        &party_ids,
+    )
+    .map_err(ProtocolExecutionErr::SessionCreation)?;
+
+    let aux_info: AuxInfo<KeyParams, PartyId> =
+        execute_protocol_generic(channels, session, session_id_hash)
+            .await
+            .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
+            .0;
+
+    let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
     let network_parent_key = hex::encode(NETWORK_PARENT_KEY);
     // TODO: should this be a two step process? see # https://github.com/entropyxyz/entropy-core/issues/968
