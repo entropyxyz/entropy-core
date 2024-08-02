@@ -198,10 +198,11 @@ benchmarks! {
     );
 
     let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
-    <JumpStartProgress<T>>::put(JumpStartDetails {
+    <pallet_staking_extension::JumpStartProgress<T>>::put(JumpStartDetails {
         jump_start_status: JumpStartStatus::Done,
         confirmations: vec![],
         verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+        parent_key_threshold: 0,
     });
 
 

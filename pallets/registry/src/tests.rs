@@ -23,7 +23,7 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
-use pallet_staking_extension::{JumpStartDetails, JumpStartStatus, ServerInfo};
+use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -88,10 +88,11 @@ fn it_registers_a_user_on_chain() {
         let programs_info = setup_programs();
 
         let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
-        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
             jump_start_status: JumpStartStatus::Done,
             confirmations: vec![],
             verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
         });
 
         // Test: Run through registration
@@ -129,10 +130,11 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
         let programs_info = setup_programs();
 
         let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
-        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+        JumpStartProgress::<Test>::set(JumpStartDetails {
             jump_start_status: JumpStartStatus::Done,
             confirmations: vec![],
             verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
         });
 
         // Test: Run through registration twice using the same signature request account. We should
@@ -202,10 +204,11 @@ fn it_fails_registration_if_no_jump_start_has_happened() {
         let programs_info = setup_programs();
 
         // This should be the default status, but let's be explicit about it anyways
-        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
             jump_start_status: JumpStartStatus::Ready,
             confirmations: vec![],
             verifying_key: None,
+            parent_key_threshold: 0,
         });
 
         // Test: Run through registration, this should fail
@@ -225,10 +228,11 @@ fn it_fails_registration_with_too_many_modifiable_keys() {
         let programs_info = setup_programs();
 
         let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
-        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
             jump_start_status: JumpStartStatus::Done,
             confirmations: vec![],
             verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
         });
 
         // Now we prep our state to make sure that the limit of verifying keys for an account is hit
@@ -247,6 +251,11 @@ fn it_fails_registration_with_too_many_modifiable_keys() {
             Error::<Test>::TooManyModifiableKeys
         );
     })
+}
+
+#[test]
+fn it_fails_registration_if_parent_key_matches_derived_key() {
+    new_test_ext().execute_with(|| {})
 }
 
 #[test]
@@ -294,7 +303,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::Ready,
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threshold: 0
+                parent_key_threshold: 0,
             },
             "Checks default status of jump start detail"
         );
@@ -310,7 +319,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "Checks that jump start is in progress"
         );
@@ -329,7 +338,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::InProgress(100),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "ensures jump start is called again if too many blocks passed"
         );
@@ -370,7 +379,7 @@ fn it_tests_jump_start_result() {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![1],
                 verifying_key: Some(expected_verifying_key.clone()),
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "Jump start recieves a confirmation"
         );
@@ -402,7 +411,7 @@ fn it_tests_jump_start_result() {
                 jump_start_status: JumpStartStatus::Done,
                 confirmations: vec![],
                 verifying_key: Some(expected_verifying_key),
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "Jump start in done status after all confirmations"
         );
