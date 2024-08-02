@@ -58,7 +58,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, TEST_RESHARE_BLOCK_NUMBER, MAX_SIGNERS,
+        ValidatorInfo, X25519PublicKey, MAX_SIGNERS, TEST_RESHARE_BLOCK_NUMBER,
         VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
@@ -554,9 +554,12 @@ pub mod pallet {
                 index = randomness.next_u32() % validators.len() as u32;
                 next_signer_up = &validators[index as usize];
             }
+            let signers_info = pallet_parameters::Pallet::<T>::signers_info();
 
-            // removes first signer and pushes new signer to back
-            current_signers.remove(0);
+            // removes first signer and pushes new signer to back if total signers not increased
+            if current_signers.len() < signers_info.total_signers as usize {
+                current_signers.remove(0);
+            }
             current_signers.push(next_signer_up.clone());
             NextSigners::<T>::put(NextSignerInfo {
                 next_signers: current_signers,
@@ -570,8 +573,7 @@ pub mod pallet {
             };
             ReshareData::<T>::put(reshare_info);
             JumpStartProgress::<T>::mutate(|jump_start_details| {
-                jump_start_details.parent_key_threshold =
-                    pallet_parameters::Pallet::<T>::signers_info().threshold;
+                jump_start_details.parent_key_threshold = signers_info.threshold
             });
             Ok(())
         }
