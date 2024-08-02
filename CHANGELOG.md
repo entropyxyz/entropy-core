@@ -19,6 +19,7 @@ At the moment this project **does not** adhere to
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
 - Add Signer groups and rotation ([#938](https://github.com/entropyxyz/entropy-core/pull/938))
 - Split jumpstart and register flows ([#952](https://github.com/entropyxyz/entropy-core/pull/952))
+- New on-chain registration flow ([#955](https://github.com/entropyxyz/entropy-core/pull/955))
 - Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
 - Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
 
