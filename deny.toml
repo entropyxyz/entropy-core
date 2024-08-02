@@ -1,6 +1,7 @@
 [licenses]
-# The lint level for crates which do not have a detectable license
-unlicensed="deny"
+
+# Note that with this version we `deny` the `unlicense` and `copyleft` licenses.
+version=2
 
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
@@ -17,9 +18,6 @@ allow=[
   "MIT-0",
   "MPL-2.0",
 ]
-
-# Lint level for licenses considered copyleft
-copyleft="deny"
 
 # If true, ignores workspace crates that aren't published, or are only
 # published to private registries.
