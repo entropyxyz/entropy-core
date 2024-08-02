@@ -17,6 +17,7 @@
 
 #![cfg(test)]
 
+use entropy_shared::MAX_SIGNERS;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use sp_runtime::traits::BadOrigin;
@@ -98,6 +99,12 @@ fn signer_info_changed() {
         assert_noop!(
             Parameters::change_signers_info(RuntimeOrigin::root(), 0, 0),
             Error::<Runtime>::ThrehsoldTooLow,
+        );
+
+        // Fails too many signers
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), MAX_SIGNERS + 1, 1),
+            Error::<Runtime>::TooManySigners,
         );
     });
 }

@@ -58,7 +58,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, TEST_RESHARE_BLOCK_NUMBER, TOTAL_SIGNERS,
+        ValidatorInfo, X25519PublicKey, TEST_RESHARE_BLOCK_NUMBER, MAX_SIGNERS,
         VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
@@ -480,7 +480,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight(({
-            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(TOTAL_SIGNERS as u32)
+            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
     }, DispatchClass::Operational))]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -513,6 +513,7 @@ pub mod pallet {
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
                 Ok(Pays::No.into())
             }
+            // TODO weight is pays no but want a more accurate weight for max signers vs current signers
         }
     }
 

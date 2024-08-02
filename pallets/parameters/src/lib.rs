@@ -33,6 +33,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
+use entropy_shared::MAX_SIGNERS;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
@@ -56,7 +57,7 @@ pub mod module {
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_session::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// The origin which may set filter.
@@ -84,8 +85,11 @@ pub mod module {
             assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
-            let signer_info =
-                SignersSize { total_signers: self.total_signers, threshold: self.threshold };
+            let signer_info = SignersSize {
+                total_signers: self.total_signers,
+                threshold: self.threshold,
+                last_session_change: 0,
+            };
             SignersInfo::<T>::put(signer_info);
         }
     }
@@ -96,12 +100,19 @@ pub mod module {
         ThresholdGreaterThenSigners,
         /// Threhsold has to be more than 0
         ThrehsoldTooLow,
+        /// Signers over max signers, can happen however needs a benchmark rerun
+        TooManySigners,
+        /// Signers can only change by one at a time
+        SignerDiffTooLarge,
+        /// Can only do one change per session
+        OneChangePerSession,
     }
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
     pub struct SignersSize {
         pub threshold: u8,
         pub total_signers: u8,
+        pub last_session_change: u32,
     }
 
     #[pallet::event]
@@ -137,7 +148,7 @@ pub mod module {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight(T::WeightInfo::change_request_limit())]
+        #[pallet::weight( <T as Config>::WeightInfo::change_request_limit())]
         pub fn change_request_limit(origin: OriginFor<T>, request_limit: u32) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             RequestLimit::<T>::put(request_limit);
@@ -146,7 +157,7 @@ pub mod module {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight(T::WeightInfo::max_instructions_per_programs())]
+        #[pallet::weight( <T as Config>::WeightInfo::max_instructions_per_programs())]
         pub fn change_max_instructions_per_programs(
             origin: OriginFor<T>,
             max_instructions_per_programs: u64,
@@ -161,7 +172,7 @@ pub mod module {
 
         /// Changes the threshold related parameters for signing.
         #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::change_signers_info())]
+        #[pallet::weight( <T as Config>::WeightInfo::change_signers_info())]
         pub fn change_signers_info(
             origin: OriginFor<T>,
             total_signers: u8,
@@ -170,7 +181,19 @@ pub mod module {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(total_signers >= threshold, Error::<T>::ThresholdGreaterThenSigners);
             ensure!(threshold > 0, Error::<T>::ThrehsoldTooLow);
-            let signer_info = SignersSize { total_signers, threshold };
+            ensure!(total_signers <= MAX_SIGNERS, Error::<T>::TooManySigners);
+            let old_signer_info = Self::signers_info();
+            ensure!(
+                old_signer_info.total_signers.abs_diff(total_signers) > 1,
+                Error::<T>::SignerDiffTooLarge
+            );
+            let current_session = pallet_session::Pallet::<T>::current_index();
+            ensure!(
+                current_session > old_signer_info.last_session_change,
+                Error::<T>::OneChangePerSession
+            );
+            let signer_info =
+                SignersSize { total_signers, threshold, last_session_change: current_session };
             SignersInfo::<T>::put(&signer_info);
             Self::deposit_event(Event::SignerInfoChanged { signer_info });
             Ok(())

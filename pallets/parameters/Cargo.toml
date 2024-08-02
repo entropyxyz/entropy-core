@@ -17,6 +17,11 @@ frame-support     ={ version="29.0.0", default-features=false }
 frame-system      ={ version="29.0.0", default-features=false }
 sp-runtime        ={ version="32.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
+pallet-session    ={ version="29.0.0", default-features=false }
+
+entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
+  "wasm-no-std",
+], default-features=false }
 
 [dev-dependencies]
 sp-core={ version="29.0.0" }
@@ -32,6 +37,7 @@ runtime-benchmarks=[
 std=[
   "frame-support/std",
   "frame-system/std",
+  "pallet-session/std",
   "scale-info/std",
   "sp-runtime/std",
   "sp-std/std",
