@@ -215,8 +215,8 @@ benchmarks! {
       programs_info
   )
   verify {
+    use core::str::FromStr;
     use synedrion::DeriveChildKey;
-    use std::str::FromStr;
 
     let network_verifying_key =
         synedrion::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
@@ -224,7 +224,8 @@ benchmarks! {
     // We substract one from the count since this gets incremented after a succesful registration,
     // and we're interested in the account we just registered.
     let count = <RegisteredOnChain<T>>::count() - 1;
-    let derivation_path = bip32::DerivationPath::from_str(&format!("m/0/{}", count)).unwrap();
+    let derivation_path =
+        bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count)).unwrap();
 
     let expected_verifying_key = network_verifying_key
         .derive_verifying_key_bip32(&derivation_path)
