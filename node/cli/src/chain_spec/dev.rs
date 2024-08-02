@@ -276,10 +276,7 @@ pub fn development_genesis_config(
                 })
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
-            inital_signers: initial_authorities.iter().map(|auth| {
-                auth.0.clone()
-            })
-            .collect::<Vec<_>>(),
+            mock_signer_rotate: (false, vec![], vec![]),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts

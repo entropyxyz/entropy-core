@@ -15,6 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
+use entropy_shared::TOTAL_SIGNERS;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -174,6 +175,56 @@ benchmarks! {
   }:  _(RawOrigin::Signed(caller.clone()), true)
   verify {
     assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
+  }
+
+  confirm_key_reshare_confirmed {
+    let c in 0 .. TOTAL_SIGNERS as u32;
+    // leave a space for two as not to rotate and only confirm rotation
+    let confirmation_num = c.checked_sub(2).unwrap_or(0);
+    let signer_num =  TOTAL_SIGNERS - 1;
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
+
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); signer_num as usize];
+    signers.push(validator_id_res.clone());
+    Signers::<T>::put(signers.clone());
+
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![second_signer_id.clone(); confirmation_num as usize],
+  });
+
+  }: confirm_key_reshare(RawOrigin::Signed(caller.clone()))
+  verify {
+    assert_last_event::<T>(Event::<T>::SignerConfirmed(validator_id_res).into());
+  }
+
+  confirm_key_reshare_completed {
+    // once less confirmation to always flip to rotate
+    let confirmation_num = TOTAL_SIGNERS as usize - 1;
+
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); confirmation_num as usize];
+    signers.push(validator_id_res.clone());
+
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers.clone(),
+      confirmations: vec![second_signer_id; confirmation_num as usize],
+  });
+
+  }:  confirm_key_reshare(RawOrigin::Signed(caller.clone()))
+  verify {
+    assert_last_event::<T>(Event::<T>::SignersRotation(signers.clone()).into());
   }
 }
 

@@ -360,9 +360,7 @@ impl pallet_session::historical::Config for Test {
 thread_local! {
     pub static LAST_RANDOM: RefCell<Option<(H256, u64)>> = RefCell::new(None);
 }
-fn set_last_random(output: H256, known_since: u64) {
-    LAST_RANDOM.with(|p| *p.borrow_mut() = Some((output, known_since)))
-}
+
 pub struct TestPastRandomness;
 impl Randomness<H256, BlockNumber> for TestPastRandomness {
     fn random(_subject: &[u8]) -> (H256, u64) {
@@ -396,10 +394,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
         threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
-        inital_signers: vec![5, 6],
         proactive_refresh_data: (vec![], vec![]),
+        mock_signer_rotate: (false, vec![], vec![]),
     };
-
     pallet_balances.assimilate_storage(&mut t).unwrap();
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
 

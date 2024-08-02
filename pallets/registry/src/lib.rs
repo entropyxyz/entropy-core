@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{NETWORK_PARENT_KEY, SIGNING_PARTY_SIZE, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{NETWORK_PARENT_KEY, TOTAL_SIGNERS, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -339,8 +339,8 @@ pub mod pallet {
         /// Allows validators to signal a successful network jumpstart
         #[pallet::call_index(1)]
         #[pallet::weight({
-                <T as Config>::WeightInfo::confirm_jump_start_confirm(SIGNING_PARTY_SIZE as u32)
-                .max(<T as Config>::WeightInfo::confirm_jump_start_done(SIGNING_PARTY_SIZE as u32))
+                <T as Config>::WeightInfo::confirm_jump_start_confirm(TOTAL_SIGNERS as u32)
+                .max(<T as Config>::WeightInfo::confirm_jump_start_done(TOTAL_SIGNERS as u32))
         })]
         pub fn confirm_jump_start(
             origin: OriginFor<T>,
@@ -380,7 +380,7 @@ pub mod pallet {
             // ensure that registration was indeed successful.
             //
             // If it fails we'll need to allow another jumpstart.
-            if jump_start_info.confirmations.len() == (SIGNING_PARTY_SIZE - 1) {
+            if jump_start_info.confirmations.len() == (TOTAL_SIGNERS as usize - 1) {
                 // registration finished, lock call
                 jump_start_info.confirmations.push(validator_stash);
                 let confirmations = jump_start_info.confirmations.len();
@@ -390,7 +390,8 @@ pub mod pallet {
                     confirmations: vec![],
                     verifying_key: jump_start_info.verifying_key,
                 });
-
+                // Jumpstart participants become first network signers
+                pallet_staking_extension::Signers::<T>::put(jump_start_info.confirmations);
                 Self::deposit_event(Event::FinishedNetworkJumpStart());
 
                 return Ok(Some(<T as Config>::WeightInfo::confirm_jump_start_done(
@@ -631,7 +632,7 @@ pub mod pallet {
                 <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
                 .max(<T as Config>::WeightInfo::confirm_register_registered(pallet_session::Pallet::<T>::validators().len() as u32))
                 .max(<T as Config>::WeightInfo::confirm_register_failed_registering(pallet_session::Pallet::<T>::validators().len() as u32));
-            (weight, Pays::No)
+            (weight, DispatchClass::Operational, Pays::No)
         })]
         pub fn confirm_register(
             origin: OriginFor<T>,
