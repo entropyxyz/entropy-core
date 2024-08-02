@@ -36,7 +36,7 @@ use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
     protocol_message::{ProtocolMessage, ProtocolMessagePayload},
     protocol_transport::Broadcaster,
-    DkgSubsession, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId,
+    KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
 };
 
 use std::collections::BTreeSet;
@@ -217,7 +217,7 @@ pub async fn execute_dkg(
 
     let my_party_id = PartyId::new(AccountId32(threshold_pair.public().0));
 
-    let session_id_hash = session_id.blake2(Some(DkgSubsession::KeyInit))?;
+    let session_id_hash = session_id.blake2(Some(Subsession::KeyInit))?;
     let (key_init_parties, includes_me) =
         get_key_init_parties(&my_party_id, threshold, &party_ids, &session_id_hash)?;
 
@@ -293,7 +293,7 @@ pub async fn execute_dkg(
         new_threshold: threshold,
     };
 
-    let session_id_hash = session_id.blake2(Some(DkgSubsession::Reshare))?;
+    let session_id_hash = session_id.blake2(Some(Subsession::Reshare))?;
     let session = make_key_resharing_session(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
@@ -312,7 +312,7 @@ pub async fn execute_dkg(
     let chans = Channels(broadcaster.clone(), rx);
 
     // Now run the aux gen protocol to get AuxInfo
-    let session_id_hash = session_id.blake2(Some(DkgSubsession::AuxGen))?;
+    let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
     let session = make_aux_gen_session(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),

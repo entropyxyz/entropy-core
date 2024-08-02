@@ -203,7 +203,7 @@ impl SessionId {
     /// Optionally with some extra data used to identify a sub-session
     pub fn blake2(
         &self,
-        sub_session: Option<DkgSubsession>,
+        sub_session: Option<Subsession>,
     ) -> Result<[u8; 32], ProtocolExecutionErr> {
         let mut hasher = Blake2s256::new();
         hasher.update(bincode::serialize(self)?);
@@ -214,9 +214,9 @@ impl SessionId {
     }
 }
 
-/// A sub-protocol of the DKG protocol
+/// A sub-protocol of the DKG or reshare protocols
 #[derive(Debug)]
-pub enum DkgSubsession {
+pub enum Subsession {
     /// The synedrion key init protocol
     KeyInit,
     /// The synedrion reshare protocol
