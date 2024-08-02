@@ -68,7 +68,6 @@ pub const TOTAL_SIGNERS: u8 = 3;
 /// Can be changed but requires a re-run of benches
 pub const MAX_SIGNERS: u8 = 15;
 
-
 /// Threshold for those signers
 pub const SIGNER_THRESHOLD: u8 = 2;
 

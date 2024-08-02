@@ -19,11 +19,15 @@
 
 use frame_support::{
     construct_runtime, derive_impl, ord_parameter_types,
-    traits::{ConstU64, Everything},
+    traits::{ConstU64, Everything, OneSessionHandler},
 };
 use frame_system::EnsureRoot;
 use sp_core::H256;
-use sp_runtime::{traits::IdentityLookup, BuildStorage};
+use sp_runtime::{
+    testing::UintAuthorityId,
+    traits::{ConvertInto, IdentityLookup},
+    BuildStorage,
+};
 
 use super::*;
 
@@ -58,6 +62,52 @@ impl frame_system::Config for Runtime {
     type Version = ();
 }
 
+pub struct MockSessionManager;
+impl pallet_session::SessionManager<AccountId> for MockSessionManager {
+    fn end_session(_: sp_staking::SessionIndex) {}
+    fn start_session(_: sp_staking::SessionIndex) {}
+    fn new_session(_: sp_staking::SessionIndex) -> Option<Vec<AccountId>> {
+        None
+    }
+}
+
+pub struct OtherSessionHandler;
+impl OneSessionHandler<AccountId> for OtherSessionHandler {
+    type Key = UintAuthorityId;
+
+    fn on_genesis_session<'a, I: 'a>(_: I)
+    where
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
+    {
+    }
+
+    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
+    where
+        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        AccountId: 'a,
+    {
+    }
+
+    fn on_disabled(_validator_index: u32) {}
+}
+
+impl sp_runtime::BoundToRuntimeAppPublic for OtherSessionHandler {
+    type Public = UintAuthorityId;
+}
+
+impl pallet_session::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorId = u128;
+    type ValidatorIdOf = ConvertInto;
+    type ShouldEndSession = pallet_session::PeriodicSessions<ConstU64<1>, ConstU64<0>>;
+    type NextSessionRotation = pallet_session::PeriodicSessions<ConstU64<1>, ConstU64<0>>;
+    type SessionManager = MockSessionManager;
+    type SessionHandler = (OtherSessionHandler,);
+    type Keys = UintAuthorityId;
+    type WeightInfo = ();
+}
+
 ord_parameter_types! {
   pub const One: AccountId = 1;
 }
@@ -75,6 +125,8 @@ construct_runtime!(
   {
     System: frame_system,
     Parameters: pallet_parameters,
+    Session: pallet_session,
+
   }
 );
 

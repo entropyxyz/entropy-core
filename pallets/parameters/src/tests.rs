@@ -17,12 +17,12 @@
 
 #![cfg(test)]
 
+use super::*;
+use crate::SignersInfo;
 use entropy_shared::MAX_SIGNERS;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use sp_runtime::traits::BadOrigin;
-
-use super::*;
 
 #[test]
 fn request_limit_changed() {
@@ -66,8 +66,9 @@ fn max_instructions_per_programs_changed() {
 #[test]
 fn signer_info_changed() {
     new_test_ext().execute_with(|| {
-        let signer_info = SignersSize { total_signers: 5, threshold: 3 };
-        let new_signer_info = SignersSize { total_signers: 6, threshold: 4 };
+        let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 0 };
+        let mut new_signer_info =
+            SignersSize { total_signers: 6, threshold: 4, last_session_change: 0 };
 
         assert_eq!(Parameters::signers_info(), signer_info, "Inital signer info set");
 
@@ -105,6 +106,22 @@ fn signer_info_changed() {
         assert_noop!(
             Parameters::change_signers_info(RuntimeOrigin::root(), MAX_SIGNERS + 1, 1),
             Error::<Runtime>::TooManySigners,
+        );
+
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), 8, signer_info.threshold),
+            Error::<Runtime>::SignerDiffTooLarge,
+        );
+        new_signer_info.last_session_change = 1;
+        SignersInfo::<Runtime>::put(new_signer_info);
+
+        assert_noop!(
+            Parameters::change_signers_info(
+                RuntimeOrigin::root(),
+                signer_info.total_signers,
+                signer_info.threshold
+            ),
+            Error::<Runtime>::OneChangePerSession,
         );
     });
 }

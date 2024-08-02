@@ -24,8 +24,9 @@ entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
 ], default-features=false }
 
 [dev-dependencies]
-sp-core={ version="29.0.0" }
-sp-io  ={ version="31.0.0" }
+sp-core   ={ version="29.0.0" }
+sp-io     ={ version="31.0.0" }
+sp-staking={ version="27.0.0", default-features=false }
 
 [features]
 default=["std"]

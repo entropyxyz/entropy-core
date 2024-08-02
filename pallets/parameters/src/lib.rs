@@ -184,12 +184,12 @@ pub mod module {
             ensure!(total_signers <= MAX_SIGNERS, Error::<T>::TooManySigners);
             let old_signer_info = Self::signers_info();
             ensure!(
-                old_signer_info.total_signers.abs_diff(total_signers) > 1,
+                old_signer_info.total_signers.abs_diff(total_signers) <= 1,
                 Error::<T>::SignerDiffTooLarge
             );
             let current_session = pallet_session::Pallet::<T>::current_index();
             ensure!(
-                current_session > old_signer_info.last_session_change,
+                current_session >= old_signer_info.last_session_change,
                 Error::<T>::OneChangePerSession
             );
             let signer_info =
