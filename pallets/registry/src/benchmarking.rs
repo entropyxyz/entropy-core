@@ -100,7 +100,7 @@ benchmarks! {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![validators[0].clone(), validators[0].clone()],
       verifying_key: None,
-      parent_key_threhsold: 2
+      parent_key_threshold: 2
       });
 
 
@@ -128,7 +128,7 @@ benchmarks! {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![],
       verifying_key: None,
-      parent_key_threhsold: 2
+      parent_key_threshold: 2
   });
 
 

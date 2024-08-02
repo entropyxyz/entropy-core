@@ -97,7 +97,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::Ready,
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threhsold: 0
+                parent_key_threshold: 0
             },
             "Checks default status of jump start detail"
         );
@@ -113,7 +113,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threhsold: 2
+                parent_key_threshold: 2
             },
             "Checks that jump start is in progress"
         );
@@ -132,7 +132,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::InProgress(100),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threhsold: 2
+                parent_key_threshold: 2
             },
             "ensures jump start is called again if too many blocks passed"
         );
@@ -173,7 +173,7 @@ fn it_tests_jump_start_result() {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![1],
                 verifying_key: Some(expected_verifying_key.clone()),
-                parent_key_threhsold: 2
+                parent_key_threshold: 2
             },
             "Jump start recieves a confirmation"
         );
@@ -205,7 +205,7 @@ fn it_tests_jump_start_result() {
                 jump_start_status: JumpStartStatus::Done,
                 confirmations: vec![],
                 verifying_key: Some(expected_verifying_key),
-                parent_key_threhsold: 2
+                parent_key_threshold: 2
             },
             "Jump start in done status after all confirmations"
         );

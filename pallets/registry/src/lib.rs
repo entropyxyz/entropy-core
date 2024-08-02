@@ -251,7 +251,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(current_block_number).unwrap_or_default();
-            let parent_key_threhsold = pallet_parameters::Pallet::<T>::signers_info().threshold;
+            let parent_key_threshold = pallet_parameters::Pallet::<T>::signers_info().threshold;
             // make sure jumpstart is ready, or in progress but X amount of time has passed
             match JumpStartProgress::<T>::get().jump_start_status {
                 JumpStartStatus::Ready => (),
@@ -277,7 +277,7 @@ pub mod pallet {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threhsold,
+                parent_key_threshold,
             });
             Self::deposit_event(Event::StartedNetworkJumpStart());
             Ok(())
@@ -336,7 +336,7 @@ pub mod pallet {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
                     verifying_key: jump_start_info.verifying_key,
-                    parent_key_threhsold: jump_start_info.parent_key_threhsold,
+                    parent_key_threshold: jump_start_info.parent_key_threshold,
                 });
                 // Jumpstart participants become first network signers
                 pallet_staking_extension::Signers::<T>::put(jump_start_info.confirmations);

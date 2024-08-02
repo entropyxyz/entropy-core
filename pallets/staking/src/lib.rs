@@ -569,7 +569,7 @@ pub mod pallet {
             };
             ReshareData::<T>::put(reshare_info);
             JumpStartProgress::<T>::mutate(|jump_start_details| {
-                jump_start_details.parent_key_threhsold =
+                jump_start_details.parent_key_threshold =
                     pallet_parameters::Pallet::<T>::signers_info().threshold;
             });
             Ok(())
