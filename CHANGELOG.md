@@ -22,6 +22,7 @@ At the moment this project **does not** adhere to
 - New on-chain registration flow ([#955](https://github.com/entropyxyz/entropy-core/pull/955))
 - Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
 - Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
+- Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 

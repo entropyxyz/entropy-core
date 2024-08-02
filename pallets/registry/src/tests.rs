@@ -23,7 +23,7 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
-use pallet_staking_extension::ServerInfo;
+use pallet_staking_extension::{JumpStartDetails, JumpStartStatus, ServerInfo};
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -31,8 +31,8 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, JumpStartDetails, JumpStartStatus, ModifiableKeys, ProgramInstance, Registered,
-    RegisteredInfo, RegisteringDetails, ValidateConfirmRegistered,
+    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
+    RegisteringDetails, ValidateConfirmRegistered,
 };
 
 const NULL_ARR: [u8; 32] = [0; 32];
@@ -289,11 +289,12 @@ fn it_registers_a_user() {
 fn it_jumps_the_network() {
     new_test_ext().execute_with(|| {
         assert_eq!(
-            Registry::jump_start_progress(),
+            Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::Ready,
                 confirmations: vec![],
-                verifying_key: None
+                verifying_key: None,
+                parent_key_threshold: 0
             },
             "Checks default status of jump start detail"
         );
@@ -304,11 +305,12 @@ fn it_jumps_the_network() {
             "ensures a dkg message for the jump start network is prepped"
         );
         assert_eq!(
-            Registry::jump_start_progress(),
+            Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![],
-                verifying_key: None
+                verifying_key: None,
+                parent_key_threshold: 2
             },
             "Checks that jump start is in progress"
         );
@@ -322,11 +324,12 @@ fn it_jumps_the_network() {
 
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(
-            Registry::jump_start_progress(),
+            Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(100),
                 confirmations: vec![],
-                verifying_key: None
+                verifying_key: None,
+                parent_key_threshold: 2
             },
             "ensures jump start is called again if too many blocks passed"
         );
@@ -362,11 +365,12 @@ fn it_tests_jump_start_result() {
             expected_verifying_key.clone()
         ));
         assert_eq!(
-            Registry::jump_start_progress(),
+            Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![1],
-                verifying_key: Some(expected_verifying_key.clone())
+                verifying_key: Some(expected_verifying_key.clone()),
+                parent_key_threshold: 2
             },
             "Jump start recieves a confirmation"
         );
@@ -393,11 +397,12 @@ fn it_tests_jump_start_result() {
             expected_verifying_key.clone()
         ));
         assert_eq!(
-            Registry::jump_start_progress(),
+            Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::Done,
                 confirmations: vec![],
-                verifying_key: Some(expected_verifying_key)
+                verifying_key: Some(expected_verifying_key),
+                parent_key_threshold: 2
             },
             "Jump start in done status after all confirmations"
         );

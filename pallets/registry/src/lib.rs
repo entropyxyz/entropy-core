@@ -60,7 +60,9 @@ pub mod pallet {
         traits::{ConstU32, IsSubType},
     };
     use frame_system::pallet_prelude::*;
-    use pallet_staking_extension::ServerInfo;
+    use pallet_staking_extension::{
+        JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo, VerifyingKey,
+    };
     use scale_info::TypeInfo;
     use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::vec;
@@ -82,6 +84,7 @@ pub mod pallet {
         + pallet_authorship::Config
         + pallet_staking_extension::Config
         + pallet_programs::Config
+        + pallet_parameters::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -93,7 +96,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
-    pub type VerifyingKey = BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>;
 
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
     #[scale_info(skip_type_params(T))]
@@ -119,40 +121,12 @@ pub mod pallet {
         pub program_modification_account: T::AccountId,
         pub version_number: u8,
     }
-    /// Details of status of jump starting the network
-    #[derive(
-        Clone,
-        Encode,
-        Decode,
-        Eq,
-        PartialEqNoBound,
-        RuntimeDebug,
-        TypeInfo,
-        frame_support::DefaultNoBound,
-    )]
-    #[scale_info(skip_type_params(T))]
-    pub struct JumpStartDetails<T: Config> {
-        pub jump_start_status: JumpStartStatus,
-        pub confirmations: Vec<T::ValidatorId>,
-        pub verifying_key: Option<VerifyingKey>,
-    }
 
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         #[allow(clippy::type_complexity)]
         pub registered_accounts: Vec<(T::AccountId, VerifyingKey)>,
-    }
-
-    #[derive(
-        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
-    )]
-    pub enum JumpStartStatus {
-        #[default]
-        Ready,
-        // u32 is block number process was started, after X blocks we assume failed and retry
-        InProgress(u32),
-        Done,
     }
 
     #[pallet::genesis_build]
@@ -231,11 +205,6 @@ pub mod pallet {
         ValueQuery,
     >;
 
-    /// A concept of what progress status the jumpstart is
-    #[pallet::storage]
-    #[pallet::getter(fn jump_start_progress)]
-    pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails<T>, ValueQuery>;
-
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
@@ -305,7 +274,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(current_block_number).unwrap_or_default();
-
+            let parent_key_threshold = pallet_parameters::Pallet::<T>::signers_info().threshold;
             // make sure jumpstart is ready, or in progress but X amount of time has passed
             match JumpStartProgress::<T>::get().jump_start_status {
                 JumpStartStatus::Ready => (),
@@ -331,6 +300,7 @@ pub mod pallet {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
                 verifying_key: None,
+                parent_key_threshold,
             });
             Self::deposit_event(Event::StartedNetworkJumpStart());
             Ok(())
@@ -389,6 +359,7 @@ pub mod pallet {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: vec![],
                     verifying_key: jump_start_info.verifying_key,
+                    parent_key_threshold: jump_start_info.parent_key_threshold,
                 });
                 // Jumpstart participants become first network signers
                 pallet_staking_extension::Signers::<T>::put(jump_start_info.confirmations);

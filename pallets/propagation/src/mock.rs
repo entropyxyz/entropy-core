@@ -21,7 +21,7 @@ use frame_support::{
     derive_impl, parameter_types,
     traits::{ConstU32, FindAuthor, OneSessionHandler, Randomness},
 };
-use frame_system as system;
+use frame_system::{self as system, EnsureRoot};
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
@@ -58,6 +58,7 @@ frame_support::construct_runtime!(
     Session: pallet_session,
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
+    Parameters: pallet_parameters,
   }
 );
 
@@ -358,6 +359,12 @@ impl pallet_programs::Config for Test {
 
 impl pallet_propagation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
+}
+
+impl pallet_parameters::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<Self::AccountId>;
+    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
