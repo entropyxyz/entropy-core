@@ -95,7 +95,7 @@ fn it_registers_a_user_on_chain() {
         });
 
         // Test: Run through registration
-        assert_ok!(Registry::on_chain_registration(
+        assert_ok!(Registry::register_on_chain(
             RuntimeOrigin::signed(alice),
             bob,
             programs_info.clone(),
@@ -137,13 +137,13 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
 
         // Test: Run through registration twice using the same signature request account. We should
         // get different verifying keys.
-        assert_ok!(Registry::on_chain_registration(
+        assert_ok!(Registry::register_on_chain(
             RuntimeOrigin::signed(alice),
             bob,
             programs_info.clone(),
         ));
 
-        assert_ok!(Registry::on_chain_registration(
+        assert_ok!(Registry::register_on_chain(
             RuntimeOrigin::signed(alice),
             bob,
             programs_info.clone(),

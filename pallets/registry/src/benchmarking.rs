@@ -163,7 +163,7 @@ benchmarks! {
     assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
-  on_chain_registration {
+  register_on_chain {
     let p in 1 .. T::MaxProgramHashes::get();
 
     let program_modification_account: T::AccountId = whitelisted_caller();

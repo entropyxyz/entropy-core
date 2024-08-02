@@ -736,10 +736,9 @@ pub mod pallet {
         /// registration request will produce a different verifying key.
         #[pallet::call_index(7)]
         #[pallet::weight({
-            // TODO (Nando): Use actual benchmark
-            <T as Config>::WeightInfo::on_chain_registration(<T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
         })]
-        pub fn on_chain_registration(
+        pub fn register_on_chain(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,

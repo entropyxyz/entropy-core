@@ -52,7 +52,7 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_registry.
 pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
-	fn on_chain_registration(_p: u32) -> Weight;
+	fn register_on_chain(_p: u32) -> Weight;
 	fn jump_start_network() -> Weight;
 	fn prune_registration(p: u32) -> Weight;
 	fn confirm_jump_start_done(c: u32, ) -> Weight;
@@ -147,7 +147,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
 	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
-	fn on_chain_registration(_p: u32, ) -> Weight {
+	fn register_on_chain(_p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `563`
 		//  Estimated: `4028`
@@ -345,7 +345,7 @@ impl WeightInfo for () {
 	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
 	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
-	fn on_chain_registration(_p: u32, ) -> Weight {
+	fn register_on_chain(_p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `563`
 		//  Estimated: `4028`

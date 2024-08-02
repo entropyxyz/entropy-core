@@ -127,7 +127,7 @@ impl<T: frame_system::Config> pallet_registry::WeightInfo for WeightInfo<T> {
 	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
 	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 5]`.
-	fn on_chain_registration(_p: u32, ) -> Weight {
+	fn register_on_chain(_p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `563`
 		//  Estimated: `4028`
