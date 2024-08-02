@@ -202,7 +202,7 @@ pub mod pallet {
         pub jump_start_status: JumpStartStatus,
         pub confirmations: Vec<T::ValidatorId>,
         pub verifying_key: Option<VerifyingKey>,
-        pub parent_key_threhsold: u8,
+        pub parent_key_threshold: u8,
     }
 
     /// A trigger for the proactive refresh OCW
