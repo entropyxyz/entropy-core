@@ -178,6 +178,78 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
 }
 
 #[test]
+fn it_fails_registration_if_no_program_is_set() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Note that we also don't write any programs into storage here.
+        let programs_info = BoundedVec::try_from(vec![]).unwrap();
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::NoProgramSet
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_if_no_jump_start_has_happened() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Setup: Ensure programs exist
+        let programs_info = setup_programs();
+
+        // This should be the default status, but let's be explicit about it anyways
+        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Ready,
+            confirmations: vec![],
+            verifying_key: None,
+        });
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::JumpStartNotCompleted
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_with_too_many_modifiable_keys() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_registry::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+        });
+
+        // Now we prep our state to make sure that the limit of verifying keys for an account is hit
+        let mut managed_verifying_keys = vec![];
+        for _ in 0..pallet_registry::MAX_MODIFIABLE_KEYS {
+            managed_verifying_keys
+                .push(BoundedVec::try_from(entropy_shared::DAVE_VERIFYING_KEY.to_vec()).unwrap());
+        }
+
+        let modifiable_keys = BoundedVec::try_from(managed_verifying_keys).unwrap();
+        pallet_registry::ModifiableKeys::<Test>::insert(bob, &modifiable_keys);
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::TooManyModifiableKeys
+        );
+    })
+}
+
+#[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
