@@ -557,7 +557,7 @@ pub mod pallet {
             let signers_info = pallet_parameters::Pallet::<T>::signers_info();
 
             // removes first signer and pushes new signer to back if total signers not increased
-            if current_signers.len() < signers_info.total_signers as usize {
+            if current_signers.len() >= signers_info.total_signers as usize {
                 current_signers.remove(0);
             }
             current_signers.push(next_signer_up.clone());

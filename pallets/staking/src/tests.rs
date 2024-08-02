@@ -20,6 +20,7 @@ use crate::{
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
+use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -382,6 +383,15 @@ fn it_tests_new_session_handler() {
         assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 3,
+            threshold: 2,
+            last_session_change: 0,
+        });
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
+        // Signer size increased is reflected as 5 is not removed from vec
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 6, 3]);
     });
 }
 
