@@ -111,7 +111,7 @@ async fn test_reshare() {
         // Check aux info has changed
         assert_ne!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
     }
-
+    // TODO #981 - test signing a message with the new keyshare set
     clean_tests();
 }
 
