@@ -84,7 +84,7 @@ pub async fn new_reshare(
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
-    let verifying_key_query = entropy::storage().registry().jump_start_progress();
+    let verifying_key_query = entropy::storage().staking_extension().jump_start_progress();
     let verifying_key = query_chain(&api, &rpc, verifying_key_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Parent verifying key error"))?

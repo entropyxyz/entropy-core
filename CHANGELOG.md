@@ -21,6 +21,7 @@ At the moment this project **does not** adhere to
 - Split jumpstart and register flows ([#952](https://github.com/entropyxyz/entropy-core/pull/952))
 - Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
 - Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
+- Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
 - Run the aux gen protocol when resharing to a new signing committee ([#977](https://github.com/entropyxyz/entropy-core/pull/977))
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11

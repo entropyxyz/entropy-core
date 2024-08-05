@@ -31,6 +31,7 @@ entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
 ], default-features=false }
 pallet-programs={ version="0.2.0", path="../programs", default-features=false }
 pallet-staking-extension={ version="0.2.0", path="../staking", default-features=false }
+pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
 
 [dev-dependencies]
 frame-election-provider-support={ version="29.0.0", default-features=false }
@@ -54,6 +55,7 @@ std=[
   'frame-system/std',
   'log/std',
   'pallet-balances/std',
+  'pallet-parameters/std',
   'pallet-programs/std',
   'pallet-staking-extension/std',
   'scale-info/std',
