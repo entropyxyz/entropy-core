@@ -123,6 +123,7 @@ pub async fn proactive_refresh(
                 aux_info
             };
 
+            // Since this is a refresh with the parties not changing, store the old aux_info
             let serialized_key_share = key_serialize(&(new_key_share, aux_info))
                 .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
