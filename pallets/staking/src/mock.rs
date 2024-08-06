@@ -409,7 +409,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     pallet_parameters::GenesisConfig::<Test> {
         request_limit: 5u32,
         max_instructions_per_programs: 5u64,
-        total_signers: 2u8,
+        total_signers: 3u8,
         threshold: 2u8,
         _config: Default::default(),
     }

@@ -345,6 +345,12 @@ fn it_tests_new_session_handler() {
 
         System::set_block_number(100);
 
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
         // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
@@ -392,11 +398,6 @@ fn it_tests_new_session_handler_signer_size_changes() {
         // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
         Signers::<Test>::put(vec![5, 6]);
 
-        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
-            total_signers: 3,
-            threshold: 2,
-            last_session_change: 0,
-        });
         assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
         // Signer size increased is reflected as 5 is not removed from vec
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 6, 3]);
