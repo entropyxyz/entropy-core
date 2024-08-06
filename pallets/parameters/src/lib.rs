@@ -108,10 +108,14 @@ pub mod module {
         OneChangePerSession,
     }
 
+    /// Signer info for the next reshare
     #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
     pub struct SignersSize {
+        /// Next threshold amount
         pub threshold: u8,
+        /// Total signers in signer party
         pub total_signers: u8,
+        /// Last time it was changed (one change allowed per session)
         pub last_session_change: u32,
     }
 

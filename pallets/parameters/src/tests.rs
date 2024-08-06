@@ -110,7 +110,11 @@ fn signer_info_changed() {
         );
 
         assert_noop!(
-            Parameters::change_signers_info(RuntimeOrigin::root(), 8, signer_info.threshold),
+            Parameters::change_signers_info(
+                RuntimeOrigin::root(),
+                new_signer_info.total_signers + 2,
+                signer_info.threshold
+            ),
             Error::<Runtime>::SignerDiffTooLarge,
         );
         SignersInfo::<Runtime>::put(new_signer_info);
