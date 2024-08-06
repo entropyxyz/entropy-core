@@ -750,7 +750,7 @@ pub mod pallet {
                     return Err(Error::<T>::JumpStartNotCompleted.into());
                 };
 
-            // TODO (Nando): For a `CountedStorageMap` there is the possibility that the counter
+            // TODO (#984): For a `CountedStorageMap` there is the possibility that the counter
             // can decrease as storage entries are removed from the map. In our case we don't ever
             // remove entries from the `RegisteredOnChain` map so the counter should never
             // decrease. If it does we will end up with the same verifying key for different
