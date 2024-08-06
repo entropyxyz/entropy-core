@@ -58,7 +58,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, TEST_RESHARE_BLOCK_NUMBER, TOTAL_SIGNERS,
+        ValidatorInfo, X25519PublicKey, MAX_SIGNERS, TEST_RESHARE_BLOCK_NUMBER,
         VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
@@ -480,7 +480,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight(({
-            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(TOTAL_SIGNERS as u32)
+            <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
     }, DispatchClass::Operational))]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -513,6 +513,7 @@ pub mod pallet {
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
                 Ok(Pays::No.into())
             }
+            // TODO: weight is pays no but want a more accurate weight for max signers vs current signers see https://github.com/entropyxyz/entropy-core/issues/985
         }
     }
 
@@ -539,24 +540,35 @@ pub mod pallet {
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
             let mut current_signers = Self::signers();
+            let current_signers_length = current_signers.len();
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
-            if validators.len() <= current_signers.len() {
+            if validators.len() <= current_signers_length {
                 return Ok(());
             }
-            let mut randomness = Self::get_randomness();
-            // grab a current signer to initiate value
-            let mut next_signer_up = &current_signers[0].clone();
-            let mut index;
-            // loops to find signer in validator that is not already signer
-            while current_signers.contains(next_signer_up) {
-                index = randomness.next_u32() % validators.len() as u32;
-                next_signer_up = &validators[index as usize];
+
+            let signers_info = pallet_parameters::Pallet::<T>::signers_info();
+            let mut new_signer = vec![];
+
+            if current_signers_length <= signers_info.total_signers as usize {
+                let mut randomness = Self::get_randomness();
+                // grab a current signer to initiate value
+                let mut next_signer_up = &current_signers[0].clone();
+                let mut index;
+                // loops to find signer in validator that is not already signer
+                while current_signers.contains(next_signer_up) {
+                    index = randomness.next_u32() % validators.len() as u32;
+                    next_signer_up = &validators[index as usize];
+                }
+                current_signers.push(next_signer_up.clone());
+                new_signer = next_signer_up.encode();
             }
 
-            // removes first signer and pushes new signer to back
-            current_signers.remove(0);
-            current_signers.push(next_signer_up.clone());
+            // removes first signer and pushes new signer to back if total signers not increased
+            if current_signers_length >= signers_info.total_signers as usize {
+                current_signers.remove(0);
+            }
+
             NextSigners::<T>::put(NextSignerInfo {
                 next_signers: current_signers,
                 confirmations: vec![],
@@ -565,12 +577,11 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
-                new_signer: next_signer_up.encode(),
+                new_signer,
             };
             ReshareData::<T>::put(reshare_info);
             JumpStartProgress::<T>::mutate(|jump_start_details| {
-                jump_start_details.parent_key_threshold =
-                    pallet_parameters::Pallet::<T>::signers_info().threshold;
+                jump_start_details.parent_key_threshold = signers_info.threshold
             });
             Ok(())
         }

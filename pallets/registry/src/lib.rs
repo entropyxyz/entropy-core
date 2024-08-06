@@ -53,7 +53,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{NETWORK_PARENT_KEY, TOTAL_SIGNERS, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{MAX_SIGNERS, NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, Pays},
         pallet_prelude::*,
@@ -309,8 +309,8 @@ pub mod pallet {
         /// Allows validators to signal a successful network jumpstart
         #[pallet::call_index(1)]
         #[pallet::weight({
-                <T as Config>::WeightInfo::confirm_jump_start_confirm(TOTAL_SIGNERS as u32)
-                .max(<T as Config>::WeightInfo::confirm_jump_start_done(TOTAL_SIGNERS as u32))
+                <T as Config>::WeightInfo::confirm_jump_start_confirm(MAX_SIGNERS as u32)
+                .max(<T as Config>::WeightInfo::confirm_jump_start_done(MAX_SIGNERS as u32))
         })]
         pub fn confirm_jump_start(
             origin: OriginFor<T>,
@@ -350,7 +350,8 @@ pub mod pallet {
             // ensure that registration was indeed successful.
             //
             // If it fails we'll need to allow another jumpstart.
-            if jump_start_info.confirmations.len() == (TOTAL_SIGNERS as usize - 1) {
+            let signers_amount = pallet_parameters::Pallet::<T>::signers_info().total_signers;
+            if jump_start_info.confirmations.len() == (signers_amount as usize - 1) {
                 // registration finished, lock call
                 jump_start_info.confirmations.push(validator_stash);
                 let confirmations = jump_start_info.confirmations.len();

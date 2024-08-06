@@ -20,6 +20,7 @@ use crate::{
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
+use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -344,6 +345,12 @@ fn it_tests_new_session_handler() {
 
         System::set_block_number(100);
 
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
         // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
@@ -381,6 +388,27 @@ fn it_tests_new_session_handler() {
 
         assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+    });
+}
+
+#[test]
+fn it_tests_new_session_handler_signer_size_changes() {
+    new_test_ext().execute_with(|| {
+        // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
+        Signers::<Test>::put(vec![5, 6]);
+
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
+        // Signer size increased is reflected as 5 is not removed from vec
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 6, 3]);
+
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
+        // Signer size decrease is reflected as 5 is removed and 4 is not added
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
     });
 }

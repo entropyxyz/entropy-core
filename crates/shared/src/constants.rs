@@ -64,6 +64,10 @@ pub const NETWORK_PARENT_KEY: &str = "NETWORK_PARENT_KEY_FOR_ENTROPY_";
 /// Total signers on the network with the parent key
 pub const TOTAL_SIGNERS: u8 = 3;
 
+/// Max signers, for bounding of total signers for benches,
+/// Can be changed but requires a re-run of benches
+pub const MAX_SIGNERS: u8 = 15;
+
 /// Threshold for those signers
 pub const SIGNER_THRESHOLD: u8 = 2;
 
