@@ -54,7 +54,8 @@ benchmarks! {
 
   change_signers_info {
     let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-    let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 0 };
+    pallet_session::CurrentIndex::<T>::put(1);
+    let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 1 };
   }: {
     assert_ok!(
       <Parameters<T>>::change_signers_info(origin, signer_info.total_signers, signer_info.threshold)

@@ -66,9 +66,10 @@ fn max_instructions_per_programs_changed() {
 #[test]
 fn signer_info_changed() {
     new_test_ext().execute_with(|| {
+        pallet_session::CurrentIndex::<Runtime>::put(1);
         let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 0 };
-        let mut new_signer_info =
-            SignersSize { total_signers: 6, threshold: 4, last_session_change: 0 };
+        let new_signer_info =
+            SignersSize { total_signers: 6, threshold: 4, last_session_change: 1 };
 
         assert_eq!(Parameters::signers_info(), signer_info, "Inital signer info set");
 
@@ -112,7 +113,6 @@ fn signer_info_changed() {
             Parameters::change_signers_info(RuntimeOrigin::root(), 8, signer_info.threshold),
             Error::<Runtime>::SignerDiffTooLarge,
         );
-        new_signer_info.last_session_change = 1;
         SignersInfo::<Runtime>::put(new_signer_info);
 
         assert_noop!(

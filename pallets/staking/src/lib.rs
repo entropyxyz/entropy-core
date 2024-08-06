@@ -540,27 +540,35 @@ pub mod pallet {
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<(), DispatchError> {
             let mut current_signers = Self::signers();
+            let current_signers_length = current_signers.len();
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
-            if validators.len() <= current_signers.len() {
+            if validators.len() <= current_signers_length {
                 return Ok(());
             }
-            let mut randomness = Self::get_randomness();
-            // grab a current signer to initiate value
-            let mut next_signer_up = &current_signers[0].clone();
-            let mut index;
-            // loops to find signer in validator that is not already signer
-            while current_signers.contains(next_signer_up) {
-                index = randomness.next_u32() % validators.len() as u32;
-                next_signer_up = &validators[index as usize];
-            }
+
             let signers_info = pallet_parameters::Pallet::<T>::signers_info();
+            let mut new_signer = vec![];
+
+            if current_signers_length <= signers_info.total_signers as usize {
+                let mut randomness = Self::get_randomness();
+                // grab a current signer to initiate value
+                let mut next_signer_up = &current_signers[0].clone();
+                let mut index;
+                // loops to find signer in validator that is not already signer
+                while current_signers.contains(next_signer_up) {
+                    index = randomness.next_u32() % validators.len() as u32;
+                    next_signer_up = &validators[index as usize];
+                }
+                current_signers.push(next_signer_up.clone());
+                new_signer = next_signer_up.encode();
+            }
 
             // removes first signer and pushes new signer to back if total signers not increased
-            if current_signers.len() >= signers_info.total_signers as usize {
+            if current_signers_length >= signers_info.total_signers as usize {
                 current_signers.remove(0);
             }
-            current_signers.push(next_signer_up.clone());
+
             NextSigners::<T>::put(NextSignerInfo {
                 next_signers: current_signers,
                 confirmations: vec![],
@@ -569,7 +577,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
-                new_signer: next_signer_up.encode(),
+                new_signer,
             };
             ReshareData::<T>::put(reshare_info);
             JumpStartProgress::<T>::mutate(|jump_start_details| {

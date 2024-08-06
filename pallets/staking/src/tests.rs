@@ -392,6 +392,15 @@ fn it_tests_new_session_handler() {
         assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
         // Signer size increased is reflected as 5 is not removed from vec
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 6, 3]);
+
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
+        // Signer size decrease is reflected as 5 is removed and 4 is not added
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
     });
 }
 

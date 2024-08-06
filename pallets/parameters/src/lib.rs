@@ -189,7 +189,7 @@ pub mod module {
             );
             let current_session = pallet_session::Pallet::<T>::current_index();
             ensure!(
-                current_session >= old_signer_info.last_session_change,
+                current_session > old_signer_info.last_session_change,
                 Error::<T>::OneChangePerSession
             );
             let signer_info =
