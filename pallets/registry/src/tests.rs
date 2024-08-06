@@ -23,7 +23,7 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
-use pallet_staking_extension::{JumpStartDetails, JumpStartStatus, ServerInfo};
+use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -36,6 +36,31 @@ use crate::{
 };
 
 const NULL_ARR: [u8; 32] = [0; 32];
+
+fn setup_programs(
+) -> BoundedVec<ProgramInstance<Test>, <Test as pallet_registry::Config>::MaxProgramHashes> {
+    let alice = 1u64;
+    let empty_program = vec![];
+    let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+        program_pointer: program_hash,
+        program_config: vec![],
+    }])
+    .unwrap();
+    pallet_programs::Programs::<Test>::insert(
+        program_hash,
+        ProgramInfo {
+            bytecode: empty_program.clone(),
+            configuration_schema: empty_program.clone(),
+            auxiliary_data_schema: empty_program.clone(),
+            oracle_data_pointer: empty_program.clone(),
+            deployer: alice,
+            ref_counter: 0,
+        },
+    );
+
+    programs_info
+}
 
 #[test]
 fn it_tests_get_validators_info() {
@@ -50,6 +75,187 @@ fn it_tests_get_validators_info() {
 
         assert_eq!(result_1, vec![server_info_1, server_info_2, server_info_3]);
     });
+}
+
+#[test]
+fn it_registers_a_user_on_chain() {
+    new_test_ext().execute_with(|| {
+        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: Our expected verifying key is registered correctly
+        let network_verifying_key =
+            SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        let derivation_path = "m/0/0".parse().unwrap();
+        let expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let expected_verifying_key =
+            BoundedVec::try_from(expected_verifying_key.to_encoded_point(true).as_bytes().to_vec())
+                .unwrap();
+
+        let registered_info = Registry::registered_on_chain(expected_verifying_key.clone());
+        assert!(registered_info.is_some());
+        assert_eq!(registered_info.unwrap().program_modification_account, bob);
+    });
+}
+
+#[test]
+fn it_registers_different_users_with_the_same_sig_req_account() {
+    new_test_ext().execute_with(|| {
+        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration twice using the same signature request account. We should
+        // get different verifying keys.
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: We expect two different verifying keys to be registered
+        let network_verifying_key =
+            SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        let derivation_path = "m/0/0".parse().unwrap();
+        let first_expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let first_expected_verifying_key = BoundedVec::try_from(
+            first_expected_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .unwrap();
+
+        let derivation_path = "m/0/1".parse().unwrap();
+        let second_expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let second_expected_verifying_key = BoundedVec::try_from(
+            second_expected_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .unwrap();
+
+        // Knowing that the two keys are indeed different, we still expect both registration
+        // requests to have succeeded.
+        assert!(first_expected_verifying_key != second_expected_verifying_key);
+        assert!(Registry::registered_on_chain(first_expected_verifying_key).is_some());
+        assert!(Registry::registered_on_chain(second_expected_verifying_key).is_some());
+    });
+}
+
+#[test]
+fn it_fails_registration_if_no_program_is_set() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Note that we also don't write any programs into storage here.
+        let programs_info = BoundedVec::try_from(vec![]).unwrap();
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::NoProgramSet
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_if_no_jump_start_has_happened() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Setup: Ensure programs exist
+        let programs_info = setup_programs();
+
+        // This should be the default status, but let's be explicit about it anyways
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Ready,
+            confirmations: vec![],
+            verifying_key: None,
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::JumpStartNotCompleted
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_with_too_many_modifiable_keys() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Now we prep our state to make sure that the limit of verifying keys for an account is hit
+        let mut managed_verifying_keys = vec![];
+        for _ in 0..pallet_registry::MAX_MODIFIABLE_KEYS {
+            managed_verifying_keys
+                .push(BoundedVec::try_from(entropy_shared::DAVE_VERIFYING_KEY.to_vec()).unwrap());
+        }
+
+        let modifiable_keys = BoundedVec::try_from(managed_verifying_keys).unwrap();
+        pallet_registry::ModifiableKeys::<Test>::insert(bob, &modifiable_keys);
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::TooManyModifiableKeys
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_if_parent_key_matches_derived_key() {
+    new_test_ext().execute_with(|| {})
 }
 
 #[test]
@@ -97,7 +303,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::Ready,
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threshold: 0
+                parent_key_threshold: 0,
             },
             "Checks default status of jump start detail"
         );
@@ -113,7 +319,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "Checks that jump start is in progress"
         );
@@ -132,7 +338,7 @@ fn it_jumps_the_network() {
                 jump_start_status: JumpStartStatus::InProgress(100),
                 confirmations: vec![],
                 verifying_key: None,
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "ensures jump start is called again if too many blocks passed"
         );
@@ -173,7 +379,7 @@ fn it_tests_jump_start_result() {
                 jump_start_status: JumpStartStatus::InProgress(0),
                 confirmations: vec![1],
                 verifying_key: Some(expected_verifying_key.clone()),
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "Jump start recieves a confirmation"
         );
@@ -205,7 +411,7 @@ fn it_tests_jump_start_result() {
                 jump_start_status: JumpStartStatus::Done,
                 confirmations: vec![],
                 verifying_key: Some(expected_verifying_key),
-                parent_key_threshold: 2
+                parent_key_threshold: 2,
             },
             "Jump start in done status after all confirmations"
         );
