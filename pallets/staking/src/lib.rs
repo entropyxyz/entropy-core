@@ -513,7 +513,7 @@ pub mod pallet {
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
                 Ok(Pays::No.into())
             }
-            // TODO weight is pays no but want a more accurate weight for max signers vs current signers
+            // TODO: weight is pays no but want a more accurate weight for max signers vs current signers see https://github.com/entropyxyz/entropy-core/issues/985
         }
     }
 
