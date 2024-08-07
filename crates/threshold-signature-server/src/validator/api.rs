@@ -64,11 +64,7 @@ pub async fn new_reshare(
     // TODO: validate message came from chain (check reshare block # against current block number) see #941
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    // validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
-    let signers_query = entropy::storage().staking_extension().signers();
-    let signers = query_chain(&api, &rpc, signers_query, None)
-        .await?
-        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
+    validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
 
     let next_signers_query = entropy::storage().staking_extension().next_signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
@@ -85,9 +81,11 @@ pub async fn new_reshare(
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let verifying_key_query = entropy::storage().staking_extension().jump_start_progress();
-    let verifying_key = query_chain(&api, &rpc, verifying_key_query, None)
+    let parent_key_details = query_chain(&api, &rpc, verifying_key_query, None)
         .await?
-        .ok_or_else(|| ValidatorErr::ChainFetch("Parent verifying key error"))?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Parent verifying key error"))?;
+
+    let verifying_key = parent_key_details
         .verifying_key
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get verifying key".to_string()))?
         .0;
@@ -108,9 +106,9 @@ pub async fn new_reshare(
         .iter()
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
-    // if !is_proper_signer && data.new_signer == my_stash_address.encode() {
-    //     return Ok(StatusCode::MISDIRECTED_REQUEST);
-    // }
+    if !is_proper_signer && data.new_signer == my_stash_address.encode() {
+        return Ok(StatusCode::MISDIRECTED_REQUEST);
+    }
 
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
         if data.new_signer == my_stash_address.encode() {
@@ -122,29 +120,19 @@ pub async fn new_reshare(
                     .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
             Some(OldHolder { key_share: key_share.0 })
         };
-   
+
     let party_ids: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
+    // let mut new_signer_address = data.new_signer;
+    let pruned_old_holders =
+        prune_old_holders(&api, &rpc, data.new_signer, &validators_info).await?;
 
-    // let old_holders_info = get_validators_info(&api, &rpc, signers)
-    //     .await
-    //     .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
-    let address_slice: &[u8; 32] = &data.new_signer.clone().try_into().unwrap();
-    let new_signer_address = AccountId32(*address_slice);
-    let new_signer_info = &get_validators_info(&api, &rpc, vec![new_signer_address])
-        .await
-        .map_err(|e| ValidatorErr::UserError(e.to_string()))?[0];
-    let old_holders: BTreeSet<PartyId> = validators_info
-        .iter()
-        .cloned()
-        .filter(|x| x.tss_account != new_signer_info.tss_account)
-        .map(|x| PartyId::new(x.tss_account))
-        .collect();
+    let old_holders: BTreeSet<PartyId> =
+        pruned_old_holders.into_iter().map(|x| PartyId::new(x.tss_account)).collect();
 
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
-        // TODO: get from chain see #941
-        old_threshold: 2,
+        old_threshold: parent_key_details.parent_key_threshold as usize,
         old_holders,
     };
     let key_info_query = entropy::storage().parameters().signers_info();
@@ -327,4 +315,26 @@ pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
         return Err(ValidatorErr::ForbiddenKey);
     }
     Ok(())
+}
+
+pub async fn prune_old_holders(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    new_signer: Vec<u8>,
+    validators_info: &Vec<ValidatorInfo>,
+) -> Result<Vec<ValidatorInfo>, ValidatorErr> {
+    Ok(if !new_signer.is_empty() {
+        let address_slice: &[u8; 32] = &new_signer.clone().try_into().unwrap();
+        let new_signer_address = AccountId32(*address_slice);
+        let new_signer_info = &get_validators_info(&api, &rpc, vec![new_signer_address])
+            .await
+            .map_err(|e| ValidatorErr::UserError(e.to_string()))?[0];
+        validators_info
+            .iter()
+            .cloned()
+            .filter(|x| x.tss_account != new_signer_info.tss_account)
+            .collect()
+    } else {
+        validators_info.clone()
+    })
 }
