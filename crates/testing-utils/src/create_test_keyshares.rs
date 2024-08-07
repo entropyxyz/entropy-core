@@ -171,7 +171,7 @@ mod synedrion_test_environment {
             for preprocessed in cached_messages {
                 // In production usage, this will happen in a spawned task.
                 println!("{key_str}: applying a cached message");
-                let result = session.process_message(preprocessed).unwrap();
+                let result = session.process_message(&mut OsRng, preprocessed).unwrap();
 
                 // This will happen in a host task.
                 accum.add_processed_message(result).unwrap().unwrap();
@@ -191,7 +191,7 @@ mod synedrion_test_environment {
                 if let Some(preprocessed) = preprocessed {
                     // In production usage, this will happen in a spawned task.
                     println!("{key_str}: applying a message from {}", key_to_str(&from));
-                    let result = session.process_message(preprocessed).unwrap();
+                    let result = session.process_message(&mut OsRng, preprocessed).unwrap();
 
                     // This will happen in a host task.
                     accum.add_processed_message(result).unwrap().unwrap();
