@@ -27,7 +27,7 @@ use axum::{
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
     execute_protocol::{execute_proactive_refresh, Channels},
-    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
+    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
 
@@ -112,7 +112,19 @@ pub async fn proactive_refresh(
                 ocw_data.block_number,
             )
             .await?;
-            let serialized_key_share = key_serialize(&new_key_share)
+
+            // Get aux info from existing entry
+            let aux_info = {
+                let existing_entry = app_state.kv_store.kv().get(&key).await?;
+                let (_old_key_share, aux_info): KeyShareWithAuxInfo = deserialize(&existing_entry)
+                    .ok_or_else(|| {
+                        ProtocolErr::Deserialization("Failed to load KeyShare".into())
+                    })?;
+                aux_info
+            };
+
+            // Since this is a refresh with the parties not changing, store the old aux_info
+            let serialized_key_share = key_serialize(&(new_key_share, aux_info))
                 .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
             app_state.kv_store.kv().delete(&key).await?;

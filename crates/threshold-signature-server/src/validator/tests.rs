@@ -31,7 +31,11 @@ use crate::{
     },
     validator::{api::validate_new_reshare, errors::ValidatorErr},
 };
-use entropy_kvdb::clean_tests;
+use entropy_kvdb::{
+    clean_tests,
+    kv_manager::helpers::{deserialize, serialize},
+};
+use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::{
     OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY,
     TEST_RESHARE_BLOCK_NUMBER,
@@ -92,12 +96,22 @@ async fn test_reshare() {
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
+
     for i in 0..validator_ports.len() {
-        assert_ne!(
-            key_shares_before[i],
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await
-        );
+        let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
+            deserialize(&key_shares_before[i]).unwrap();
+
+        let key_share_and_aux_data_after =
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+        let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
+            deserialize(&key_share_and_aux_data_after).unwrap();
+
+        // Check key share has changed
+        assert_ne!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
+        // Check aux info has changed
+        assert_ne!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
     }
+    // TODO #981 - test signing a message with the new keyshare set
     clean_tests();
 }
 
