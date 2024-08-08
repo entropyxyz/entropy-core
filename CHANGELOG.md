@@ -25,7 +25,7 @@ At the moment this project **does not** adhere to
 - Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
 
 ### Changed
-- Fix tss keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+- Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
