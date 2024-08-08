@@ -73,7 +73,8 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
-) -> Result<(Res::Success, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>> {
+) -> Result<(Res::Success, Broadcaster, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>>
+{
     let session_id = synedrion::SessionId::from_seed(&session_id_hash);
     let tx = &chans.0;
     let rx = &mut chans.1;
@@ -143,7 +144,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
         }
 
         match session.finalize_round(&mut OsRng, accum)? {
-            FinalizeOutcome::Success(res) => break Ok((res, chans.1)),
+            FinalizeOutcome::Success(res) => break Ok((res, chans.0, chans.1)),
             FinalizeOutcome::AnotherRound {
                 session: new_session,
                 cached_messages: new_cached_messages,
@@ -208,7 +209,6 @@ pub async fn execute_dkg(
     threshold: usize,
 ) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
-    let broadcaster = chans.0.clone();
 
     let party_ids: BTreeSet<PartyId> =
         threshold_accounts.iter().cloned().map(PartyId::new).collect();
@@ -231,7 +231,8 @@ pub async fn execute_dkg(
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        let (init_keyshare, rx) = execute_protocol_generic(chans, session, session_id_hash).await?;
+        let (init_keyshare, broadcaster, rx) =
+            execute_protocol_generic(chans, session, session_id_hash).await?;
 
         tracing::info!("Finished key init protocol");
         // Setup channels for the next session
@@ -259,6 +260,7 @@ pub async fn execute_dkg(
     } else {
         // Wait to receive verifying_key
         let mut rx = chans.1;
+        let broadcaster = chans.0;
         let message = rx.recv().await.ok_or_else(|| {
             ProtocolExecutionErr::IncomingStream("Waiting for validating key".to_string())
         })?;
@@ -302,7 +304,7 @@ pub async fn execute_dkg(
         inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
-    let (new_key_share_option, rx) =
+    let (new_key_share_option, broadcaster, rx) =
         execute_protocol_generic(chans, session, session_id_hash).await?;
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
@@ -337,29 +339,22 @@ pub async fn execute_proactive_refresh(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-    old_key: ThresholdKeyShare<KeyParams, PartyId>,
-) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
+    verifying_key: VerifyingKey,
+    threshold: usize,
+    inputs: KeyResharingInputs<KeyParams, PartyId>,
+) -> Result<
+    (ThresholdKeyShare<KeyParams, PartyId>, Broadcaster, mpsc::Receiver<ProtocolMessage>),
+    ProtocolExecutionErr,
+> {
     tracing::debug!("Executing proactive refresh");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
     let party_ids: BTreeSet<PartyId> =
         threshold_accounts.iter().cloned().map(PartyId::new).collect();
     let pair = PairWrapper(threshold_pair.clone());
-    let verifying_key = old_key.verifying_key();
-
-    let threshold = old_key.threshold();
 
     let session_id_hash = session_id.blake2(None)?;
-    let inputs = KeyResharingInputs {
-        old_holder: Some(OldHolder { key_share: old_key }),
-        new_holder: Some(NewHolder {
-            verifying_key,
-            old_threshold: party_ids.len(),
-            old_holders: party_ids.clone(),
-        }),
-        new_holders: party_ids.clone(),
-        new_threshold: threshold,
-    };
+
     let session = make_key_resharing_session(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
@@ -369,9 +364,10 @@ pub async fn execute_proactive_refresh(
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let new_key_share = execute_protocol_generic(chans, session, session_id_hash).await?.0;
+    let (new_key_share, brodcaster, rx) =
+        execute_protocol_generic(chans, session, session_id_hash).await?;
 
-    new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
+    Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, brodcaster, rx))
 }
 
 /// Psuedo-randomly select a subset of the parties of size `threshold`

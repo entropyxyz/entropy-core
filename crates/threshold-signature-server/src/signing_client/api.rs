@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::Duration;
-
 use axum::{
     body::Bytes,
     extract::{
@@ -27,9 +25,12 @@ use axum::{
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
     execute_protocol::{execute_proactive_refresh, Channels},
-    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
+    protocol_transport::Broadcaster,
+    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, ProtocolMessage, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
+use std::{collections::BTreeSet, time::Duration};
+use tokio::sync::mpsc;
 
 use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
@@ -45,7 +46,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{AuxInfo, ThresholdKeyShare};
+use synedrion::{AuxInfo, KeyResharingInputs, NewHolder, OldHolder, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -102,7 +103,7 @@ pub async fn proactive_refresh(
             ) = deserialize(&old_key_share)
                 .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
-            let new_key_share = do_proactive_refresh(
+            let (new_key_share, _broadcaster, _rx) = do_proactive_refresh(
                 &ocw_data.validators_info,
                 &signer,
                 &x25519_secret_key,
@@ -165,7 +166,10 @@ pub async fn do_proactive_refresh(
     verifying_key: Vec<u8>,
     old_key: ThresholdKeyShare<KeyParams, PartyId>,
     block_number: u32,
-) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolErr> {
+) -> Result<
+    (ThresholdKeyShare<KeyParams, PartyId>, Broadcaster, mpsc::Receiver<ProtocolMessage>),
+    ProtocolErr,
+> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
@@ -189,31 +193,39 @@ pub async fn do_proactive_refresh(
         tss_accounts.push(tss_account);
     }
 
-    // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_id);
-    state
-        .listeners
-        .lock()
-        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
-        .insert(session_id.clone(), listener);
+    let party_ids: BTreeSet<PartyId> = tss_accounts.iter().cloned().map(PartyId::new).collect();
 
-    open_protocol_connections(
-        &converted_validator_info,
-        &session_id,
-        signer.signer(),
+    let inputs = KeyResharingInputs {
+        old_holder: Some(OldHolder { key_share: old_key.clone() }),
+        new_holder: Some(NewHolder {
+            verifying_key: old_key.verifying_key(),
+            old_threshold: party_ids.len(),
+            old_holders: party_ids.clone(),
+        }),
+        new_holders: party_ids.clone(),
+        new_threshold: old_key.threshold(),
+    };
+
+    let channels = get_channels(
         state,
+        converted_validator_info,
+        account_id,
+        &session_id,
+        signer,
         x25519_secret_key,
     )
     .await?;
-    let channels = {
-        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-        let broadcast_out = ready??;
-        Channels(broadcast_out, rx_from_others)
-    };
-    let result =
-        execute_proactive_refresh(session_id, channels, signer.signer(), tss_accounts, old_key)
-            .await?;
+
+    let result = execute_proactive_refresh(
+        session_id,
+        channels,
+        signer.signer(),
+        tss_accounts,
+        old_key.verifying_key(),
+        old_key.threshold(),
+        inputs,
+    )
+    .await?;
     Ok(result)
 }
 
@@ -272,4 +284,35 @@ pub async fn validate_proactive_refresh(
         kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
     kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
+}
+
+pub async fn get_channels(
+    state: &ListenerState,
+    converted_validator_info: Vec<ValidatorInfo>,
+    account_id: SubxtAccountId32,
+    session_id: &SessionId,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret_key: &StaticSecret,
+) -> Result<Channels, ProtocolErr> {
+    // subscribe to all other participating parties. Listener waits for other subscribers.
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(converted_validator_info.clone(), &account_id);
+    state
+        .listeners
+        .lock()
+        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
+
+    open_protocol_connections(
+        &converted_validator_info,
+        session_id,
+        signer.signer(),
+        state,
+        x25519_secret_key,
+    )
+    .await?;
+
+    let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
+    let broadcast_out = ready??;
+    Ok(Channels(broadcast_out, rx_from_others))
 }
