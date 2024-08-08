@@ -123,7 +123,7 @@ pub async fn new_reshare(
 
     let party_ids: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
-    // let mut new_signer_address = data.new_signer;
+
     let pruned_old_holders =
         prune_old_holders(&api, &rpc, data.new_signer, validators_info.clone()).await?;
 
