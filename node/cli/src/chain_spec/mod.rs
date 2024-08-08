@@ -75,7 +75,7 @@ pub mod tss_account_id {
     pub static ref CHARLIE: sp_runtime::AccountId32  =
             super::hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into();
 
-     /// The `DEFAULT_DAVE_MNEMONIC` is used to derive the following `AccountId`.
+    /// The `DEFAULT_DAVE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "beef dutch panic monkey black glad audit twice humor gossip wealth drive"
     pub static ref DAVE: sp_runtime::AccountId32  =
             super::hex!["0a9054ef6b6b8ad0dd2c89895b2515583f2fbf1edced68e7328ae456d86b9402"].into();
