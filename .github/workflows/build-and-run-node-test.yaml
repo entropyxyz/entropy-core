@@ -1,5 +1,5 @@
 ---
-name: "Build and run node-test"
+name: "Build and test"
 on:
   push:
     paths:
