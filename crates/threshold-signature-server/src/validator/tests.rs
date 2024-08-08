@@ -29,7 +29,10 @@ use crate::{
         },
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    validator::{api::validate_new_reshare, errors::ValidatorErr},
+    validator::{
+        api::{prune_old_holders, validate_new_reshare},
+        errors::ValidatorErr,
+    },
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::{
@@ -151,7 +154,7 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     let kv = setup_client().await;
 
-    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let ocw_message = OcwMessageReshare { new_signer: alice.public().encode(), block_number };
 
     run_to_block(&rpc, block_number + 1).await;
@@ -159,6 +162,21 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     let err_not_in_reshare =
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
     assert_eq!(err_not_in_reshare, Err("Chain Fetch: Not Currently in a reshare".to_string()));
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_empty_next_signer() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    assert!(prune_old_holders(&api, &rpc, vec![], vec![]).await.is_ok());
 
     clean_tests();
 }

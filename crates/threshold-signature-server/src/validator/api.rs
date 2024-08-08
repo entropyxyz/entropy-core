@@ -125,7 +125,7 @@ pub async fn new_reshare(
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
     // let mut new_signer_address = data.new_signer;
     let pruned_old_holders =
-        prune_old_holders(&api, &rpc, data.new_signer, &validators_info).await?;
+        prune_old_holders(&api, &rpc, data.new_signer, validators_info.clone()).await?;
 
     let old_holders: BTreeSet<PartyId> =
         pruned_old_holders.into_iter().map(|x| PartyId::new(x.tss_account)).collect();
@@ -317,22 +317,23 @@ pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
     Ok(())
 }
 
+/// Filters out new signer from next signers to get old holders
 pub async fn prune_old_holders(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     new_signer: Vec<u8>,
-    validators_info: &Vec<ValidatorInfo>,
+    validators_info: Vec<ValidatorInfo>,
 ) -> Result<Vec<ValidatorInfo>, ValidatorErr> {
     Ok(if !new_signer.is_empty() {
         let address_slice: &[u8; 32] = &new_signer.clone().try_into().unwrap();
         let new_signer_address = AccountId32(*address_slice);
-        let new_signer_info = &get_validators_info(&api, &rpc, vec![new_signer_address])
+        let new_signer_info = &get_validators_info(api, rpc, vec![new_signer_address])
             .await
             .map_err(|e| ValidatorErr::UserError(e.to_string()))?[0];
         validators_info
             .iter()
-            .cloned()
             .filter(|x| x.tss_account != new_signer_info.tss_account)
+            .cloned()
             .collect()
     } else {
         validators_info.clone()
