@@ -53,9 +53,15 @@ pub fn integration_tests_config() -> ChainSpec {
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
                 crate::chain_spec::authority_keys_from_seed("Charlie"),
+                crate::chain_spec::authority_keys_from_seed("Dave"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
+            vec![
+                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+            ],
         ))
         .build()
 }
@@ -72,6 +78,7 @@ pub fn integration_tests_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
+    mock_signer_rotate_data: Vec<AccountId>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -208,9 +215,7 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, initial_authorities.iter().map(|auth| {
-                auth.0.clone()
-            }).collect::<Vec<_>>(), vec![get_account_id_from_seed::<sr25519::Public>("Alice")],),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")],),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts

@@ -97,7 +97,6 @@ pub mod tss_x25519_public_key {
         8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
         222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
     ];
-
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub const BOB: [u8; 32] = [

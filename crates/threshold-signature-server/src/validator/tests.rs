@@ -29,7 +29,10 @@ use crate::{
         },
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    validator::{api::validate_new_reshare, errors::ValidatorErr},
+    validator::{
+        api::{prune_old_holders, validate_new_reshare},
+        errors::ValidatorErr,
+    },
 };
 use entropy_kvdb::{
     clean_tests,
@@ -59,7 +62,7 @@ async fn test_reshare() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
+    let alice = AccountKeyring::AliceStash;
 
     let cxt = test_node_process_testing_state(true).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
@@ -177,6 +180,21 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     clean_tests();
 }
 
+#[tokio::test]
+#[serial]
+async fn test_empty_next_signer() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
+    assert!(prune_old_holders(&api, &rpc, vec![], vec![]).await.is_ok());
+
+    clean_tests();
+}
+
 async fn setup_for_reshare(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -187,7 +205,7 @@ async fn setup_for_reshare(
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, &signer, &jump_start_request, None).await.unwrap();
 
-    let validators_names = vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie];
+    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
