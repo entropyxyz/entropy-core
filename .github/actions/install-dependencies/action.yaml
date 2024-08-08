@@ -1,6 +1,6 @@
 ---
 name: 'Install Dependencies'
-description: 'Install the dependencies and rust components used across jobs'
+description: 'Install the dependencies and Rust components used across jobs'
 runs:
   using: "composite"
   steps:
