@@ -30,7 +30,7 @@ jobs:
           cd nodejs-test
           yarn
           cd ../../..
-      - name: Run cargo test
+      - name: Run `cargo build && cargo test`
         timeout-minutes: 45
         run: |
           pushd node
