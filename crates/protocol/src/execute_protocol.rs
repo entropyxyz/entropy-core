@@ -99,7 +99,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
 
         for preprocessed in cached_messages {
             // TODO (#641): this may happen in a spawned task.
-            let processed = session.process_message(preprocessed)?;
+            let processed = session.process_message(&mut OsRng, preprocessed)?;
 
             // This will happen in a host task.
             accum.add_processed_message(processed)??;
@@ -135,7 +135,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
 
             if let Some(preprocessed) = preprocessed {
                 // TODO (#641): this may happen in a spawned task.
-                let result = session.process_message(preprocessed)?;
+                let result = session.process_message(&mut OsRng, preprocessed)?;
 
                 // This will happen in a host task.
                 accum.add_processed_message(result)??;
