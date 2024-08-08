@@ -10,7 +10,7 @@ runs:
         sudo apt-get update
         sudo apt install -y libssl-dev clang libclang-dev protobuf-compiler
       shell: bash
-    - name: Add rust components
+    - name: Add Rust components
       run: |
         rustup target add wasm32-unknown-unknown
         rustup component add rust-src
