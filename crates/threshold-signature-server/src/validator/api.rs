@@ -97,18 +97,18 @@ pub async fn new_reshare(
             .map_err(|_| ValidatorErr::Conversion("Verifying key conversion"))?,
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
-    // get old key if have it
-    let my_stash_address = get_stash_address(&api, &rpc, signer.account_id())
-        .await
-        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let is_proper_signer = &validators_info
         .iter()
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
-    if !is_proper_signer && data.new_signer == my_stash_address.encode() {
+    if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
+
+    let my_stash_address = get_stash_address(&api, &rpc, signer.account_id())
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
         if data.new_signer == my_stash_address.encode() {
