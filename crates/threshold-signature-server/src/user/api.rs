@@ -33,10 +33,9 @@ use entropy_kvdb::kv_manager::{
     KvManager,
 };
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
-use entropy_protocol::ValidatorInfo;
-use entropy_protocol::{KeyParams, SigningSessionInfo};
+use entropy_protocol::{KeyParams, PartyId, SigningSessionInfo, ValidatorInfo};
 use entropy_shared::{
-    types::KeyVisibility, HashingAlgorithm, OcwMessageDkg, X25519PublicKey, SIGNING_PARTY_SIZE,
+    HashingAlgorithm, OcwMessageDkg, X25519PublicKey, NETWORK_PARENT_KEY, TOTAL_SIGNERS,
 };
 use futures::{
     channel::mpsc,
@@ -46,7 +45,7 @@ use futures::{
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::AccountId32;
+use sp_core::{crypto::AccountId32, H256};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
@@ -54,7 +53,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, MultiAddress},
     Config, OnlineClient,
 };
-use synedrion::KeyShare;
+use synedrion::ThresholdKeyShare;
 use tracing::instrument;
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
@@ -65,25 +64,29 @@ use crate::{
         entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
         get_api, get_rpc, EntropyConfig,
     },
-    get_random_server_info,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_program, get_registered_details, get_stash_address, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup, submit_transaction,
+            get_program, get_registered_details, get_stash_address, query_chain, submit_transaction,
         },
-        user::{check_in_registration_group, compute_hash, do_dkg, send_key},
+        user::{check_in_registration_group, compute_hash, do_dkg},
         validator::{get_signer, get_signer_and_x25519_secret},
     },
     signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, EncryptedSignedMessage},
-    validator::api::{check_forbidden_key, get_and_store_values},
+    validator::api::check_forbidden_key,
     AppState, Configuration,
 };
 
-pub use entropy_client::user::{get_current_subgroup_signers, UserSignatureRequest};
+pub use entropy_client::user::{get_signers_from_chain, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
+
+/// Used to differentiate different flows which perform distributed key generation.
+enum DkgFlow {
+    Jumpstart,
+    Registration,
+}
 
 /// Type for validators to send user key's back and forth
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -95,6 +98,8 @@ pub struct UserRegistrationInfo {
     pub value: Vec<u8>,
     /// Is this a proactive refresh message
     pub proactive_refresh: bool,
+    /// The sig_req_account to check if user is registering
+    pub sig_request_address: Option<SubxtAccountId32>,
 }
 
 /// Type that gets stored for request limit checks
@@ -133,7 +138,18 @@ pub async fn sign_tx(
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
 
-    check_stale(user_sig_req.timestamp)?;
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
+        .number;
+
+    check_stale(user_sig_req.block_number, block_number).await?;
+    // Probably impossible but block signing from parent key anyways
+    if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
+        return Err(UserErr::NoSigningFromParentKey);
+    }
+
     let user_details =
         get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
     check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
@@ -169,19 +185,11 @@ pub async fn sign_tx(
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(&program, &signature_request, Some(&program_info.program_config), None)?;
     }
-    // We decided to do Keccak for subgroup selection for frontend compatability
-    let message_hash_keccak =
-        compute_hash(&api, &rpc, &HashingAlgorithm::Keccak, &mut runtime, &[], message.as_slice())
-            .await?;
-    let message_hash_keccak_hex = hex::encode(message_hash_keccak);
 
-    let subgroup_signers =
-        get_current_subgroup_signers(&api, &rpc, &message_hash_keccak_hex).await?;
-    check_signing_group(&subgroup_signers, &user_sig_req.validators_info, signer.account_id())?;
-
+    let signers = get_signers_from_chain(&api, &rpc).await?;
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
-    user_sig_req.validators_info = subgroup_signers;
+    user_sig_req.validators_info = signers;
 
     let message_hash = compute_hash(
         &api,
@@ -199,32 +207,22 @@ pub async fn sign_tx(
         request_author,
     };
 
-    let has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
-    if !has_key {
-        recover_key(&api, &rpc, &app_state.kv_store, &signer, &x25519_secret, string_verifying_key)
-            .await?
-    }
+    let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
-        let signing_protocol_output = do_signing(
-            &rpc,
-            user_sig_req,
-            &app_state,
-            signing_session_id,
-            user_details.key_visibility.0,
-            request_limit,
-        )
-        .await
-        .map(|signature| {
-            (
-                BASE64_STANDARD.encode(signature.to_rsv_bytes()),
-                signer.signer().sign(&signature.to_rsv_bytes()),
-            )
-        })
-        .map_err(|error| error.to_string());
+        let signing_protocol_output =
+            do_signing(&rpc, user_sig_req, &app_state, signing_session_id, request_limit)
+                .await
+                .map(|signature| {
+                    (
+                        BASE64_STANDARD.encode(signature.to_rsv_bytes()),
+                        signer.signer().sign(&signature.to_rsv_bytes()),
+                    )
+                })
+                .map_err(|error| error.to_string());
 
         // This response chunk is sent later with the result of the signing protocol
         if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
@@ -236,7 +234,25 @@ pub async fn sign_tx(
     Ok((StatusCode::OK, Body::from_stream(response_rx)))
 }
 
-/// HTTP POST endpoint called by the off-chain worker (propagation pallet) during user registration.
+/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during the network
+/// jumpstart.
+///
+/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
+/// are in the validator group.
+///
+/// This will trigger the Distributed Key Generation (DKG) process.
+#[tracing::instrument(skip_all, fields(block_number))]
+pub async fn generate_network_key(
+    State(app_state): State<AppState>,
+    encoded_data: Bytes,
+) -> Result<StatusCode, UserErr> {
+    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    tracing::Span::current().record("block_number", data.block_number);
+
+    distributed_key_generation(app_state, data, DkgFlow::Jumpstart).await
+}
+
+/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during user registration.
 ///
 /// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
 /// are in the validator group.
@@ -250,14 +266,39 @@ pub async fn new_user(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
+    distributed_key_generation(app_state, data, DkgFlow::Registration).await
+}
+
+/// An internal helper which kicks off the distributed key generation (DKG) process.
+///
+/// Since the jumpstart and registration flows are both doing DKG at the moment, we've split this
+/// out. In the future though, only the jumpstart flow will require this.
+async fn distributed_key_generation(
+    app_state: AppState,
+    data: OcwMessageDkg,
+    flow: DkgFlow,
+) -> Result<StatusCode, UserErr> {
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
-    check_in_registration_group(&data.validators_info, signer.account_id())?;
-    validate_new_user(&data, &api, &rpc, &app_state.kv_store).await?;
+
+    let in_registration_group =
+        check_in_registration_group(&data.validators_info, signer.account_id());
+
+    if in_registration_group.is_err() {
+        tracing::warn!(
+            "The account {:?} is not in the registration group for block_number {:?}",
+            signer.account_id(),
+            data.block_number
+        );
+
+        return Ok(StatusCode::MISDIRECTED_REQUEST);
+    }
+
+    validate_new_user(&data, &api, &rpc, &app_state.kv_store, flow).await?;
 
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
@@ -288,156 +329,50 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-
-    let subgroup = get_subgroup(&api, rpc, signer.account_id()).await?;
-    let stash_address = get_stash_address(&api, rpc, signer.account_id()).await?;
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, rpc, subgroup).await?;
-
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-    for (i, sig_request_account) in data.sig_request_accounts.into_iter().enumerate() {
+    for sig_request_account in data.sig_request_accounts.into_iter() {
         let address_slice: &[u8; 32] = &sig_request_account
             .clone()
             .try_into()
             .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
         let sig_request_address = SubxtAccountId32(*address_slice);
-        let user_details =
-            get_registering_user_details(&api, &sig_request_address.clone(), rpc).await?;
 
-        let key_share = do_dkg(
+        let (key_share, aux_info) = do_dkg(
             &data.validators_info,
             &signer,
             x25519_secret_key,
             &app_state.listener_state,
             sig_request_address.clone(),
-            *user_details.key_visibility,
             data.block_number,
         )
         .await?;
+
         let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-        let string_verifying_key = hex::encode(verifying_key.clone()).to_string();
-        let serialized_key_share = key_serialize(&key_share)
+        let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
+            hex::encode(NETWORK_PARENT_KEY)
+        } else {
+            hex::encode(verifying_key.clone())
+        }
+        .to_string();
+
+        let serialized_key_share = key_serialize(&(key_share, aux_info))
             .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
         let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
         app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
-        let user_registration_info = UserRegistrationInfo {
-            key: string_verifying_key,
-            value: serialized_key_share,
-            proactive_refresh: false,
-        };
-        send_key(
-            &api,
-            rpc,
-            &stash_address,
-            &mut addresses_in_subgroup,
-            user_registration_info,
-            &signer,
-        )
-        .await?;
+        let block_hash = rpc
+            .chain_get_block_hash(None)
+            .await?
+            .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+
+        let nonce_call =
+            entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+        let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
         // TODO: Error handling really complex needs to be thought about.
-        confirm_registered(
-            &api,
-            rpc,
-            sig_request_address,
-            subgroup,
-            &signer,
-            verifying_key,
-            nonce + i as u32,
-        )
-        .await?;
+        confirm_registered(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
     }
     Ok(())
-}
-
-/// HTTP POST endpoint to recieve a keyshare from another threshold server in the same
-/// signing subgroup.
-///
-/// Takes a [UserRegistrationInfo] wrapped in an [EncryptedSignedMessage].
-#[tracing::instrument(skip_all, fields(signing_address))]
-pub async fn receive_key(
-    State(app_state): State<AppState>,
-    Json(encrypted_message): Json<EncryptedSignedMessage>,
-) -> Result<StatusCode, UserErr> {
-    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
-    let signed_message = encrypted_message.decrypt(&x25519_secret_key, &[])?;
-    let signing_address = signed_message.account_id();
-    tracing::Span::current().record("signing_address", signing_address.to_string());
-
-    let user_registration_info: UserRegistrationInfo =
-        serde_json::from_slice(&signed_message.message.0)?;
-
-    check_forbidden_key(&user_registration_info.key).map_err(|_| UserErr::ForbiddenKey)?;
-
-    // Check this is a well-formed keyshare
-    let _: KeyShare<KeyParams> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&user_registration_info.value)
-            .ok_or_else(|| UserErr::InputValidation("Not a valid keyshare"))?;
-
-    let api = get_api(&app_state.configuration.endpoint).await?;
-    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
-    let subgroup = get_subgroup(&api, &rpc, signer.account_id()).await?;
-    let addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup).await?;
-
-    let signing_address_converted = SubxtAccountId32::from_str(&signing_address.to_ss58check())
-        .map_err(|_| UserErr::StringError("Account Conversion"))?;
-
-    // check message is from the person sending the message (get stash key from threshold key)
-    let stash_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(signing_address_converted);
-    let stash_address = query_chain(&api, &rpc, stash_address_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
-
-    if !addresses_in_subgroup.contains(&stash_address) {
-        return Err(UserErr::NotInSubgroup);
-    }
-
-    let already_exists =
-        app_state.kv_store.kv().exists(&user_registration_info.key.to_string()).await?;
-
-    if user_registration_info.proactive_refresh {
-        if !already_exists {
-            return Err(UserErr::UserDoesNotExist);
-        }
-        // TODO validate that an active proactive refresh is happening
-        app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
-    } else {
-        let registering = is_registering(
-            &api,
-            &rpc,
-            &SubxtAccountId32::from_str(&user_registration_info.key)
-                .map_err(|_| UserErr::StringError("Account Conversion"))?,
-        )
-        .await?;
-
-        if already_exists {
-            if registering {
-                // Delete key if user in registering phase
-                app_state.kv_store.kv().delete(&user_registration_info.key.to_string()).await?;
-            } else {
-                return Err(UserErr::AlreadyRegistered);
-            }
-        } else if !registering {
-            return Err(UserErr::NotRegistering("Provided account ID not from a registering user"));
-        }
-    }
-
-    // TODO #652 now get the block number and check that the author of the message should be in the
-    // current DKG or proactive refresh committee
-
-    let reservation =
-        app_state.kv_store.kv().reserve_key(user_registration_info.key.to_string()).await?;
-    app_state.kv_store.kv().put(reservation, user_registration_info.value).await?;
-    Ok(StatusCode::OK)
 }
 
 /// Returns details of a given registering user including key key visibility and X25519 public key.
@@ -475,7 +410,6 @@ pub async fn confirm_registered(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: SubxtAccountId32,
-    subgroup: u8,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
@@ -484,45 +418,30 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    let registration_tx = entropy::tx().registry().confirm_register(
-        who,
-        subgroup,
-        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-    );
-    submit_transaction(api, rpc, signer, &registration_tx, Some(nonce)).await?;
-    Ok(())
-}
+    if who.encode() == NETWORK_PARENT_KEY.encode() {
+        let jump_start_request = entropy::tx().registry().confirm_jump_start(
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
+        submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
+    } else {
+        let confirm_register_request = entropy::tx().registry().confirm_register(
+            who,
+            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+        );
+        submit_transaction(api, rpc, signer, &confirm_register_request, Some(nonce)).await?;
+    }
 
-/// Checks if a validator is in the current selected signing committee
-pub fn check_signing_group(
-    subgroup_signers: &[ValidatorInfo],
-    validators_info: &Vec<ValidatorInfo>,
-    my_id: &<EntropyConfig as Config>::AccountId,
-) -> Result<(), UserErr> {
-    let subgroup_signer_ids: Vec<SubxtAccountId32> =
-        subgroup_signers.iter().map(|signer| signer.tss_account.clone()).collect();
-    // Check that validators given by the user match those from get_current_subgroup_signers
-    for validator in validators_info {
-        if !subgroup_signer_ids.contains(&validator.tss_account) {
-            return Err(UserErr::InvalidSigner("Invalid Signer in Signing group"));
-        }
-    }
-    // Finally, check that we ourselves are in the signing group
-    if !subgroup_signer_ids.contains(my_id) {
-        return Err(UserErr::InvalidSigner(
-            "Signing group is valid, but this threshold server is not in the group",
-        ));
-    }
     Ok(())
 }
 
 /// Validates new user endpoint
 /// Checks the chain for validity of data and block number of data matches current block
-pub async fn validate_new_user(
+async fn validate_new_user(
     chain_data: &OcwMessageDkg,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
+    flow: DkgFlow,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     if u32::from_be_bytes(
@@ -550,7 +469,11 @@ pub async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let verifying_data_query = entropy::storage().registry().dkg(chain_data.block_number);
+    let verifying_data_query = match flow {
+        DkgFlow::Jumpstart => entropy::storage().registry().jumpstart_dkg(chain_data.block_number),
+        DkgFlow::Registration => entropy::storage().registry().dkg(chain_data.block_number),
+    };
+
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
 
@@ -568,34 +491,6 @@ pub async fn validate_new_user(
 pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserErr> {
     let exists_result = kv.kv().exists(account).await?;
     Ok(exists_result)
-}
-
-/// Get and store a keyshare associated with a given verifying key
-pub async fn recover_key(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    kv_store: &KvManager,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-    x25519_secret: &StaticSecret,
-    verifying_key: String,
-) -> Result<(), UserErr> {
-    let subgroup = get_subgroup(api, rpc, signer.account_id()).await?;
-    let stash_address = get_stash_address(api, rpc, signer.account_id()).await?;
-    let key_server_info = get_random_server_info(api, rpc, subgroup, stash_address)
-        .await
-        .map_err(|_| UserErr::ValidatorError("Error getting server".to_string()))?;
-    get_and_store_values(
-        vec![verifying_key],
-        kv_store,
-        1,
-        false,
-        key_server_info,
-        signer,
-        x25519_secret,
-    )
-    .await
-    .map_err(|e| UserErr::ValidatorError(e.to_string()))?;
-    Ok(())
 }
 
 /// Checks the request limit

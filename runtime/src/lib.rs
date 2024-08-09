@@ -37,7 +37,6 @@
 #![allow(unused_imports)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use entropy_shared::SIGNING_PARTY_SIZE;
 use frame_election_provider_support::{
     bounds::ElectionBoundsBuilder, generate_solution_type, onchain, BalancingConfig,
     ElectionDataProvider, ExtendedBalance, NposSolution, SequentialPhragmen, VoteWeight,
@@ -50,10 +49,10 @@ use frame_support::{
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
-        fungible::HoldConsideration,
+        fungible::{self, HoldConsideration},
         tokens::{
-            nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, PayFromAccount,
-            UnityAssetBalanceConversion,
+            nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, Pay, PayFromAccount,
+            PaymentStatus, Preservation, UnityAssetBalanceConversion,
         },
         ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
@@ -71,7 +70,7 @@ use frame_support::{
 pub use frame_system::Call as SystemCall;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureSigned,
+    EnsureRoot, EnsureSigned, EnsureWithSuccess,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -100,11 +99,12 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     generic, impl_opaque_keys,
     traits::{
-        self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
-        SaturatedConversion, StaticLookup,
+        self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, IdentityLookup, NumberFor,
+        OpaqueKeys, SaturatedConversion, StaticLookup,
     },
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill, Perquintill,
+    ApplyExtrinsicResult, DispatchError, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
+    Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(any(feature = "std", test))]
@@ -208,7 +208,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // We update this if the runtime behaviour has changed. When this happens we set the
     // `impl_version` to `0`.
     #[allow(clippy::zero_prefixed_literal)]
-    spec_version: 012,
+    spec_version: 00_02_00,
 
     // We only bump this if the runtime behaviour remains unchanged, but the implementations details
     // have changed.
@@ -222,7 +222,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // call index, parameter changes, etc.).
     //
     // The `spec_version` also needs to be bumped in this case.
-    transaction_version: 6,
+    transaction_version: 7,
 
     // Version of the state implementation to use.
     //
@@ -714,6 +714,7 @@ parameter_types! {
 impl pallet_staking_extension::Config for Runtime {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
@@ -1009,7 +1010,8 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 
 parameter_types! {
   pub const ProposalBond: Permill = Permill::from_percent(5);
-  pub const ProposalBondMinimum: Balance = DOLLARS;
+  pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
+  pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
   pub const SpendPeriod: BlockNumber = DAYS;
   pub const Burn: Permill = Permill::from_percent(50);
   pub const TipCountdown: BlockNumber = DAYS;
@@ -1030,6 +1032,7 @@ parameter_types! {
   pub const CuratorDepositMin: Balance = DOLLARS;
   pub const CuratorDepositMax: Balance = 100 * DOLLARS;
   pub const SpendPayoutPeriod: BlockNumber = 30 * DAYS;
+  pub const MaxBalance: Balance = Balance::MAX;
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1041,10 +1044,10 @@ impl pallet_treasury::Config for Runtime {
     type BurnDestination = ();
     type Currency = Balances;
     type MaxApprovals = MaxApprovals;
-    type OnSlash = ();
+    type OnSlash = Treasury;
     type PalletId = TreasuryPalletId;
     type ProposalBond = ProposalBond;
-    type ProposalBondMaximum = ();
+    type ProposalBondMaximum = ProposalBondMaximum;
     type ProposalBondMinimum = ProposalBondMinimum;
     type RejectOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
@@ -1052,17 +1055,75 @@ impl pallet_treasury::Config for Runtime {
     >;
     type RuntimeEvent = RuntimeEvent;
     type SpendFunds = Bounties;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
+    type SpendOrigin = EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxBalance>;
     type SpendPeriod = SpendPeriod;
     type AssetKind = ();
     type Beneficiary = AccountId;
-    type BeneficiaryLookup = Indices;
+    type BeneficiaryLookup = IdentityLookup<AccountId>;
     type BalanceConverter = UnityAssetBalanceConversion;
-    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+    type Paymaster = PayFromTreasuryAccount;
     type PayoutPeriod = SpendPayoutPeriod;
     type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+pub struct PayFromTreasuryAccount;
+
+impl Pay for PayFromTreasuryAccount {
+    type Balance = Balance;
+    type Beneficiary = AccountId;
+    type AssetKind = ();
+    type Id = ();
+    type Error = DispatchError;
+
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    fn pay(
+        who: &Self::Beneficiary,
+        _asset_kind: Self::AssetKind,
+        amount: Self::Balance,
+    ) -> Result<Self::Id, Self::Error> {
+        let _ = <Balances as fungible::Mutate<_>>::transfer(
+            &TreasuryAccount::get(),
+            who,
+            amount,
+            Preservation::Expendable,
+        )?;
+        Ok(())
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn pay(
+        who: &Self::Beneficiary,
+        _asset_kind: Self::AssetKind,
+        amount: Self::Balance,
+    ) -> Result<Self::Id, Self::Error> {
+        // In case of benchmarks, we adjust the value by multiplying it by 1_000_000_000_000,
+        // otherwise it fails with BelowMinimum limit error, because treasury benchmarks uses only
+        // 100 as the amount.
+        let _ = <Balances as fungible::Mutate<_>>::transfer(
+            &TreasuryAccount::get(),
+            who,
+            amount * 100 * DOLLARS,
+            Preservation::Expendable,
+        )?;
+        Ok(())
+    }
+
+    fn check_payment(_id: Self::Id) -> PaymentStatus {
+        PaymentStatus::Success
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn ensure_successful(_: &Self::Beneficiary, _: Self::AssetKind, amount: Self::Balance) {
+        <Balances as fungible::Mutate<_>>::mint_into(
+            &TreasuryAccount::get(),
+            amount * 100 * DOLLARS,
+        )
+        .unwrap();
+    }
+    #[cfg(feature = "runtime-benchmarks")]
+    fn ensure_concluded(_: Self::Id) {}
 }
 
 impl pallet_bounties::Config for Runtime {
@@ -1137,9 +1198,9 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-  pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::max_value();
+  pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
   /// We prioritize im-online heartbeats over election solution submission.
-  pub const StakingUnsignedPriority: TransactionPriority = TransactionPriority::max_value() / 2;
+  pub const StakingUnsignedPriority: TransactionPriority = TransactionPriority::MAX / 2;
   pub const MaxAuthorities: u32 = 100;
   pub const MaxKeys: u32 = 10_000;
   pub const MaxPeerInHeartbeats: u32 = 10_000;
@@ -1323,8 +1384,8 @@ impl pallet_transaction_storage::Config for Runtime {
 parameter_types! {
     pub const BagThresholds: &'static [u64] = &voter_bags::THRESHOLDS;
 }
-type VoterBagsListInstance = pallet_bags_list::Instance1;
-impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
+
+impl pallet_bags_list::Config<pallet_bags_list::Instance1> for Runtime {
     type BagThresholds = BagThresholds;
     type RuntimeEvent = RuntimeEvent;
     type Score = VoteWeight;
@@ -1350,7 +1411,7 @@ impl Convert<Balance, sp_core::U256> for BalanceToU256 {
 pub struct U256ToBalance;
 impl Convert<sp_core::U256, Balance> for U256ToBalance {
     fn convert(n: sp_core::U256) -> Balance {
-        n.try_into().unwrap_or(Balance::max_value())
+        n.try_into().unwrap_or(Balance::MAX)
     }
 }
 
@@ -1386,14 +1447,12 @@ impl pallet_slashing::Config for Runtime {
 }
 
 parameter_types! {
-  pub const SigningPartySize: usize = SIGNING_PARTY_SIZE;
   pub const MaxProgramHashes: u32 = 5;
   pub const KeyVersionNumber: u8 = 1;
 }
 
 impl pallet_registry::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
     type WeightInfo = weights::pallet_registry::WeightInfo<Runtime>;

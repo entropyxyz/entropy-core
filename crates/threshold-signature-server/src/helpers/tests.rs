@@ -15,48 +15,36 @@
 
 //! Utilities used in unit tests
 
-// only compile when testing
-#![cfg(test)]
-
-use std::time::Duration;
+// only compile when testing or when the test_helpers feature is enabled
+#![cfg(any(test, feature = "test_helpers"))]
 
 use crate::{
     app,
     chain_api::{
         entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
-        get_api, get_rpc, EntropyConfig,
+        EntropyConfig,
     },
     get_signer,
     helpers::{
         launch::{
-            setup_latest_block_number, setup_mnemonic, Configuration, ValidatorName,
-            DEFAULT_BOB_MNEMONIC, DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            development_mnemonic, setup_latest_block_number, setup_mnemonic, Configuration,
+            ValidatorName, DEFAULT_ENDPOINT,
         },
-        logger::Instrumentation,
-        logger::Logger,
-        substrate::{get_subgroup, query_chain, submit_transaction},
-        validator::get_signer_and_x25519_secret_from_mnemonic,
+        logger::{Instrumentation, Logger},
+        substrate::{query_chain, submit_transaction},
     },
     signing_client::ListenerState,
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
-use entropy_kvdb::{
-    clean_tests, encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager,
-};
-use entropy_protocol::{KeyParams, PartyId};
-use entropy_shared::{KeyVisibility, DETERMINISTIC_KEY_SHARE};
-use entropy_testing_utils::substrate_context::testing_context;
-use rand_core::OsRng;
-use serial_test::serial;
+use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
+use entropy_protocol::PartyId;
+use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
+use std::time::Duration;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519, Pair},
-    tx::PairSigner,
-    utils::{AccountId32 as SubxtAccountId32, Static},
-    Config, OnlineClient,
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
-use synedrion::{k256::ecdsa::SigningKey, KeyShare};
 use tokio::sync::OnceCell;
 
 /// A shared reference to the logger used for tests.
@@ -69,9 +57,7 @@ pub static LOGGER: OnceCell<()> = OnceCell::const_new();
 ///
 /// The logger will only be initialized once, even if this function is called multiple times.
 pub async fn initialize_test_logger() {
-    let mut instrumentation = Instrumentation::default();
-    instrumentation.logger = Logger::Pretty;
-
+    let instrumentation = Instrumentation { logger: Logger::Pretty, ..Default::default() };
     *LOGGER.get_or_init(|| instrumentation.setup()).await
 }
 
@@ -79,14 +65,17 @@ pub async fn setup_client() -> KvManager {
     let kv_store =
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
-    let _ = setup_mnemonic(&kv_store, &Some(ValidatorName::Alice)).await;
+
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    setup_mnemonic(&kv_store, mnemonic).await;
+
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
     let app = app(app_state).into_make_service();
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:3001"))
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
         .await
         .expect("Unable to bind to given server address.");
     tokio::spawn(async move {
@@ -110,7 +99,10 @@ pub async fn create_clients(
 
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
-    let _ = setup_mnemonic(&kv_store, validator_name).await;
+
+    let mnemonic = development_mnemonic(validator_name);
+    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
+
     let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
@@ -125,15 +117,10 @@ pub async fn create_clients(
     (app, kv_store)
 }
 
-pub async fn spawn_testing_validators(
-    passed_verifying_key: Option<Vec<u8>>,
-    // If this is true a keyshare for the user will be generated and returned
-    extra_private_keys: bool,
-    // If true keyshare and verifying key is deterministic
-    deterministic_key_share: bool,
-) -> (Vec<String>, Vec<PartyId>, Option<KeyShare<KeyParams>>) {
+/// Spawn 3 TSS nodes with pre-stored keyshares
+pub async fn spawn_testing_validators(add_parent_key: bool) -> (Vec<String>, Vec<PartyId>) {
     // spawn threshold servers
-    let ports = [3001i64, 3002];
+    let ports = [3001i64, 3002, 3003];
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
@@ -146,46 +133,19 @@ pub async fn spawn_testing_validators(
     let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
-    let user_keyshare_option = if passed_verifying_key.is_some() {
-        let number_of_shares = if extra_private_keys { 3 } else { 2 };
-        // creates a deterministic keyshare if requiered
-        let signing_key = if deterministic_key_share {
-            Some(SigningKey::from_bytes((&*DETERMINISTIC_KEY_SHARE).into()).unwrap())
-        } else {
-            None
-        };
 
-        let shares = KeyShare::<KeyParams>::new_centralized(
-            &mut OsRng,
-            number_of_shares,
-            signing_key.as_ref(),
-        );
-        let validator_1_threshold_keyshare: Vec<u8> =
-            entropy_kvdb::kv_manager::helpers::serialize(&shares[0]).unwrap();
-        let validator_2_threshold_keyshare: Vec<u8> =
-            entropy_kvdb::kv_manager::helpers::serialize(&shares[1]).unwrap();
-        // uses the deterministic verifying key if requested
-        let verifying_key = if deterministic_key_share {
-            hex::encode(shares[0].verifying_key().to_encoded_point(true).as_bytes().to_vec())
-        } else {
-            hex::encode(passed_verifying_key.unwrap())
-        };
+    let (charlie_axum, charlie_kv) =
+        create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
+            .await;
+    let charlie_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
 
-        // add key share to kvdbs
-        let alice_reservation = alice_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
-        alice_kv.kv().put(alice_reservation, validator_1_threshold_keyshare).await.unwrap();
+    let ids = vec![alice_id, bob_id, charlie_id];
 
-        let bob_reservation = bob_kv.kv().reserve_key(verifying_key.clone()).await.unwrap();
-        bob_kv.kv().put(bob_reservation, validator_2_threshold_keyshare).await.unwrap();
-
-        if extra_private_keys {
-            Some(shares[2].clone())
-        } else {
-            Some(shares[1].clone())
-        }
-    } else {
-        None
-    };
+    put_keyshares_in_db("alice", alice_kv, add_parent_key).await;
+    put_keyshares_in_db("bob", bob_kv, add_parent_key).await;
+    put_keyshares_in_db("charlie", charlie_kv, add_parent_key).await;
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -201,11 +161,39 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_charlie, charlie_axum).await.unwrap();
+    });
+
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
-    let ids = vec![alice_id, bob_id];
-    (ips, ids, user_keyshare_option)
+    (ips, ids)
+}
+
+/// Add the pre-generated test keyshares to a kvdb
+async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager, add_parent_key: bool) {
+    let mut user_names_and_verifying_keys =
+        vec![("eve", hex::encode(EVE_VERIFYING_KEY)), ("dave", hex::encode(DAVE_VERIFYING_KEY))];
+    if add_parent_key {
+        user_names_and_verifying_keys.push(("eve", hex::encode(NETWORK_PARENT_KEY)))
+    }
+    for (user_name, user_verifying_key) in user_names_and_verifying_keys {
+        let keyshare_bytes = {
+            let project_root =
+                project_root::get_project_root().expect("Error obtaining project root.");
+            let file_path = project_root.join(format!(
+                "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
+                user_name, holder_name
+            ));
+            std::fs::read(file_path).unwrap()
+        };
+        let reservation = kvdb.kv().reserve_key(user_verifying_key).await.unwrap();
+        kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
+    }
 }
 
 /// Removes the program at the program hash
@@ -237,7 +225,8 @@ pub async fn check_if_confirmation(
     // cleared from is_registering state
     assert!(is_registering.unwrap().is_none());
     let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-    assert_eq!(is_registered.unwrap().key_visibility, Static(KeyVisibility::Public));
+    //TODO assert something here
+    assert_eq!(is_registered.unwrap().version_number, 1);
 }
 
 /// Verify that an account got one confirmation.
@@ -260,28 +249,17 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
     }
 }
 
-#[tokio::test]
-#[serial]
-async fn test_get_signing_group() {
-    initialize_test_logger().await;
-    clean_tests();
-    let cxt = testing_context().await;
-    setup_client().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+/// Get a value from a kvdb using unsafe get
+#[cfg(test)]
+pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) -> Vec<u8> {
+    let get_query = crate::r#unsafe::api::UnsafeQuery::new(query_key, vec![]).to_json();
+    let get_result = client
+        .post(format!("http://127.0.0.1:{}/unsafe/get", port))
+        .header("Content-Type", "application/json")
+        .body(get_query)
+        .send()
+        .await
+        .unwrap();
 
-    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
-    let result_alice = get_subgroup(&api, &rpc, &signer_alice.account_id()).await.unwrap();
-    assert_eq!(result_alice, 0);
-
-    let (signer_bob, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
-    let result_bob = get_subgroup(&api, &rpc, &signer_bob.account_id()).await.unwrap();
-    assert_eq!(result_bob, 1);
-
-    let p_charlie = <sr25519::Pair as Pair>::from_string("//Charlie//stash", None).unwrap();
-    let signer_charlie = PairSigner::<EntropyConfig, sr25519::Pair>::new(p_charlie);
-    let result_charlie = get_subgroup(&api, &rpc, &signer_charlie.account_id()).await;
-    assert!(result_charlie.is_err());
-
-    clean_tests();
+    get_result.bytes().await.unwrap().into()
 }

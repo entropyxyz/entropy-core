@@ -254,6 +254,7 @@ pub fn new_partial(
 }
 
 /// Result of [`new_full_base`].
+#[allow(dead_code)]
 pub struct NewFullBase {
     /// The task manager of the node.
     pub task_manager: TaskManager,
@@ -354,12 +355,22 @@ pub fn new_full_base(
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"propagation",
+                &format!("{}/generate_network_key", endpoint).into_bytes(),
+            );
+            offchain_db.local_storage_set(
+                sp_core::offchain::StorageKind::PERSISTENT,
+                b"registration",
                 &format!("{}/user/new", endpoint).into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"refresh",
                 &format!("{}/signer/proactive_refresh", endpoint).into_bytes(),
+            );
+            offchain_db.local_storage_set(
+                sp_core::offchain::StorageKind::PERSISTENT,
+                b"reshare_validators",
+                &format!("{}/validator/reshare", endpoint).into_bytes(),
             );
             log::info!("Threshold Signing Sever (TSS) location changed to {}", endpoint);
         }

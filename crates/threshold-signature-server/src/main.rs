@@ -20,10 +20,10 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only, Configuration,
-        StartupArgs, ValidatorName,
+        development_mnemonic, load_kv_store, setup_latest_block_number, setup_mnemonic, setup_only,
+        Configuration, StartupArgs, ValidatorName,
     },
-    sync_validator, AppState,
+    AppState,
 };
 
 #[tokio::main]
@@ -52,19 +52,69 @@ async fn main() {
     if args.bob {
         validator_name = Some(ValidatorName::Bob);
     }
+    if args.charlie {
+        validator_name = Some(ValidatorName::Charlie);
+    }
+    if args.dave {
+        validator_name = Some(ValidatorName::Dave);
+    }
+    if args.eve {
+        validator_name = Some(ValidatorName::Eve);
+    }
+
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone());
-    setup_mnemonic(&kv_store, &validator_name).await.expect("Issue creating Mnemonic");
+
+    // We consider the inputs in order of most to least explicit: CLI flag, supplied file,
+    // environment variable.
+    let user_mnemonic = args
+        .mnemonic
+        .or_else(|| {
+            args.mnemonic_file.map(|path| {
+                let file = std::fs::read(path).expect("Unable to read mnemonic file.");
+                let mnemonic = std::str::from_utf8(&file)
+                    .expect("Unable to convert provided mnemonic to UTF-8 string.")
+                    .trim();
+
+                bip39::Mnemonic::parse_normalized(mnemonic)
+                    .expect("Unable to parse given mnemonic.")
+            })
+        })
+        .or_else(|| {
+            std::env::var("THRESHOLD_SERVER_MNEMONIC").ok().map(|mnemonic| {
+                bip39::Mnemonic::parse_normalized(&mnemonic)
+                    .expect("Unable to parse given mnemonic.")
+            })
+        });
+
+    if let Some(mnemonic) = user_mnemonic {
+        setup_mnemonic(&kv_store, mnemonic).await
+    } else if cfg!(test) || validator_name.is_some() {
+        setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
+    } else {
+        let has_mnemonic = entropy_tss::launch::has_mnemonic(&kv_store).await;
+        assert!(
+            has_mnemonic,
+            "No mnemonic provided. Please provide one or use a development account."
+        );
+    };
+
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
     // Below deals with syncing the kvdb
-    sync_validator(args.no_sync, args.dev, &configuration.endpoint, &kv_store).await;
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
 
     if args.setup_only {
         setup_only(&kv_store).await;
     } else {
+        let account_id = entropy_tss::launch::threshold_account_id(&kv_store).await;
+        entropy_tss::launch::check_node_prerequisites(
+            &app_state.configuration.endpoint,
+            &account_id,
+        )
+        .await;
+
         let listener = tokio::net::TcpListener::bind(&addr)
             .await
             .expect("Unable to bind to given server address.");

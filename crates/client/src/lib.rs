@@ -15,10 +15,14 @@
 //! A client for the Entropy chain node and Entropy TSS Server.
 //! Since the TSS server communicates with the chain node, this is also a dependency of entropy-tss.
 pub mod chain_api;
+pub mod errors;
 pub mod substrate;
 pub mod user;
 pub mod util;
 pub use util::Hasher;
+
+#[cfg(test)]
+mod tests;
 
 #[cfg(feature = "full-client")]
 pub mod client;

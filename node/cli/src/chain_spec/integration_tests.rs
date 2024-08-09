@@ -26,9 +26,10 @@ use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
     DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
-    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
+use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
@@ -51,9 +52,16 @@ pub fn integration_tests_config() -> ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
+                crate::chain_spec::authority_keys_from_seed("Dave"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
+            vec![
+                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+            ],
         ))
         .build()
 }
@@ -70,8 +78,13 @@ pub fn integration_tests_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
+    mock_signer_rotate_data: Vec<AccountId>,
 ) -> serde_json::Value {
-    let mut endowed_accounts = endowed_accounts_dev();
+    // Note that any endowed_accounts added here will be included in the `elections` and
+    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
+    // this list.
+    let mut endowed_accounts = vec![];
+
     // endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
         if !endowed_accounts.contains(x) {
@@ -104,7 +117,13 @@ pub fn integration_tests_genesis_config(
 
     serde_json::json!( {
         "balances": BalancesConfig {
-            balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
+            balances: endowed_accounts
+                        .iter()
+                        .chain(endowed_accounts_dev().iter())
+                        .cloned()
+                        .map(|x| (x, ENDOWMENT))
+                        .unique()
+                        .collect(),
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {
@@ -155,29 +174,17 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        "127.0.0.1:3003".as_bytes().to_vec(),
                     ),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     (
                         crate::chain_spec::tss_account_id::DAVE.clone(),
-                        // This should be a `Dave` account, but we use `Bob` since Dave's mnemonic
-                        // is unavailable right now.
-                        crate::chain_spec::tss_x25519_public_key::BOB,
+                        crate::chain_spec::tss_x25519_public_key::DAVE,
                         "127.0.0.1:3002".as_bytes().to_vec(),
                     ),
                 ),
-            ],
-            signing_groups: vec![
-                (
-                    0,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    ],
-                ),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
             proactive_refresh_data: (
                 vec![
@@ -197,9 +204,18 @@ pub fn integration_tests_genesis_config(
                         ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
                     },
+                    entropy_shared::ValidatorInfo {
+                        tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                            &crate::chain_spec::tss_account_id::CHARLIE.clone(),
+                        )
+                        .into(),
+                        ip_address: "127.0.0.1:3003".as_bytes().to_vec(),
+                        x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
+                    },
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")],),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -230,20 +246,14 @@ pub fn integration_tests_genesis_config(
             registered_accounts: vec![
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    0,
-                    None,
                     BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
                     BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    2,
-                    None,
                     BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
                 ),
             ],
@@ -251,6 +261,8 @@ pub fn integration_tests_genesis_config(
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
             ..Default::default()
         },
         "programs": ProgramsConfig {

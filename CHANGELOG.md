@@ -7,7 +7,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
+
+### Breaking Changes
+- In [#938](https://github.com/entropyxyz/entropy-core/pull/938), the chainspec got a couple of new
+  fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
+  `pallet_parameters::threshold`, which are used to set up the initial threshold signing
+  configuration for the network.
+
+### Added
+- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+- Add Signer groups and rotation ([#938](https://github.com/entropyxyz/entropy-core/pull/938))
+- Split jumpstart and register flows ([#952](https://github.com/entropyxyz/entropy-core/pull/952))
+- New on-chain registration flow ([#955](https://github.com/entropyxyz/entropy-core/pull/955))
+- Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
+- Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
+- Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
+
+### Changed
+- Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+
+## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
+
+### Breaking Changes
+- In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
+  TSS mnemonic was shifted to operators, which can be done using the `--mnemonic` flag during
+  process startup. This also allows operators to back up the mnemonic for their TSS.
+- In [#856](https://github.com/entropyxyz/entropy-core/pull/856) a new flag, `--mnemonic-option`,
+  and environment variable `DEPLOYER_MNEMONIC`, were added to the `entropy-test-cli` as ways to
+  indicate which account to use during registration. This replaces having an account name or
+  mnemonic directly in the command invocation.
+- In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from
+  `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for
+  stale checks
+- In [#881](https://github.com/entropyxyz/entropy-core/pull/881) the `HashingAlgorithm` enum is
+  given an additional variant `Blake2_256` and marked as `non_exhaustive` meaning we must handle the
+  case that an unknown variant is added in the future.
+- In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection was
+  sorted to ensure a predicatble order across libraries, languages and clients.
+- In [#901](https://github.com/entropyxyz/entropy-core/pull/901) the network's currency units were
+  changed. This resulted in a change to the existential deposit as well as balances of endowed
+  accounts (e.g development accounts like `//Alice`).
+
+### Added
+- Add a way to change program modification account ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
+- Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
+- Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
+- Add `blake2` as built in hash function and make `HashingAlgorithm` non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
+- Add sort to subgroup signer selection ([#900](https://github.com/entropyxyz/entropy-core/pull/900))
+- Create four node Docker Compose chainspec ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
+
+### Changed
+- Move TSS mnemonic out of keystore ([#853](https://github.com/entropyxyz/entropy-core/pull/853))
+- Prepare test CLI for use in Programs repo ([#856](https://github.com/entropyxyz/entropy-core/pull/856))
+- Replace timestamp with block number ([#866](https://github.com/entropyxyz/entropy-core/pull/866))
+- Change currency units ([#901](https://github.com/entropyxyz/entropy-core/pull/901))
+
+## [0.1.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0) - 2024-05-20
+
+This is the first publicly available version of Entropy 🥳
+
+There aren't a lot of new features compared to the `v0.12.0` release. However, one exciting addition
+is that crates related to the threshold server (`entropy-tss`) are now published on crates.io.
+
+### Changed
+- Make full version of entropy-client possible to compile on wasm ([#816](https://github.com/entropyxyz/entropy-core/pull/816))
+- Remove certain endowed accounts from chain ([#819](https://github.com/entropyxyz/entropy-core/pull/819))
+- Updates for test-cli before publishing and to work nicely with v0.0.12 ([#830](https://github.com/entropyxyz/entropy-core/pull/830))
+
+### Fixed
+- Fix `Account Deserialization` error from verifying key mismatch ([#831](https://github.com/entropyxyz/entropy-core/pull/831))
 
 ## [0.0.12](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.11...release/v0.0.12) - 2024-05-02
 
@@ -17,6 +86,9 @@ At the moment this project **does not** adhere to
   `programs::set_program` extrinsic now takes an additional argument `oracle_data_pointer` of type
   `Vec<u8>` (`Uint8Array` on JS). Since oracles are not completely implemented this should be
   passed an empty vector/array.
+- In [#762](https://github.com/entropyxyz/entropy-core/pull/762) 'Update Substrate to Polkadot 1.7.0'
+  the genesis chainspec builder has been updated for sc_service 0.36.0, which affects both the
+  runtime and chainspec.
 - In [#709](https://github.com/entropyxyz/entropy-core/pull/709) 'Derive the threshold account
   keypair and x25519 keypair from mnemonic using HKDF' the JS `entropy-protocol` bindings have
   changed. `Hpke.DecryptAndVerify` now takes a secret x25519 encryption key rather than a secret
@@ -25,7 +97,8 @@ At the moment this project **does not** adhere to
   signing secret key. Similarly in the rust API, `EncryptedSignedMessage` no longer derives x25519
   keypairs internally and so the decrypt method now takes a x25519 secret key. Also, the method by
   which keypairs are derived from a mnemonic has changed, which means existing validators x25119
-  and sr25519 keypairs will be different what they were before.
+  and sr25519 keypairs will be different what they were before. This includes the test accounts in
+  the chainspec.
 
 ### Added
 - Add testnet account JSON ([#769](https://github.com/entropyxyz/entropy-core/pull/769))

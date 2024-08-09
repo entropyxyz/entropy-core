@@ -23,4 +23,8 @@ pub enum ValidationErr {
     StaleMessage,
     #[error("Time subtraction error: {0}")]
     SystemTime(#[from] std::time::SystemTimeError),
+    #[error("Error getting block number")]
+    BlockNumber,
+    #[error("Generic Substrate error: {0}")]
+    GenericSubstrate(#[from] subxt::error::Error),
 }
