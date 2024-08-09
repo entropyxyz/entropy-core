@@ -14,20 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::api::{check_balance_for_fees, check_forbidden_key};
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::bounded_collections::bounded_vec},
-        get_api, get_rpc, EntropyConfig,
-    },
+    chain_api::{get_api, get_rpc},
     helpers::{
-        launch::{
-            development_mnemonic, ValidatorName, FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE,
-        },
-        substrate::submit_transaction,
+        launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
             unsafe_get,
         },
-        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::{
         api::{prune_old_holders, validate_new_reshare},
@@ -40,8 +33,7 @@ use entropy_kvdb::{
 };
 use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::{
-    OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY,
-    TEST_RESHARE_BLOCK_NUMBER,
+    OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_RESHARE_BLOCK_NUMBER,
 };
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
@@ -52,9 +44,6 @@ use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
-use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, OnlineClient,
-};
 
 #[tokio::test]
 #[serial]
@@ -76,7 +65,7 @@ async fn test_reshare() {
         key_shares_before.push(unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), *port).await);
     }
 
-    setup_for_reshare(&api, &rpc).await;
+    crate::user::tests::jump_start_network(&api, &rpc).await;
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request =
@@ -195,28 +184,6 @@ async fn test_empty_next_signer() {
     clean_tests();
 }
 
-async fn setup_for_reshare(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-) {
-    let alice = AccountKeyring::Alice;
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-
-    let jump_start_request = entropy::tx().registry().jump_start_network();
-    let _result = submit_transaction(api, rpc, &signer, &jump_start_request, None).await.unwrap();
-
-    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
-    for validator_name in validators_names {
-        let mnemonic = development_mnemonic(&Some(validator_name));
-        let (tss_signer, _static_secret) =
-            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
-        let jump_start_confirm_request = entropy::tx()
-            .registry()
-            .confirm_jump_start(bounded_vec::BoundedVec(EVE_VERIFYING_KEY.to_vec()));
-
-        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
-    }
-}
 #[tokio::test]
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {

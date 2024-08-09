@@ -31,7 +31,7 @@ use subxt::ext::sp_runtime::AccountId32;
 pub use self::errors::*;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 /// User input, contains key (substrate key) and value (entropy shard)
 #[derive(Debug, Deserialize, Serialize, Clone)]
