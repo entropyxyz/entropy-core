@@ -82,11 +82,10 @@ pub async fn get_registered_details(
 
         let registered_info_query =
             entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
-        let new_registration_info = query_chain(api, rpc, registered_info_query, None)
-            .await?
-            .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;
 
-        new_registration_info
+        query_chain(api, rpc, registered_info_query, None)
+            .await?
+            .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?
     };
 
     Ok(registration_info)
