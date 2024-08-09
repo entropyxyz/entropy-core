@@ -828,6 +828,32 @@ pub async fn put_register_request_on_chain(
     submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
+/// Registers an account on-chain using the new registration flow.
+pub async fn put_new_register_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signature_request_account: &Sr25519Keyring,
+    program_modification_account: subxtAccountId32,
+    program_instance: BoundedVec<ProgramInstance>,
+) -> Result<entropy::registry::events::AccountRegistered, entropy_client::substrate::SubstrateError>
+{
+    let signature_request_account =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_account.pair());
+
+    let registering_tx =
+        entropy::tx().registry().register_on_chain(program_modification_account, program_instance);
+
+    let events =
+        submit_transaction(api, rpc, &signature_request_account, &registering_tx, None).await?;
+
+    // Since we're only submitting one request above, looking for the first event as opposed to
+    // say, all events, should be fine.
+    let registered_event =
+        events.find_first::<entropy::registry::events::AccountRegistered>()?.unwrap();
+
+    Ok(registered_event)
+}
+
 pub async fn put_jumpstart_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
