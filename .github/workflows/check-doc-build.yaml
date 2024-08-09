@@ -1,0 +1,14 @@
+---
+name: "Check documentation build"
+on: ["push"]
+
+jobs:
+  check-doc-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies/
+      - name: Build documentation
+        run: cargo doc --no-deps
