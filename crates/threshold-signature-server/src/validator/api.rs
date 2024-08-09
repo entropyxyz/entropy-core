@@ -184,10 +184,10 @@ pub async fn new_reshare(
     )
     .await?;
 
-    // // Setup channels for the next session
+    // Setup channels for the next session
     let channels = Channels(brodcaster, rx);
 
-    // // Now run an aux gen session
+    // Now run an aux gen session
     let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
     let session = make_aux_gen_session(
         &mut OsRng,

@@ -26,7 +26,6 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
-- Refactor reshare ([#994](https://github.com/entropyxyz/entropy-core/pull/994))
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
