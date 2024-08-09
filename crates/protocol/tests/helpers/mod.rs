@@ -31,12 +31,13 @@ use entropy_shared::X25519PublicKey;
 use futures::future;
 use sp_core::{sr25519, Pair};
 use std::{
+    collections::BTreeSet,
     fmt,
     sync::{Arc, Mutex},
     time::Duration,
 };
 use subxt::utils::AccountId32;
-use synedrion::{AuxInfo, KeyShare, ThresholdKeyShare};
+use synedrion::{AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, ThresholdKeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
     time::timeout,
@@ -131,15 +132,24 @@ pub async fn server(
             Ok(ProtocolOutput::Sign(RecoverableSignature { signature, recovery_id }))
         },
         SessionId::Reshare { .. } => {
-            let new_keyshare = execute_proactive_refresh(
-                session_id,
-                channels,
-                &pair,
-                tss_accounts,
-                threshold_keyshare.unwrap(),
-            )
-            .await?;
-            Ok(ProtocolOutput::Reshare(new_keyshare))
+            let old_key = threshold_keyshare.unwrap();
+            let party_ids: BTreeSet<PartyId> =
+                tss_accounts.iter().cloned().map(PartyId::new).collect();
+            let inputs = KeyResharingInputs {
+                old_holder: Some(OldHolder { key_share: old_key.clone() }),
+                new_holder: Some(NewHolder {
+                    verifying_key: old_key.verifying_key(),
+                    old_threshold: party_ids.len(),
+                    old_holders: party_ids.clone(),
+                }),
+                new_holders: party_ids.clone(),
+                new_threshold: old_key.threshold(),
+            };
+
+            let new_keyshare =
+                execute_proactive_refresh(session_id, channels, &pair, tss_accounts, inputs)
+                    .await?;
+            Ok(ProtocolOutput::Reshare(new_keyshare.0))
         },
         SessionId::Dkg { .. } => {
             let keyshare_and_aux_info =

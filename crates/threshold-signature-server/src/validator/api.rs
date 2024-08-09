@@ -23,9 +23,7 @@ use crate::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
-    signing_client::{
-        api::get_channels, protocol_transport::open_protocol_connections, ProtocolErr,
-    },
+    signing_client::{api::get_channels, ProtocolErr},
     validator::errors::ValidatorErr,
     AppState,
 };
@@ -40,20 +38,19 @@ pub use entropy_protocol::{
     },
     KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
 use rand_core::OsRng;
 use sp_core::Pair;
-use std::{collections::BTreeSet, str::FromStr, time::Duration};
+use std::{collections::BTreeSet, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     OnlineClient,
 };
 use synedrion::{
-    make_aux_gen_session, make_key_resharing_session, sessions::SessionId as SynedrionSessionId,
-    AuxInfo, KeyResharingInputs, NewHolder, OldHolder,
+    make_aux_gen_session, sessions::SessionId as SynedrionSessionId, AuxInfo, KeyResharingInputs,
+    NewHolder, OldHolder,
 };
-use tokio::time::timeout;
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
 ///
@@ -183,8 +180,6 @@ pub async fn new_reshare(
         channels,
         signer.signer(),
         tss_accounts,
-        decoded_verifying_key,
-        threshold as usize,
         inputs,
     )
     .await?;

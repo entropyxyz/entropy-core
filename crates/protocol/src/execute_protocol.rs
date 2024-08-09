@@ -329,6 +329,7 @@ pub async fn execute_dkg(
 }
 
 /// Execute proactive refresh.
+#[allow(clippy::type_complexity)]
 #[tracing::instrument(
     skip_all,
     fields(threshold_accounts, my_idx),
@@ -339,8 +340,6 @@ pub async fn execute_proactive_refresh(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-    verifying_key: VerifyingKey,
-    threshold: usize,
     inputs: KeyResharingInputs<KeyParams, PartyId>,
 ) -> Result<
     (ThresholdKeyShare<KeyParams, PartyId>, Broadcaster, mpsc::Receiver<ProtocolMessage>),

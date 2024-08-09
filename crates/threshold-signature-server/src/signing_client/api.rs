@@ -153,6 +153,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
+#[allow(clippy::type_complexity)]
 #[tracing::instrument(
     skip_all,
     fields(validators_info, verifying_key, my_subgroup),
@@ -216,16 +217,9 @@ pub async fn do_proactive_refresh(
     )
     .await?;
 
-    let result = execute_proactive_refresh(
-        session_id,
-        channels,
-        signer.signer(),
-        tss_accounts,
-        old_key.verifying_key(),
-        old_key.threshold(),
-        inputs,
-    )
-    .await?;
+    let result =
+        execute_proactive_refresh(session_id, channels, signer.signer(), tss_accounts, inputs)
+            .await?;
     Ok(result)
 }
 
