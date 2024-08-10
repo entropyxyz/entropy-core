@@ -104,6 +104,10 @@ pub async fn new_reshare(
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
     if !is_proper_signer {
+        // delete old keyshare if has it and not next_signer
+        if app_state.kv_store.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await? {
+            app_state.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await?
+        }
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
