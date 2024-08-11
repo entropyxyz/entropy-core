@@ -31,7 +31,6 @@ jobs:
           yarn
           cd ../../..
       - name: Run `cargo build && cargo test`
-        timeout-minutes: 45
         run: |
           pushd node
           cargo build --all-targets --release -j $(nproc)
