@@ -161,7 +161,7 @@ pub async fn sign_tx(
         return Err(UserErr::NoProgramPointerDefined());
     }
 
-    // handle aux data padding, if it is not explicit by client for ease send through None, error
+    // Handle aux data padding, if it is not explicit by client for ease send through None, error
     // if incorrect length
     let auxilary_data_vec;
     if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
@@ -219,8 +219,14 @@ pub async fn sign_tx(
         let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
     }
 
-    // TODO (Nando): We're hardcoding this for now since we know the path used on-chain
-    let derivation_path = user_details.derivation_path.map(|count| format!("m/0/{}", count));
+    let derivation_path = if let Some(path) = user_details.derivation_path {
+        let decoded_path = String::decode(&mut path.as_ref())?;
+        let path = bip32::DerivationPath::from_str(&decoded_path)?;
+
+        Some(path)
+    } else {
+        None
+    };
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 

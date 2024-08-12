@@ -119,9 +119,8 @@ pub mod pallet {
     pub struct RegisteredInfo<T: Config> {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
-        /// TODO (Nando): We're just going to store the `count` for now, but we should consider
-        /// storing the full derivation path here in the future (as a `Vec<u8>`).
-        pub derivation_path: Option<u32>,
+        /// The SCALE encoded BIP-32 `DerivationPath` used to register this account.
+        pub derivation_path: Option<Vec<u8>>,
         pub version_number: u8,
     }
 
@@ -756,9 +755,9 @@ pub mod pallet {
             // For a V1 of this flow it's fine, but we'll need to think about a better solution
             // down the line.
             let count = RegisteredOnChain::<T>::count();
-            let path =
-                bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count))
-                    .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
+            let inner_path = scale_info::prelude::format!("m/0/{}", count);
+            let path = bip32::DerivationPath::from_str(&inner_path)
+                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
             let child_verifying_key = network_verifying_key
                 .derive_verifying_key_bip32(&path)
                 .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
@@ -773,8 +772,8 @@ pub mod pallet {
                 RegisteredInfo {
                     programs_data,
                     program_modification_account: program_modification_account.clone(),
+                    derivation_path: Some(inner_path.encode()),
                     version_number: T::KeyVersionNumber::get(),
-                    derivation_path: Some(count),
                 },
             );
 

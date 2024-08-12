@@ -66,7 +66,7 @@ impl<'a> ThresholdSigningService<'a> {
     pub async fn get_sign_context(
         &self,
         sign_init: SignInit,
-        derivation_path: Option<String>,
+        derivation_path: Option<bip32::DerivationPath>,
     ) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
 
@@ -86,7 +86,6 @@ impl<'a> ThresholdSigningService<'a> {
             .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
         let key_share = if let Some(path) = derivation_path {
-            let path = path.parse()?;
             key_share.derive_bip32(&path)?
         } else {
             key_share
