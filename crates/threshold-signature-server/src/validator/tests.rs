@@ -262,11 +262,18 @@ async fn test_attest() {
     initialize_test_logger().await;
     clean_tests();
 
-    // let cxt = test_node_process_testing_state(false).await;
+    let _cxt = test_node_process_testing_state(false).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
 
     let client = reqwest::Client::new();
-    let res =
-        client.post(format!("http://127.0.0.1:3001/attest")).body(Vec::new()).send().await.unwrap();
-    println!("{:?}", res.text().await);
+    let res = client
+        .post(format!("http://127.0.0.1:3001/attest"))
+        .body([0; 32].to_vec())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let quote = res.bytes().await.unwrap();
+    // This verifies the signature in the quote
+    tdx_quote::Quote::from_bytes(&quote).unwrap();
 }

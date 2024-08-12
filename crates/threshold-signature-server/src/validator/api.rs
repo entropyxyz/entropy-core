@@ -374,7 +374,7 @@ pub async fn attest(
 pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
-) -> Result<(StatusCode, String), ValidatorErr> {
+) -> Result<(StatusCode, Bytes), ValidatorErr> {
     let nonce = input[..].try_into()?;
 
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
@@ -401,5 +401,5 @@ pub async fn attest(
     let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0);
     // Here we would submit an attest extrinsic to the chain - but for now we just include it in the
     // response
-    Ok((StatusCode::OK, format!("{:?}", quote)))
+    Ok((StatusCode::OK, Bytes::from(quote.as_bytes().to_vec())))
 }
