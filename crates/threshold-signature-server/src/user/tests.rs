@@ -492,7 +492,6 @@ async fn signature_request_with_derived_account_works() {
     clean_tests();
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain_fail() {
