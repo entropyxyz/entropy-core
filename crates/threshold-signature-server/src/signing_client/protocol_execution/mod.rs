@@ -86,8 +86,8 @@ impl<'a> ThresholdSigningService<'a> {
             .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
         let key_share = if let Some(path) = derivation_path {
-            let path = path.parse().expect("TODO");
-            key_share.derive_bip32(&path).expect("TODO")
+            let path = path.parse()?;
+            key_share.derive_bip32(&path)?
         } else {
             key_share
         };

@@ -45,7 +45,7 @@ pub async fn do_signing(
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
     request_limit: u32,
-    derivation_path: Option<String>, // TODO (Nando): Not a fan of this...
+    derivation_path: Option<String>,
 ) -> Result<RecoverableSignature, ProtocolErr> {
     tracing::debug!("Preparing to perform signing");
 
