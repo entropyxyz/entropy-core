@@ -361,7 +361,7 @@ pub async fn prune_old_holders(
     })
 }
 
-#[cfg(not(feature = "unsafe"))]
+#[cfg(not(any(test, feature = "unsafe")))]
 pub async fn attest(
     State(_app_state): State<AppState>,
     _input: Bytes,
@@ -370,7 +370,7 @@ pub async fn attest(
     Err(ValidatorErr::NotImplemented)
 }
 
-#[cfg(feature = "unsafe")]
+#[cfg(any(test, feature = "unsafe"))]
 pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
