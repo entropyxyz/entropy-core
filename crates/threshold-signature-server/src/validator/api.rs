@@ -375,6 +375,7 @@ pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
 ) -> Result<(StatusCode, Bytes), ValidatorErr> {
+    // TODO #982 confirm with the chain that an attestation should be happenning
     let nonce = input[..].try_into()?;
 
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
