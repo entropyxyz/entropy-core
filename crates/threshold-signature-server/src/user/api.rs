@@ -190,8 +190,8 @@ pub async fn sign_tx(
         runtime.evaluate(&program, &signature_request, Some(&program_info.program_config), None)?;
     }
 
-    // TODO (Nando): Internal algo needs to be changed here
-    let signers = get_signers_from_chain(&api, &rpc).await?;
+    let with_parent_key = user_details.derivation_path.is_some();
+    let signers = get_signers_from_chain(&api, &rpc, with_parent_key).await?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct

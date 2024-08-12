@@ -131,7 +131,7 @@ pub async fn sign(
     auxilary_data: Option<Vec<u8>>,
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
-    let validators_info = get_signers_from_chain(api, rpc).await?;
+    let validators_info = get_signers_from_chain(api, rpc, false).await?;
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {

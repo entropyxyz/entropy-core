@@ -192,8 +192,10 @@ async fn test_sign_tx_no_chain() {
         request_author: signature_request_account.clone(),
     });
 
+    let with_parent_key = false;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     // test points to no program
@@ -376,8 +378,10 @@ async fn test_sign_tx_no_chain_fail() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let mock_client = reqwest::Client::new();
 
+    let with_parent_key = false;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
 
     // fails verification tests
     // wrong key for wrong validator
@@ -515,8 +519,10 @@ async fn test_program_with_config() {
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
 
     let message_hash = Hasher::keccak(message.as_bytes());
+
+    let with_parent_key = false;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), with_parent_key).await;
 
     let config = r#"
         {
@@ -1097,7 +1103,9 @@ async fn test_device_key_proxy() {
     .await
     .unwrap();
 
-    let validators_info = get_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    let with_parent_key = false;
+    let validators_info =
+        get_signers_from_chain(&entropy_api, &rpc, with_parent_key).await.unwrap();
     let context = signing_context(b"");
 
     let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
@@ -1580,8 +1588,10 @@ pub async fn get_sign_tx_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     message: String,
+    with_parent_key: bool,
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
-    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
+    let validators_info = get_signers_from_chain(api, rpc, with_parent_key).await.unwrap();
+
     let generic_msg = UserSignatureRequest {
         message,
         auxilary_data: Some(vec![
