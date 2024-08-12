@@ -119,6 +119,9 @@ pub mod pallet {
     pub struct RegisteredInfo<T: Config> {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
+        /// TODO (Nando): We're just going to store the `count` for now, but we should consider
+        /// storing the full derivation path here in the future (as a `Vec<u8>`).
+        pub derivation_path: Option<u32>,
         pub version_number: u8,
     }
 
@@ -140,6 +143,7 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_id.clone(),
+                        derivation_path: None,
                         version_number: T::KeyVersionNumber::get(),
                     },
                 );
@@ -656,6 +660,7 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
+                        derivation_path: None,
                         version_number: registering_info.version_number,
                     },
                 );
@@ -769,6 +774,7 @@ pub mod pallet {
                     programs_data,
                     program_modification_account: program_modification_account.clone(),
                     version_number: T::KeyVersionNumber::get(),
+                    derivation_path: Some(count),
                 },
             );
 
