@@ -169,8 +169,7 @@ pub async fn new_reshare(
     .await?;
 
     let (new_key_share, aux_info) =
-        execute_reshare(session_id.clone(), channels, signer.signer(), tss_accounts, inputs, None)
-            .await?;
+        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, None).await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;

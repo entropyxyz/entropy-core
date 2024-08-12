@@ -333,7 +333,6 @@ pub async fn execute_reshare(
     session_id: SessionId,
     chans: Channels,
     threshold_pair: &sr25519::Pair,
-    threshold_accounts: Vec<AccountId32>,
     inputs: KeyResharingInputs<KeyParams, PartyId>,
     aux_info_option: Option<AuxInfo<KeyParams, PartyId>>,
 ) -> Result<
@@ -343,8 +342,6 @@ pub async fn execute_reshare(
     tracing::debug!("Executing proactive refresh");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
-    let party_ids: BTreeSet<PartyId> =
-        threshold_accounts.iter().cloned().map(PartyId::new).collect();
     let pair = PairWrapper(threshold_pair.clone());
 
     let session_id_hash = session_id.blake2(None)?;
@@ -353,13 +350,12 @@ pub async fn execute_reshare(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
         pair,
-        &party_ids,
-        inputs,
+        &inputs.new_holders,
+        inputs.clone(),
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
-
     let aux_info = if let Some(aux_info) = aux_info_option {
         aux_info
     } else {
@@ -369,11 +365,11 @@ pub async fn execute_reshare(
             &mut OsRng,
             SynedrionSessionId::from_seed(session_id_hash_aux_data.as_slice()),
             PairWrapper(threshold_pair.clone()),
-            &party_ids,
+            &inputs.new_holders,
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        execute_protocol_generic(chans, session, session_id_hash).await?.0
+        execute_protocol_generic(chans, session, session_id_hash_aux_data).await?.0
     };
 
     Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, aux_info))
