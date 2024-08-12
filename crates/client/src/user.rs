@@ -36,7 +36,7 @@ pub struct UserSignatureRequest {
     pub block_number: BlockNumber,
     /// Hashing algorithm to be used for signing
     pub hash: HashingAlgorithm,
-    /// The veryfying key for the signature requested
+    /// The verifying key for the signature requested
     pub signature_verifying_key: Vec<u8>,
 }
 

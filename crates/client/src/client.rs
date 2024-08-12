@@ -297,7 +297,7 @@ pub async fn put_register_request_on_chain(
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<(), ClientError> {
-    let registering_tx = entropy::tx().registry().register(deployer, program_instance);
+    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
 
     submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
         .await?;

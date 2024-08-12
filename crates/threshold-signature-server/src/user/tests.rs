@@ -825,7 +825,7 @@ pub async fn put_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
     let registering_tx =
-        entropy::tx().registry().register(program_modification_account, program_instance);
+        entropy::tx().registry().register(program_modification_account, program_instances);
     submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
@@ -842,7 +842,7 @@ pub async fn put_new_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_account.pair());
 
     let registering_tx =
-        entropy::tx().registry().register_on_chain(program_modification_account, program_instance);
+        entropy::tx().registry().register_on_chain(program_modification_account, program_instances);
 
     let events =
         submit_transaction(api, rpc, &signature_request_account, &registering_tx, None).await?;
