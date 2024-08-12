@@ -28,7 +28,6 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
-use blake2::{Blake2b512, Digest};
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 use entropy_protocol::Subsession;
 pub use entropy_protocol::{
@@ -392,30 +391,15 @@ pub async fn attest(
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let public_key = x25519_dalek::PublicKey::from(&x25519_secret);
 
-    let input_data =
-        QuoteInputData::new(signer.signer().public().into(), public_key, nonce, block_number);
+    let input_data = entropy_shared::QuoteInputData::new(
+        signer.signer().public().into(),
+        *public_key.as_bytes(),
+        nonce,
+        block_number,
+    );
 
     let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0);
     // Here we would submit an attest extrinsic to the chain - but for now we just include it in the
     // response
     Ok((StatusCode::OK, format!("{:?}", quote)))
-}
-
-/// Input data to be included in a TDX attestation
-pub struct QuoteInputData(pub [u8; 64]);
-
-impl QuoteInputData {
-    pub fn new(
-        account_id: AccountId32,
-        x25519_public_key: x25519_dalek::PublicKey,
-        nonce: [u8; 32],
-        block_number: u32,
-    ) -> Self {
-        let mut hasher = Blake2b512::new();
-        hasher.update(account_id.0);
-        hasher.update(x25519_public_key.as_bytes());
-        hasher.update(nonce);
-        hasher.update(block_number.to_be_bytes());
-        Self(hasher.finalize().into())
-    }
 }
