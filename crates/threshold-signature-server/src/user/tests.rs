@@ -819,7 +819,7 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
@@ -835,7 +835,7 @@ pub async fn put_new_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<entropy::registry::events::AccountRegistered, entropy_client::substrate::SubstrateError>
 {
     let signature_request_account =
@@ -1337,8 +1337,8 @@ async fn test_new_registration_flow() {
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
 
-    // Here we need to use `--chain=integration-tests` force authoring otherwise we won't be able
-    // to get our chain in the right state to be jump started.
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();

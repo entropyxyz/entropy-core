@@ -295,7 +295,7 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<(), ClientError> {
     let registering_tx = entropy::tx().registry().register(deployer, program_instance);
 
