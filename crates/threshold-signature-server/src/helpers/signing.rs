@@ -45,6 +45,7 @@ pub async fn do_signing(
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
     request_limit: u32,
+    derivation_path: Option<String>, // TODO (Nando): Not a fan of this...
 ) -> Result<RecoverableSignature, ProtocolErr> {
     tracing::debug!("Preparing to perform signing");
 
@@ -60,8 +61,8 @@ pub async fn do_signing(
 
     let account_id = AccountId32(signer.public().0);
 
-    // set up context for signing protocol execution
-    let sign_context = signing_service.get_sign_context(info.clone()).await?;
+    // Set up context for signing protocol execution
+    let sign_context = signing_service.get_sign_context(info.clone(), derivation_path).await?;
 
     let tss_accounts: Vec<AccountId32> = user_signature_request
         .validators_info
@@ -89,6 +90,7 @@ pub async fn do_signing(
         &x25519_secret_key,
     )
     .await?;
+
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;

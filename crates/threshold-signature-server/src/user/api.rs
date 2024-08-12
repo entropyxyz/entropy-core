@@ -145,6 +145,7 @@ pub async fn sign_tx(
         .number;
 
     check_stale(user_sig_req.block_number, block_number).await?;
+
     // Probably impossible but block signing from parent key anyways
     if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
         return Err(UserErr::NoSigningFromParentKey);
@@ -159,7 +160,9 @@ pub async fn sign_tx(
     if user_details.programs_data.0.is_empty() {
         return Err(UserErr::NoProgramPointerDefined());
     }
-    // handle aux data padding, if it is not explicit by client for ease send through None, error if incorrect length
+
+    // handle aux data padding, if it is not explicit by client for ease send through None, error
+    // if incorrect length
     let auxilary_data_vec;
     if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
         if auxilary_data.len() < user_details.programs_data.0.len() {
@@ -170,6 +173,7 @@ pub async fn sign_tx(
     } else {
         auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
     }
+
     // gets fuel from chain
     let max_instructions_per_programs_query =
         entropy::storage().parameters().max_instructions_per_programs();
@@ -186,7 +190,9 @@ pub async fn sign_tx(
         runtime.evaluate(&program, &signature_request, Some(&program_info.program_config), None)?;
     }
 
+    // TODO (Nando): Internal algo needs to be changed here
     let signers = get_signers_from_chain(&api, &rpc).await?;
+
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
     user_sig_req.validators_info = signers;
@@ -207,22 +213,35 @@ pub async fn sign_tx(
         request_author,
     };
 
-    let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
+    // In the new registration flow we don't store the verifying key in the KVDB, so we only do this
+    // check if we're using the old registration flow
+    if user_details.derivation_path.is_none() {
+        let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
+    }
+
+    // TODO (Nando): We're hardcoding this for now since we know the path used on-chain
+    let derivation_path = user_details.derivation_path.map(|count| format!("m/0/{}", count));
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
-        let signing_protocol_output =
-            do_signing(&rpc, user_sig_req, &app_state, signing_session_id, request_limit)
-                .await
-                .map(|signature| {
-                    (
-                        BASE64_STANDARD.encode(signature.to_rsv_bytes()),
-                        signer.signer().sign(&signature.to_rsv_bytes()),
-                    )
-                })
-                .map_err(|error| error.to_string());
+        let signing_protocol_output = do_signing(
+            &rpc,
+            user_sig_req,
+            &app_state,
+            signing_session_id,
+            request_limit,
+            derivation_path,
+        )
+        .await
+        .map(|signature| {
+            (
+                BASE64_STANDARD.encode(signature.to_rsv_bytes()),
+                signer.signer().sign(&signature.to_rsv_bytes()),
+            )
+        })
+        .map_err(|error| error.to_string());
 
         // This response chunk is sent later with the result of the signing protocol
         if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
