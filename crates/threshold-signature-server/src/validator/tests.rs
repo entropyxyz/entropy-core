@@ -45,6 +45,29 @@ use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 
+pub async fn jump_start_network(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) {
+    let alice = AccountKeyring::Alice;
+    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
+
+    let jump_start_request = entropy::tx().registry().jump_start_network();
+    let _result = submit_transaction(api, rpc, &signer, &jump_start_request, None).await.unwrap();
+
+    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    for validator_name in validators_names {
+        let mnemonic = development_mnemonic(&Some(validator_name));
+        let (tss_signer, _static_secret) =
+            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+        let jump_start_confirm_request = entropy::tx()
+            .registry()
+            .confirm_jump_start(bounded_vec::BoundedVec(EVE_VERIFYING_KEY.to_vec()));
+
+        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
+    }
+}
+
 #[tokio::test]
 #[serial]
 async fn test_reshare() {
@@ -54,7 +77,10 @@ async fn test_reshare() {
     let alice = AccountKeyring::AliceStash;
 
     let cxt = test_node_process_testing_state(true).await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+
     let validator_ports = vec![3001, 3002, 3003];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
@@ -65,7 +91,7 @@ async fn test_reshare() {
         key_shares_before.push(unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), *port).await);
     }
 
-    crate::user::tests::jump_start_network(&api, &rpc).await;
+    jump_start_network(&api, &rpc).await;
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request =
