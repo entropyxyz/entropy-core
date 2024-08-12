@@ -513,6 +513,7 @@ fn it_confirms_registers_a_user() {
             RegisteredInfo {
                 programs_data: programs_info.clone(),
                 program_modification_account: 2,
+                derivation_path: None,
                 version_number: 1,
             }
         );
@@ -572,6 +573,7 @@ fn it_changes_a_program_pointer() {
         let mut registered_info = RegisteredInfo {
             programs_data: programs_info,
             program_modification_account: 2,
+            derivation_path: None,
             version_number: 1,
         };
 
@@ -652,6 +654,7 @@ fn it_changes_a_program_mod_account() {
         let mut registered_info = RegisteredInfo {
             programs_data: programs_info,
             program_modification_account: 2,
+            derivation_path: None,
             version_number: 1,
         };
 
