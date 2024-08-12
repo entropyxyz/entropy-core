@@ -99,15 +99,10 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer = &validators_info
-        .iter()
-        .any(|validator_info| validator_info.tss_account == *signer.account_id());
+    let is_proper_signer =
+        is_proper_signer(signer.account_id(), validators_info.clone(), &app_state.kv_store).await?;
 
     if !is_proper_signer {
-        // delete old keyshare if has it and not next_signer
-        if app_state.kv_store.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await? {
-            app_state.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await?
-        }
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
@@ -363,4 +358,23 @@ pub async fn prune_old_holders(
     } else {
         validators_info.clone()
     })
+}
+
+/// Checks if TSS is a proper signer and if isn't deletes their parent key if they have one
+pub async fn is_proper_signer(
+    account_id: &AccountId32,
+    validators_info: Vec<ValidatorInfo>,
+    kv_manager: &KvManager,
+) -> Result<bool, ValidatorErr> {
+    let is_proper_signer =
+        &validators_info.iter().any(|validator_info| validator_info.tss_account == *account_id);
+    if *is_proper_signer {
+        Ok(true)
+    } else {
+        // delete old keyshare if has it and not next_signer
+        if kv_manager.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await? {
+            kv_manager.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await?
+        }
+        Ok(false)
+    }
 }

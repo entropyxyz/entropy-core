@@ -30,7 +30,7 @@ use crate::{
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::{
-        api::{prune_old_holders, validate_new_reshare},
+        api::{is_proper_signer, prune_old_holders, validate_new_reshare},
         errors::ValidatorErr,
     },
 };
@@ -254,4 +254,24 @@ async fn test_forbidden_keys() {
 
     let should_pass = check_forbidden_key("test");
     assert_eq!(should_pass.unwrap(), ());
+}
+
+#[tokio::test]
+#[serial]
+async fn test_deletes_key() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let dave = AccountKeyring::Dave;
+    let kv = setup_client().await;
+    let reservation = kv.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+    kv.kv().put(reservation, vec![10]).await.unwrap();
+
+    let is_proper_signer_result =
+        is_proper_signer(&dave.to_account_id().into(), vec![], &kv).await.unwrap();
+    assert!(!is_proper_signer_result);
+
+    let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+    assert!(!has_key);
+    clean_tests();
 }
