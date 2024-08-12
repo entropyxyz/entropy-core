@@ -70,6 +70,7 @@ sha1             ="0.10.6"
 sha2             ="0.10.8"
 hkdf             ="0.12.4"
 project-root     ={ version="0.2.2", optional=true }
+tdx-quote        ={ git="https://github.com/entropyxyz/tdx-quote", optional=true, features=["mock"] }
 
 [dev-dependencies]
 serial_test ="3.1.1"
@@ -102,7 +103,7 @@ vergen={ version="8.3.2", features=["build", "git", "gitcl"] }
 default     =['std']
 std         =["sp-core/std"]
 test_helpers=["dep:project-root"]
-unsafe      =[]
+unsafe      =["dep:tdx-quote"]
 alice       =[]
 bob         =[]
 # Enable this feature to run the integration tests for the wasm API of entropy-protocol

@@ -255,3 +255,18 @@ async fn test_forbidden_keys() {
     let should_pass = check_forbidden_key("test");
     assert_eq!(should_pass.unwrap(), ());
 }
+
+#[tokio::test]
+#[serial]
+async fn test_attest() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    // let cxt = test_node_process_testing_state(false).await;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+
+    let client = reqwest::Client::new();
+    let res =
+        client.post(format!("http://127.0.0.1:3001/attest")).body(Vec::new()).send().await.unwrap();
+    println!("{:?}", res.text().await);
+}
