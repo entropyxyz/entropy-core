@@ -106,13 +106,13 @@ pub struct QuoteInputData(pub [u8; 64]);
 
 impl QuoteInputData {
     pub fn new(
-        account_id: [u8; 32],
+        tss_account_id: [u8; 32],
         x25519_public_key: X25519PublicKey,
         nonce: [u8; 32],
         block_number: u32,
     ) -> Self {
         let mut hasher = Blake2b512::new();
-        hasher.update(account_id);
+        hasher.update(tss_account_id);
         hasher.update(x25519_public_key);
         hasher.update(nonce);
         hasher.update(block_number.to_be_bytes());
