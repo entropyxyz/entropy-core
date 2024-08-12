@@ -109,6 +109,7 @@ impl<'a> ThresholdSigningService<'a> {
         threshold_signer: &sr25519::Pair,
         threshold_accounts: Vec<AccountId32>,
     ) -> Result<RecoverableSignature, ProtocolErr> {
+        tracing::debug!("Executing signing session");
         tracing::trace!("Signing info {session_id:?}");
 
         let message_hash = if let SessionId::Sign(session_info) = &session_id {
