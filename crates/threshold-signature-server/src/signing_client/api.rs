@@ -24,13 +24,11 @@ use axum::{
 };
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
-    execute_protocol::{execute_proactive_refresh, Channels},
-    protocol_transport::Broadcaster,
-    KeyParams, KeyShareWithAuxInfo, Listener, PartyId, ProtocolMessage, SessionId, ValidatorInfo,
+    execute_protocol::{execute_reshare, Channels},
+    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
 use std::{collections::BTreeSet, time::Duration};
-use tokio::sync::mpsc;
 
 use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
@@ -97,13 +95,13 @@ pub async fn proactive_refresh(
         let exists_result = app_state.kv_store.kv().exists(&key).await?;
         if exists_result {
             let old_key_share = app_state.kv_store.kv().get(&key).await?;
-            let (deserialized_old_key, _aux_info): (
+            let (deserialized_old_key, aux_info): (
                 ThresholdKeyShare<KeyParams, PartyId>,
                 AuxInfo<KeyParams, PartyId>,
             ) = deserialize(&old_key_share)
                 .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
-            let (new_key_share, _broadcaster, _rx) = do_proactive_refresh(
+            let (new_key_share, aux_info) = do_proactive_refresh(
                 &ocw_data.validators_info,
                 &signer,
                 &x25519_secret_key,
@@ -111,18 +109,9 @@ pub async fn proactive_refresh(
                 encoded_key,
                 deserialized_old_key,
                 ocw_data.block_number,
+                aux_info,
             )
             .await?;
-
-            // Get aux info from existing entry
-            let aux_info = {
-                let existing_entry = app_state.kv_store.kv().get(&key).await?;
-                let (_old_key_share, aux_info): KeyShareWithAuxInfo = deserialize(&existing_entry)
-                    .ok_or_else(|| {
-                        ProtocolErr::Deserialization("Failed to load KeyShare".into())
-                    })?;
-                aux_info
-            };
 
             // Since this is a refresh with the parties not changing, store the old aux_info
             let serialized_key_share = key_serialize(&(new_key_share, aux_info))
@@ -153,7 +142,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 #[tracing::instrument(
     skip_all,
     fields(validators_info, verifying_key, my_subgroup),
@@ -167,10 +156,8 @@ pub async fn do_proactive_refresh(
     verifying_key: Vec<u8>,
     old_key: ThresholdKeyShare<KeyParams, PartyId>,
     block_number: u32,
-) -> Result<
-    (ThresholdKeyShare<KeyParams, PartyId>, Broadcaster, mpsc::Receiver<ProtocolMessage>),
-    ProtocolErr,
-> {
+    aux_info: AuxInfo<KeyParams, PartyId>,
+) -> Result<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
@@ -217,9 +204,15 @@ pub async fn do_proactive_refresh(
     )
     .await?;
 
-    let result =
-        execute_proactive_refresh(session_id, channels, signer.signer(), tss_accounts, inputs)
-            .await?;
+    let result = execute_reshare(
+        session_id,
+        channels,
+        signer.signer(),
+        tss_accounts,
+        inputs,
+        Some(aux_info),
+    )
+    .await?;
     Ok(result)
 }
 

@@ -16,9 +16,7 @@
 //! A simple protocol server, like a mini version of entropy-tss, for benchmarking
 use anyhow::{anyhow, ensure};
 use entropy_protocol::{
-    execute_protocol::{
-        execute_dkg, execute_proactive_refresh, execute_signing_protocol, Channels,
-    },
+    execute_protocol::{execute_dkg, execute_reshare, execute_signing_protocol, Channels},
     protocol_transport::{
         errors::WsError,
         noise::{noise_handshake_initiator, noise_handshake_responder},
@@ -147,8 +145,7 @@ pub async fn server(
             };
 
             let new_keyshare =
-                execute_proactive_refresh(session_id, channels, &pair, tss_accounts, inputs)
-                    .await?;
+                execute_reshare(session_id, channels, &pair, tss_accounts, inputs, None).await?;
             Ok(ProtocolOutput::Reshare(new_keyshare.0))
         },
         SessionId::Dkg { .. } => {

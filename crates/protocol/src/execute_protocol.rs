@@ -73,8 +73,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
-) -> Result<(Res::Success, Broadcaster, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>>
-{
+) -> Result<(Res::Success, Channels), GenericProtocolError<Res>> {
     let session_id = synedrion::SessionId::from_seed(&session_id_hash);
     let tx = &chans.0;
     let rx = &mut chans.1;
@@ -144,7 +143,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
         }
 
         match session.finalize_round(&mut OsRng, accum)? {
-            FinalizeOutcome::Success(res) => break Ok((res, chans.0, chans.1)),
+            FinalizeOutcome::Success(res) => break Ok((res, chans)),
             FinalizeOutcome::AnotherRound {
                 session: new_session,
                 cached_messages: new_cached_messages,
@@ -231,12 +230,10 @@ pub async fn execute_dkg(
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        let (init_keyshare, broadcaster, rx) =
+        let (init_keyshare, chans) =
             execute_protocol_generic(chans, session, session_id_hash).await?;
 
         tracing::info!("Finished key init protocol");
-        // Setup channels for the next session
-        let chans = Channels(broadcaster.clone(), rx);
 
         // Send verifying key
         let verifying_key = init_keyshare.verifying_key();
@@ -304,14 +301,11 @@ pub async fn execute_dkg(
         inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
-    let (new_key_share_option, broadcaster, rx) =
+    let (new_key_share_option, chans) =
         execute_protocol_generic(chans, session, session_id_hash).await?;
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
     tracing::info!("Finished reshare protocol");
-
-    // Setup channels for the next session
-    let chans = Channels(broadcaster.clone(), rx);
 
     // Now run the aux gen protocol to get AuxInfo
     let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
@@ -335,14 +329,15 @@ pub async fn execute_dkg(
     fields(threshold_accounts, my_idx),
     level = tracing::Level::DEBUG
 )]
-pub async fn execute_proactive_refresh(
+pub async fn execute_reshare(
     session_id: SessionId,
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
     inputs: KeyResharingInputs<KeyParams, PartyId>,
+    aux_info_option: Option<AuxInfo<KeyParams, PartyId>>,
 ) -> Result<
-    (ThresholdKeyShare<KeyParams, PartyId>, Broadcaster, mpsc::Receiver<ProtocolMessage>),
+    (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>),
     ProtocolExecutionErr,
 > {
     tracing::debug!("Executing proactive refresh");
@@ -363,10 +358,25 @@ pub async fn execute_proactive_refresh(
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let (new_key_share, brodcaster, rx) =
-        execute_protocol_generic(chans, session, session_id_hash).await?;
+    let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
 
-    Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, brodcaster, rx))
+    let aux_info = if let Some(aux_info) = aux_info_option {
+        aux_info
+    } else {
+        // Now run an aux gen session
+        let session_id_hash_aux_data = session_id.blake2(Some(Subsession::AuxGen))?;
+        let session = make_aux_gen_session(
+            &mut OsRng,
+            SynedrionSessionId::from_seed(session_id_hash_aux_data.as_slice()),
+            PairWrapper(threshold_pair.clone()),
+            &party_ids,
+        )
+        .map_err(ProtocolExecutionErr::SessionCreation)?;
+
+        execute_protocol_generic(chans, session, session_id_hash).await?.0
+    };
+
+    Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, aux_info))
 }
 
 /// Psuedo-randomly select a subset of the parties of size `threshold`

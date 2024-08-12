@@ -29,28 +29,21 @@ use crate::{
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
-use entropy_protocol::Subsession;
 pub use entropy_protocol::{
     decode_verifying_key,
     errors::ProtocolExecutionErr,
-    execute_protocol::{
-        execute_proactive_refresh, execute_protocol_generic, Channels, PairWrapper,
-    },
+    execute_protocol::{execute_protocol_generic, execute_reshare, Channels, PairWrapper},
     KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
 use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
-use rand_core::OsRng;
 use sp_core::Pair;
 use std::{collections::BTreeSet, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     OnlineClient,
 };
-use synedrion::{
-    make_aux_gen_session, sessions::SessionId as SynedrionSessionId, AuxInfo, KeyResharingInputs,
-    NewHolder, OldHolder,
-};
+use synedrion::{KeyResharingInputs, NewHolder, OldHolder};
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
 ///
@@ -175,33 +168,9 @@ pub async fn new_reshare(
     )
     .await?;
 
-    let (new_key_share, brodcaster, rx) = execute_proactive_refresh(
-        session_id.clone(),
-        channels,
-        signer.signer(),
-        tss_accounts,
-        inputs,
-    )
-    .await?;
-
-    // Setup channels for the next session
-    let channels = Channels(brodcaster, rx);
-
-    // Now run an aux gen session
-    let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
-    let session = make_aux_gen_session(
-        &mut OsRng,
-        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
-        PairWrapper(signer.signer().clone()),
-        &party_ids,
-    )
-    .map_err(ProtocolExecutionErr::SessionCreation)?;
-
-    let aux_info: AuxInfo<KeyParams, PartyId> =
-        execute_protocol_generic(channels, session, session_id_hash)
-            .await
-            .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
-            .0;
+    let (new_key_share, aux_info) =
+        execute_reshare(session_id.clone(), channels, signer.signer(), tss_accounts, inputs, None)
+            .await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
