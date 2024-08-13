@@ -76,39 +76,54 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     programs_data: BoundedVec<ProgramInstance>,
-) -> Result<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo), ClientError> {
+    on_chain: bool,
+) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
     // Send register transaction
-    put_register_request_on_chain(
+    let account_registration_events = put_register_request_on_chain(
         api,
         rpc,
         signature_request_keypair.clone(),
         program_account,
         programs_data,
+        on_chain,
     )
     .await?;
 
-    let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
+    let mut registration_info = vec![];
+    for event in account_registration_events {
+        let verifying_key = event.1 .0;
+        let registered_info = get_registered_details(api, rpc, verifying_key.clone()).await?;
 
-    for _ in 0..50 {
-        let block_hash = rpc.chain_get_block_hash(None).await?;
-        let events =
-            EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
-        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
-        for event in registered_event.flatten() {
-            // check if the event belongs to this user
-            if event.0 == account_id {
-                let registered_query = entropy::storage().registry().registered(&event.1);
-                let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
-                if let Some(status) = registered_status {
-                    let verifying_key =
-                        event.1 .0.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
-                    return Ok((verifying_key, status));
-                }
-            }
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        registration_info.push((
+            verifying_key.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?,
+            registered_info,
+        ))
     }
-    Err(ClientError::RegistrationTimeout)
+
+    Ok(registration_info)
+
+    // let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
+
+    // for _ in 0..50 {
+    //     let block_hash = rpc.chain_get_block_hash(None).await?;
+    //     let events =
+    //         EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
+    //     let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
+    //     for event in registered_event.flatten() {
+    //         // check if the event belongs to this user
+    //         if event.0 == account_id {
+    //             let registered_query = entropy::storage().registry().registered(&event.1);
+    //             let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
+    //             if let Some(status) = registered_status {
+    //                 let verifying_key =
+    //                     event.1 .0.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
+    //                 return Ok((verifying_key, status));
+    //             }
+    //         }
+    //     }
+    //     std::thread::sleep(std::time::Duration::from_millis(1000));
+    // }
+    // Err(ClientError::RegistrationTimeout)
 }
 
 /// Request to sign a message
@@ -131,7 +146,14 @@ pub async fn sign(
     auxilary_data: Option<Vec<u8>>,
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
+
+    // TODO (Nando): So depending on the verifying key we'd need to change this flag
+    // let user_details =
+    //   get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
+    //       if user_details.derivation_path.is_none() { ... }
+
     let validators_info = get_signers_from_chain(api, rpc, false).await?;
+
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {
@@ -296,12 +318,63 @@ pub async fn put_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
-) -> Result<(), ClientError> {
-    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
+    on_chain: bool,
+) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
+    let registered_events = if on_chain {
+        let registering_tx =
+            entropy::tx().registry().register_on_chain(deployer, program_instances);
 
-    submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
-        .await?;
-    Ok(())
+        submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
+            .await?
+    } else {
+        let registering_tx = entropy::tx().registry().register(deployer, program_instances);
+
+        submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
+            .await?
+    };
+
+    // Note: In the case of the new registration flow we can have many registration events for a
+    // single signature request account.
+    let registered_events: Vec<_> = registered_events
+        .find::<entropy::registry::events::AccountRegistered>()
+        .flatten()
+        .filter(|event| event.0 == signature_request_keypair.public().into())
+        .collect();
+
+    Ok(registered_events)
+}
+
+/// Returns a registered user's key visibility
+///
+/// TODO (Nando): This was copied from `entropy-tss::helpers::substrate`
+#[tracing::instrument(skip_all, fields(verifying_key))]
+pub async fn get_registered_details(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    verifying_key: Vec<u8>,
+) -> Result<RegisteredInfo, ClientError> {
+    tracing::info!("Querying chain for registration info.");
+
+    let registered_info_query =
+        entropy::storage().registry().registered(BoundedVec(verifying_key.clone()));
+    let registered_result = query_chain(api, rpc, registered_info_query, None).await?;
+
+    let registration_info = if let Some(old_registration_info) = registered_result {
+        tracing::debug!("Found user in old `Registered` struct.");
+
+        old_registration_info
+    } else {
+        // We failed with the old registration path, let's try the new one
+        tracing::warn!("Didn't find user in old `Registered` struct, trying new one.");
+
+        let registered_info_query =
+            entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
+
+        query_chain(api, rpc, registered_info_query, None).await?.expect("TODO")
+        // .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?
+    };
+
+    Ok(registration_info)
 }
 
 /// Check that the verfiying key from a new signature matches that in the from the
