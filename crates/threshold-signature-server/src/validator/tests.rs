@@ -268,7 +268,7 @@ async fn test_deletes_key() {
     kv.kv().put(reservation, vec![10]).await.unwrap();
 
     let is_proper_signer_result =
-        is_proper_signer(&dave.to_account_id().into(), vec![], &kv).await.unwrap();
+        is_signer_or_delete_parent_key(&dave.to_account_id().into(), vec![], &kv).await.unwrap();
     assert!(!is_proper_signer_result);
 
     let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();

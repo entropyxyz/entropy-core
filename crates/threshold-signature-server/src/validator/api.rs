@@ -99,8 +99,12 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer =
-        is_proper_signer(signer.account_id(), validators_info.clone(), &app_state.kv_store).await?;
+    let is_proper_signer = is_signer_or_delete_parent_key(
+        signer.account_id(),
+        validators_info.clone(),
+        &app_state.kv_store,
+    )
+    .await?;
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
@@ -361,7 +365,7 @@ pub async fn prune_old_holders(
 }
 
 /// Checks if TSS is a proper signer and if isn't deletes their parent key if they have one
-pub async fn is_proper_signer(
+pub async fn is_signer_or_delete_parent_key(
     account_id: &AccountId32,
     validators_info: Vec<ValidatorInfo>,
     kv_manager: &KvManager,
