@@ -30,7 +30,7 @@ use crate::{
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     validator::{
-        api::{is_proper_signer, prune_old_holders, validate_new_reshare},
+        api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
         errors::ValidatorErr,
     },
 };
