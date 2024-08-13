@@ -92,6 +92,7 @@ enum CliCommand {
         /// Optional auxiliary data passed to the program, given as hex
         auxilary_data: Option<String>,
         /// The mnemonic to use for the call
+        #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
     /// Update the program for a particular account
