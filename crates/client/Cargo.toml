@@ -32,7 +32,7 @@ hex             ={ version="0.4.3", optional=true }
 anyhow          ="1.0.86"
 
 # Only for the browser
-js-sys={ version="0.3.68", optional=true }
+js-sys={ version="0.3.70", optional=true }
 tokio ="1.39"
 
 [dev-dependencies]
