@@ -86,15 +86,30 @@ pub async fn register(
         std::thread::sleep(std::time::Duration::from_millis(1000));
     }
 
-    let account_registration_events = put_register_request_on_chain(
-        api,
-        rpc,
-        signature_request_keypair.clone(),
-        program_account,
-        programs_data,
-        on_chain,
-    )
-    .await?;
+    // Send register transaction
+    let account_registration_events = if on_chain {
+        dbg!(
+            put_register_request_on_chain(
+                api,
+                rpc,
+                signature_request_keypair.clone(),
+                program_account,
+                programs_data,
+            )
+            .await
+        )?
+    } else {
+        dbg!(
+            put_old_register_request_on_chain(
+                api,
+                rpc,
+                signature_request_keypair.clone(),
+                program_account,
+                programs_data,
+            )
+            .await
+        )?
+    };
 
     let mut registration_info = vec![];
     for event in account_registration_events {
@@ -325,20 +340,13 @@ pub async fn put_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
-    on_chain: bool,
 ) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
-    let registered_events = if on_chain {
-        let registering_tx =
-            entropy::tx().registry().register_on_chain(deployer, program_instances);
+    println!("on_chain");
 
+    let registering_tx = entropy::tx().registry().register_on_chain(deployer, program_instances);
+    let registered_events =
         submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
-            .await?
-    } else {
-        let registering_tx = entropy::tx().registry().register(deployer, program_instances);
-
-        submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
-            .await?
-    };
+            .await?;
 
     // Note: In the case of the new registration flow we can have many registration events for a
     // single signature request account.
@@ -349,6 +357,39 @@ pub async fn put_register_request_on_chain(
         .collect();
 
     Ok(registered_events)
+}
+
+/// Submit a register transaction
+pub async fn put_old_register_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signature_request_keypair: sr25519::Pair,
+    deployer: SubxtAccountId32,
+    program_instances: BoundedVec<ProgramInstance>,
+) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
+    println!("off_chain");
+
+    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
+    submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
+        .await?;
+
+    let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
+
+    for _ in 0..50 {
+        let block_hash = rpc.chain_get_block_hash(None).await?;
+        let events =
+            EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
+        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
+        for event in registered_event.flatten() {
+            // check if the event belongs to this user
+            if event.0 == account_id {
+                return Ok(vec![event]);
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+    }
+
+    Err(ClientError::RegistrationTimeout)
 }
 
 /// Returns a registered user's key visibility

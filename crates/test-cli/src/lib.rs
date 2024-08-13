@@ -205,8 +205,11 @@ pub async fn run_command(
             )
             .await?;
 
-            // TODO (Nando): Log all registration events
-            let (verifying_key, registered_info) = &registrations[0];
+            // The CLI currently doesn't support sending multiple registration requests in a single
+            // go, so we just grab one event (presumably the only one) and log that.
+            let (verifying_key, registered_info) = dbg!(&registrations)
+                .get(0)
+                .expect("There should be at least one succeful registration at this point.");
 
             Ok(format!("Verifying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
         },
