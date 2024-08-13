@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::string::FromUtf8Error;
+use std::{array::TryFromSliceError, string::FromUtf8Error};
 
 use crate::signing_client::ProtocolErr;
 use axum::{
@@ -93,6 +93,10 @@ pub enum ValidatorErr {
     InvalidData,
     #[error("Data is repeated")]
     RepeatedData,
+    #[error("Not yet implemented")]
+    NotImplemented,
+    #[error("Input must be 32 bytes: {0}")]
+    TryFromSlice(#[from] TryFromSliceError),
 }
 
 impl IntoResponse for ValidatorErr {
