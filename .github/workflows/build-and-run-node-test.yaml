@@ -9,8 +9,8 @@ on:
       - "runtime/*"
 
 jobs:
-  node-test:
-    runs-on: ubuntu-latest
+ node-test:
+    runs-on: core-build-runner
     steps:
       - uses: actions/checkout@v4
       - name: Increase swap
