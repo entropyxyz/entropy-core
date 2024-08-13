@@ -2688,6 +2688,7 @@ dependencies = [
 name = "entropy-shared"
 version = "0.2.0"
 dependencies = [
+ "blake2 0.10.6",
  "hex-literal",
  "lazy_static",
  "parity-scale-codec",
@@ -2794,6 +2795,7 @@ dependencies = [
  "subxt",
  "subxt-signer",
  "synedrion",
+ "tdx-quote",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.23.1",

@@ -122,6 +122,7 @@
 //!     [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub use entropy_client::chain_api;
+pub(crate) mod attestation;
 pub(crate) mod health;
 pub mod helpers;
 pub(crate) mod node_info;
@@ -149,6 +150,7 @@ pub use crate::helpers::{
     validator::{get_signer, get_signer_and_x25519_secret},
 };
 use crate::{
+    attestation::api::attest,
     health::api::healthz,
     launch::Configuration,
     node_info::api::{hashes, version as get_version},
@@ -178,6 +180,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/sign_tx", post(sign_tx))
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/reshare", post(new_reshare))
+        .route("/attest", post(attest))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))
