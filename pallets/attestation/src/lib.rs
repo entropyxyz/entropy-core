@@ -45,10 +45,6 @@ pub mod pallet {
     pub trait Config: frame_system::Config + pallet_staking_extension::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
-        /// Describes the weights of the dispatchables exposed by this pallet.
-        type WeightInfo = ();
-        // type WeightInfo: WeightInfo;
     }
 
     #[pallet::genesis_config]
@@ -95,9 +91,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        // #[pallet::weight({<T as Config>::WeightInfo::attest()})]
-        //
-        #[pallet::weight(())]
+        #[pallet::weight(100)]
         pub fn attest(origin: OriginFor<T>, quote: Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
             // Check that we were expecting a quote from this validator by getting the associated
