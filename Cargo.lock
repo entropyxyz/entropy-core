@@ -6648,8 +6648,10 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9863ad85fa8f4460f9c48cb909d38a0d689dba1f6f6988a5e3e0d31071bcd4b"
 dependencies = [
+ "ecdsa",
  "elliptic-curve",
  "primeorder",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -6660,6 +6662,19 @@ checksum = "70786f51bcc69f6a4c0360e063a4cac5419ef7c5cd5b3c99ad70f3be5ba79209"
 dependencies = [
  "elliptic-curve",
  "primeorder",
+]
+
+[[package]]
+name = "pallet-attestation"
+version = "0.1.0"
+dependencies = [
+ "entropy-shared",
+ "frame-support 29.0.2",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "tdx-quote",
 ]
 
 [[package]]
@@ -14046,6 +14061,15 @@ name = "target-lexicon"
 version = "0.12.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
+
+[[package]]
+name = "tdx-quote"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/tdx-quote#785cd6680e857cc527037befba185fb5f84ab806"
+dependencies = [
+ "nom",
+ "p256",
+]
 
 [[package]]
 name = "tempfile"
