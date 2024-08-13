@@ -62,16 +62,33 @@ pub async fn get_program(
 }
 
 /// Returns a registered user's key visibility
+#[tracing::instrument(skip_all, fields(verifying_key))]
 pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     verifying_key: Vec<u8>,
 ) -> Result<RegisteredInfo, UserErr> {
-    let registered_info_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
-    let result = query_chain(api, rpc, registered_info_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;
-    Ok(result)
+    tracing::info!("Querying chain for registration info.");
+
+    let registered_info_query =
+        entropy::storage().registry().registered(BoundedVec(verifying_key.clone()));
+    let registered_result = query_chain(api, rpc, registered_info_query, None).await?;
+
+    let registration_info = if let Some(old_registration_info) = registered_result {
+        old_registration_info
+    } else {
+        // We failed with the old registration path, let's try the new one
+        tracing::warn!("Didn't find user in old `Registered` struct, trying new one");
+
+        let registered_info_query =
+            entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
+
+        query_chain(api, rpc, registered_info_query, None)
+            .await?
+            .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?
+    };
+
+    Ok(registration_info)
 }
 
 /// Takes Stash keys and returns validator info from chain

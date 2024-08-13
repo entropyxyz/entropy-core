@@ -50,3 +50,4 @@ jobs:
           exemptRepoOrgMembers: true
           remote-organization-name: entropyxyz
           remote-repository-name: .github
+          lock-pullrequest-aftermerge: false

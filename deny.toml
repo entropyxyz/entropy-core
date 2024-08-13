@@ -39,6 +39,7 @@ exceptions=[
   { allow=["AGPL-3.0"], name="entropy-programs-core" },
   { allow=["AGPL-3.0"], name="entropy-programs-runtime" },
   { allow=["AGPL-3.0"], name="synedrion" },
+  { allow=["AGPL-3.0"], name="tdx-quote" },
 
   # These are the only crates using these licenses, put them here instead of globally allowing
   # them
