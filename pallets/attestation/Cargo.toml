@@ -19,6 +19,7 @@ tdx-quote    ={ git="https://github.com/entropyxyz/tdx-quote" }
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
+pallet-staking-extension={ version="0.2.0", path="../staking", default-features=false }
 
 [features]
 default=['std']
@@ -28,5 +29,6 @@ std=[
   'frame-support/std',
   'frame-system/std',
   'log/std',
+  'pallet-staking-extension/std',
 ]
 try-runtime=['frame-support/try-runtime']

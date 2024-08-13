@@ -31,10 +31,10 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use entropy_shared::QuoteInputData;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use tdx_quote::Quote;
-    // use entropy_shared::QuoteInputData;
 
     // pub use crate::weights::WeightInfo;
 
@@ -42,7 +42,7 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_staking_extension::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
@@ -81,6 +81,10 @@ pub mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         BadQuote,
+        UnexpectedAttestation,
+        IncorrectInputData,
+        NoStashAccount,
+        NoServerInfo,
     }
 
     // Add hooks to define some logic that should be executed
@@ -98,28 +102,51 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
-            let _nonce = PendingAttestations::<T>::get(&who);
+            let nonce =
+                PendingAttestations::<T>::get(&who).ok_or(Error::<T>::UnexpectedAttestation)?;
 
             // Parse the quote (which internally verifies the signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
-            // Get associated TSS account ID and x25519 public key from staking pallet
+            // Get associated x25519 public key from staking pallet
+            let x25519_public_key = {
+                let stash_account = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
+                    .ok_or(Error::<T>::NoStashAccount)?;
+                let server_info =
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&stash_account)
+                        .ok_or(Error::<T>::NoServerInfo)?;
+                server_info.x25519_public_key
+            };
 
             // Get current block number
+            let block_number: u32 = {
+                let block_number = <frame_system::Pallet<T>>::block_number();
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default()
+            };
+
+            // TODO this should be `who` but not sure how to convert it to [u8; 32] in a way that
+            // will work with the mock setup
+            let tss_account_id = [0; 32];
 
             // Check report input data matches the nonce, TSS details and block number
-            let _report_input_data = quote.report_input_data();
+            let expected_input_data =
+                QuoteInputData::new(tss_account_id, x25519_public_key, nonce, block_number);
+            ensure!(
+                quote.report_input_data() == expected_input_data.0,
+                Error::<T>::IncorrectInputData
+            );
 
             // Remove the entry from PendingAttestations
             PendingAttestations::<T>::remove(&who);
 
-            // Check measurements match current release of entropy-tss
+            // TODO Check measurements match current release of entropy-tss
             let _mrtd = quote.mrtd();
 
-            // Check that the attestation public key matches that from PCK certificate
+            // TODO Check that the attestation public key matches that from PCK certificate
             let _attestation_key = quote.attestation_key;
 
-            // If anything fails, do something mean
+            // TODO If anything fails, don't just return an error - do something mean
+
             Self::deposit_event(Event::AttestationMade);
             Ok(())
         }

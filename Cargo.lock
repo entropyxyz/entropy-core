@@ -6674,6 +6674,7 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
+ "pallet-staking-extension",
  "parity-scale-codec",
  "scale-info",
  "tdx-quote",
