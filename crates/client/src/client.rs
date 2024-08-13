@@ -169,12 +169,10 @@ pub async fn sign(
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
 
-    // TODO (Nando): So depending on the verifying key we'd need to change this flag
-    // let user_details =
-    //   get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
-    //       if user_details.derivation_path.is_none() { ... }
-
-    let validators_info = get_signers_from_chain(api, rpc, false).await?;
+    let registered_info =
+        get_registered_details(api, rpc, signature_verifying_key.to_vec()).await?;
+    let with_parent_key = registered_info.derivation_path.is_some();
+    let validators_info = get_signers_from_chain(api, rpc, with_parent_key).await?;
 
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
