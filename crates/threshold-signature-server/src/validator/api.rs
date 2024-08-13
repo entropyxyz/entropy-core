@@ -371,13 +371,14 @@ pub async fn is_signer_or_delete_parent_key(
     kv_manager: &KvManager,
 ) -> Result<bool, ValidatorErr> {
     let is_proper_signer =
-        &validators_info.iter().any(|validator_info| validator_info.tss_account == *account_id);
-    if *is_proper_signer {
+        validators_info.iter().any(|validator_info| validator_info.tss_account == *account_id);
+    if is_proper_signer {
         Ok(true)
     } else {
         // delete old keyshare if has it and not next_signer
-        if kv_manager.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await? {
-            kv_manager.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await?
+        let network_key = hex::encode(NETWORK_PARENT_KEY);
+        if kv_manager.kv().exists(&network_key).await? {
+            kv_manager.kv().delete(&network_key).await?
         }
         Ok(false)
     }
