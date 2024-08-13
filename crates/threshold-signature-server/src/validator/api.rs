@@ -383,7 +383,7 @@ pub async fn attest(
     input: Bytes,
 ) -> Result<(StatusCode, Bytes), ValidatorErr> {
     // TODO (#982) confirm with the chain that an attestation should be happenning
-    let nonce = input.as_slice().try_into()?;
+    let nonce = input.as_ref().try_into()?;
 
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 

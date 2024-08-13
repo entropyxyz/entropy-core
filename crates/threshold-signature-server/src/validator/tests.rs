@@ -40,11 +40,11 @@ use entropy_kvdb::{
 };
 use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::{
-    OcwMessageReshare, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY,
+    OcwMessageReshare, QuoteInputData, EVE_VERIFYING_KEY, MIN_BALANCE, NETWORK_PARENT_KEY,
     TEST_RESHARE_BLOCK_NUMBER,
 };
 use entropy_testing_utils::{
-    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
+    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_node_process_testing_state, testing_context},
     test_context_stationary,
 };
@@ -265,15 +265,22 @@ async fn test_attest() {
     let _cxt = test_node_process_testing_state(false).await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
 
+    let nonce = [0; 32];
     let client = reqwest::Client::new();
     let res = client
         .post(format!("http://127.0.0.1:3001/attest"))
-        .body([0; 32].to_vec())
+        .body(nonce.to_vec())
         .send()
         .await
         .unwrap();
     assert_eq!(res.status(), 200);
     let quote = res.bytes().await.unwrap();
-    // This verifies the signature in the quote
-    tdx_quote::Quote::from_bytes(&quote).unwrap();
+
+    // This internally verifies the signature in the quote
+    let quote = tdx_quote::Quote::from_bytes(&quote).unwrap();
+
+    // Check the input data of the quote
+    let expected_input_data =
+        QuoteInputData::new(TSS_ACCOUNTS[0].0, X25519_PUBLIC_KEYS[0], nonce, 0);
+    assert_eq!(quote.report_input_data(), expected_input_data.0);
 }
