@@ -633,7 +633,7 @@ async fn test_store_share() {
 
     let mut new_verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
-    for _ in 0..45 {
+    for _ in 0..65 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();

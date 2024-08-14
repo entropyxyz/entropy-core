@@ -73,7 +73,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
-) -> Result<(Res::Success, mpsc::Receiver<ProtocolMessage>), GenericProtocolError<Res>> {
+) -> Result<(Res::Success, Channels), GenericProtocolError<Res>> {
     let session_id = synedrion::SessionId::from_seed(&session_id_hash);
     let tx = &chans.0;
     let rx = &mut chans.1;
@@ -143,7 +143,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
         }
 
         match session.finalize_round(&mut OsRng, accum)? {
-            FinalizeOutcome::Success(res) => break Ok((res, chans.1)),
+            FinalizeOutcome::Success(res) => break Ok((res, chans)),
             FinalizeOutcome::AnotherRound {
                 session: new_session,
                 cached_messages: new_cached_messages,
@@ -208,7 +208,6 @@ pub async fn execute_dkg(
     threshold: usize,
 ) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
-    let broadcaster = chans.0.clone();
 
     let party_ids: BTreeSet<PartyId> =
         threshold_accounts.iter().cloned().map(PartyId::new).collect();
@@ -231,11 +230,10 @@ pub async fn execute_dkg(
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        let (init_keyshare, rx) = execute_protocol_generic(chans, session, session_id_hash).await?;
+        let (init_keyshare, chans) =
+            execute_protocol_generic(chans, session, session_id_hash).await?;
 
         tracing::info!("Finished key init protocol");
-        // Setup channels for the next session
-        let chans = Channels(broadcaster.clone(), rx);
 
         // Send verifying key
         let verifying_key = init_keyshare.verifying_key();
@@ -259,6 +257,7 @@ pub async fn execute_dkg(
     } else {
         // Wait to receive verifying_key
         let mut rx = chans.1;
+        let broadcaster = chans.0;
         let message = rx.recv().await.ok_or_else(|| {
             ProtocolExecutionErr::IncomingStream("Waiting for validating key".to_string())
         })?;
@@ -302,14 +301,11 @@ pub async fn execute_dkg(
         inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
-    let (new_key_share_option, rx) =
+    let (new_key_share_option, chans) =
         execute_protocol_generic(chans, session, session_id_hash).await?;
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
     tracing::info!("Finished reshare protocol");
-
-    // Setup channels for the next session
-    let chans = Channels(broadcaster.clone(), rx);
 
     // Now run the aux gen protocol to get AuxInfo
     let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
@@ -327,51 +323,56 @@ pub async fn execute_dkg(
 }
 
 /// Execute proactive refresh.
+#[allow(clippy::type_complexity)]
 #[tracing::instrument(
     skip_all,
     fields(threshold_accounts, my_idx),
     level = tracing::Level::DEBUG
 )]
-pub async fn execute_proactive_refresh(
+pub async fn execute_reshare(
     session_id: SessionId,
     chans: Channels,
     threshold_pair: &sr25519::Pair,
-    threshold_accounts: Vec<AccountId32>,
-    old_key: ThresholdKeyShare<KeyParams, PartyId>,
-) -> Result<ThresholdKeyShare<KeyParams, PartyId>, ProtocolExecutionErr> {
+    inputs: KeyResharingInputs<KeyParams, PartyId>,
+    aux_info_option: Option<AuxInfo<KeyParams, PartyId>>,
+) -> Result<
+    (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>),
+    ProtocolExecutionErr,
+> {
     tracing::debug!("Executing proactive refresh");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
-    let party_ids: BTreeSet<PartyId> =
-        threshold_accounts.iter().cloned().map(PartyId::new).collect();
     let pair = PairWrapper(threshold_pair.clone());
-    let verifying_key = old_key.verifying_key();
-
-    let threshold = old_key.threshold();
 
     let session_id_hash = session_id.blake2(None)?;
-    let inputs = KeyResharingInputs {
-        old_holder: Some(OldHolder { key_share: old_key }),
-        new_holder: Some(NewHolder {
-            verifying_key,
-            old_threshold: party_ids.len(),
-            old_holders: party_ids.clone(),
-        }),
-        new_holders: party_ids.clone(),
-        new_threshold: threshold,
-    };
+
     let session = make_key_resharing_session(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
         pair,
-        &party_ids,
-        inputs,
+        &inputs.new_holders,
+        inputs.clone(),
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let new_key_share = execute_protocol_generic(chans, session, session_id_hash).await?.0;
+    let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
+    let aux_info = if let Some(aux_info) = aux_info_option {
+        aux_info
+    } else {
+        // Now run an aux gen session
+        let session_id_hash_aux_data = session_id.blake2(Some(Subsession::AuxGen))?;
+        let session = make_aux_gen_session(
+            &mut OsRng,
+            SynedrionSessionId::from_seed(session_id_hash_aux_data.as_slice()),
+            PairWrapper(threshold_pair.clone()),
+            &inputs.new_holders,
+        )
+        .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)
+        execute_protocol_generic(chans, session, session_id_hash_aux_data).await?.0
+    };
+
+    Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, aux_info))
 }
 
 /// Psuedo-randomly select a subset of the parties of size `threshold`
