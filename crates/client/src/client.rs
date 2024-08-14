@@ -78,7 +78,14 @@ pub async fn register(
     programs_data: BoundedVec<ProgramInstance>,
     on_chain: bool,
 ) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
-    // Send register transaction
+    // TODO (Nando): We hack the jumpstart for now. Ideally we already have this done by the point
+    // somebody tries to register
+    dbg!(jumpstart_network(api, rpc, signature_request_keypair.clone()).await);
+    println!("Waiting for network jumpstart");
+    for _ in 0..30 {
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+    }
+
     let account_registration_events = put_register_request_on_chain(
         api,
         rpc,
