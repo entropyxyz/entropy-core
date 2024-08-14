@@ -45,10 +45,6 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config
         + pallet_staking_extension::Config
-        + pallet_session::Config
-        + frame_system::Config
-        + pallet_staking_extension::Config
-        + pallet_parameters::Config
     {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
