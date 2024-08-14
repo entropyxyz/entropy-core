@@ -23,11 +23,11 @@ pub use pallet::*;
 
 // pub mod weights;
 
-// #[cfg(test)]
-// mod mock;
+#[cfg(test)]
+mod mock;
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -42,7 +42,14 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking_extension::Config {
+    pub trait Config:
+        frame_system::Config
+        + pallet_staking_extension::Config
+        + pallet_session::Config
+        + frame_system::Config
+        + pallet_staking_extension::Config
+        + pallet_parameters::Config
+    {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
