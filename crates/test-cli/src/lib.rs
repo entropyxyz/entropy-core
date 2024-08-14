@@ -208,9 +208,11 @@ pub async fn run_command(
 
             // The CLI currently doesn't support sending multiple registration requests in a single
             // go, so we just grab one event (presumably the only one) and log that.
-            let (verifying_key, registered_info) = dbg!(&registrations)
-                .get(0)
-                .expect("There should be at least one succeful registration at this point.");
+            if registrations.is_empty() {
+                panic!("Failed to register an account!")
+            }
+
+            let (verifying_key, registered_info) = &registrations[0];
 
             Ok(format!("Verifying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
         },
