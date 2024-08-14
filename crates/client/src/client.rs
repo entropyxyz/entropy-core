@@ -360,3 +360,43 @@ pub async fn change_threshold_accounts(
         .ok_or(anyhow!("Error with transaction"))?;
     Ok(result_event)
 }
+
+/// Trigger a network wide distributed key generation (DKG) event.
+///
+/// Fails if the network has already been jumpstarted.
+pub async fn jumpstart_network(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+) -> Result<(), ClientError> {
+    // We split the implementation out into an inner function so that we can more easily pass a
+    // single future to the `timeout`
+    tokio::time::timeout(std::time::Duration::from_secs(45), jumpstart_inner(api, rpc, signer))
+        .await
+        .map_err(|_| ClientError::JumpstartTimeout)?
+}
+
+async fn jumpstart_inner(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+) -> Result<(), ClientError> {
+    // In this case we don't care too much about the result because we're more interested in the
+    // `FinishedNetworkJumpStart` event, which happens later on.
+    let jump_start_request = entropy::tx().registry().jump_start_network();
+    let _result =
+        submit_transaction_with_pair(api, rpc, &signer, &jump_start_request, None).await?;
+
+    let mut blocks_sub = api.blocks().subscribe_finalized().await?;
+
+    while let Some(block) = blocks_sub.next().await {
+        let block = block?;
+        let events = block.events().await?;
+
+        if events.has::<entropy::registry::events::FinishedNetworkJumpStart>()? {
+            break;
+        }
+    }
+
+    Ok(())
+}
