@@ -52,17 +52,16 @@ pub async fn get_signers_from_chain(
             .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?
     } else {
         let all_validators_query = entropy::storage().session().validators();
-        query_chain(api, rpc, all_validators_query, None)
+        let mut validators = query_chain(api, rpc, all_validators_query, None)
             .await?
-            .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?
+            .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
+
+        validators.sort();
+        validators
     };
 
     // TODO #898 For now we use a fix proportion of the number of validators as the threshold
     let threshold = (validators.len() as f32 * 0.75) as usize;
-
-    // We sort the validators here to ensure that we have a consistent ordering that external
-    // clients (e.g the Entropy JS SDK) can rely on.
-    validators.sort();
 
     // TODO #899 For now we just take the first t validators as the ones to perform signing
     validators.truncate(threshold);
