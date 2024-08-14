@@ -19,7 +19,7 @@ use frame_election_provider_support::{
 };
 use frame_support::{
     derive_impl, parameter_types,
-    traits::{ConstU32, OneSessionHandler, Randomness},
+    traits::{ConstU32, FindAuthor, OneSessionHandler, Randomness},
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
@@ -36,7 +36,6 @@ use std::cell::RefCell;
 
 use crate as pallet_attestation;
 
-const NULL_ARR: [u8; 32] = [0; 32];
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
@@ -49,7 +48,7 @@ frame_support::construct_runtime!(
     Attestation: pallet_attestation,
     System: frame_system,
     Balances: pallet_balances,
-    // Authorship: pallet_authorship,
+    Authorship: pallet_authorship,
     Timestamp: pallet_timestamp,
     Staking: pallet_staking_extension,
     FrameStaking: pallet_staking,
@@ -59,6 +58,10 @@ frame_support::construct_runtime!(
     Parameters: pallet_parameters,
   }
 );
+
+impl pallet_attestation::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+}
 
 parameter_types! {
   pub const BlockHashCount: u64 = 250;
@@ -310,48 +313,32 @@ parameter_types! {
   pub const UncleGenerations: u64 = 0;
 }
 
-// Author of block is always 11
-// pub struct Author11;
-// impl FindAuthor<u64> for Author11 {
-//     fn find_author<'a, I>(_digests: I) -> Option<u64>
-//     where
-//         I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
-//     {
-//         Some(11)
-//     }
-// }
+/// Author of block is always 11
+pub struct Author11;
+impl FindAuthor<u64> for Author11 {
+    fn find_author<'a, I>(_digests: I) -> Option<u64>
+    where
+        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
+    {
+        Some(11)
+    }
+}
 
-// impl pallet_authorship::Config for Test {
-//     type EventHandler = ();
-//     type FindAuthor = Author11;
-// }
+impl pallet_authorship::Config for Test {
+    type EventHandler = ();
+    type FindAuthor = Author11;
+}
 
 parameter_types! {
   pub const MaxProgramHashes: u32 = 5u32;
   pub const KeyVersionNumber: u8 = 1;
 }
 
-// impl pallet_registry::Config for Test {
-//     type RuntimeEvent = RuntimeEvent;
-//     type MaxProgramHashes = MaxProgramHashes;
-//     type KeyVersionNumber = KeyVersionNumber;
-//     type WeightInfo = ();
-// }
-
 parameter_types! {
   pub const MaxBytecodeLength: u32 = 3;
   pub const ProgramDepositPerByte: u32 = 5;
   pub const MaxOwnedPrograms: u32 = 5;
 }
-
-// impl pallet_programs::Config for Test {
-//     type Currency = Balances;
-//     type MaxBytecodeLength = MaxBytecodeLength;
-//     type ProgramDepositPerByte = ProgramDepositPerByte;
-//     type MaxOwnedPrograms = MaxOwnedPrograms;
-//     type RuntimeEvent = RuntimeEvent;
-//     type WeightInfo = ();
-// }
 
 impl pallet_parameters::Config for Test {
     type RuntimeEvent = RuntimeEvent;
@@ -361,5 +348,12 @@ impl pallet_parameters::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
+    let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
+
+    let pallet_attestation = pallet_attestation::GenesisConfig::<Test> {
+        initial_pending_attestations: vec![(0, [0; 32])],
+    };
+
+    pallet_attestation.assimilate_storage(&mut t).unwrap();
+    t.into()
 }

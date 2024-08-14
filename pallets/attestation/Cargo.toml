@@ -35,6 +35,7 @@ pallet-timestamp               ={ version="28.0.0", default-features=false }
 sp-npos-elections              ={ version="27.0.0", default-features=false }
 frame-election-provider-support={ version="29.0.0", default-features=false }
 pallet-staking-reward-curve    ={ version="11.0.0" }
+pallet-authorship              ={ version="29.0.0", default-features=false }
 
 [features]
 default=['std']

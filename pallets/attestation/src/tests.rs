@@ -21,5 +21,8 @@ use crate::mock::*;
 
 #[test]
 fn attest() {
-    new_test_ext().execute_with(|| {})
+    new_test_ext().execute_with(|| {
+        let nonce = Attestation::pending_attestations(0).unwrap();
+        assert_eq!(nonce, [0; 32]);
+    })
 }

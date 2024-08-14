@@ -98,7 +98,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight(100)]
+        #[pallet::weight({100})]
         pub fn attest(origin: OriginFor<T>, quote: Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
             // Check that we were expecting a quote from this validator by getting the associated
