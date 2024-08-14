@@ -78,37 +78,32 @@ pub async fn register(
     programs_data: BoundedVec<ProgramInstance>,
     on_chain: bool,
 ) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
-    // Send register transaction
     let account_registration_events = if on_chain {
         // TODO (Nando): We hack the jumpstart for now. Ideally we already have this done by the point
         // somebody tries to register
-        dbg!(jumpstart_network(api, rpc, signature_request_keypair.clone()).await);
+        let _ = dbg!(jumpstart_network(api, rpc, signature_request_keypair.clone()).await);
         println!("Waiting for network jumpstart");
         for _ in 0..30 {
             std::thread::sleep(std::time::Duration::from_millis(1000));
         }
 
-        dbg!(
-            put_register_request_on_chain(
-                api,
-                rpc,
-                signature_request_keypair.clone(),
-                program_account,
-                programs_data,
-            )
-            .await
-        )?
+        put_register_request_on_chain(
+            api,
+            rpc,
+            signature_request_keypair.clone(),
+            program_account,
+            programs_data,
+        )
+        .await?
     } else {
-        dbg!(
-            put_old_register_request_on_chain(
-                api,
-                rpc,
-                signature_request_keypair.clone(),
-                program_account,
-                programs_data,
-            )
-            .await
-        )?
+        put_old_register_request_on_chain(
+            api,
+            rpc,
+            signature_request_keypair.clone(),
+            program_account,
+            programs_data,
+        )
+        .await?
     };
 
     let mut registration_info = vec![];
@@ -123,29 +118,6 @@ pub async fn register(
     }
 
     Ok(registration_info)
-
-    // let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
-
-    // for _ in 0..50 {
-    //     let block_hash = rpc.chain_get_block_hash(None).await?;
-    //     let events =
-    //         EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
-    //     let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
-    //     for event in registered_event.flatten() {
-    //         // check if the event belongs to this user
-    //         if event.0 == account_id {
-    //             let registered_query = entropy::storage().registry().registered(&event.1);
-    //             let registered_status = query_chain(api, rpc, registered_query, block_hash).await?;
-    //             if let Some(status) = registered_status {
-    //                 let verifying_key =
-    //                     event.1 .0.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
-    //                 return Ok((verifying_key, status));
-    //             }
-    //         }
-    //     }
-    //     std::thread::sleep(std::time::Duration::from_millis(1000));
-    // }
-    // Err(ClientError::RegistrationTimeout)
 }
 
 /// Request to sign a message
@@ -331,7 +303,13 @@ pub async fn get_programs(
     Ok(programs)
 }
 
-/// Submit a register transaction
+/// Submits a transaction registering an account on-chain.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        user_account = ?signature_request_keypair.public(),
+    )
+)]
 pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -339,7 +317,7 @@ pub async fn put_register_request_on_chain(
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
-    println!("on_chain");
+    tracing::debug!("Registering an account using on-chain flow.");
 
     let registering_tx = entropy::tx().registry().register_on_chain(deployer, program_instances);
     let registered_events =
@@ -357,7 +335,13 @@ pub async fn put_register_request_on_chain(
     Ok(registered_events)
 }
 
-/// Submit a register transaction
+/// Submits a transaction registering an account on-chain using the old off-chain flow.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        user_account = ?signature_request_keypair.public(),
+    )
+)]
 pub async fn put_old_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -365,7 +349,7 @@ pub async fn put_old_register_request_on_chain(
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
-    println!("off_chain");
+    tracing::debug!("Registering an account using old off-chain flow.");
 
     let registering_tx = entropy::tx().registry().register(deployer, program_instances);
     submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
@@ -393,6 +377,9 @@ pub async fn put_old_register_request_on_chain(
 /// Returns a registered user's key visibility
 ///
 /// TODO (Nando): This was copied from `entropy-tss::helpers::substrate`
+///
+/// What's the best place for this? Ideally here, and then we import this into the entropy-tss, but
+/// we need the `full-client` feature enabled...
 #[tracing::instrument(skip_all, fields(verifying_key))]
 pub async fn get_registered_details(
     api: &OnlineClient<EntropyConfig>,
@@ -416,8 +403,9 @@ pub async fn get_registered_details(
         let registered_info_query =
             entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
 
-        query_chain(api, rpc, registered_info_query, None).await?.expect("TODO")
-        // .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?
+        query_chain(api, rpc, registered_info_query, None)
+            .await?
+            .ok_or_else(|| ClientError::NotRegistered)?
     };
 
     Ok(registration_info)
