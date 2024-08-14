@@ -66,6 +66,8 @@ pub enum ClientError {
     Subxt(#[from] subxt::Error),
     #[error("Timed out waiting for register confirmation")]
     RegistrationTimeout,
+    #[error("Timed out waiting for jumpstart confirmation")]
+    JumpstartTimeout,
     #[error("Cannot get subgroup: {0}")]
     SubgroupGet(#[from] SubgroupGetError),
     #[error("JSON: {0}")]
