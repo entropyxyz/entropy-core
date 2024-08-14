@@ -23,6 +23,7 @@ At the moment this project **does not** adhere to
 - Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
 - Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
 - Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
+- Signing flow with derived accounts ([#990](https://github.com/entropyxyz/entropy-core/pull/990))
 - TSS attestation endpoint ([#1001](https://github.com/entropyxyz/entropy-core/pull/1001))
 - Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
 

@@ -63,18 +63,34 @@ impl<'a> ThresholdSigningService<'a> {
         fields(sign_init),
         level = tracing::Level::DEBUG
     )]
-    pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, ProtocolErr> {
+    pub async fn get_sign_context(
+        &self,
+        sign_init: SignInit,
+        derivation_path: Option<bip32::DerivationPath>,
+    ) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
-        let key_share_and_aux_info_vec = self
-            .kv_manager
-            .kv()
-            .get(&hex::encode(sign_init.signing_session_info.signature_verifying_key.clone()))
-            .await?;
+
+        let verifying_key = if derivation_path.is_some() {
+            entropy_shared::NETWORK_PARENT_KEY.as_bytes().to_vec()
+        } else {
+            sign_init.signing_session_info.signature_verifying_key.clone()
+        };
+
+        let key_share_and_aux_info_vec =
+            self.kv_manager.kv().get(&hex::encode(verifying_key)).await?;
+
         let (key_share, aux_info): (
             ThresholdKeyShare<KeyParams, PartyId>,
             AuxInfo<KeyParams, PartyId>,
         ) = entropy_kvdb::kv_manager::helpers::deserialize(&key_share_and_aux_info_vec)
             .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+
+        let key_share = if let Some(path) = derivation_path {
+            key_share.derive_bip32(&path)?
+        } else {
+            key_share
+        };
+
         Ok(SignContext::new(sign_init, key_share, aux_info))
     }
 
@@ -92,6 +108,7 @@ impl<'a> ThresholdSigningService<'a> {
         threshold_signer: &sr25519::Pair,
         threshold_accounts: Vec<AccountId32>,
     ) -> Result<RecoverableSignature, ProtocolErr> {
+        tracing::debug!("Executing signing session");
         tracing::trace!("Signing info {session_id:?}");
 
         let message_hash = if let SessionId::Sign(session_info) = &session_id {

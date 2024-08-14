@@ -131,7 +131,7 @@ pub async fn sign(
     auxilary_data: Option<Vec<u8>>,
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
-    let validators_info = get_signers_from_chain(api, rpc).await?;
+    let validators_info = get_signers_from_chain(api, rpc, false).await?;
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {
@@ -295,9 +295,9 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<(), ClientError> {
-    let registering_tx = entropy::tx().registry().register(deployer, program_instance);
+    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
 
     submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
         .await?;

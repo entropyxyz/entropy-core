@@ -54,7 +54,10 @@ async fn test_reshare() {
     let alice = AccountKeyring::AliceStash;
 
     let cxt = test_node_process_testing_state(true).await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(true).await;
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+
     let validator_ports = vec![3001, 3002, 3003];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
