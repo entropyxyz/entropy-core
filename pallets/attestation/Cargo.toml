@@ -9,15 +9,15 @@ edition   ='2021'
 publish   =false
 
 [dependencies]
-codec        ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
-scale-info   ={ version="2.11", default-features=false, features=["derive"] }
-log          ={ version="0.4.22", default-features=false }
-frame-support={ version="29.0.0", default-features=false }
-frame-system ={ version="29.0.0", default-features=false }
-sp-io        ={ version="31.0.0", default-features=false }
-sp-core      ={ version="29.0.0", default-features=false }
-sp-runtime   ={ version="32.0.0", default-features=false }
-sp-staking   ={ version="27.0.0", default-features=false }
+codec             ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
+scale-info        ={ version="2.11", default-features=false, features=["derive"] }
+log               ={ version="0.4.22", default-features=false }
+frame-support     ={ version="29.0.0", default-features=false }
+frame-system      ={ version="29.0.0", default-features=false }
+sp-io             ={ version="31.0.0", default-features=false }
+sp-core           ={ version="29.0.0", default-features=false }
+sp-runtime        ={ version="32.0.0", default-features=false }
+sp-staking        ={ version="27.0.0", default-features=false }
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 sp-std            ={ version="14.0.0", default-features=false, optional=true }
 
