@@ -25,19 +25,24 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::pallet_prelude::*;
-use frame_system::{pallet_prelude::*, WeightInfo};
+use frame_system::pallet_prelude::*;
 
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+pub mod weights;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
     use super::*;
+    pub use crate::weights::WeightInfo;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -90,7 +95,7 @@ pub mod module {
                 BoundedVec::try_from(block_number.encode())
                     .expect("Block number fits in bounded vec; qed"),
             );
-            T::DbWeight::get().writes(1)
+            T::WeightInfo::on_initialize()
         }
     }
 

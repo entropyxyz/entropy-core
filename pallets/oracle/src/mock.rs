@@ -31,7 +31,7 @@ pub type AccountId = u128;
 use crate as pallet_oracle;
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type AccountData = ();
     type AccountId = AccountId;
     type BaseCallFilter = Everything;
@@ -62,17 +62,17 @@ parameter_types! {
     pub const MaxOracleValueLength: u32 = 100;
 }
 
-impl Config for Runtime {
+impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxOracleKeyLength = MaxOracleKeyLength;
     type MaxOracleValueLength = MaxOracleValueLength;
     type WeightInfo = ();
 }
 
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-  pub enum Runtime
+  pub enum Test
   {
     System: frame_system,
     Oracle: pallet_oracle,
@@ -81,5 +81,5 @@ construct_runtime!(
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap().into()
+    frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
 }

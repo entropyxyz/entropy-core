@@ -1502,7 +1502,7 @@ impl pallet_oracle::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MaxOracleKeyLength = MaxOracleKeyLength;
     type MaxOracleValueLength = MaxOracleValueLength;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_oracle::WeightInfo<Runtime>;
 }
 
 construct_runtime!(
@@ -1634,6 +1634,7 @@ mod benches {
       [pallet_nomination_pools, NominationPoolsBench::<Runtime>]
       [pallet_multisig, Multisig]
       [pallet_offences, OffencesBench::<Runtime>]
+      [pallet_oracle, Oracle]
       [pallet_preimage, Preimage]
       [pallet_parameters, Parameters]
       [pallet_proxy, Proxy]
