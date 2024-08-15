@@ -2616,6 +2616,7 @@ dependencies = [
  "frame-try-runtime 0.35.0",
  "hex-literal",
  "log",
+ "pallet-attestation",
  "pallet-authority-discovery",
  "pallet-authorship",
  "pallet-babe",
@@ -6668,7 +6669,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-attestation"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",

@@ -34,6 +34,7 @@ pub mod pallet {
     use entropy_shared::QuoteInputData;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
+    use sp_std::vec::Vec;
     use tdx_quote::Quote;
 
     // pub use crate::weights::WeightInfo;

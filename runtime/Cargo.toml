@@ -102,6 +102,7 @@ pallet-slashing         ={ version='0.2.0', path='../pallets/slashing', default-
 pallet-staking-extension={ version='0.2.0', path='../pallets/staking', default-features=false }
 pallet-transaction-pause={ version='0.2.0', path='../pallets/transaction-pause', default-features=false }
 pallet-parameters       ={ version='0.2.0', path='../pallets/parameters', default-features=false }
+pallet-attestation      ={ version='0.2.0', path='../pallets/attestation', default-features=false }
 
 entropy-shared={ version="0.2.0", path="../crates/shared", default-features=false, features=[
   "wasm-no-std",
@@ -122,6 +123,7 @@ std=[
   "frame-system/std",
   "frame-try-runtime/std",
   "log/std",
+  "pallet-attestation/std",
   "pallet-authority-discovery/std",
   "pallet-authorship/std",
   "pallet-babe/std",
@@ -189,6 +191,7 @@ runtime-benchmarks=[
   "frame-system-benchmarking/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
   "hex-literal",
+  "pallet-attestation/runtime-benchmarks",
   "pallet-babe/runtime-benchmarks",
   "pallet-bags-list/runtime-benchmarks",
   "pallet-balances/runtime-benchmarks",
