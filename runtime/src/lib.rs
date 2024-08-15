@@ -1495,7 +1495,7 @@ impl pallet_parameters::Config for Runtime {
 
 impl pallet_attestation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    // type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
+    type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
 }
 
 construct_runtime!(
