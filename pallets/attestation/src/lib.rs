@@ -18,8 +18,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
-// #[cfg(feature = "runtime-benchmarks")]
-// pub mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 // pub mod weights;
 

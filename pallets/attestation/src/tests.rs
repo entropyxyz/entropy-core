@@ -13,11 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// use frame_support::{assert_noop, assert_ok, traits::Currency};
-// use pallet_balances::Error as BalancesError;
-// use sp_runtime::traits::Hash;
-//
 use crate::mock::*;
+use entropy_shared::QuoteInputData;
 use frame_support::assert_ok;
 use rand_core::OsRng;
 
@@ -34,7 +31,7 @@ fn attest() {
         // need to correspond to the public key in the certificate
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
 
-        let input_data = entropy_shared::QuoteInputData::new(
+        let input_data = QuoteInputData::new(
             ATTESTEE, // TSS Account ID
             [0; 32],  // x25519 public key
             nonce, 0, // Block number

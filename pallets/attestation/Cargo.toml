@@ -18,6 +18,8 @@ sp-io        ={ version="31.0.0", default-features=false }
 sp-core      ={ version="29.0.0", default-features=false }
 sp-runtime   ={ version="32.0.0", default-features=false }
 sp-staking   ={ version="27.0.0", default-features=false }
+frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
+sp-std            ={ version="14.0.0", default-features=false, optional=true }
 
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
   "wasm-no-std",
@@ -40,9 +42,9 @@ rand_core                      ="0.6.4"
 
 [features]
 default=['std']
-# runtime-benchmarks=['frame-benchmarking']
+runtime-benchmarks=['frame-benchmarking', 'sp-std', 'tdx-quote/mock']
 std=[
-  # 'frame-benchmarking/std',
+  'frame-benchmarking/std',
   'frame-support/std',
   'frame-system/std',
   'log/std',

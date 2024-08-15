@@ -6671,6 +6671,7 @@ name = "pallet-attestation"
 version = "0.1.0"
 dependencies = [
  "entropy-shared",
+ "frame-benchmarking",
  "frame-election-provider-support",
  "frame-support 29.0.2",
  "frame-system",
@@ -6691,6 +6692,7 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
+ "sp-std 14.0.0",
  "tdx-quote",
 ]
 
