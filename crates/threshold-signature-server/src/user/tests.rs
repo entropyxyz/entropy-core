@@ -117,7 +117,7 @@ use crate::{
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{query_chain, submit_transaction},
+        substrate::{query_chain, submit_transaction, get_oracle_data},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
             remove_program, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
@@ -1680,6 +1680,25 @@ async fn test_increment_or_wipe_request_limit() {
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
     clean_tests();
+}
+
+#[tokio::test]
+#[serial_test::serial]
+async fn test_get_oracle_data() {
+    initialize_test_logger().await;
+    let cxt = testing_context().await;
+    setup_client().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    run_to_block(&rpc, 1).await;
+
+    let oracle_data = get_oracle_data(&api, &rpc, "block_number_entropy".encode()).await.unwrap();
+    let current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    assert_eq!(current_block.encode(), oracle_data);
+
+    // fails gracefully
+    let oracle_data_fail = get_oracle_data(&api, &rpc, "random_heading".encode()).await.unwrap();
+    assert_eq!(oracle_data_fail.len(), 0);
 }
 
 pub async fn submit_transaction_requests(
