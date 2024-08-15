@@ -50,6 +50,8 @@ pub async fn open_protocol_connections(
     state: &ListenerState,
     x25519_secret_key: &x25519_dalek::StaticSecret,
 ) -> Result<(), ProtocolErr> {
+    tracing::debug!("Opening protocol connections");
+
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {

@@ -26,23 +26,17 @@ use entropy_client::{
     },
     client::{
         change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
-        register, sign, store_program, update_programs, KeyParams, KeyShare, KeyVisibility,
-        VERIFYING_KEY_LENGTH,
+        jumpstart_network, register, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
-use sp_core::{sr25519, DeriveJunction, Hasher, Pair};
+use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
-use std::{
-    fmt::{self, Display},
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
     OnlineClient,
 };
-use x25519_dalek::StaticSecret;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -67,9 +61,6 @@ struct Cli {
 enum CliCommand {
     /// Register with Entropy and create keyshares
     Register {
-        /// The access mode of the Entropy account
-        #[arg(value_enum, default_value_t = Default::default())]
-        key_visibility: Visibility,
         /// Either hex-encoded hashes of existing programs, or paths to wasm files to store.
         ///
         /// Specifying program configurations
@@ -85,7 +76,7 @@ enum CliCommand {
         /// A name or mnemonic from which to derive a program modification keypair.
         /// This is used to send the register extrinsic so it must be funded
         /// If giving a name it must be preceded with "//", eg: "--mnemonic-option //Alice"
-        /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""  
+        /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -152,30 +143,17 @@ enum CliCommand {
     },
     /// Display a list of registered Entropy accounts
     Status,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
-enum Visibility {
-    /// User holds keyshare
-    Private,
-    /// User does not hold a keyshare
-    #[default]
-    Public,
-}
-
-impl From<KeyVisibility> for Visibility {
-    fn from(key_visibility: KeyVisibility) -> Self {
-        match key_visibility {
-            KeyVisibility::Private(_) => Visibility::Private,
-            KeyVisibility::Public => Visibility::Public,
-        }
-    }
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
+    /// Triggers the network wide distributed key generation process.
+    ///
+    /// A fully jumpstarted network is required for the on-chain registration flow to work
+    /// correctly.
+    ///
+    /// Note: Any account may trigger the jumpstart process.
+    JumpstartNetwork {
+        /// The mnemonic for the signer which will trigger the jumpstart process.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
 }
 
 pub async fn run_command(
@@ -195,7 +173,7 @@ pub async fn run_command(
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register { mnemonic_option, key_visibility, programs } => {
+        CliCommand::Register { mnemonic_option, programs } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
@@ -206,14 +184,6 @@ pub async fn run_command(
             let program_account = SubxtAccountId32(program_keypair.public().0);
             println!("Program account: {}", program_keypair.public());
 
-            let (key_visibility_converted, x25519_secret) = match key_visibility {
-                Visibility::Private => {
-                    let x25519_secret = derive_x25519_static_secret(&program_keypair);
-                    let x25519_public = x25519_dalek::PublicKey::from(&x25519_secret);
-                    (KeyVisibility::Private(x25519_public.to_bytes()), Some(x25519_secret))
-                },
-                Visibility::Public => (KeyVisibility::Public, None),
-            };
             let mut programs_info = vec![];
 
             for program in programs {
@@ -222,23 +192,14 @@ pub async fn run_command(
                 );
             }
 
-            let (verifying_key, registered_info, keyshare_option) = register(
+            let (verifying_key, registered_info) = register(
                 &api,
                 &rpc,
                 program_keypair.clone(),
                 program_account,
-                key_visibility_converted,
                 BoundedVec(programs_info),
-                x25519_secret,
             )
             .await?;
-
-            // If we got a keyshare, write it to a file
-            if let Some(keyshare) = keyshare_option {
-                let verifying_key =
-                    keyshare.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-                KeyShareFile::new(&verifying_key).write(keyshare)?;
-            }
 
             Ok(format!("Verfiying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
         },
@@ -261,21 +222,12 @@ pub async fn run_command(
                     .try_into()
                     .map_err(|_| anyhow!("Verifying key must be 33 bytes"))?;
 
-            // If we have a keyshare file for this account, get it
-            let private_keyshare = KeyShareFile::new(&signature_verifying_key.to_vec()).read().ok();
-
-            let private_details = private_keyshare.map(|keyshare| {
-                let x25519_secret = derive_x25519_static_secret(&user_keypair);
-                (keyshare, x25519_secret)
-            });
-
             let recoverable_signature = sign(
                 &api,
                 &rpc,
                 user_keypair,
                 signature_verifying_key,
                 message.as_bytes().to_vec(),
-                private_details,
                 auxilary_data,
             )
             .await?;
@@ -364,11 +316,9 @@ pub async fn run_command(
                     "Visibility:".purple(),
                 );
                 for (account_id, info) in accounts {
-                    let visibility: Visibility = info.key_visibility.0.into();
                     println!(
-                        "{} {:<12} {}",
+                        "{} {}",
                         hex::encode(account_id).green(),
-                        format!("{}", visibility).purple(),
                         format!(
                             "{:?}",
                             info.programs_data
@@ -453,27 +403,20 @@ pub async fn run_command(
 
             Ok("Threshold accounts changed".to_string())
         },
-    }
-}
+        CliCommand::JumpstartNetwork { mnemonic_option } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.unwrap_or("//Alice".to_string())
+            };
 
-/// Represents a keyshare stored in a file, serialized using [bincode]
-struct KeyShareFile(String);
+            let signer = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            println!("Account being used for jumpstart: {}", signer.public());
 
-impl KeyShareFile {
-    fn new(verifying_key: &Vec<u8>) -> Self {
-        Self(format!("keyshare-{}", hex::encode(verifying_key)))
-    }
+            jumpstart_network(&api, &rpc, signer).await?;
 
-    fn read(&self) -> anyhow::Result<KeyShare<KeyParams>> {
-        let keyshare_vec = fs::read(&self.0)?;
-        println!("Reading keyshare from file: {}", self.0);
-        Ok(bincode::deserialize(&keyshare_vec)?)
-    }
-
-    fn write(&self, keyshare: KeyShare<KeyParams>) -> anyhow::Result<()> {
-        println!("Writing keyshare to file: {}", self.0);
-        let keyshare_vec = bincode::serialize(&keyshare)?;
-        Ok(fs::write(&self.0, keyshare_vec)?)
+            Ok("Succesfully jumpstarted network.".to_string())
+        },
     }
 }
 
@@ -571,15 +514,4 @@ impl Program {
             },
         }
     }
-}
-
-/// Derive a x25519 secret from a sr25519 pair. In production we should not do this,
-/// but for this test-cli which anyway uses insecure keypairs it is convenient
-fn derive_x25519_static_secret(sr25519_pair: &sr25519::Pair) -> StaticSecret {
-    let (derived_sr25519_pair, _) = sr25519_pair
-        .derive([DeriveJunction::hard(b"x25519")].into_iter(), None)
-        .expect("Cannot derive keypair");
-    let mut secret: [u8; 32] = [0; 32];
-    secret.copy_from_slice(&derived_sr25519_pair.to_raw_vec());
-    secret.into()
 }

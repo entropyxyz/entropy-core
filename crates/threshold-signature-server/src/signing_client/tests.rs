@@ -18,13 +18,15 @@ use crate::{
     chain_api::{get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{initialize_test_logger, run_to_block, setup_client, spawn_testing_validators},
+        tests::{
+            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            unsafe_get,
+        },
     },
-    r#unsafe::api::UnsafeQuery,
 };
-use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
+use entropy_kvdb::clean_tests;
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
@@ -43,44 +45,13 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, _validator_ids, users_keyshare_option) =
-        spawn_testing_validators(Some(FERDIE_VERIFYING_KEY.to_vec()), true, false).await;
+    let (validator_ips, _ids) = spawn_testing_validators(false).await;
 
     let client = reqwest::Client::new();
-    let converted_key_share = serialize(&users_keyshare_option.unwrap()).unwrap();
-    let get_query_eve =
-        UnsafeQuery::new(hex::encode(FERDIE_VERIFYING_KEY.to_vec()), vec![]).to_json();
-    let get_query_dave =
-        UnsafeQuery::new(hex::encode(DAVE_VERIFYING_KEY.to_vec()), converted_key_share.clone())
-            .to_json();
 
     // check get key before proactive refresh
-    let key_before_result_eve = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query_eve.clone())
-        .send()
-        .await
-        .unwrap();
-
-    let key_before_eve = key_before_result_eve.text().await.unwrap();
-
-    // puts dave key into kvdb
-    client
-        .post("http://127.0.0.1:3001/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(get_query_dave.clone())
-        .send()
-        .await
-        .unwrap();
-    // puts dave key into kvdb
-    client
-        .post("http://127.0.0.1:3002/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(get_query_dave.clone())
-        .send()
-        .await
-        .unwrap();
+    let key_before_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -93,11 +64,16 @@ async fn test_proactive_refresh() {
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone().encode(),
         },
+        entropy_shared::ValidatorInfo {
+            ip_address: "127.0.0.1:3003".as_bytes().to_vec(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone().encode(),
+        },
     ];
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![FERDIE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
         block_number: 0,
     };
 
@@ -111,49 +87,21 @@ async fn test_proactive_refresh() {
     let test_user_res =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
 
-    for (i, res) in test_user_res.into_iter().enumerate() {
-        // this is hacky but needed, since we only spin up 2 validators but 3 are in the subgroup
-        // alice tries to send a key to herself thinking she is charlie so encrypts it to charlie
-        // this can be fixed in other ways but this way probably has the least side effects
-        if i == 0 {
-            assert_eq!(
-                res.unwrap().text().await.unwrap(),
-                "User Error: The remote TSS server rejected the keyshare: Encryption or signing \
-                error: Hpke: HPKE Error: OpenError"
-            );
-        } else {
-            assert_eq!(res.unwrap().text().await.unwrap(), "");
-        }
+    for res in test_user_res {
+        assert_eq!(res.unwrap().text().await.unwrap(), "");
     }
-    // check get key before proactive refresh
-    let key_after_result_eve = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query_eve.clone())
-        .send()
-        .await
-        .unwrap();
 
-    // check get key before proactive refresh
-    let key_after_result_dave = client
-        .post("http://127.0.0.1:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query_dave.clone())
-        .send()
-        .await
-        .unwrap();
+    let key_after_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
-    let key_after_eve = key_after_result_eve.text().await.unwrap();
-    let key_after_dave = key_after_result_dave.text().await.unwrap();
-
-    // eve has private visibility so key does not change
-    assert_eq!(key_before_eve, key_after_eve);
-    // dave's not private so changes
-    assert_ne!(converted_key_share, serialize(&key_after_dave).unwrap());
+    // make sure private keyshares are changed
+    assert_ne!(key_before_eve, key_after_eve);
+    assert_ne!(key_before_dave, key_after_dave);
 
     let alice = AccountKeyring::Alice;
     ocw_message.validators_info[0].tss_account = alice.public().encode();
     ocw_message.validators_info[1].tss_account = alice.public().encode();
+    ocw_message.validators_info[2].tss_account = alice.public().encode();
 
     let test_user_res_not_in_group =
         submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;

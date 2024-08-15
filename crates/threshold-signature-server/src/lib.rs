@@ -82,17 +82,14 @@
 //!
 //! ### For other instances of the threshold server
 //!
-//! - [`/user/receive_key`](receive_key) - recieve a keyshare from another threshold server in the
-//!   same signing subgroup during registration or proactive refresh.
-//!
 //!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
 //!   in a [crate::validation::SignedMessage].
 //!
 //! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing and DKG protocol
-//! messages. This is opened by other threshold servers when the signing procotol is initiated.
+//!     messages. This is opened by other threshold servers when the signing procotol is initiated.
 //!
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
-//! threshold server when joining to get the key-shares from a member of their sub-group.
+//!     threshold server when joining to get the key-shares from a member of their sub-group.
 //!
 //!   Takes a list of users account IDs for which shares are requested, wrapped in a
 //!   [crate::validation::SignedMessage].
@@ -122,18 +119,19 @@
 //!
 //! - Axum server - Includes global state and mutex locked IPs
 //! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
-//! [sled](https://docs.rs/sled)
+//!     [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub use entropy_client::chain_api;
+pub(crate) mod attestation;
 pub(crate) mod health;
 pub mod helpers;
 pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
 pub(crate) mod r#unsafe;
-pub(crate) mod user;
+pub mod user;
 pub mod validation;
-pub(crate) mod validator;
+pub mod validator;
 
 use axum::{
     http::Method,
@@ -146,23 +144,20 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
-use validator::api::get_random_server_info;
 
+pub use crate::helpers::{
+    launch,
+    validator::{get_signer, get_signer_and_x25519_secret},
+};
 use crate::{
+    attestation::api::attest,
     health::api::healthz,
     launch::Configuration,
-    node_info::api::{get_subgroup_signers, hashes, version as get_version},
+    node_info::api::{hashes, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
-    validator::api::sync_kvdb,
-};
-pub use crate::{
-    helpers::{
-        launch,
-        validator::{get_signer, get_signer_and_x25519_secret},
-    },
-    validator::api::sync_validator,
+    validator::api::new_reshare,
 };
 
 #[derive(Clone)]
@@ -180,12 +175,12 @@ impl AppState {
 
 pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
-        .route("/user/sign_tx", post(sign_tx))
+        .route("/generate_network_key", post(generate_network_key))
         .route("/user/new", post(new_user))
-        .route("/user/receive_key", post(receive_key))
+        .route("/user/sign_tx", post(sign_tx))
         .route("/signer/proactive_refresh", post(proactive_refresh))
-        .route("/validator/sync_kvdb", post(sync_kvdb))
-        .route("/subgroup_signers", post(get_subgroup_signers))
+        .route("/validator/reshare", post(new_reshare))
+        .route("/attest", post(attest))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

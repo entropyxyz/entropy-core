@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::Duration;
-
 use axum::{
     body::Bytes,
     extract::{
@@ -26,16 +24,17 @@ use axum::{
 };
 use blake2::{Blake2s256, Digest};
 use entropy_protocol::{
-    execute_protocol::{execute_proactive_refresh, Channels},
-    KeyParams, Listener, SessionId, ValidatorInfo,
+    execute_protocol::{execute_reshare, Channels},
+    KeyParams, Listener, PartyId, SessionId, ValidatorInfo,
 };
 use parity_scale_codec::Encode;
+use std::{collections::BTreeSet, time::Duration};
 
 use entropy_kvdb::kv_manager::{
     helpers::{deserialize, serialize as key_serialize},
     KvManager,
 };
-use entropy_shared::{KeyVisibility, OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
 use subxt::{
@@ -45,7 +44,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::KeyShare;
+use synedrion::{AuxInfo, KeyResharingInputs, NewHolder, OldHolder, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -55,19 +54,13 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
-        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        substrate::{
-            get_registered_details, get_stash_address, get_subgroup, query_chain,
-            return_all_addresses_of_subgroup,
-        },
-        user::{check_in_registration_group, send_key},
-        validator::get_signer_and_x25519_secret,
+        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH, substrate::query_chain,
+        user::check_in_registration_group, validator::get_signer_and_x25519_secret,
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
         ListenerState, ProtocolErr,
     },
-    user::api::UserRegistrationInfo,
     AppState,
 };
 
@@ -96,71 +89,37 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
 
-    let subgroup = get_subgroup(&api, &rpc, signer.account_id())
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-
-    let stash_address = get_stash_address(&api, &rpc, signer.account_id())
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-
-    let mut addresses_in_subgroup = return_all_addresses_of_subgroup(&api, &rpc, subgroup)
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
-        let key_visibility = get_registered_details(&api, &rpc, encoded_key.clone())
-            .await
-            .map_err(|e| ProtocolErr::UserError(e.to_string()))?
-            .key_visibility
-            .0;
+        // key should always exist, figure out how to handle
+        let exists_result = app_state.kv_store.kv().exists(&key).await?;
+        if exists_result {
+            let old_key_share = app_state.kv_store.kv().get(&key).await?;
+            let (deserialized_old_key, aux_info): (
+                ThresholdKeyShare<KeyParams, PartyId>,
+                AuxInfo<KeyParams, PartyId>,
+            ) = deserialize(&old_key_share)
+                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
 
-        // Check key visibility and don't do proactive refresh if it is private as this would require the user to be online
-        if key_visibility == KeyVisibility::Public {
-            // key should always exist, figure out how to handle
-            let exists_result = app_state.kv_store.kv().exists(&key).await?;
-            if exists_result {
-                let old_key_share = app_state.kv_store.kv().get(&key).await?;
-                let deserialized_old_key: KeyShare<KeyParams> = deserialize(&old_key_share)
-                    .ok_or_else(|| {
-                        ProtocolErr::Deserialization("Failed to load KeyShare".into())
-                    })?;
+            let (new_key_share, aux_info) = do_proactive_refresh(
+                &ocw_data.validators_info,
+                &signer,
+                &x25519_secret_key,
+                &app_state.listener_state,
+                encoded_key,
+                deserialized_old_key,
+                ocw_data.block_number,
+                aux_info,
+            )
+            .await?;
 
-                let new_key_share = do_proactive_refresh(
-                    &ocw_data.validators_info,
-                    &signer,
-                    &x25519_secret_key,
-                    &app_state.listener_state,
-                    encoded_key,
-                    deserialized_old_key,
-                    ocw_data.block_number,
-                )
-                .await?;
-                let serialized_key_share = key_serialize(&new_key_share)
-                    .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-                let new_key_info = UserRegistrationInfo {
-                    key,
-                    value: serialized_key_share,
-                    proactive_refresh: true,
-                    sig_request_address: None,
-                };
+            // Since this is a refresh with the parties not changing, store the old aux_info
+            let serialized_key_share = key_serialize(&(new_key_share, aux_info))
+                .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
-                app_state.kv_store.kv().delete(&new_key_info.key).await?;
-                let reservation =
-                    app_state.kv_store.kv().reserve_key(new_key_info.key.clone()).await?;
-                app_state.kv_store.kv().put(reservation, new_key_info.value.clone()).await?;
-                send_key(
-                    &api,
-                    &rpc,
-                    &stash_address,
-                    &mut addresses_in_subgroup,
-                    new_key_info,
-                    &signer,
-                )
-                .await
-                .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-            }
+            app_state.kv_store.kv().delete(&key).await?;
+            let reservation = app_state.kv_store.kv().reserve_key(key.clone()).await?;
+            app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
         }
     }
     // TODO: Tell chain refresh is done?
@@ -183,6 +142,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     };
 }
 
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 #[tracing::instrument(
     skip_all,
     fields(validators_info, verifying_key, my_subgroup),
@@ -194,13 +154,14 @@ pub async fn do_proactive_refresh(
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     verifying_key: Vec<u8>,
-    old_key: KeyShare<KeyParams>,
+    old_key: ThresholdKeyShare<KeyParams, PartyId>,
     block_number: u32,
-) -> Result<KeyShare<KeyParams>, ProtocolErr> {
+    aux_info: AuxInfo<KeyParams, PartyId>,
+) -> Result<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
 
-    let session_id = SessionId::ProactiveRefresh { verifying_key, block_number };
+    let session_id = SessionId::Reshare { verifying_key, block_number };
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -220,31 +181,31 @@ pub async fn do_proactive_refresh(
         tss_accounts.push(tss_account);
     }
 
-    // subscribe to all other participating parties. Listener waits for other subscribers.
-    let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_id, None);
-    state
-        .listeners
-        .lock()
-        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
-        .insert(session_id.clone(), listener);
+    let party_ids: BTreeSet<PartyId> = tss_accounts.iter().cloned().map(PartyId::new).collect();
 
-    open_protocol_connections(
-        &converted_validator_info,
-        &session_id,
-        signer.signer(),
+    let inputs = KeyResharingInputs {
+        old_holder: Some(OldHolder { key_share: old_key.clone() }),
+        new_holder: Some(NewHolder {
+            verifying_key: old_key.verifying_key(),
+            old_threshold: party_ids.len(),
+            old_holders: party_ids.clone(),
+        }),
+        new_holders: party_ids.clone(),
+        new_threshold: old_key.threshold(),
+    };
+
+    let channels = get_channels(
         state,
+        converted_validator_info,
+        account_id,
+        &session_id,
+        signer,
         x25519_secret_key,
     )
     .await?;
-    let channels = {
-        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-        let broadcast_out = ready??;
-        Channels(broadcast_out, rx_from_others)
-    };
+
     let result =
-        execute_proactive_refresh(session_id, channels, signer.signer(), tss_accounts, old_key)
-            .await?;
+        execute_reshare(session_id, channels, signer.signer(), inputs, Some(aux_info)).await?;
     Ok(result)
 }
 
@@ -303,4 +264,35 @@ pub async fn validate_proactive_refresh(
         kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
     kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
     Ok(())
+}
+
+pub async fn get_channels(
+    state: &ListenerState,
+    converted_validator_info: Vec<ValidatorInfo>,
+    account_id: SubxtAccountId32,
+    session_id: &SessionId,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    x25519_secret_key: &StaticSecret,
+) -> Result<Channels, ProtocolErr> {
+    // subscribe to all other participating parties. Listener waits for other subscribers.
+    let (rx_ready, rx_from_others, listener) =
+        Listener::new(converted_validator_info.clone(), &account_id);
+    state
+        .listeners
+        .lock()
+        .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
+        .insert(session_id.clone(), listener);
+
+    open_protocol_connections(
+        &converted_validator_info,
+        session_id,
+        signer.signer(),
+        state,
+        x25519_secret_key,
+    )
+    .await?;
+
+    let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
+    let broadcast_out = ready??;
+    Ok(Channels(broadcast_out, rx_from_others))
 }

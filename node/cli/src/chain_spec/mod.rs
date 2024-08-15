@@ -75,15 +75,15 @@ pub mod tss_account_id {
     pub static ref CHARLIE: sp_runtime::AccountId32  =
             super::hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into();
 
-    /// Not sure what mnemonic is used to derive the following `AccountId`.
+    /// The `DEFAULT_DAVE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "beef dutch panic monkey black glad audit twice humor gossip wealth drive"
     pub static ref DAVE: sp_runtime::AccountId32  =
-            super::hex!["12bf1c8e365c20cc2af606e3814b98b192857d85d182dac5e33fb90d0380ca75"].into();
+            super::hex!["0a9054ef6b6b8ad0dd2c89895b2515583f2fbf1edced68e7328ae456d86b9402"].into();
 
-    /// The `DEFAULT_CHARLIE_MNEMONIC` is used to derive the following `AccountId`.
+    /// The `DEFAULT_EVE_MNEMONIC` is used to derive the following `AccountId`.
     /// Mnemonic: "impact federal dish number fun crisp various wedding radio immense whisper glue"
     pub static ref EVE: sp_runtime::AccountId32  =
-            super::hex!["f2b4113735e988f662fe45e97b39770e804ebcd893ad0ab7cd8b7c5b5dcfff22"].into();
+            super::hex!["ac0d9030598f1722ff7c6a2a3043fa65903448dcc7a23011ec06c1c31cdad120"].into();
 
     }
 }
@@ -97,7 +97,6 @@ pub mod tss_x25519_public_key {
         8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
         222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
     ];
-
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub const BOB: [u8; 32] = [
@@ -110,13 +109,6 @@ pub mod tss_x25519_public_key {
     pub const CHARLIE: [u8; 32] = [
         131, 8, 162, 77, 237, 245, 226, 179, 250, 79, 121, 250, 174, 181, 227, 122, 205, 181, 188,
         4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
-    ];
-
-    /// Eve is not a TSS node but a pre-registered user. Her corresponding secret key is in
-    /// `entropy_testing_utils::constants`
-    pub const EVE: [u8; 32] = [
-        142, 113, 91, 59, 177, 104, 208, 23, 219, 170, 47, 145, 200, 139, 188, 28, 14, 199, 116,
-        86, 193, 144, 10, 18, 74, 157, 138, 202, 115, 99, 229, 55,
     ];
 
     // The `DEFAULT_DAVE_MNEMONIC` is used to derive the public key.

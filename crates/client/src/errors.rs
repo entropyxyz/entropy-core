@@ -43,6 +43,8 @@ pub enum SubgroupGetError {
     ChainFetch(&'static str),
     #[error("Substrate client: {0}")]
     SubstrateClient(#[from] crate::substrate::SubstrateError),
+    #[error("Error Joining threads: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
 }
 
 #[cfg(feature = "full-client")]
@@ -60,12 +62,12 @@ pub enum ClientError {
     StashFetch,
     #[error("UTF8: {0}")]
     Utf8(#[from] std::str::Utf8Error),
-    #[error("User running protocol: {0}")]
-    UserRunningProtocol(#[from] entropy_protocol::errors::UserRunningProtocolErr),
     #[error("Subxt: {0}")]
     Subxt(#[from] subxt::Error),
     #[error("Timed out waiting for register confirmation")]
     RegistrationTimeout,
+    #[error("Timed out waiting for jumpstart confirmation")]
+    JumpstartTimeout,
     #[error("Cannot get subgroup: {0}")]
     SubgroupGet(#[from] SubgroupGetError),
     #[error("JSON: {0}")]

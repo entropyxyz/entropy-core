@@ -153,18 +153,24 @@ pub enum UserErr {
     EncryptionOrAuthentication(#[from] EncryptedSignedMessageErr),
     #[error("Custom hash choice out of bounds")]
     CustomHashOutOfBounds,
+    #[error("No signing from parent key")]
+    NoSigningFromParentKey,
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),
     #[error("Error creating sr25519 keypair from seed: {0}")]
     SpCoreSecretString(#[from] sp_core::crypto::SecretStringError),
     #[error("Cannot get output from hasher in HKDF {0}")]
     Hkdf(hkdf::InvalidLength),
+    #[error("Error Joining threads: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
     #[error("Substrate: {0}")]
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("Cannot get subgroup signers: {0}")]
     SubgroupGet(#[from] entropy_client::user::SubgroupGetError),
     #[error("Unknown hashing algorthim - user is using a newer version than us")]
     UnknownHashingAlgorithm,
+    #[error("Failed to derive BIP-32 account: {0}")]
+    Bip32DerivationError(#[from] bip32::Error),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

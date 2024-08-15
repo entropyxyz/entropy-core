@@ -7,9 +7,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0-rc.1...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
 
-## [0.2.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0-rc.1) - 2024-06-24
+### Breaking Changes
+- In [#938](https://github.com/entropyxyz/entropy-core/pull/938), the chainspec got a couple of new
+  fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
+  `pallet_parameters::threshold`, which are used to set up the initial threshold signing
+  configuration for the network.
+
+### Added
+- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+- Add Signer groups and rotation ([#938](https://github.com/entropyxyz/entropy-core/pull/938))
+- Split jumpstart and register flows ([#952](https://github.com/entropyxyz/entropy-core/pull/952))
+- New on-chain registration flow ([#955](https://github.com/entropyxyz/entropy-core/pull/955))
+- Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
+- Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
+- Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
+- Signing flow with derived accounts ([#990](https://github.com/entropyxyz/entropy-core/pull/990))
+- TSS attestation endpoint ([#1001](https://github.com/entropyxyz/entropy-core/pull/1001))
+- Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
+
+### Changed
+- Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+
+## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
 ### Breaking Changes
 - In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
@@ -27,6 +48,9 @@ At the moment this project **does not** adhere to
   case that an unknown variant is added in the future.
 - In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection was
   sorted to ensure a predicatble order across libraries, languages and clients.
+- In [#901](https://github.com/entropyxyz/entropy-core/pull/901) the network's currency units were
+  changed. This resulted in a change to the existential deposit as well as balances of endowed
+  accounts (e.g development accounts like `//Alice`).
 
 ### Added
 - Add a way to change program modification account ([#843](https://github.com/entropyxyz/entropy-core/pull/843))

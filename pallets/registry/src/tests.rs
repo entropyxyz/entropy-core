@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use entropy_shared::{KeyVisibility, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
@@ -23,6 +23,7 @@ use frame_support::{
 };
 use pallet_programs::ProgramInfo;
 use pallet_registry::Call as RegistryCall;
+use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
 use sp_runtime::{
     traits::{Hash, SignedExtension},
     transaction_validity::{TransactionValidity, ValidTransaction},
@@ -34,74 +35,227 @@ use crate::{
     RegisteringDetails, ValidateConfirmRegistered,
 };
 
+const NULL_ARR: [u8; 32] = [0; 32];
+
+fn setup_programs(
+) -> BoundedVec<ProgramInstance<Test>, <Test as pallet_registry::Config>::MaxProgramHashes> {
+    let alice = 1u64;
+    let empty_program = vec![];
+    let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+        program_pointer: program_hash,
+        program_config: vec![],
+    }])
+    .unwrap();
+    pallet_programs::Programs::<Test>::insert(
+        program_hash,
+        ProgramInfo {
+            bytecode: empty_program.clone(),
+            configuration_schema: empty_program.clone(),
+            auxiliary_data_schema: empty_program.clone(),
+            oracle_data_pointer: empty_program.clone(),
+            deployer: alice,
+            ref_counter: 0,
+        },
+    );
+
+    programs_info
+}
+
 #[test]
-fn it_tests_get_validator_rotation() {
+fn it_tests_get_validators_info() {
     new_test_ext().execute_with(|| {
-        let result_1 = Registry::get_validator_rotation(0, 0).unwrap();
-        let result_2 = Registry::get_validator_rotation(1, 0).unwrap();
-        assert_eq!(result_1, 1);
-        assert_eq!(result_2, 2);
+        let result_1 = Registry::get_validators_info().unwrap();
+        let server_info_1 =
+            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] };
+        let server_info_2 =
+            ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] };
+        let server_info_3 =
+            ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] };
 
-        let result_3 = Registry::get_validator_rotation(0, 1).unwrap();
-        let result_4 = Registry::get_validator_rotation(1, 1).unwrap();
-        assert_eq!(result_3, 5);
-        assert_eq!(result_4, 6);
-
-        let result_5 = Registry::get_validator_rotation(0, 100).unwrap();
-        let result_6 = Registry::get_validator_rotation(1, 100).unwrap();
-        assert_eq!(result_5, 1);
-        assert_eq!(result_6, 6);
-
-        let result_7 = Registry::get_validator_rotation(0, 101).unwrap();
-        let result_8 = Registry::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_7, 5);
-        assert_eq!(result_8, 7);
-
-        pallet_staking_extension::IsValidatorSynced::<Test>::insert(7, false);
-
-        let result_9 = Registry::get_validator_rotation(1, 101).unwrap();
-        assert_eq!(result_9, 6);
-
-        // really big number does not crash
-        let result_10 = Registry::get_validator_rotation(0, 1000000000000000000).unwrap();
-        assert_eq!(result_10, 1);
+        assert_eq!(result_1, vec![server_info_1, server_info_2, server_info_3]);
     });
 }
 
 #[test]
-fn registration_committee_selection_works() {
+fn it_registers_a_user_on_chain() {
     new_test_ext().execute_with(|| {
-        let (alice, bob) = (1, 2);
+        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
-        // In genesis we have Alice and Bob assigned to signing groups 1 and 2, respectively, where
-        // subgroup 1 has two members and subgroup 2 has three members.
-        //
-        // As such, we expect Alice to be part of a signing committee on every two blocks and Bob to
-        // be part of a signing committee every three blocks.
-        for block_number in 0..25 {
-            let block_number = block_number as u64;
+        let (alice, bob, _charlie) = (1u64, 2, 3);
 
-            if block_number % 2 == 0 {
-                assert!(Registry::is_in_committee(&alice, block_number).unwrap());
-            } else {
-                assert!(!Registry::is_in_committee(&alice, block_number).unwrap());
-            }
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
 
-            if block_number % 3 == 0 {
-                assert!(Registry::is_in_committee(&bob, block_number).unwrap());
-            } else {
-                assert!(!Registry::is_in_committee(&bob, block_number).unwrap());
-            }
-        }
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: Our expected verifying key is registered correctly
+        let network_verifying_key =
+            SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        let derivation_path = "m/0/0".parse().unwrap();
+        let expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let expected_verifying_key =
+            BoundedVec::try_from(expected_verifying_key.to_encoded_point(true).as_bytes().to_vec())
+                .unwrap();
+
+        let registered_info = Registry::registered_on_chain(expected_verifying_key.clone());
+        assert!(registered_info.is_some());
+        assert_eq!(registered_info.unwrap().program_modification_account, bob);
+    });
+}
+
+#[test]
+fn it_registers_different_users_with_the_same_sig_req_account() {
+    new_test_ext().execute_with(|| {
+        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration twice using the same signature request account. We should
+        // get different verifying keys.
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: We expect two different verifying keys to be registered
+        let network_verifying_key =
+            SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        let derivation_path = "m/0/0".parse().unwrap();
+        let first_expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let first_expected_verifying_key = BoundedVec::try_from(
+            first_expected_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .unwrap();
+
+        let derivation_path = "m/0/1".parse().unwrap();
+        let second_expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let second_expected_verifying_key = BoundedVec::try_from(
+            second_expected_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+        )
+        .unwrap();
+
+        // Knowing that the two keys are indeed different, we still expect both registration
+        // requests to have succeeded.
+        assert!(first_expected_verifying_key != second_expected_verifying_key);
+        assert!(Registry::registered_on_chain(first_expected_verifying_key).is_some());
+        assert!(Registry::registered_on_chain(second_expected_verifying_key).is_some());
+    });
+}
+
+#[test]
+fn it_fails_registration_if_no_program_is_set() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Note that we also don't write any programs into storage here.
+        let programs_info = BoundedVec::try_from(vec![]).unwrap();
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::NoProgramSet
+        );
     })
 }
 
 #[test]
-fn non_authority_cannot_be_part_of_registration_committee() {
+fn it_fails_registration_if_no_jump_start_has_happened() {
     new_test_ext().execute_with(|| {
-        let not_an_authority = 99;
-        assert!(Registry::is_in_committee(&not_an_authority, 0).is_err());
-    });
+        let (alice, bob) = (1u64, 2);
+
+        // Setup: Ensure programs exist
+        let programs_info = setup_programs();
+
+        // This should be the default status, but let's be explicit about it anyways
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Ready,
+            confirmations: vec![],
+            verifying_key: None,
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::JumpStartNotCompleted
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_with_too_many_modifiable_keys() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1u64, 2);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Now we prep our state to make sure that the limit of verifying keys for an account is hit
+        let mut managed_verifying_keys = vec![];
+        for _ in 0..pallet_registry::MAX_MODIFIABLE_KEYS {
+            managed_verifying_keys
+                .push(BoundedVec::try_from(entropy_shared::DAVE_VERIFYING_KEY.to_vec()).unwrap());
+        }
+
+        let modifiable_keys = BoundedVec::try_from(managed_verifying_keys).unwrap();
+        pallet_registry::ModifiableKeys::<Test>::insert(bob, &modifiable_keys);
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::TooManyModifiableKeys
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_if_parent_key_matches_derived_key() {
+    new_test_ext().execute_with(|| {})
 }
 
 #[test]
@@ -129,7 +283,6 @@ fn it_registers_a_user() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
         assert_eq!(Registry::dkg(0), vec![1u64.encode()]);
@@ -142,29 +295,148 @@ fn it_registers_a_user() {
 }
 
 #[test]
+fn it_jumps_the_network() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Staking::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::Ready,
+                confirmations: vec![],
+                verifying_key: None,
+                parent_key_threshold: 0,
+            },
+            "Checks default status of jump start detail"
+        );
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_eq!(
+            Registry::jumpstart_dkg(0),
+            vec![NETWORK_PARENT_KEY.encode()],
+            "ensures a dkg message for the jump start network is prepped"
+        );
+        assert_eq!(
+            Staking::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(0),
+                confirmations: vec![],
+                verifying_key: None,
+                parent_key_threshold: 2,
+            },
+            "Checks that jump start is in progress"
+        );
+
+        assert_noop!(
+            Registry::jump_start_network(RuntimeOrigin::signed(1)),
+            Error::<Test>::JumpStartProgressNotReady
+        );
+
+        System::set_block_number(100);
+
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_eq!(
+            Staking::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(100),
+                confirmations: vec![],
+                verifying_key: None,
+                parent_key_threshold: 2,
+            },
+            "ensures jump start is called again if too many blocks passed"
+        );
+    });
+}
+
+#[test]
+fn it_tests_jump_start_result() {
+    new_test_ext().execute_with(|| {
+        let expected_verifying_key = BoundedVec::default();
+
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Error::<Test>::NoThresholdKey
+        );
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(7, 7);
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7), expected_verifying_key.clone()),
+            Error::<Test>::NotValidator
+        );
+
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Error::<Test>::JumpStartNotInProgress
+        );
+        // trigger jump start
+        assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+
+        assert_ok!(Registry::confirm_jump_start(
+            RuntimeOrigin::signed(1),
+            expected_verifying_key.clone()
+        ));
+        assert_eq!(
+            Staking::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::InProgress(0),
+                confirmations: vec![1],
+                verifying_key: Some(expected_verifying_key.clone()),
+                parent_key_threshold: 2,
+            },
+            "Jump start recieves a confirmation"
+        );
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Error::<Test>::AlreadyConfirmed
+        );
+
+        let bad_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), bad_verifying_key.clone()),
+            Error::<Test>::MismatchedVerifyingKey
+        );
+
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(5, 5);
+        assert_ok!(Registry::confirm_jump_start(
+            RuntimeOrigin::signed(2),
+            expected_verifying_key.clone()
+        ));
+        assert_ok!(Registry::confirm_jump_start(
+            RuntimeOrigin::signed(5),
+            expected_verifying_key.clone()
+        ));
+        assert_eq!(
+            Staking::jump_start_progress(),
+            JumpStartDetails {
+                jump_start_status: JumpStartStatus::Done,
+                confirmations: vec![],
+                verifying_key: Some(expected_verifying_key),
+                parent_key_threshold: 2,
+            },
+            "Jump start in done status after all confirmations"
+        );
+        assert_eq!(
+            pallet_staking_extension::Signers::<Test>::get(),
+            vec![1, 2, 5],
+            "Jumpstart sets inital signers"
+        );
+    });
+}
+
+#[test]
 fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
         let expected_verifying_key =
             BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_noop!(
-            Registry::confirm_register(
-                RuntimeOrigin::signed(1),
-                1,
-                0,
-                expected_verifying_key.clone()
-            ),
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
             Error::<Test>::NoThresholdKey
         );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
 
         assert_noop!(
-            Registry::confirm_register(
-                RuntimeOrigin::signed(1),
-                1,
-                0,
-                expected_verifying_key.clone()
-            ),
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
             Error::<Test>::NotRegistering
         );
 
@@ -190,54 +462,32 @@ fn it_confirms_registers_a_user() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Private([0; 32]),
             programs_info.clone(),
         ));
-        assert_noop!(
-            Registry::confirm_register(
-                RuntimeOrigin::signed(1),
-                1,
-                3,
-                expected_verifying_key.clone()
-            ),
-            Error::<Test>::NotInSigningGroup
-        );
 
         pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-
-        assert_noop!(
-            Registry::confirm_register(
-                RuntimeOrigin::signed(2),
-                1,
-                0,
-                expected_verifying_key.clone()
-            ),
-            Error::<Test>::NotInSigningGroup
-        );
 
         assert!(Registry::registered(expected_verifying_key.clone()).is_none());
 
         assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(1),
             1,
-            0,
             expected_verifying_key.clone()
         ));
 
         assert_noop!(
-            Registry::confirm_register(
-                RuntimeOrigin::signed(1),
-                1,
-                0,
-                expected_verifying_key.clone()
-            ),
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
             Error::<Test>::AlreadyConfirmed
         );
 
+        assert_noop!(
+            Registry::confirm_register(RuntimeOrigin::signed(8), 1, expected_verifying_key.clone()),
+            Error::<Test>::NotValidator
+        );
+
         let registering_info = RegisteringDetails::<Test> {
-            confirmations: vec![0],
+            confirmations: vec![1],
             programs_data: programs_info.clone(),
-            key_visibility: KeyVisibility::Private([0; 32]),
             verifying_key: Some(expected_verifying_key.clone()),
             program_modification_account: 2,
             version_number: 1,
@@ -248,6 +498,11 @@ fn it_confirms_registers_a_user() {
         assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(2),
             1,
+            expected_verifying_key.clone()
+        ));
+
+        assert_ok!(Registry::confirm_register(
+            RuntimeOrigin::signed(7),
             1,
             expected_verifying_key.clone()
         ));
@@ -256,9 +511,9 @@ fn it_confirms_registers_a_user() {
         assert_eq!(
             Registry::registered(expected_verifying_key.clone()).unwrap(),
             RegisteredInfo {
-                key_visibility: KeyVisibility::Private([0; 32]),
                 programs_data: programs_info.clone(),
                 program_modification_account: 2,
+                derivation_path: None,
                 version_number: 1,
             }
         );
@@ -316,9 +571,9 @@ fn it_changes_a_program_pointer() {
         let expected_verifying_key = BoundedVec::default();
 
         let mut registered_info = RegisteredInfo {
-            key_visibility: KeyVisibility::Public,
             programs_data: programs_info,
             program_modification_account: 2,
+            derivation_path: None,
             version_number: 1,
         };
 
@@ -397,9 +652,9 @@ fn it_changes_a_program_mod_account() {
         let expected_verifying_key = BoundedVec::default();
 
         let mut registered_info = RegisteredInfo {
-            key_visibility: KeyVisibility::Public,
             programs_data: programs_info,
             program_modification_account: 2,
+            derivation_path: None,
             version_number: 1,
         };
 
@@ -483,7 +738,6 @@ fn it_fails_on_non_matching_verifying_keys() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(1),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Private([0; 32]),
             programs_info,
         ));
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
@@ -492,14 +746,12 @@ fn it_fails_on_non_matching_verifying_keys() {
         assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(1),
             1,
-            0,
             expected_verifying_key.clone()
         ));
 
         // uses different verifying key
         assert_ok!(Registry::confirm_register(
             RuntimeOrigin::signed(2),
-            1,
             1,
             unexpected_verifying_key.try_into().unwrap()
         ));
@@ -533,16 +785,11 @@ fn it_doesnt_allow_double_registering() {
             },
         );
 
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2,
-            KeyVisibility::Public,
-            programs_info.clone(),
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
 
         // error if they try to submit another request, even with a different program key
         assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, programs_info),
+            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
             Error::<Test>::AlreadySubmitted
         );
     });
@@ -561,7 +808,7 @@ fn it_fails_no_program() {
         .unwrap();
 
         assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, KeyVisibility::Public, programs_info),
+            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
             Error::<Test>::NoProgramSet
         );
     });
@@ -571,12 +818,7 @@ fn it_fails_no_program() {
 fn it_fails_empty_program_list() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Registry::register(
-                RuntimeOrigin::signed(1),
-                2,
-                KeyVisibility::Public,
-                BoundedVec::try_from(vec![]).unwrap(),
-            ),
+            Registry::register(RuntimeOrigin::signed(1), 2, BoundedVec::try_from(vec![]).unwrap(),),
             Error::<Test>::NoProgramSet
         );
     });
@@ -607,12 +849,7 @@ fn it_tests_prune_registration() {
 
         Balances::make_free_balance_be(&2, 100);
         // register a user
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2,
-            KeyVisibility::Public,
-            programs_info,
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info,));
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             2,
@@ -655,18 +892,16 @@ fn it_provides_free_txs_confirm_done() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
-            signing_subgroup: 0,
             verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&7, &c, &di, 20);
+        let r = p.validate(&3, &c, &di, 20);
         assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }
@@ -679,7 +914,6 @@ fn it_provides_free_txs_confirm_done_fails_1() {
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
-            signing_subgroup: 0,
             verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
@@ -697,7 +931,6 @@ fn it_provides_free_txs_confirm_done_fails_2() {
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
-            signing_subgroup: 0,
             verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
@@ -707,7 +940,6 @@ fn it_provides_free_txs_confirm_done_fails_2() {
     });
 }
 
-// TODO fails 3
 #[test]
 #[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
 fn it_provides_free_txs_confirm_done_fails_3() {
@@ -737,25 +969,22 @@ fn it_provides_free_txs_confirm_done_fails_3() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
 
         assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(7),
+            RuntimeOrigin::signed(3),
             5,
-            0,
             expected_verifying_key.clone()
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
-            signing_subgroup: 0,
             verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&7, &c, &di, 20);
+        let r = p.validate(&3, &c, &di, 20);
         assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }
@@ -788,62 +1017,16 @@ fn it_provides_free_txs_confirm_done_fails_4() {
         assert_ok!(Registry::register(
             RuntimeOrigin::signed(5),
             2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
             programs_info,
         ));
         let p = ValidateConfirmRegistered::<Test>::new();
         let c = RuntimeCall::Registry(RegistryCall::confirm_register {
             sig_req_account: 5,
-            signing_subgroup: 5,
             verifying_key: expected_verifying_key,
         });
         let di = c.get_dispatch_info();
         assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&7, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
-    });
-}
-
-#[test]
-#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(5)"]
-fn it_provides_free_txs_confirm_done_fails_5() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(5),
-            2 as <Test as frame_system::Config>::AccountId,
-            KeyVisibility::Public,
-            programs_info,
-        ));
-        let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
-            sig_req_account: 5,
-            signing_subgroup: 0,
-            verifying_key: expected_verifying_key,
-        });
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&4, &c, &di, 20);
+        let r = p.validate(&8, &c, &di, 20);
         assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }

@@ -13,14 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::string::FromUtf8Error;
+use std::{array::TryFromSliceError, string::FromUtf8Error};
 
+use crate::signing_client::ProtocolErr;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use entropy_protocol::sign_and_encrypt::EncryptedSignedMessageErr;
+use entropy_protocol::{errors::ProtocolExecutionErr, sign_and_encrypt::EncryptedSignedMessageErr};
+use synedrion::sessions;
 use thiserror::Error;
+use tokio::sync::oneshot::error::RecvError;
 
 #[derive(Debug, Error)]
 pub enum ValidatorErr {
@@ -28,8 +31,6 @@ pub enum ValidatorErr {
     Substrate(#[from] subxt::error::DispatchError),
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
-    #[error("Option Unwrap error: {0}")]
-    OptionUnwrapError(&'static str),
     #[error("String Conversion Error: {0}")]
     StringConversion(#[from] FromUtf8Error),
     #[error("Deserialization Error: {0:?}")]
@@ -40,18 +41,8 @@ pub enum ValidatorErr {
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
-    #[error("Validation Error: {0}")]
-    Decryption(String),
-    #[error("Validation Error: {0}")]
-    Encryption(String),
     #[error("Forbidden Key")]
     ForbiddenKey,
-    #[error("Subgroup error: {0}")]
-    SubgroupError(&'static str),
-    #[error("Account unable to be deserialized: {0}")]
-    StringError(&'static str),
-    #[error("Validator not in subgroup")]
-    NotInSubgroup,
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("anyhow error: {0}")]
@@ -64,6 +55,48 @@ pub enum ValidatorErr {
     Authentication,
     #[error("Substrate: {0}")]
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("Codec decoding error: {0}")]
+    CodecError(#[from] parity_scale_codec::Error),
+    #[error("User Error: {0}")]
+    UserError(String),
+    #[error("Option Unwrap error: {0}")]
+    OptionUnwrapError(String),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
+    #[error("Verifying key Error: {0}")]
+    VerifyingKeyError(String),
+    #[error("Session Error: {0}")]
+    SessionError(String),
+    #[error("Protocol Execution Error {0}")]
+    ProtocolExecution(#[from] ProtocolExecutionErr),
+    #[error("Listener: {0}")]
+    Listener(#[from] entropy_protocol::errors::ListenerErr),
+    #[error("Reshare protocol error: {0}")]
+    SigningClientError(#[from] ProtocolErr),
+    #[error("Timed out waiting for remote party")]
+    Timeout(#[from] tokio::time::error::Elapsed),
+    #[error("Oneshot timeout error: {0}")]
+    OneshotTimeout(#[from] RecvError),
+    #[error("Synedrion session creation error: {0}")]
+    SessionCreation(sessions::LocalError),
+    #[error("No output from reshare protocol")]
+    NoOutputFromReshareProtocol,
+    #[error("Protocol Error: {0}")]
+    ProtocolError(String),
+    #[error("Kv Fatal error")]
+    KvSerialize(String),
+    #[error("Kv Deserialization Error: {0}")]
+    KvDeserialize(String),
+    #[error("Data is stale")]
+    StaleData,
+    #[error("Data is not verifiable")]
+    InvalidData,
+    #[error("Data is repeated")]
+    RepeatedData,
+    #[error("Not yet implemented")]
+    NotImplemented,
+    #[error("Input must be 32 bytes: {0}")]
+    TryFromSlice(#[from] TryFromSliceError),
 }
 
 impl IntoResponse for ValidatorErr {

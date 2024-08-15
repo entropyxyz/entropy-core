@@ -26,6 +26,7 @@ When using the local docker compose setup, be aware you need to set the TSS host
 ```
 127.0.0.1 alice-tss-server
 127.0.0.1 bob-tss-server
+127.0.0.1 charlie-tss-server
 ```
 
 You'll also need the following packages:
@@ -39,9 +40,9 @@ You'll also need the following packages:
 
     ```shell
     # MacOS
-    brew install openssl 
+    brew install openssl
     ```
-    
+
 2. `pkg-config`:
 
     ```shell
@@ -101,11 +102,8 @@ To register an entropy account you need three things:
   - See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as
     instructions on how to write and build your own programs.
 
-You also need to decide which ['access mode' or 'key visibility'](https://docs.entropy.xyz/AccessModes)
-you want to register with: private or public. If you are not sure, 'public' is the simplest 'vanilla'
-access mode.
-
-For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
+For example, to register with `//Alice` as the signature request account and `//Bob` as the program
+modification account, in permissioned access mode, using the `template_barebones` program:
 
 `entropy-test-cli register public template_barebones.wasm -m //Alice`
 

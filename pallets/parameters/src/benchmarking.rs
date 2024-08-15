@@ -52,5 +52,19 @@ benchmarks! {
     assert_last_event::<T>(Event::MaxInstructionsPerProgramsChanged{ max_instructions_per_programs: 15}.into());
   }
 
-  impl_benchmark_test_suite!(Parameters, crate::mock::ExtBuilder::default().build(), crate::mock::Runtime);
+  change_signers_info {
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+    pallet_session::CurrentIndex::<T>::put(1);
+    let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 1 };
+  }: {
+    assert_ok!(
+      <Parameters<T>>::change_signers_info(origin, signer_info.total_signers, signer_info.threshold)
+    );
+  }
+  verify {
+    assert_last_event::<T>(Event::SignerInfoChanged{ signer_info }.into());
+  }
+
+
+  impl_benchmark_test_suite!(Parameters, crate::mock::new_test_ext(), crate::mock::Runtime);
 }

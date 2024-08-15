@@ -75,5 +75,6 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
+        crate::chain_spec::tss_account_id::DAVE.clone(),
     ]
 }
