@@ -31,8 +31,7 @@ use crate::{
             ValidatorName, DEFAULT_ENDPOINT,
         },
         logger::{Instrumentation, Logger},
-        substrate::{get_oracle_data, query_chain, submit_transaction},
-
+        substrate::{query_chain, submit_transaction},
     },
     signing_client::ListenerState,
     AppState,

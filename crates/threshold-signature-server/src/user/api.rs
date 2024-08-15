@@ -68,8 +68,8 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_oracle_data, get_program, get_registered_details, get_stash_address,
-            query_chain, submit_transaction,
+            get_oracle_data, get_program, get_registered_details, get_stash_address, query_chain,
+            submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
         validator::{get_signer, get_signer_and_x25519_secret},
@@ -184,16 +184,15 @@ pub async fn sign_tx(
 
     let mut runtime = Runtime::new(ProgramConfig { fuel });
 
-    for (i, program_info) in user_details.programs_data.0.iter().enumerate() {
-        let (program_bytecode, program_oracle_data) =
-            get_program(&api, &rpc, &program_info.program_pointer).await?;
-        let oracle_data = get_oracle_data(&api, &rpc, program_oracle_data).await?;
+    for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
+        let program_info = get_program(&api, &rpc, &program_data.program_pointer).await?;
+        let oracle_data = get_oracle_data(&api, &rpc, program_info.oracle_data_pointer).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(
-            &program_bytecode,
+            &program_info.bytecode,
             &signature_request,
-            Some(&program_info.program_config),
+            Some(&program_data.program_config),
             Some(&oracle_data),
         )?;
     }

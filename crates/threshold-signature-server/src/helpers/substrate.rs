@@ -19,7 +19,7 @@ use crate::{
         entropy::{
             self,
             runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec,
+                bounded_collections::bounded_vec::BoundedVec, pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::RegisteredInfo,
             },
         },
@@ -52,12 +52,12 @@ pub async fn get_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     program_pointer: &<EntropyConfig as Config>::Hash,
-) -> Result<(Vec<u8>, Vec<u8>), UserErr> {
+) -> Result<ProgramInfo<AccountId32>, UserErr> {
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
     let program_info = query_chain(api, rpc, bytecode_address, None)
         .await?
         .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?;
-    Ok((program_info.bytecode, program_info.oracle_data_pointer))
+    Ok(program_info)
 }
 
 /// Queries the oracle data needed for the program

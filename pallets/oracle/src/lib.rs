@@ -52,7 +52,6 @@ pub mod module {
 
     #[pallet::storage]
     #[pallet::getter(fn oracle_data)]
-    // TODO: parameterize bounded vec constants
     pub type OracleData<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
