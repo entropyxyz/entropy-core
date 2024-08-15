@@ -40,7 +40,6 @@ pub async fn attest(
     use crate::{
         chain_api::{get_api, get_rpc},
         get_signer_and_x25519_secret,
-        helpers::substrate::submit_transaction,
     };
     use rand_core::OsRng;
     use sp_core::Pair;
