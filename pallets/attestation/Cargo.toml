@@ -35,7 +35,10 @@ sp-npos-elections              ={ version="27.0.0", default-features=false }
 frame-election-provider-support={ version="29.0.0", default-features=false }
 pallet-staking-reward-curve    ={ version="11.0.0" }
 pallet-authorship              ={ version="29.0.0", default-features=false }
-pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
+pallet-parameters              ={ version="0.2.0", path="../parameters", default-features=false }
+tdx-quote                      ={ git="https://github.com/entropyxyz/tdx-quote", features=["mock"] }
+rand_core          ="0.6.4"
+
 
 [features]
 default=['std']

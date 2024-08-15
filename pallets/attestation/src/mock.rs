@@ -36,6 +36,8 @@ use std::cell::RefCell;
 
 use crate as pallet_attestation;
 
+const NULL_ARR: [u8; 32] = [0; 32];
+
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
@@ -351,9 +353,19 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
     let pallet_attestation = pallet_attestation::GenesisConfig::<Test> {
-        initial_pending_attestations: vec![(0, [0; 32])],
+        initial_pending_attestations: vec![(0, NULL_ARR)],
     };
-
     pallet_attestation.assimilate_storage(&mut t).unwrap();
+
+    let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
+        threshold_servers: vec![
+            // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
+            (5, (0, NULL_ARR, vec![20])),
+        ],
+        proactive_refresh_data: (vec![], vec![]),
+        mock_signer_rotate: (false, vec![], vec![]),
+    };
+    pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
     t.into()
 }

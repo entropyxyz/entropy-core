@@ -18,11 +18,29 @@
 // use sp_runtime::traits::Hash;
 //
 use crate::mock::*;
+use frame_support::assert_ok;
+use rand_core::OsRng;
+
+const ATTESTEE: u64 = 0;
 
 #[test]
 fn attest() {
     new_test_ext().execute_with(|| {
-        let nonce = Attestation::pending_attestations(0).unwrap();
+        let nonce = Attestation::pending_attestations(ATTESTEE).unwrap();
         assert_eq!(nonce, [0; 32]);
+
+        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
+        // let signing_key = tdx_quote::SigningKey::from_slice(&[0; 32]).unwrap();
+
+        let input_data = entropy_shared::QuoteInputData::new(
+            [0; 32], // Account ID
+            [0; 32], // x25519 public key
+            nonce, 0, // Block number
+        );
+
+        let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0);
+        assert_ok!(
+            Attestation::attest(RuntimeOrigin::signed(ATTESTEE), quote.as_bytes().to_vec(),)
+        );
     })
 }
