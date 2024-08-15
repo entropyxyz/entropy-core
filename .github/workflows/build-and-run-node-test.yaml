@@ -1,0 +1,39 @@
+---
+name: "Build and test"
+on:
+  push:
+    paths:
+      - "node/**"
+      - "crates/**"
+      - "pallets/**"
+      - "runtime/**"
+
+jobs:
+ node-test:
+    runs-on: core-build-runner
+    steps:
+      - uses: actions/checkout@v4
+      - name: Increase swap
+        run: |
+          sudo swapoff -a
+          sudo dd if=/dev/zero of=/swapfile bs=1G count=8
+          sudo chmod 0600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          grep Swap /proc/meminfo
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies/
+      - name: Build entropy-protocol nodejs package
+        run: |
+          cd crates/protocol
+          make build-nodejs-testing
+          cd nodejs-test
+          yarn
+          cd ../../..
+      - name: Run `cargo build && cargo test`
+        run: |
+          pushd node
+          cargo build --all-targets --release -j $(nproc)
+          cargo test --all-targets --release
+          yarn --cwd ../crates/protocol/nodejs-test test
+          cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm

@@ -75,10 +75,12 @@ pub async fn get_registered_details(
     let registered_result = query_chain(api, rpc, registered_info_query, None).await?;
 
     let registration_info = if let Some(old_registration_info) = registered_result {
+        tracing::debug!("Found user in old `Registered` struct.");
+
         old_registration_info
     } else {
         // We failed with the old registration path, let's try the new one
-        tracing::warn!("Didn't find user in old `Registered` struct, trying new one");
+        tracing::warn!("Didn't find user in old `Registered` struct, trying new one.");
 
         let registered_info_query =
             entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));

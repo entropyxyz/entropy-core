@@ -119,6 +119,8 @@ pub mod pallet {
     pub struct RegisteredInfo<T: Config> {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
+        /// The SCALE encoded BIP-32 `DerivationPath` used to register this account.
+        pub derivation_path: Option<Vec<u8>>,
         pub version_number: u8,
     }
 
@@ -140,6 +142,7 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: BoundedVec::default(),
                         program_modification_account: account_id.clone(),
+                        derivation_path: None,
                         version_number: T::KeyVersionNumber::get(),
                     },
                 );
@@ -656,6 +659,7 @@ pub mod pallet {
                     RegisteredInfo {
                         programs_data: registering_info.programs_data,
                         program_modification_account: registering_info.program_modification_account,
+                        derivation_path: None,
                         version_number: registering_info.version_number,
                     },
                 );
@@ -751,9 +755,9 @@ pub mod pallet {
             // For a V1 of this flow it's fine, but we'll need to think about a better solution
             // down the line.
             let count = RegisteredOnChain::<T>::count();
-            let path =
-                bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count))
-                    .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
+            let inner_path = scale_info::prelude::format!("m/0/{}", count);
+            let path = bip32::DerivationPath::from_str(&inner_path)
+                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
             let child_verifying_key = network_verifying_key
                 .derive_verifying_key_bip32(&path)
                 .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
@@ -768,6 +772,7 @@ pub mod pallet {
                 RegisteredInfo {
                     programs_data,
                     program_modification_account: program_modification_account.clone(),
+                    derivation_path: Some(inner_path.encode()),
                     version_number: T::KeyVersionNumber::get(),
                 },
             );

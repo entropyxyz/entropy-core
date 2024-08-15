@@ -311,6 +311,7 @@ benchmarks! {
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
             programs_data: programs_info,
+            derivation_path: None,
             version_number: T::KeyVersionNumber::get()
         },
     );
@@ -345,6 +346,7 @@ benchmarks! {
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
             programs_data: programs_info,
+            derivation_path: None,
             version_number: T::KeyVersionNumber::get()
         },
     );

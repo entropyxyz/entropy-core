@@ -23,33 +23,27 @@ use crate::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
-    signing_client::{protocol_transport::open_protocol_connections, ProtocolErr},
+    signing_client::{api::get_channels, ProtocolErr},
     validator::errors::ValidatorErr,
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
-use entropy_protocol::Subsession;
 pub use entropy_protocol::{
     decode_verifying_key,
     errors::ProtocolExecutionErr,
-    execute_protocol::{execute_protocol_generic, Channels, PairWrapper},
+    execute_protocol::{execute_protocol_generic, execute_reshare, Channels, PairWrapper},
     KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, SETUP_TIMEOUT_SECONDS};
+use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
-use rand_core::OsRng;
 use sp_core::Pair;
-use std::{collections::BTreeSet, str::FromStr, time::Duration};
+use std::{collections::BTreeSet, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     OnlineClient,
 };
-use synedrion::{
-    make_aux_gen_session, make_key_resharing_session, sessions::SessionId as SynedrionSessionId,
-    AuxInfo, KeyResharingInputs, NewHolder, OldHolder,
-};
-use tokio::time::timeout;
+use synedrion::{KeyResharingInputs, NewHolder, OldHolder};
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
 ///
@@ -62,7 +56,7 @@ pub async fn new_reshare(
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
-    // TODO: validate message came from chain (check reshare block # against current block number) see #941
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
@@ -99,9 +93,12 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer = &validators_info
-        .iter()
-        .any(|validator_info| validator_info.tss_account == *signer.account_id());
+    let is_proper_signer = is_signer_or_delete_parent_key(
+        signer.account_id(),
+        validators_info.clone(),
+        &app_state.kv_store,
+    )
+    .await?;
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
@@ -151,8 +148,6 @@ pub async fn new_reshare(
 
     let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
     let account_id = AccountId32(signer.signer().public().0);
-    let session_id_hash = session_id.blake2(Some(Subsession::Reshare))?;
-    let pair = PairWrapper(signer.signer().clone());
 
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -166,63 +161,18 @@ pub async fn new_reshare(
         tss_accounts.push(validator_info.tss_account.clone());
     }
 
-    let (rx_ready, rx_from_others, listener) =
-        Listener::new(converted_validator_info.clone(), &account_id);
-    app_state
-        .listener_state
-        .listeners
-        .lock()
-        .map_err(|_| ValidatorErr::SessionError("Error getting lock".to_string()))?
-        .insert(session_id.clone(), listener);
-
-    open_protocol_connections(
-        &converted_validator_info,
-        &session_id,
-        signer.signer(),
+    let channels = get_channels(
         &app_state.listener_state,
+        converted_validator_info,
+        account_id,
+        &session_id,
+        &signer,
         &x25519_secret_key,
     )
     .await?;
 
-    let (channels, broadcaster) = {
-        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-        let broadcast_out = ready??;
-        (Channels(broadcast_out.clone(), rx_from_others), broadcast_out)
-    };
-
-    let session = make_key_resharing_session(
-        &mut OsRng,
-        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
-        pair.clone(),
-        &party_ids,
-        inputs,
-    )
-    .map_err(ProtocolExecutionErr::SessionCreation)?;
-
-    let (new_key_share_option, rx) = execute_protocol_generic(channels, session, session_id_hash)
-        .await
-        .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?;
-
-    let new_key_share = new_key_share_option.ok_or(ValidatorErr::NoOutputFromReshareProtocol)?;
-
-    // Setup channels for the next session
-    let channels = Channels(broadcaster, rx);
-
-    // Now run an aux gen session
-    let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
-    let session = make_aux_gen_session(
-        &mut OsRng,
-        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
-        pair,
-        &party_ids,
-    )
-    .map_err(ProtocolExecutionErr::SessionCreation)?;
-
-    let aux_info: AuxInfo<KeyParams, PartyId> =
-        execute_protocol_generic(channels, session, session_id_hash)
-            .await
-            .map_err(|_| ValidatorErr::ProtocolError("Error executing protocol".to_string()))?
-            .0;
+    let (new_key_share, aux_info) =
+        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, None).await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
@@ -359,4 +309,24 @@ pub async fn prune_old_holders(
     } else {
         validators_info.clone()
     })
+}
+
+/// Checks if TSS is a proper signer and if isn't deletes their parent key if they have one
+pub async fn is_signer_or_delete_parent_key(
+    account_id: &AccountId32,
+    validators_info: Vec<ValidatorInfo>,
+    kv_manager: &KvManager,
+) -> Result<bool, ValidatorErr> {
+    let is_proper_signer =
+        validators_info.iter().any(|validator_info| validator_info.tss_account == *account_id);
+    if is_proper_signer {
+        Ok(true)
+    } else {
+        // delete old keyshare if has it and not next_signer
+        let network_key = hex::encode(NETWORK_PARENT_KEY);
+        if kv_manager.kv().exists(&network_key).await? {
+            kv_manager.kv().delete(&network_key).await?
+        }
+        Ok(false)
+    }
 }

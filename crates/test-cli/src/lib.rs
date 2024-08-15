@@ -26,7 +26,7 @@ use entropy_client::{
     },
     client::{
         change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
-        register, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
+        jumpstart_network, register, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 use sp_core::{sr25519, Hasher, Pair};
@@ -76,7 +76,7 @@ enum CliCommand {
         /// A name or mnemonic from which to derive a program modification keypair.
         /// This is used to send the register extrinsic so it must be funded
         /// If giving a name it must be preceded with "//", eg: "--mnemonic-option //Alice"
-        /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""  
+        /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -143,6 +143,17 @@ enum CliCommand {
     },
     /// Display a list of registered Entropy accounts
     Status,
+    /// Triggers the network wide distributed key generation process.
+    ///
+    /// A fully jumpstarted network is required for the on-chain registration flow to work
+    /// correctly.
+    ///
+    /// Note: Any account may trigger the jumpstart process.
+    JumpstartNetwork {
+        /// The mnemonic for the signer which will trigger the jumpstart process.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
 }
 
 pub async fn run_command(
@@ -391,6 +402,20 @@ pub async fn run_command(
             println!("Event result: {:?}", result_event);
 
             Ok("Threshold accounts changed".to_string())
+        },
+        CliCommand::JumpstartNetwork { mnemonic_option } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.unwrap_or("//Alice".to_string())
+            };
+
+            let signer = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            println!("Account being used for jumpstart: {}", signer.public());
+
+            jumpstart_network(&api, &rpc, signer).await?;
+
+            Ok("Succesfully jumpstarted network.".to_string())
         },
     }
 }

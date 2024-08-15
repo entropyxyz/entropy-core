@@ -167,6 +167,8 @@ pub enum UserErr {
     SubgroupGet(#[from] entropy_client::user::SubgroupGetError),
     #[error("Unknown hashing algorthim - user is using a newer version than us")]
     UnknownHashingAlgorithm,
+    #[error("Failed to derive BIP-32 account: {0}")]
+    Bip32DerivationError(#[from] bip32::Error),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

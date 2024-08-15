@@ -131,7 +131,7 @@ pub async fn sign(
     auxilary_data: Option<Vec<u8>>,
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
-    let validators_info = get_signers_from_chain(api, rpc).await?;
+    let validators_info = get_signers_from_chain(api, rpc, false).await?;
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {
@@ -295,9 +295,9 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<(), ClientError> {
-    let registering_tx = entropy::tx().registry().register(deployer, program_instance);
+    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
 
     submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
         .await?;
@@ -359,4 +359,44 @@ pub async fn change_threshold_accounts(
         .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
         .ok_or(anyhow!("Error with transaction"))?;
     Ok(result_event)
+}
+
+/// Trigger a network wide distributed key generation (DKG) event.
+///
+/// Fails if the network has already been jumpstarted.
+pub async fn jumpstart_network(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+) -> Result<(), ClientError> {
+    // We split the implementation out into an inner function so that we can more easily pass a
+    // single future to the `timeout`
+    tokio::time::timeout(std::time::Duration::from_secs(45), jumpstart_inner(api, rpc, signer))
+        .await
+        .map_err(|_| ClientError::JumpstartTimeout)?
+}
+
+async fn jumpstart_inner(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+) -> Result<(), ClientError> {
+    // In this case we don't care too much about the result because we're more interested in the
+    // `FinishedNetworkJumpStart` event, which happens later on.
+    let jump_start_request = entropy::tx().registry().jump_start_network();
+    let _result =
+        submit_transaction_with_pair(api, rpc, &signer, &jump_start_request, None).await?;
+
+    let mut blocks_sub = api.blocks().subscribe_finalized().await?;
+
+    while let Some(block) = blocks_sub.next().await {
+        let block = block?;
+        let events = block.events().await?;
+
+        if events.has::<entropy::registry::events::FinishedNetworkJumpStart>()? {
+            break;
+        }
+    }
+
+    Ok(())
 }

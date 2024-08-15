@@ -192,8 +192,10 @@ async fn test_sign_tx_no_chain() {
         request_author: signature_request_account.clone(),
     });
 
+    let with_parent_key = false;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     // test points to no program
@@ -364,6 +366,134 @@ async fn test_sign_tx_no_chain() {
 
 #[tokio::test]
 #[serial]
+async fn signature_request_with_derived_account_works() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let bob = AccountKeyring::Bob;
+    let charlie = AccountKeyring::Charlie;
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    // We first need to jump start the network and grab the resulting network wide verifying key
+    // for later
+    jump_start_network(&entropy_api, &rpc).await;
+
+    let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
+    let jump_start_progress =
+        query_chain(&entropy_api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
+
+    let network_verifying_key = jump_start_progress.verifying_key.unwrap().0;
+
+    // We need to store a program in order to be able to register succesfully
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &bob.pair(), // This is our program deployer
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    let registration_request = put_new_register_request_on_chain(
+        &entropy_api,
+        &rpc,
+        &alice,                         // This is our signature request account
+        charlie.to_account_id().into(), // This is our program modification account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await;
+
+    assert!(
+        matches!(registration_request, Ok(_)),
+        "We expect our registration request to succeed."
+    );
+
+    let entropy::registry::events::AccountRegistered(
+        _actual_signature_request_account,
+        actual_verifying_key,
+    ) = registration_request.unwrap();
+
+    // This is slightly more convenient to work with later one
+    let actual_verifying_key = actual_verifying_key.0;
+
+    // Next we want to check that the info that's on-chain is what we actually expect
+    let registered_info = crate::helpers::substrate::get_registered_details(
+        &entropy_api,
+        &rpc,
+        actual_verifying_key.to_vec(),
+    )
+    .await;
+
+    assert!(
+        matches!(registered_info, Ok(_)),
+        "We expect that the verifying key we got back matches registration entry in storage."
+    );
+
+    assert_eq!(
+        registered_info.unwrap().program_modification_account,
+        charlie.to_account_id().into()
+    );
+
+    // Next, let's check that the child verifying key matches
+    let network_verifying_key =
+        SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+    // We hardcode the derivation path here since we know that there's only been one registration
+    // request (ours).
+    let derivation_path = "m/0/0".parse().unwrap();
+    let expected_verifying_key =
+        network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+    let expected_verifying_key = expected_verifying_key.to_encoded_point(true).as_bytes().to_vec();
+
+    assert_eq!(
+        expected_verifying_key, actual_verifying_key,
+        "The derived child key doesn't match our registered verifying key."
+    );
+
+    // Now that we've set up and registered a user, we can proceed with testing the signing flow
+
+    let with_parent_key = true;
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
+
+    // We'll use the actual verifying key we registered for the signature request
+    signature_request.signature_verifying_key = actual_verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+
+    let signature_request_responses = submit_transaction_requests(
+        validator_ips_and_keys.clone(),
+        signature_request.clone(),
+        alice,
+    )
+    .await;
+
+    // We expect that the signature we get back is valid
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let verifying_key =
+        SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
+            .unwrap();
+    verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
+        .await;
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
 async fn test_sign_tx_no_chain_fail() {
     initialize_test_logger().await;
     clean_tests();
@@ -376,8 +506,10 @@ async fn test_sign_tx_no_chain_fail() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let mock_client = reqwest::Client::new();
 
+    let with_parent_key = false;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
 
     // fails verification tests
     // wrong key for wrong validator
@@ -515,8 +647,10 @@ async fn test_program_with_config() {
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
 
     let message_hash = Hasher::keccak(message.as_bytes());
+
+    let with_parent_key = false;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), with_parent_key).await;
 
     let config = r#"
         {
@@ -633,7 +767,7 @@ async fn test_store_share() {
 
     let mut new_verifying_key = vec![];
     // wait for registered event check that key exists in kvdb
-    for _ in 0..45 {
+    for _ in 0..65 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
@@ -819,13 +953,13 @@ pub async fn put_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     sig_req_keyring: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) {
     let sig_req_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
 
     let registering_tx =
-        entropy::tx().registry().register(program_modification_account, program_instance);
+        entropy::tx().registry().register(program_modification_account, program_instances);
     submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
@@ -835,14 +969,14 @@ pub async fn put_new_register_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &Sr25519Keyring,
     program_modification_account: subxtAccountId32,
-    program_instance: BoundedVec<ProgramInstance>,
+    program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<entropy::registry::events::AccountRegistered, entropy_client::substrate::SubstrateError>
 {
     let signature_request_account =
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_account.pair());
 
     let registering_tx =
-        entropy::tx().registry().register_on_chain(program_modification_account, program_instance);
+        entropy::tx().registry().register_on_chain(program_modification_account, program_instances);
 
     let events =
         submit_transaction(api, rpc, &signature_request_account, &registering_tx, None).await?;
@@ -1097,7 +1231,9 @@ async fn test_device_key_proxy() {
     .await
     .unwrap();
 
-    let validators_info = get_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    let with_parent_key = false;
+    let validators_info =
+        get_signers_from_chain(&entropy_api, &rpc, with_parent_key).await.unwrap();
     let context = signing_context(b"");
 
     let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
@@ -1337,8 +1473,8 @@ async fn test_new_registration_flow() {
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
 
-    // Here we need to use `--chain=integration-tests` force authoring otherwise we won't be able
-    // to get our chain in the right state to be jump started.
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
@@ -1580,8 +1716,10 @@ pub async fn get_sign_tx_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     message: String,
+    with_parent_key: bool,
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
-    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
+    let validators_info = get_signers_from_chain(api, rpc, with_parent_key).await.unwrap();
+
     let generic_msg = UserSignatureRequest {
         message,
         auxilary_data: Some(vec![

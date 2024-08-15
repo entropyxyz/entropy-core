@@ -36,26 +36,38 @@ pub struct UserSignatureRequest {
     pub block_number: BlockNumber,
     /// Hashing algorithm to be used for signing
     pub hash: HashingAlgorithm,
-    /// The veryfying key for the signature requested
+    /// The verifying key for the signature requested
     pub signature_verifying_key: Vec<u8>,
 }
 
 pub async fn get_signers_from_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
+    with_parent_key: bool,
 ) -> Result<Vec<ValidatorInfo>, SubgroupGetError> {
-    let all_validators_query = entropy::storage().session().validators();
-    let mut validators = query_chain(api, rpc, all_validators_query, None)
-        .await?
-        .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
-    let block_hash = rpc.chain_get_block_hash(None).await?;
-    let mut handles = Vec::new();
+    let mut validators = if with_parent_key {
+        let signer_query = entropy::storage().staking_extension().signers();
+        query_chain(api, rpc, signer_query, None)
+            .await?
+            .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?
+    } else {
+        let all_validators_query = entropy::storage().session().validators();
+        let mut validators = query_chain(api, rpc, all_validators_query, None)
+            .await?
+            .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
+
+        validators.sort();
+        validators
+    };
 
     // TODO #898 For now we use a fix proportion of the number of validators as the threshold
     let threshold = (validators.len() as f32 * 0.75) as usize;
+
     // TODO #899 For now we just take the first t validators as the ones to perform signing
-    validators.sort();
     validators.truncate(threshold);
+
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+    let mut handles = Vec::new();
 
     for validator in validators {
         let handle: tokio::task::JoinHandle<Result<ValidatorInfo, SubgroupGetError>> =
@@ -77,8 +89,10 @@ pub async fn get_signers_from_chain(
                     })
                 }
             });
+
         handles.push(handle);
     }
+
     let mut all_signers: Vec<ValidatorInfo> = vec![];
     for handle in handles {
         all_signers.push(handle.await??);
