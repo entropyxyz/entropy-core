@@ -62,6 +62,7 @@ frame_support::construct_runtime!(
 
 impl pallet_attestation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
 }
 
 parameter_types! {

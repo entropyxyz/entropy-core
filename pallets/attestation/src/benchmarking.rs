@@ -47,7 +47,7 @@ benchmarks! {
         &attestee, // TSS Account ID
         [0; 32], // x25519 public key
         nonce,
-        0, // Block number
+        1, // Block number
     );
     let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
 

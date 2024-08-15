@@ -1493,6 +1493,11 @@ impl pallet_parameters::Config for Runtime {
     type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
+impl pallet_attestation::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    // type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
+}
+
 construct_runtime!(
   pub enum Runtime
   {
@@ -1545,6 +1550,7 @@ construct_runtime!(
     TransactionPause: pallet_transaction_pause = 54,
     Propagation: pallet_propagation = 55,
     Parameters: pallet_parameters = 56,
+    Attestation: pallet_attestation = 57,
   }
 );
 
@@ -1602,6 +1608,7 @@ extern crate frame_benchmarking;
 mod benches {
     define_benchmarks!(
       [frame_benchmarking, BaselineBench::<Runtime>]
+      [pallet_attestation, Attestation]
       [pallet_babe, Babe]
       [pallet_bags_list, BagsList]
       [pallet_balances, Balances]

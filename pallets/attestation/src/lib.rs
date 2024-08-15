@@ -21,7 +21,7 @@ pub use pallet::*;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 
-// pub mod weights;
+pub mod weights;
 
 #[cfg(test)]
 mod mock;
@@ -37,7 +37,7 @@ pub mod pallet {
     use sp_std::vec::Vec;
     use tdx_quote::Quote;
 
-    // pub use crate::weights::WeightInfo;
+    pub use crate::weights::WeightInfo;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -47,6 +47,8 @@ pub mod pallet {
     pub trait Config: frame_system::Config + pallet_staking_extension::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        /// Describes the weights of the dispatchables exposed by this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::genesis_config]
