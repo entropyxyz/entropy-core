@@ -26,11 +26,13 @@ const ATTESTEE: u64 = 0;
 #[test]
 fn attest() {
     new_test_ext().execute_with(|| {
+        // We start with an existing pending attestation at genesis - get it's nonce
         let nonce = Attestation::pending_attestations(ATTESTEE).unwrap();
         assert_eq!(nonce, [0; 32]);
 
+        // For now it doesn't matter what this is, but once we handle PCK certificates this will
+        // need to correspond to the public key in the certificate
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        // let signing_key = tdx_quote::SigningKey::from_slice(&[0; 32]).unwrap();
 
         let input_data = entropy_shared::QuoteInputData::new(
             [0; 32], // Account ID
