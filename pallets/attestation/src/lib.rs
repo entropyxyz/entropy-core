@@ -83,11 +83,6 @@ pub mod pallet {
         NoServerInfo,
     }
 
-    // Add hooks to define some logic that should be executed
-    // in a specific context, for example on_initialize.
-    //  #[pallet::hooks]
-    //  impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> { ... }
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -118,13 +113,9 @@ pub mod pallet {
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default()
             };
 
-            // TODO this should be `who` but not sure how to convert it to [u8; 32] in a way that
-            // will work with the mock setup
-            let tss_account_id = [0; 32];
-
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
-                QuoteInputData::new(tss_account_id, x25519_public_key, nonce, block_number);
+                QuoteInputData::new(&who, x25519_public_key, nonce, block_number);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
                 Error::<T>::IncorrectInputData

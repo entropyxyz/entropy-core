@@ -6675,7 +6675,6 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
- "pallet-authorship",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",

@@ -56,7 +56,7 @@ pub async fn attest(
     let public_key = x25519_dalek::PublicKey::from(&x25519_secret);
 
     let input_data = entropy_shared::QuoteInputData::new(
-        signer.signer().public().into(),
+        signer.signer().public(),
         *public_key.as_bytes(),
         nonce,
         block_number,

@@ -35,8 +35,8 @@ fn attest() {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
 
         let input_data = entropy_shared::QuoteInputData::new(
-            [0; 32], // Account ID
-            [0; 32], // x25519 public key
+            ATTESTEE, // TSS Account ID
+            [0; 32],  // x25519 public key
             nonce, 0, // Block number
         );
 
