@@ -24,7 +24,6 @@ sp-staking    ={ version="27.0.0", default-features=false }
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
-pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
 pallet-staking-extension={ version="0.2.0", path="../staking", default-features=false }
 tdx-quote={ git="https://github.com/entropyxyz/tdx-quote" }
 
@@ -36,6 +35,7 @@ sp-npos-elections              ={ version="27.0.0", default-features=false }
 frame-election-provider-support={ version="29.0.0", default-features=false }
 pallet-staking-reward-curve    ={ version="11.0.0" }
 pallet-authorship              ={ version="29.0.0", default-features=false }
+pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
 
 [features]
 default=['std']
@@ -49,6 +49,5 @@ std=[
   'pallet-balances/std',
   'sp-io/std',
   "sp-runtime/std",
-  "pallet-parameters/std",
 ]
 try-runtime=['frame-support/try-runtime']
