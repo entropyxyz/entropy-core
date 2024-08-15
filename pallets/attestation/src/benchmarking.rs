@@ -22,6 +22,7 @@ const ENCLAVE_SIGNING_KEY: [u8; 32] = [
 use entropy_shared::QuoteInputData;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{EventRecord, RawOrigin};
+use pallet_staking_extension::{ServerInfo, ThresholdServers, ThresholdToStash};
 
 use super::*;
 #[allow(unused)]
@@ -52,6 +53,18 @@ benchmarks! {
 
     // Insert a pending attestation so that this quote is expected
     <PendingAttestations<T>>::insert(attestee.clone(), nonce);
+
+    let stash_account = <T as pallet_session::Config>::ValidatorId::try_from(attestee.clone())
+        .or(Err(()))
+        .unwrap();
+
+    <ThresholdToStash<T>>::insert(attestee.clone(), stash_account.clone());
+    <ThresholdServers<T>>::insert(stash_account.clone(), ServerInfo {
+        tss_account: attestee.clone(),
+        x25519_public_key: [0; 32],
+        endpoint: b"http://localhost:3001".to_vec(),
+    });
+
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
   verify {
     assert_last_event::<T>(

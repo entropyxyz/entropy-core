@@ -40,6 +40,7 @@ pub mod pallet {
     // pub use crate::weights::WeightInfo;
 
     #[pallet::pallet]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
@@ -68,6 +69,13 @@ pub mod pallet {
     #[pallet::getter(fn pending_attestations)]
     pub type PendingAttestations<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, [u8; 32], OptionQuery>;
+
+    /// A mapping between block numbers and TSS nodes for who we want to make a request for
+    /// attestation, used to make attestation requests via an offchain worker
+    #[pallet::storage]
+    #[pallet::getter(fn attestation_requests)]
+    pub type AttestationRequests<T: Config> =
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
