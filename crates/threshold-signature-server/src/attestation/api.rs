@@ -21,6 +21,7 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
+use entropy_shared::OcwMessageAttestationRequest;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
 
@@ -31,9 +32,11 @@ use x25519_dalek::StaticSecret;
 /// [Index TDX DCAP Quoting Library API](https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf).
 pub async fn attest(
     State(app_state): State<AppState>,
-    _input: Bytes,
+    input: Bytes,
 ) -> Result<StatusCode, AttestationErr> {
-    // TODO input should be Vec<AccountId32> - check it
+    let attestaion_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
+    // TODO check that attestation_requests.tss_account_ids contains our account_id
+    // which is signer.signer().public().0
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
