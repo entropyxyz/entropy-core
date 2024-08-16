@@ -32,11 +32,12 @@ pub enum AttestationErr {
     NotImplemented,
     #[error("Input must be 32 bytes: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
-    #[cfg(any(test, feature = "unsafe"))]
     #[error("Could not get block number")]
     BlockNumber,
     #[error("Substrate: {0}")]
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("UnexpectedAttestationRequest")]
+    Unexpected,
 }
 
 impl IntoResponse for AttestationErr {
