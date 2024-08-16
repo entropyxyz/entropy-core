@@ -35,6 +35,8 @@ pub enum AttestationErr {
     #[cfg(any(test, feature = "unsafe"))]
     #[error("Could not get block number")]
     BlockNumber,
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
 }
 
 impl IntoResponse for AttestationErr {

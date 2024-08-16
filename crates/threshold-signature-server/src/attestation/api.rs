@@ -70,7 +70,7 @@ pub async fn attest(
     let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
 
     let attest_tx = entropy::tx().attestation().attest(quote.clone());
-    submit_transaction(api, rpc, signer, &attest_tx, None).await?;
+    submit_transaction(&api, &rpc, &signer, &attest_tx, None).await?;
 
     Ok((StatusCode::OK, Bytes::from(quote)))
 }
