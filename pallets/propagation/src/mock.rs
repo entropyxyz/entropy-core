@@ -59,6 +59,7 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
+    Attestation: pallet_attestation,
   }
 );
 
@@ -364,6 +365,11 @@ impl pallet_propagation::Config for Test {
 impl pallet_parameters::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<Self::AccountId>;
+    type WeightInfo = ();
+}
+
+impl pallet_attestation::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
