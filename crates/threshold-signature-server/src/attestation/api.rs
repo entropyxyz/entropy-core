@@ -38,8 +38,9 @@ pub async fn attest(
     input: Bytes,
 ) -> Result<(StatusCode, Bytes), AttestationErr> {
     use crate::{
-        chain_api::{get_api, get_rpc},
+        chain_api::{entropy, get_api, get_rpc},
         get_signer_and_x25519_secret,
+        helpers::substrate::submit_transaction,
     };
     use rand_core::OsRng;
     use sp_core::Pair;
@@ -47,7 +48,7 @@ pub async fn attest(
     // TODO (#982) confirm with the chain that an attestation should be happenning
     let nonce = input.as_ref().try_into()?;
 
-    let _api = get_api(&app_state.configuration.endpoint).await?;
+    let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
     let block_number =
@@ -68,8 +69,8 @@ pub async fn attest(
 
     let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
 
-    // let attest_tx = entropy::tx().attestation().attest(quote.clone());
-    // submit_transaction(api, rpc, signer, &attest_tx, None).await?;
+    let attest_tx = entropy::tx().attestation().attest(quote.clone());
+    submit_transaction(api, rpc, signer, &attest_tx, None).await?;
 
     Ok((StatusCode::OK, Bytes::from(quote)))
 }
