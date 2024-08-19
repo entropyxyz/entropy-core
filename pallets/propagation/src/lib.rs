@@ -27,8 +27,14 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
+    pub use crate::weights::WeightInfo;
     use codec::Encode;
     use entropy_shared::{
         OcwMessageDkg, OcwMessageProactiveRefresh, OcwMessageReshare, ValidatorInfo,
@@ -49,6 +55,8 @@ pub mod pallet {
         + pallet_staking_extension::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        /// The weight information of this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
@@ -66,7 +74,7 @@ pub mod pallet {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             pallet_registry::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
             pallet_staking_extension::ProactiveRefresh::<T>::take();
-            T::DbWeight::get().writes(2)
+            <T as Config>::WeightInfo::on_initialize()
         }
     }
 
