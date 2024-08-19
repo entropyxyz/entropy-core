@@ -55,6 +55,7 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         pub initial_pending_attestations: Vec<(T::AccountId, [u8; 32])>,
+        pub initial_attestation_requests: Vec<(BlockNumberFor<T>, Vec<Vec<u8>>)>,
     }
 
     #[pallet::genesis_build]
@@ -62,6 +63,9 @@ pub mod pallet {
         fn build(&self) {
             for (account_id, nonce) in &self.initial_pending_attestations {
                 PendingAttestations::<T>::insert(account_id, nonce);
+            }
+            for (block_number, account_ids) in &self.initial_attestation_requests {
+                AttestationRequests::<T>::insert(block_number, account_ids);
             }
         }
     }

@@ -338,6 +338,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let pallet_attestation = pallet_attestation::GenesisConfig::<Test> {
         initial_pending_attestations: vec![(0, NULL_ARR)],
+        initial_attestation_requests: Vec::new(),
     };
     pallet_attestation.assimilate_storage(&mut t).unwrap();
 

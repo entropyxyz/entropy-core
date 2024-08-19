@@ -61,6 +61,7 @@ pub async fn attest(
     Ok(StatusCode::OK)
 }
 
+/// Create a mock quote for testing on non-TDX hardware
 #[cfg(any(test, feature = "unsafe"))]
 pub async fn create_quote(
     block_number: u32,
@@ -87,6 +88,7 @@ pub async fn create_quote(
     Ok(quote)
 }
 
+/// Once implemented, this will create a TDX quote in production
 #[cfg(not(any(test, feature = "unsafe")))]
 pub async fn create_quote(
     _block_number: u32,

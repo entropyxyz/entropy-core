@@ -14,11 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-//! # Propogation Pallet
+//! # Propagation Pallet
 //!
 //! ## Overview
 //!
-//! Propgates messages to signing client through offchain worker
+//! Propagates messages to signing client through offchain worker
 pub use pallet::*;
 
 #[cfg(test)]
@@ -89,7 +89,7 @@ pub mod pallet {
         KeyReshareMessagePassed(OcwMessageReshare),
 
         /// Attestations request message passed
-        AttestationRequestMessagePassed,
+        AttestationRequestMessagePassed(OcwMessageAttestationRequest),
     }
 
     #[pallet::call]
@@ -359,7 +359,7 @@ pub mod pallet {
                 }
                 let _res_body = response.body().collect::<Vec<u8>>();
 
-                Self::deposit_event(Event::AttestationRequestMessagePassed);
+                Self::deposit_event(Event::AttestationRequestMessagePassed(req_body));
             };
             Ok(())
         }
