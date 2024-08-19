@@ -59,6 +59,7 @@ pub trait WeightInfo {
 	fn declare_synced() -> Weight;
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
 	fn confirm_key_reshare_completed() -> Weight;
+	fn new_session_validators_less_then_signers() -> Weight;
 }
 
 /// Weights for pallet_staking_extension using the Substrate node and recommended hardware.
@@ -190,6 +191,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn new_session_validators_less_then_signers() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `234`
+		//  Estimated: `1719`
+		// Minimum execution time: 4_000_000 picoseconds.
+		Weight::from_parts(4_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1719))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
 }
 
 // For backwards compatibility and tests
@@ -319,5 +331,16 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 3942))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn new_session_validators_less_then_signers() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `234`
+		//  Estimated: `1719`
+		// Minimum execution time: 4_000_000 picoseconds.
+		Weight::from_parts(4_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1719))
+			.saturating_add(RocksDbWeight::get().reads(1))
 	}
 }

@@ -538,13 +538,13 @@ pub mod pallet {
 
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
-        ) -> Result<(), DispatchError> {
+        ) -> Result<Weight, DispatchError> {
             let mut current_signers = Self::signers();
             let current_signers_length = current_signers.len();
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
-                return Ok(());
+                return Ok(<T as Config>::WeightInfo::new_session_validators_less_then_signers());
             }
 
             let signers_info = pallet_parameters::Pallet::<T>::signers_info();
@@ -583,7 +583,7 @@ pub mod pallet {
             JumpStartProgress::<T>::mutate(|jump_start_details| {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
-            Ok(())
+            Ok(0.into())
         }
     }
 
@@ -600,9 +600,18 @@ pub mod pallet {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
             if let Some(validators) = &new_session {
-                let result = Pallet::<T>::new_session_handler(validators);
-                if result.is_err() {
-                    log::warn!("Error splitting validators, Session: {:?}", new_index)
+                let result_weight = Pallet::<T>::new_session_handler(validators);
+                if let Err(why) = result_weight {
+                    log::warn!(
+                        "Error splitting validators, Session: {:?}, reason: {:?}",
+                        new_index,
+                        why
+                    )
+                } else {
+                    frame_system::Pallet::<T>::register_extra_weight_unchecked(
+                        result_weight.expect("Error unwraping non error value"),
+                        DispatchClass::Mandatory,
+                    );
                 }
             }
             new_session

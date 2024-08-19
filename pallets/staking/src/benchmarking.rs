@@ -226,6 +226,18 @@ benchmarks! {
   verify {
     assert_last_event::<T>(Event::<T>::SignersRotation(signers.clone()).into());
   }
+
+  new_session_validators_less_then_signers {
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    Signers::<T>::put(vec![validator_id_res.clone(), validator_id_res.clone()]);
+
+  }:  {
+    Staking::<T>::new_session_handler(&vec![validator_id_res])
+  }
+  verify {
+    assert!(NextSigners::<T>::get().is_none());
+  }
 }
 
 impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test);
