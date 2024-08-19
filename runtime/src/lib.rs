@@ -1498,6 +1498,18 @@ impl pallet_attestation::Config for Runtime {
     type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+    pub const MaxOracleKeyLength: u32 = 100;
+    pub const MaxOracleValueLength: u32 = 100;
+}
+
+impl pallet_oracle::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
+    type WeightInfo = weights::pallet_oracle::WeightInfo<Runtime>;
+}
+
 construct_runtime!(
   pub enum Runtime
   {
@@ -1550,7 +1562,11 @@ construct_runtime!(
     TransactionPause: pallet_transaction_pause = 54,
     Propagation: pallet_propagation = 55,
     Parameters: pallet_parameters = 56,
+<<<<<<< HEAD
     Attestation: pallet_attestation = 57,
+=======
+    Oracle: pallet_oracle = 57,
+>>>>>>> master
   }
 );
 
@@ -1628,6 +1644,7 @@ mod benches {
       [pallet_nomination_pools, NominationPoolsBench::<Runtime>]
       [pallet_multisig, Multisig]
       [pallet_offences, OffencesBench::<Runtime>]
+      [pallet_oracle, Oracle]
       [pallet_preimage, Preimage]
       [pallet_parameters, Parameters]
       [pallet_proxy, Proxy]
