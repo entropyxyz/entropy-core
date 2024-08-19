@@ -326,7 +326,7 @@ pub mod pallet {
 
                 let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
                 let kind = sp_core::offchain::StorageKind::PERSISTENT;
-                let from_local = sp_io::offchain::local_storage_get(kind, b"refresh")
+                let from_local = sp_io::offchain::local_storage_get(kind, b"attest")
                     .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
                 let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/attest");
 

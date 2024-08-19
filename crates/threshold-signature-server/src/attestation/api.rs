@@ -22,6 +22,7 @@ use crate::{
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_shared::OcwMessageAttestationRequest;
+use parity_scale_codec::Decode;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
 
@@ -34,7 +35,7 @@ pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
 ) -> Result<StatusCode, AttestationErr> {
-    let attestaion_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
+    let _attestaion_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
     // TODO check that attestation_requests.tss_account_ids contains our account_id
     // which is signer.signer().public().0
 

@@ -17,10 +17,10 @@ use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
-    constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-    BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig, MaxNominations,
-    ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig, StakerStatus, StakingConfig,
-    StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
+    constants::currency::*, wasm_binary_unwrap, AttestationConfig, AuthorityDiscoveryConfig,
+    BabeConfig, BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
+    MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig, StakerStatus,
+    StakingConfig, StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
@@ -34,7 +34,7 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::sr25519;
+use sp_core::{sr25519, ByteArray};
 use sp_runtime::{BoundedVec, Perbill};
 
 pub fn devnet_three_node_initial_tss_servers(
@@ -335,6 +335,10 @@ pub fn development_genesis_config(
                 root_key,
                 10,
             )],
+        },
+        "attestation": AttestationConfig {
+            initial_attestation_requests: vec![(1, vec![crate::chain_spec::tss_account_id::ALICE.to_raw_vec()])],
+            initial_pending_attestations: vec![(crate::chain_spec::tss_account_id::ALICE.clone(), [0; 32])],
         },
     })
 }

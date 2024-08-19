@@ -38,6 +38,8 @@ pub enum AttestationErr {
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("UnexpectedAttestationRequest")]
     Unexpected,
+    #[error("Could not decode message: {0}")]
+    Codec(#[from] parity_scale_codec::Error),
 }
 
 impl IntoResponse for AttestationErr {
