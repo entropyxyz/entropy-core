@@ -1562,11 +1562,8 @@ construct_runtime!(
     TransactionPause: pallet_transaction_pause = 54,
     Propagation: pallet_propagation = 55,
     Parameters: pallet_parameters = 56,
-<<<<<<< HEAD
-    Attestation: pallet_attestation = 57,
-=======
     Oracle: pallet_oracle = 57,
->>>>>>> master
+    Attestation: pallet_attestation = 58,
   }
 );
 
