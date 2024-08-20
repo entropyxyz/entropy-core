@@ -56,7 +56,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `1309`
 		//  Estimated: `4774`
 		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(27_000_000, 0)
+		Weight::from_parts(25_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4774))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -73,8 +73,8 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `1430`
 		//  Estimated: `4895`
-		// Minimum execution time: 30_000_000 picoseconds.
-		Weight::from_parts(33_000_000, 0)
+		// Minimum execution time: 29_000_000 picoseconds.
+		Weight::from_parts(32_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4895))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -95,8 +95,8 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `1262`
 		//  Estimated: `4764`
-		// Minimum execution time: 43_000_000 picoseconds.
-		Weight::from_parts(55_000_000, 0)
+		// Minimum execution time: 42_000_000 picoseconds.
+		Weight::from_parts(49_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4764))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -146,7 +146,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `320`
 		//  Estimated: `3785`
 		// Minimum execution time: 10_000_000 picoseconds.
-		Weight::from_parts(11_000_000, 0)
+		Weight::from_parts(10_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 3785))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -161,8 +161,10 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `797 + c * (32 ±0)`
 		//  Estimated: `4298 + c * (29 ±1)`
 		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_756_906, 0)
+		Weight::from_parts(12_143_646, 0)
 			.saturating_add(Weight::from_parts(0, 4298))
+			// Standard Error: 177_742
+			.saturating_add(Weight::from_parts(91_160, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(Weight::from_parts(0, 29).saturating_mul(c.into()))
@@ -178,7 +180,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `1309`
 		//  Estimated: `4774`
 		// Minimum execution time: 12_000_000 picoseconds.
-		Weight::from_parts(12_000_000, 0)
+		Weight::from_parts(13_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4774))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -189,9 +191,49 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `234`
 		//  Estimated: `1719`
-		// Minimum execution time: 4_000_000 picoseconds.
-		Weight::from_parts(4_000_000, 0)
+		// Minimum execution time: 3_000_000 picoseconds.
+		Weight::from_parts(3_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 1719))
 			.saturating_add(T::DbWeight::get().reads(1))
+	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
+	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
+	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
+	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn new_session_not_adding_new_signer() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `439`
+		//  Estimated: `1924`
+		// Minimum execution time: 9_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1924))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
+	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
+	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
+	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn new_session() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `727`
+		//  Estimated: `2212`
+		// Minimum execution time: 10_000_000 picoseconds.
+		Weight::from_parts(14_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 2212))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 }

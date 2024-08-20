@@ -238,6 +238,45 @@ benchmarks! {
   verify {
     assert!(NextSigners::<T>::get().is_none());
   }
+
+  new_session_not_adding_new_signer {
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); 5];
+    Signers::<T>::put(signers.clone());
+    signers.push(validator_id_res.clone());
+
+
+  }:  {
+    Staking::<T>::new_session_handler(&signers)
+  }
+  verify {
+    assert_eq!(NextSigners::<T>::get().unwrap().next_signers.len(), signers.len() - 2);
+  }
+
+  new_session {
+    let confirmation_num = MAX_SIGNERS as usize - 1;
+
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); confirmation_num as usize];
+    Signers::<T>::put(signers.clone());
+    signers.push(validator_id_res.clone());
+
+  }:  {
+    Staking::<T>::new_session_handler(&signers)
+  }
+  verify {
+    assert!(NextSigners::<T>::get().is_some());
+  }
 }
 
 impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test);

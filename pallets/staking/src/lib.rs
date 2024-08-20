@@ -549,19 +549,23 @@ pub mod pallet {
 
             let signers_info = pallet_parameters::Pallet::<T>::signers_info();
             let mut new_signer = vec![];
+            let mut weight: Weight = <T as Config>::WeightInfo::new_session_not_adding_new_signer();
 
             if current_signers_length <= signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
                 let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
+                let mut count = 0u32;
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
+                    count += 1;
                 }
                 current_signers.push(next_signer_up.clone());
                 new_signer = next_signer_up.encode();
+                // TODO add last weight here
             }
 
             // removes first signer and pushes new signer to back if total signers not increased
@@ -583,7 +587,8 @@ pub mod pallet {
             JumpStartProgress::<T>::mutate(|jump_start_details| {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
-            Ok(0.into())
+
+            Ok(weight)
         }
     }
 
