@@ -273,7 +273,7 @@ benchmarks! {
 
     Signers::<T>::put(signers.clone());
     signers.push(second_signer_id.clone());
-    // place new signer in the signers struct in different locations to calculate random selection re-run 
+    // place new signer in the signers struct in different locations to calculate random selection re-run
     signers[l as usize % c as usize] = validator_id_res.clone();
 
     SignersInfo::<T>::put(SignersSize {
