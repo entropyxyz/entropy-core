@@ -26,6 +26,8 @@ pub enum SubstrateError {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Could not sumbit transaction {0}")]
     BadEvent(String),
+    #[error("User is not registered on-chain")]
+    NotRegistered,
 }
 
 /// An error on getting the current subgroup signers
@@ -92,7 +94,7 @@ pub enum ClientError {
     BadRecoveryId,
     #[error("Cannot parse chain query response: {0}")]
     TryFromSlice(#[from] std::array::TryFromSliceError),
-    #[error("User not registered")]
+    #[error("User is not registered on-chain")]
     NotRegistered,
     #[error("No synced validators")]
     NoSyncedValidators,

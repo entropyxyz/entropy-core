@@ -37,7 +37,7 @@ use crate::{
         EntropyConfig,
     },
     client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
-    substrate::{query_chain, submit_transaction_with_pair},
+    substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
     user::{get_signers_from_chain, UserSignatureRequest},
     Hasher,
 };
@@ -359,43 +359,6 @@ pub async fn put_old_register_request_on_chain(
     Err(ClientError::RegistrationTimeout)
 }
 
-/// Returns a registered user's key visibility
-///
-/// TODO (Nando): This was copied from `entropy-tss::helpers::substrate`
-///
-/// What's the best place for this? Ideally here, and then we import this into the entropy-tss, but
-/// we need the `full-client` feature enabled...
-#[tracing::instrument(skip_all, fields(verifying_key))]
-pub async fn get_registered_details(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    verifying_key: Vec<u8>,
-) -> Result<RegisteredInfo, ClientError> {
-    tracing::info!("Querying chain for registration info.");
-
-    let registered_info_query =
-        entropy::storage().registry().registered(BoundedVec(verifying_key.clone()));
-    let registered_result = query_chain(api, rpc, registered_info_query, None).await?;
-
-    let registration_info = if let Some(old_registration_info) = registered_result {
-        tracing::debug!("Found user in old `Registered` struct.");
-
-        old_registration_info
-    } else {
-        // We failed with the old registration path, let's try the new one
-        tracing::warn!("Didn't find user in old `Registered` struct, trying new one.");
-
-        let registered_info_query =
-            entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
-
-        query_chain(api, rpc, registered_info_query, None)
-            .await?
-            .ok_or_else(|| ClientError::NotRegistered)?
-    };
-
-    Ok(registration_info)
-}
-
 /// Check that the verfiying key from a new signature matches that in the from the
 /// on-chain registration info for a given account
 pub async fn check_verifying_key(
@@ -410,6 +373,7 @@ pub async fn check_verifying_key(
         entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
     let query_registered_status = query_chain(api, rpc, registered_query, None).await;
     query_registered_status?.ok_or(ClientError::NotRegistered)?;
+
     Ok(())
 }
 
