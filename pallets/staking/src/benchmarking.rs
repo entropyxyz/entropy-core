@@ -23,6 +23,7 @@ use frame_support::{
     traits::{Currency, Get},
 };
 use frame_system::{EventRecord, RawOrigin};
+use pallet_parameters::{SignersInfo, SignersSize};
 use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
 use sp_std::{vec, vec::Vec};
 
@@ -233,7 +234,7 @@ benchmarks! {
     Signers::<T>::put(vec![validator_id_res.clone(), validator_id_res.clone()]);
 
   }:  {
-    Staking::<T>::new_session_handler(&vec![validator_id_res])
+    let _ = Staking::<T>::new_session_handler(&vec![validator_id_res]);
   }
   verify {
     assert!(NextSigners::<T>::get().is_none());
@@ -252,14 +253,15 @@ benchmarks! {
 
 
   }:  {
-    Staking::<T>::new_session_handler(&signers)
+    let _ = Staking::<T>::new_session_handler(&signers);
   }
   verify {
     assert_eq!(NextSigners::<T>::get().unwrap().next_signers.len(), signers.len() - 2);
   }
 
   new_session {
-    let confirmation_num = MAX_SIGNERS as usize - 1;
+    let c in 1 .. MAX_SIGNERS as u32 - 1;
+    let l in 0 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
@@ -267,12 +269,22 @@ benchmarks! {
     let second_signer: T::AccountId = account("second_signer", 0, SEED);
     let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     // full signer list leaving room for one extra validator
-    let mut signers = vec![second_signer_id.clone(); confirmation_num as usize];
+    let mut signers = vec![second_signer_id.clone(); c as usize];
+
     Signers::<T>::put(signers.clone());
-    signers.push(validator_id_res.clone());
+    signers.push(second_signer_id.clone());
+    // place new signer in the signers struct in different locations to calculate random selection re-run 
+    signers[l as usize % c as usize] = validator_id_res.clone();
+
+    SignersInfo::<T>::put(SignersSize {
+      total_signers: MAX_SIGNERS,
+      threshold: 3,
+      last_session_change: 0
+    });
+
 
   }:  {
-    Staking::<T>::new_session_handler(&signers)
+    let _ = Staking::<T>::new_session_handler(&signers);
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());

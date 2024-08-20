@@ -565,7 +565,7 @@ pub mod pallet {
                 }
                 current_signers.push(next_signer_up.clone());
                 new_signer = next_signer_up.encode();
-                // TODO add last weight here
+                weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count)
             }
 
             // removes first signer and pushes new signer to back if total signers not increased
