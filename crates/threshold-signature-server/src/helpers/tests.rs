@@ -41,6 +41,7 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvMa
 use entropy_protocol::PartyId;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
 use std::time::Duration;
+
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,

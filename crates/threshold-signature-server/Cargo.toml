@@ -30,7 +30,7 @@ futures="0.3"
 tokio  ={ version="1.39", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
-reqwest={ version="0.12.5", features=["json", "stream"] }
+reqwest={ version="0.12.7", features=["json", "stream"] }
 axum   ={ version="0.7.5", features=["ws"] }
 
 # Substrate
@@ -62,7 +62,7 @@ bip32            ={ version="0.5.2" }
 bip39            ={ version="2.0.0", features=["zeroize"] }
 bytes            ={ version="1.7", default-features=false, features=["serde"] }
 base64           ="0.22.1"
-clap             ={ version="4.5.15", features=["derive"] }
+clap             ={ version="4.5.16", features=["derive"] }
 num              ="0.4.3"
 snow             ="0.9.6"
 sha3             ="0.10.8"
@@ -80,7 +80,7 @@ project-root="0.2.2"
 sp-keyring  ="34.0.0"
 more-asserts="0.3.1"
 lazy_static ="1.5.0"
-blake3      ="1.5.3"
+blake3      ="1.5.4"
 ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
 schemars    ={ version="0.8.21" }

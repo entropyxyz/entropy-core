@@ -13,30 +13,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// //! Benchmarking setup for pallet-propgation
+//! Unit tests for the parameters pallet.
+
+#![cfg(test)]
+use frame_support::traits::OnInitialize;
+use mock::*;
 
 use super::*;
 
-#[allow(unused)]
-use crate::Pallet as Propgation;
-use frame_benchmarking::benchmarks;
-use frame_support::traits::OnInitialize;
-use pallet_staking_extension::RefreshInfo;
-use scale_info::prelude::vec;
+#[test]
+fn test_set_block_number() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Oracle::oracle_data(BoundedVec::try_from("block_number_entropy".encode()).unwrap()),
+            None
+        );
 
-benchmarks! {
-  on_initialize {
-    let block_number = 50u32;
+        <Oracle as OnInitialize<u64>>::on_initialize(50);
 
-    <pallet_staking_extension::ProactiveRefresh<T>>::put(RefreshInfo {
-        validators_info: vec![],
-        proactive_refresh_keys: vec![vec![10]]
+        assert_eq!(
+            Oracle::oracle_data(BoundedVec::try_from("block_number_entropy".encode()).unwrap())
+                .unwrap()[0],
+            50
+        );
     });
-  }: {
-    Propgation::<T>::on_initialize(block_number.into());
-    } verify {
-    assert_eq!(<pallet_staking_extension::ProactiveRefresh<T>>::get().proactive_refresh_keys.len(), 0);
-    }
-
-  impl_benchmark_test_suite!(Propgation, crate::mock::new_test_ext(), crate::mock::Test);
 }
