@@ -60,11 +60,12 @@ pub async fn attest(
     let block_number =
         rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
 
-    let quote = create_quote(block_number, nonce, &signer, &x25519_secret).await?;
+    // We add 1 to the block number as this will be processed in the next block
+    let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
 
+    // Submit the quote
     let attest_tx = entropy::tx().attestation().attest(quote.clone());
-    let res = submit_transaction(&api, &rpc, &signer, &attest_tx, None).await;
-    println!("Succesfully submitted tx {:?}", res);
+    submit_transaction(&api, &rpc, &signer, &attest_tx, None).await?;
 
     Ok(StatusCode::OK)
 }

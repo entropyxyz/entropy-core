@@ -48,12 +48,17 @@ async fn test_attest() {
     };
     assert_eq!(nonce, [0; 32]);
 
-    // Wait a few blocks for hopefully something to happen
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    run_to_block(&rpc, block_number + 10).await;
+    // Wait for the attestation to be handled
+    for _ in 0..10 {
+        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+        run_to_block(&rpc, block_number + 1).await;
 
-    // There should be no more pending attestation as the attestation has been handled
-    let pending_attestation_query =
-        entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
-    assert!(query_chain(&api, &rpc, pending_attestation_query, None).await.unwrap().is_none());
+        // There should be no more pending attestation as the attestation has been handled
+        let pending_attestation_query =
+            entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
+        if query_chain(&api, &rpc, pending_attestation_query, None).await.unwrap().is_none() {
+            return;
+        }
+    }
+    panic!("Waited 10 blocks and attestation is still pending");
 }
