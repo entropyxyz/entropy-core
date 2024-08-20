@@ -259,7 +259,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_res_not_registered {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Chain Fetch: Not Registering error: Register Onchain first"
+            "Substrate: User is not registered on-chain"
         );
     }
 
