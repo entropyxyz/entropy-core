@@ -77,8 +77,8 @@ pub async fn register(
     program_account: SubxtAccountId32,
     programs_data: BoundedVec<ProgramInstance>,
     on_chain: bool,
-) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
-    let account_registration_events = if on_chain {
+) -> Result<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo), ClientError> {
+    let registration_event = if on_chain {
         put_register_request_on_chain(
             api,
             rpc,
@@ -98,18 +98,11 @@ pub async fn register(
         .await?
     };
 
-    let mut registration_info = vec![];
-    for event in account_registration_events {
-        let verifying_key = event.1 .0;
-        let registered_info = get_registered_details(api, rpc, verifying_key.clone()).await?;
+    let verifying_key = registration_event.1 .0;
+    let registered_info = get_registered_details(api, rpc, verifying_key.clone()).await?;
+    let verifying_key = verifying_key.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
 
-        registration_info.push((
-            verifying_key.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?,
-            registered_info,
-        ))
-    }
-
-    Ok(registration_info)
+    Ok((verifying_key, registered_info))
 }
 
 /// Request to sign a message
@@ -308,7 +301,7 @@ pub async fn put_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
-) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
+) -> Result<entropy::registry::events::AccountRegistered, ClientError> {
     tracing::debug!("Registering an account using on-chain flow.");
 
     let registering_tx = entropy::tx().registry().register_on_chain(deployer, program_instances);
@@ -317,14 +310,14 @@ pub async fn put_register_request_on_chain(
             .await?;
 
     // Note: In the case of the new registration flow we can have many registration events for a
-    // single signature request account.
-    let registered_events: Vec<_> = registered_events
+    // single signature request account. We only care about the first one we find.
+    let registered_event = registered_events
         .find::<entropy::registry::events::AccountRegistered>()
         .flatten()
-        .filter(|event| event.0 == signature_request_keypair.public().into())
-        .collect();
+        .find_map(|event| (event.0 == signature_request_keypair.public().into()).then_some(event))
+        .ok_or(ClientError::NotRegistered);
 
-    Ok(registered_events)
+    registered_event
 }
 
 /// Submits a transaction registering an account on-chain using the old off-chain flow.
@@ -340,7 +333,7 @@ pub async fn put_old_register_request_on_chain(
     signature_request_keypair: sr25519::Pair,
     deployer: SubxtAccountId32,
     program_instances: BoundedVec<ProgramInstance>,
-) -> Result<Vec<entropy::registry::events::AccountRegistered>, ClientError> {
+) -> Result<entropy::registry::events::AccountRegistered, ClientError> {
     tracing::debug!("Registering an account using old off-chain flow.");
 
     let registering_tx = entropy::tx().registry().register(deployer, program_instances);
@@ -357,7 +350,7 @@ pub async fn put_old_register_request_on_chain(
         for event in registered_event.flatten() {
             // check if the event belongs to this user
             if event.0 == account_id {
-                return Ok(vec![event]);
+                return Ok(event);
             }
         }
         std::thread::sleep(std::time::Duration::from_millis(1000));
