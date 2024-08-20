@@ -26,6 +26,7 @@ At the moment this project **does not** adhere to
 - Signing flow with derived accounts ([#990](https://github.com/entropyxyz/entropy-core/pull/990))
 - TSS attestation endpoint ([#1001](https://github.com/entropyxyz/entropy-core/pull/1001))
 - Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
+- Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))

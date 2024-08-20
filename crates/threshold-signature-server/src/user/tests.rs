@@ -17,6 +17,7 @@ use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use blake3::hash;
+use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client::{sign, store_program, update_programs},
     user::get_signers_from_chain,
@@ -258,7 +259,7 @@ async fn test_sign_tx_no_chain() {
     for res in test_user_res_not_registered {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "Chain Fetch: Not Registering error: Register Onchain first"
+            "Substrate: User is not registered on-chain"
         );
     }
 
@@ -430,12 +431,8 @@ async fn signature_request_with_derived_account_works() {
     let actual_verifying_key = actual_verifying_key.0;
 
     // Next we want to check that the info that's on-chain is what we actually expect
-    let registered_info = crate::helpers::substrate::get_registered_details(
-        &entropy_api,
-        &rpc,
-        actual_verifying_key.to_vec(),
-    )
-    .await;
+    let registered_info =
+        get_registered_details(&entropy_api, &rpc, actual_verifying_key.to_vec()).await;
 
     assert!(
         matches!(registered_info, Ok(_)),
@@ -1526,12 +1523,8 @@ async fn test_new_registration_flow() {
     let actual_verifying_key = actual_verifying_key.0;
 
     // Next we want to check that the info that's on-chain is what we actually expect
-    let registered_info = crate::helpers::substrate::get_registered_details(
-        &entropy_api,
-        &rpc,
-        actual_verifying_key.to_vec(),
-    )
-    .await;
+    let registered_info =
+        get_registered_details(&entropy_api, &rpc, actual_verifying_key.to_vec()).await;
 
     assert!(
         matches!(registered_info, Ok(_)),
