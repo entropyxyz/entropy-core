@@ -316,10 +316,7 @@ pub mod pallet {
             block_number: BlockNumberFor<T>,
         ) -> Result<(), http::Error> {
             if let Some(attestations_to_request) =
-                pallet_attestation::Pallet::<T>::attestation_requests(
-                    // block_number.saturating_sub(1u32.into()),
-                    block_number,
-                )
+                pallet_attestation::Pallet::<T>::attestation_requests(block_number)
             {
                 if attestations_to_request.is_empty() {
                     return Ok(());
@@ -344,11 +341,9 @@ pub mod pallet {
                     .send()
                     .map_err(|_| http::Error::IoError)?;
 
-                // We await response, same as in fn get()
                 let response =
                     pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
 
-                // check response code
                 if response.code != 200 {
                     log::warn!("Unexpected status code: {}", response.code);
                     return Err(http::Error::Unknown);
