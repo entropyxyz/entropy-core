@@ -36,9 +36,11 @@ async fn test_attest() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let attestation_requests_query = entropy::storage().attestation().attestation_requests(1);
+    // Check that there is an attestation request at block 3 from the genesis config
+    let attestation_requests_query = entropy::storage().attestation().attestation_requests(3);
     query_chain(&api, &rpc, attestation_requests_query, None).await.unwrap().unwrap();
 
+    // Get the nonce from the pending attestation from the genesis config
     let nonce = {
         let pending_attestation_query =
             entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
@@ -46,13 +48,12 @@ async fn test_attest() {
     };
     assert_eq!(nonce, [0; 32]);
 
+    // Wait a few blocks for hopefully something to happen
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    run_to_block(&rpc, block_number + 4).await;
+    run_to_block(&rpc, block_number + 10).await;
 
-    let nonce = {
-        let pending_attestation_query =
-            entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
-        query_chain(&api, &rpc, pending_attestation_query, None).await.unwrap().unwrap()
-    };
-    assert_eq!(nonce, [0; 32]);
+    // There should be no more pending attestation as the attestation has been handled
+    let pending_attestation_query =
+        entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
+    assert!(query_chain(&api, &rpc, pending_attestation_query, None).await.unwrap().is_none());
 }

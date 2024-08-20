@@ -337,7 +337,7 @@ pub fn development_genesis_config(
             )],
         },
         "attestation": AttestationConfig {
-            initial_attestation_requests: vec![(1, vec![crate::chain_spec::tss_account_id::ALICE.to_raw_vec()])],
+            initial_attestation_requests: vec![(3, vec![crate::chain_spec::tss_account_id::ALICE.to_raw_vec()])],
             initial_pending_attestations: vec![(crate::chain_spec::tss_account_id::ALICE.clone(), [0; 32])],
         },
     })

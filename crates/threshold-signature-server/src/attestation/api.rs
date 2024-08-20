@@ -23,6 +23,7 @@ use crate::{
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_shared::OcwMessageAttestationRequest;
 use parity_scale_codec::Decode;
+use sp_core::Pair;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
 
@@ -35,14 +36,18 @@ pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
 ) -> Result<StatusCode, AttestationErr> {
-    let _attestaion_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
-    // TODO check that attestation_requests.tss_account_ids contains our account_id
-    // which is signer.signer().public().0
+    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let attestaion_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
+
+    // Check whether there is an attestion request for us
+    if !attestaion_requests.tss_account_ids.contains(&signer.signer().public().0) {
+        return Ok(StatusCode::OK);
+    }
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
+    // Get the input nonce for this attestation
     let nonce = {
         let pending_attestation_query =
             entropy::storage().attestation().pending_attestations(signer.account_id());
@@ -51,13 +56,15 @@ pub async fn attest(
             .ok_or_else(|| AttestationErr::Unexpected)?
     };
 
+    // We also need the current block number as input
     let block_number =
         rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
 
     let quote = create_quote(block_number, nonce, &signer, &x25519_secret).await?;
 
     let attest_tx = entropy::tx().attestation().attest(quote.clone());
-    submit_transaction(&api, &rpc, &signer, &attest_tx, None).await?;
+    let res = submit_transaction(&api, &rpc, &signer, &attest_tx, None).await;
+    println!("Succesfully submitted tx {:?}", res);
 
     Ok(StatusCode::OK)
 }

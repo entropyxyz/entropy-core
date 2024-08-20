@@ -317,7 +317,8 @@ pub mod pallet {
         ) -> Result<(), http::Error> {
             if let Some(attestations_to_request) =
                 pallet_attestation::Pallet::<T>::attestation_requests(
-                    block_number.saturating_sub(1u32.into()),
+                    // block_number.saturating_sub(1u32.into()),
+                    block_number,
                 )
             {
                 if attestations_to_request.is_empty() {
@@ -330,15 +331,10 @@ pub mod pallet {
                     .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
                 let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/attest");
 
-                // let converted_block_number: u32 =
-                //     BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
-
                 let req_body = OcwMessageAttestationRequest {
-                    // subtract 1 from blocknumber since the request is from the last block
-                    // block_number: converted_block_number.saturating_sub(1),
                     tss_account_ids: attestations_to_request
                         .into_iter()
-                        .map(|v| v.try_into().unwrap())
+                        .filter_map(|v| v.try_into().ok())
                         .collect(),
                 };
                 log::debug!("propagation::post attestation: {:?}", &[req_body.encode()]);
