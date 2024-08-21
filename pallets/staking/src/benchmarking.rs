@@ -233,6 +233,14 @@ benchmarks! {
 
     let caller: T::AccountId = whitelisted_caller();
 
+    // For the purpose of the bench these values don't actually matter, we just care that there's a
+    // storage entry available
+    SignersInfo::<T>::put(SignersSize {
+        total_signers: s as u8,
+        threshold: 3,
+        last_session_change: 0,
+    });
+
     let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();

@@ -539,18 +539,21 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<Weight, DispatchError> {
+            // TODO (Nando): Change this into base weight
+            let mut base_weight: Weight =
+                <T as Config>::WeightInfo::new_session_validators_less_then_signers();
+
             let mut current_signers = Self::signers();
             let current_signers_length = current_signers.len();
+            let signers_info = pallet_parameters::Pallet::<T>::signers_info();
+
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
-                return Ok(<T as Config>::WeightInfo::new_session_validators_less_then_signers());
+                return Ok(base_weight);
             }
 
-            let signers_info = pallet_parameters::Pallet::<T>::signers_info();
             let mut new_signer = vec![];
-            let mut weight: Weight = <T as Config>::WeightInfo::new_session_not_adding_new_signer();
-
             if current_signers_length <= signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
@@ -565,7 +568,8 @@ pub mod pallet {
                 }
                 current_signers.push(next_signer_up.clone());
                 new_signer = next_signer_up.encode();
-                weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count)
+                base_weight =
+                    <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count)
             }
 
             // removes first signer and pushes new signer to back if total signers not increased
@@ -588,7 +592,7 @@ pub mod pallet {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
 
-            Ok(weight)
+            Ok(base_weight)
         }
     }
 
