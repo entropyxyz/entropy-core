@@ -228,35 +228,32 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::SignersRotation(signers.clone()).into());
   }
 
-  new_session_validators_less_then_signers {
-    let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    Signers::<T>::put(vec![validator_id_res.clone(), validator_id_res.clone()]);
+  new_session_base_weight {
+    let s in 2 .. MAX_SIGNERS as u32;
 
+    let caller: T::AccountId = whitelisted_caller();
+
+    // For the purpose of the bench these values don't actually matter, we just care that there's a
+    // storage entry available
+    SignersInfo::<T>::put(SignersSize {
+        total_signers: MAX_SIGNERS,
+        threshold: 3,
+        last_session_change: 0,
+    });
+
+    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    let signers = vec![validator_id.clone(); s as usize];
+    Signers::<T>::put(signers);
   }:  {
-    let _ = Staking::<T>::new_session_handler(&vec![validator_id_res]);
+    // Note that here we only add one validator, where as `Signers` already contains two as a
+    // minimum.
+    let _ = Staking::<T>::new_session_handler(&vec![validator_id]);
   }
   verify {
     assert!(NextSigners::<T>::get().is_none());
-  }
-
-  new_session_not_adding_new_signer {
-    let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-
-    let second_signer: T::AccountId = account("second_signer", 0, SEED);
-    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    // full signer list leaving room for one extra validator
-    let mut signers = vec![second_signer_id.clone(); 5];
-    Signers::<T>::put(signers.clone());
-    signers.push(validator_id_res.clone());
-
-
-  }:  {
-    let _ = Staking::<T>::new_session_handler(&signers);
-  }
-  verify {
-    assert_eq!(NextSigners::<T>::get().unwrap().next_signers.len(), signers.len() - 2);
   }
 
   new_session {
@@ -264,25 +261,34 @@ benchmarks! {
     let l in 0 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+
+    // For the purpose of the bench these values don't actually matter, we just care that there's a
+    // storage entry available
+    SignersInfo::<T>::put(SignersSize {
+        total_signers: MAX_SIGNERS,
+        threshold: 3,
+        last_session_change: 0,
+    });
+
+    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
 
     let second_signer: T::AccountId = account("second_signer", 0, SEED);
-    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+
     // full signer list leaving room for one extra validator
     let mut signers = vec![second_signer_id.clone(); c as usize];
 
     Signers::<T>::put(signers.clone());
     signers.push(second_signer_id.clone());
-    // place new signer in the signers struct in different locations to calculate random selection re-run
-    signers[l as usize % c as usize] = validator_id_res.clone();
 
-    SignersInfo::<T>::put(SignersSize {
-      total_signers: MAX_SIGNERS,
-      threshold: 3,
-      last_session_change: 0
-    });
-
-
+    // place new signer in the signers struct in different locations to calculate random selection
+    // re-run
+    signers[l as usize % c as usize] = validator_id.clone();
   }:  {
     let _ = Staking::<T>::new_session_handler(&signers);
   }
