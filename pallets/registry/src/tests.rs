@@ -18,7 +18,6 @@ use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
-    traits::Currency,
     BoundedVec,
 };
 use pallet_programs::ProgramInfo;
