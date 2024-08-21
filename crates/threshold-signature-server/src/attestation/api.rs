@@ -37,7 +37,7 @@ pub async fn attest(
     input: Bytes,
 ) -> Result<StatusCode, AttestationErr> {
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
-    let attestaion_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
+    let attestation_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
 
     // Check whether there is an attestion request for us
     if !attestaion_requests.tss_account_ids.contains(&signer.signer().public().0) {
