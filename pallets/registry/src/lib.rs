@@ -549,7 +549,8 @@ pub mod pallet {
             new_program_mod_account: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+
+            RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                 if let Some(registered_details) = maybe_registered_details {
                     ensure!(
                         who == registered_details.program_modification_account,
@@ -562,6 +563,7 @@ pub mod pallet {
                     Err(Error::<T>::NotRegistered)
                 }
             })?;
+
             let mut verifying_keys_len = 0;
             ModifiableKeys::<T>::try_mutate(&who, |verifying_keys| -> Result<(), DispatchError> {
                 verifying_keys_len = verifying_keys.len();
@@ -582,6 +584,7 @@ pub mod pallet {
                     Ok(())
                 },
             )?;
+
             Self::deposit_event(Event::ProgramModificationAccountChanged(
                 who,
                 new_program_mod_account,
@@ -593,6 +596,7 @@ pub mod pallet {
             ))
             .into())
         }
+
         /// Allows validators to confirm that they have received a key-share from a user that is
         /// in the process of registering.
         ///
