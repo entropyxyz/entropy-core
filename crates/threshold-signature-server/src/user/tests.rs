@@ -19,7 +19,7 @@ use bip39::{Language, Mnemonic};
 use blake3::hash;
 use entropy_client::substrate::get_registered_details;
 use entropy_client::{
-    client::{register, sign, store_program, update_programs},
+    client::{sign, store_program, update_programs},
     user::get_signers_from_chain,
 };
 use entropy_kvdb::{
