@@ -230,6 +230,11 @@ pub mod pallet {
     #[pallet::getter(fn jump_start_progress)]
     pub type JumpStartProgress<T: Config> = StorageValue<_, JumpStartDetails<T>, ValueQuery>;
 
+    /// Tell Signers to rotate keyshare
+    #[pallet::storage]
+    #[pallet::getter(fn rotate_keyshares)]
+    pub type RotateKeyshares<T: Config> = StorageValue<_, bool, ValueQuery>;
+
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
         <T as pallet_session::Config>::ValidatorId,
@@ -505,6 +510,7 @@ pub mod pallet {
             let current_signer_length = signers_info.next_signers.len();
             if signers_info.confirmations.len() == (current_signer_length - 1) {
                 Signers::<T>::put(signers_info.next_signers.clone());
+                RotateKeyshares::<T>::put(true);
                 Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
                 Ok(Pays::No.into())
             } else {

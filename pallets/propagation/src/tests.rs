@@ -81,6 +81,14 @@ fn knows_how_to_mock_several_http_calls() {
             body: [32, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0].to_vec(),
             ..Default::default()
         });
+        state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/validator/rotate_keyshares".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [10, 0, 0, 0].to_vec(),
+            ..Default::default()
+        });
     });
 
     t.execute_with(|| {
@@ -137,6 +145,9 @@ fn knows_how_to_mock_several_http_calls() {
         });
         // now triggers
         Propagation::post_reshare(7).unwrap();
+
+        pallet_staking_extension::RotateKeyshares::<Test>::put(true);
+        Propagation::post_rotate_keyshare(10).unwrap();
     })
 }
 
