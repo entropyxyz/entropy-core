@@ -333,6 +333,28 @@ fn it_fails_registration_if_no_program_is_set() {
 }
 
 #[test]
+fn it_fails_registration_if_an_empty_program_is_set() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1, 2);
+
+        // Note that we also don't write any programs into storage here.
+        let non_existent_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existent_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::NoProgramSet
+        );
+    })
+}
+
+#[test]
 fn it_fails_registration_if_no_jump_start_has_happened() {
     new_test_ext().execute_with(|| {
         let (alice, bob) = (1u64, 2);
@@ -755,35 +777,6 @@ fn it_fails_on_non_matching_verifying_keys() {
         assert_eq!(Registry::registering(1), None);
         assert_eq!(Registry::registered(expected_verifying_key.clone()), None);
     })
-}
-
-#[test]
-fn it_fails_no_program() {
-    new_test_ext().execute_with(|| {
-        // register a user
-        let non_existing_program = vec![10];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existing_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
-            Error::<Test>::NoProgramSet
-        );
-    });
-}
-
-#[test]
-fn it_fails_empty_program_list() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, BoundedVec::try_from(vec![]).unwrap(),),
-            Error::<Test>::NoProgramSet
-        );
-    });
 }
 
 #[test]
