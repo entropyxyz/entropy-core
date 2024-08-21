@@ -539,11 +539,12 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<Weight, DispatchError> {
-            let mut weight: Weight = <T as Config>::WeightInfo::new_session_base_weight();
-
             let mut current_signers = Self::signers();
             let current_signers_length = current_signers.len();
             let signers_info = pallet_parameters::Pallet::<T>::signers_info();
+
+            let mut weight: Weight =
+                <T as Config>::WeightInfo::new_session_base_weight(current_signers_length as u32);
 
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
