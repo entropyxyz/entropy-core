@@ -60,7 +60,6 @@ pub trait WeightInfo {
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
 	fn confirm_key_reshare_completed() -> Weight;
 	fn new_session_validators_less_then_signers() -> Weight;
-	fn new_session_not_adding_new_signer() -> Weight;
 	fn new_session(c: u32, l: u32) -> Weight;
 }
 
@@ -235,26 +234,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
 	}
-	/// Storage: `StakingExtension::Signers` (r:1 w:0)
-	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
-	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
-	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
-	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
-	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn new_session_not_adding_new_signer() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `439`
-		//  Estimated: `1924`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(10_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 1924))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
 }
 
 // For backwards compatibility and tests
@@ -426,25 +405,5 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
-	}
-	/// Storage: `StakingExtension::Signers` (r:1 w:0)
-	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
-	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
-	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
-	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
-	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn new_session_not_adding_new_signer() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `439`
-		//  Estimated: `1924`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(10_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 1924))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 }

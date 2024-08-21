@@ -198,26 +198,6 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
 	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
-	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
-	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
-	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn new_session_not_adding_new_signer() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `439`
-		//  Estimated: `1924`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(9_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 1924))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	/// Storage: `StakingExtension::Signers` (r:1 w:0)
-	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
-	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Babe::NextRandomness` (r:1 w:0)
 	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
 	/// Storage: `Babe::EpochStart` (r:1 w:0)

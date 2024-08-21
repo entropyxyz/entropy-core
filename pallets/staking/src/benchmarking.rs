@@ -236,7 +236,7 @@ benchmarks! {
     // For the purpose of the bench these values don't actually matter, we just care that there's a
     // storage entry available
     SignersInfo::<T>::put(SignersSize {
-        total_signers: s as u8,
+        total_signers: MAX_SIGNERS,
         threshold: 3,
         last_session_change: 0,
     });
@@ -256,36 +256,21 @@ benchmarks! {
     assert!(NextSigners::<T>::get().is_none());
   }
 
-  new_session_not_adding_new_signer {
-    let caller: T::AccountId = whitelisted_caller();
-
-    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
-        .or(Err(Error::<T>::InvalidValidatorId))
-        .unwrap();
-
-    let second_signer: T::AccountId = account("second_signer", 0, SEED);
-    let second_signer_id =
-        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
-            .or(Err(Error::<T>::InvalidValidatorId))
-            .unwrap();
-
-    // full signer list leaving room for one extra validator
-    let mut signers = vec![second_signer_id.clone(); 5];
-    Signers::<T>::put(signers.clone());
-    signers.push(validator_id.clone());
-  }:  {
-    let _ = Staking::<T>::new_session_handler(&signers);
-  }
-  verify {
-    assert_eq!(NextSigners::<T>::get().unwrap().next_signers.len(), signers.len() - 2);
-  }
-
   new_session {
     let c in 1 .. MAX_SIGNERS as u32 - 1;
     let l in 0 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+
+    // For the purpose of the bench these values don't actually matter, we just care that there's a
+    // storage entry available
+    SignersInfo::<T>::put(SignersSize {
+        total_signers: MAX_SIGNERS,
+        threshold: 3,
+        last_session_change: 0,
+    });
+
+    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
@@ -303,13 +288,7 @@ benchmarks! {
 
     // place new signer in the signers struct in different locations to calculate random selection
     // re-run
-    signers[l as usize % c as usize] = validator_id_res.clone();
-
-    SignersInfo::<T>::put(SignersSize {
-        total_signers: MAX_SIGNERS,
-        threshold: 3,
-        last_session_change: 0,
-    });
+    signers[l as usize % c as usize] = validator_id.clone();
   }:  {
     let _ = Staking::<T>::new_session_handler(&signers);
   }
