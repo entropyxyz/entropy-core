@@ -70,13 +70,15 @@ pub mod pallet {
             let _ = Self::post_dkg(block_number);
             let _ = Self::post_reshare(block_number);
             let _ = Self::post_user_registration(block_number);
-            let _ = Self::post_proactive_refresh(block_number);
             let _ = Self::post_attestation_request(block_number);
+            let _ = Self::post_proactive_refresh(block_number);
+            let _ = Self::post_rotate_keyshare
         }
 
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             pallet_registry::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
             pallet_staking_extension::ProactiveRefresh::<T>::take();
+            // delete rotate keyshare trigger
             <T as Config>::WeightInfo::on_initialize()
         }
     }

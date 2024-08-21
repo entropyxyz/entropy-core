@@ -198,6 +198,29 @@ pub async fn rotate_network_key(
     State(app_state): State<AppState>,
 ) -> Result<StatusCode, ValidatorErr> {
     // validate from chain
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
+    let (signer, _) = get_signer_and_x25519_secret(&app_state.kv_store)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
+    let signers_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signers_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, signers)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == *signer.account_id());
+
+    if !is_proper_signer {
+        return Ok(StatusCode::MISDIRECTED_REQUEST);
+    }
 
     let network_parent_key_heading = hex::encode(NETWORK_PARENT_KEY);
     let next_network_parent_key_heading = hex::encode(NEXT_NETWORK_PARENT_KEY);
