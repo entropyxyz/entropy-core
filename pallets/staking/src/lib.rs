@@ -540,7 +540,7 @@ pub mod pallet {
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<Weight, DispatchError> {
             // TODO (Nando): Change this into base weight
-            let mut base_weight: Weight =
+            let mut weight: Weight =
                 <T as Config>::WeightInfo::new_session_validators_less_then_signers();
 
             let mut current_signers = Self::signers();
@@ -550,26 +550,27 @@ pub mod pallet {
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
-                return Ok(base_weight);
+                return Ok(weight);
             }
 
             let mut new_signer = vec![];
+            let mut count = 0u32;
+
             if current_signers_length <= signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
                 let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
-                let mut count = 0u32;
+
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
                     count += 1;
                 }
+
                 current_signers.push(next_signer_up.clone());
                 new_signer = next_signer_up.encode();
-                base_weight =
-                    <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count)
             }
 
             // removes first signer and pushes new signer to back if total signers not increased
@@ -578,21 +579,25 @@ pub mod pallet {
             }
 
             NextSigners::<T>::put(NextSignerInfo {
-                next_signers: current_signers,
+                next_signers: current_signers.clone(),
                 confirmations: vec![],
             });
+
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
                 new_signer,
             };
+
             ReshareData::<T>::put(reshare_info);
             JumpStartProgress::<T>::mutate(|jump_start_details| {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
 
-            Ok(base_weight)
+            weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count);
+
+            Ok(weight)
         }
     }
 
