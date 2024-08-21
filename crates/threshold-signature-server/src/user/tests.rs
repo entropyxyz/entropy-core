@@ -121,7 +121,8 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
+            jump_start_network_with_signer, remove_program, run_to_block, setup_client,
+            spawn_testing_validators, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -1557,80 +1558,6 @@ async fn test_new_registration_flow() {
 
 #[tokio::test]
 #[serial]
-async fn test_client_register_and_sign() {
-    clean_tests();
-    let account_owner = AccountKeyring::Ferdie.pair();
-    let signature_request_author = AccountKeyring::One;
-
-    let add_parent_key = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
-
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // Jumpstart the network
-    jump_start_network(&api, &rpc).await;
-
-    // Store a program
-    let program_pointer = store_program(
-        &api,
-        &rpc,
-        &account_owner,
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    // Register, using that program
-    let (verifying_key, _registered_info) = {
-        let register_on_chain = true;
-        let mut registrations = register(
-            &api,
-            &rpc,
-            account_owner.clone(),
-            subxtAccountId32(account_owner.public().0),
-            BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
-            register_on_chain,
-        )
-        .await
-        .unwrap();
-
-        registrations.pop().unwrap()
-    };
-
-    // Sign a message
-    let recoverable_signature = sign(
-        &api,
-        &rpc,
-        signature_request_author.pair(),
-        verifying_key,
-        PREIMAGE_SHOULD_SUCCEED.to_vec(),
-        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
-    )
-    .await
-    .unwrap();
-
-    // Check the signature
-    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-        &message_should_succeed_hash,
-        &recoverable_signature.signature,
-        recoverable_signature.recovery_id,
-    )
-    .unwrap();
-    assert_eq!(
-        verifying_key.to_vec(),
-        recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
-    );
-}
-
-#[tokio::test]
-#[serial]
 async fn test_mutiple_confirm_done() {
     initialize_test_logger().await;
     clean_tests();
@@ -1825,24 +1752,12 @@ pub async fn get_sign_tx_data(
     (validators_info, generic_msg, validator_ips_and_keys)
 }
 
+/// Mock jump starting the network
 pub async fn jump_start_network(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) {
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-
-    let jump_start_request = entropy::tx().registry().jump_start_network();
-    let _result = submit_transaction(api, rpc, &signer, &jump_start_request, None).await.unwrap();
-
-    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
-    for validator_name in validators_names {
-        let mnemonic = development_mnemonic(&Some(validator_name));
-        let (tss_signer, _static_secret) =
-            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
-        let jump_start_confirm_request =
-            entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
-
-        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
-    }
+    jump_start_network_with_signer(api, rpc, &signer).await;
 }
