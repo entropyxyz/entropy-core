@@ -40,7 +40,7 @@ pub async fn attest(
     let attestation_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
 
     // Check whether there is an attestion request for us
-    if !attestaion_requests.tss_account_ids.contains(&signer.signer().public().0) {
+    if !attestation_requests.tss_account_ids.contains(&signer.signer().public().0) {
         return Ok(StatusCode::OK);
     }
 
