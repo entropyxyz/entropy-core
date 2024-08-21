@@ -102,9 +102,31 @@ async fn test_reshare() {
             deserialize(&key_share_and_aux_data_after).unwrap();
 
         // Check key share has changed
-        assert_ne!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
+        assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
         // Check aux info has changed
-        assert_ne!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
+        assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
+
+        let _ = client
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .send()
+            .await
+            .unwrap();
+
+        let key_share_and_aux_data_after_rotate =
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+        let (key_share_after_rotate, aux_info_after_rotate): KeyShareWithAuxInfo =
+            deserialize(&key_share_and_aux_data_after_rotate).unwrap();
+
+        // Check key share has changed
+        assert_ne!(
+            serialize(&key_share_before).unwrap(),
+            serialize(&key_share_after_rotate).unwrap()
+        );
+        // Check aux info has changed
+        assert_ne!(
+            serialize(&aux_info_before).unwrap(),
+            serialize(&aux_info_after_rotate).unwrap()
+        );
     }
     // TODO #981 - test signing a message with the new keyshare set
     clean_tests();

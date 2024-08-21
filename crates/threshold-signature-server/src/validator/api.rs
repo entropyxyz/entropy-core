@@ -35,7 +35,7 @@ pub use entropy_protocol::{
     execute_protocol::{execute_protocol_generic, execute_reshare, Channels, PairWrapper},
     KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY};
+use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::Pair;
 use std::{collections::BTreeSet, str::FromStr};
@@ -176,17 +176,42 @@ pub async fn new_reshare(
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-    let network_parent_key = hex::encode(NETWORK_PARENT_KEY);
-    // TODO: should this be a two step process? see # https://github.com/entropyxyz/entropy-core/issues/968
-    if app_state.kv_store.kv().exists(&network_parent_key).await? {
-        app_state.kv_store.kv().delete(&network_parent_key).await?
+    let next_network_parent_key = hex::encode(NEXT_NETWORK_PARENT_KEY);
+
+    if app_state.kv_store.kv().exists(&next_network_parent_key).await? {
+        app_state.kv_store.kv().delete(&next_network_parent_key).await?
     };
 
-    let reservation = app_state.kv_store.kv().reserve_key(network_parent_key).await?;
+    let reservation = app_state.kv_store.kv().reserve_key(next_network_parent_key).await?;
     app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(&api, &rpc, &signer).await?;
+    Ok(StatusCode::OK)
+}
+
+// HTTP POST endpoint called by the off-chain worker (propagation pallet) after  network reshare.
+///
+/// This roatates network key.
+#[tracing::instrument(skip_all)]
+pub async fn rotate_network_key(
+    State(app_state): State<AppState>,
+) -> Result<StatusCode, ValidatorErr> {
+    // validate from chain
+
+    let network_parent_key_heading = hex::encode(NETWORK_PARENT_KEY);
+    let next_network_parent_key_heading = hex::encode(NEXT_NETWORK_PARENT_KEY);
+
+    let new_parent_key = app_state.kv_store.kv().get(&next_network_parent_key_heading).await?;
+
+    if app_state.kv_store.kv().exists(&network_parent_key_heading).await? {
+        app_state.kv_store.kv().delete(&network_parent_key_heading).await?;
+    };
+
+    app_state.kv_store.kv().delete(&next_network_parent_key_heading).await?;
+
+    let reservation = app_state.kv_store.kv().reserve_key(network_parent_key_heading).await?;
+    app_state.kv_store.kv().put(reservation, new_parent_key).await?;
     Ok(StatusCode::OK)
 }
 

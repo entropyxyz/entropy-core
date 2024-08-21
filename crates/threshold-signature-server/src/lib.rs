@@ -157,7 +157,7 @@ use crate::{
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
-    validator::api::new_reshare,
+    validator::api::{new_reshare, rotate_network_key},
 };
 
 #[derive(Clone)]
@@ -180,6 +180,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/sign_tx", post(sign_tx))
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/reshare", post(new_reshare))
+        .route("/validator/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
