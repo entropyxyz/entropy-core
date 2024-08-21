@@ -229,15 +229,19 @@ benchmarks! {
   }
 
   new_session_validators_less_then_signers {
+    let s in 2 .. MAX_SIGNERS as u32;
+
     let caller: T::AccountId = whitelisted_caller();
 
     let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
-    Signers::<T>::put(vec![validator_id.clone(), validator_id.clone()]);
+    let signers = vec![validator_id.clone(); s as usize];
+    Signers::<T>::put(signers);
   }:  {
-    // Note that here we only add one validator, whereas `Signers` already contains two.
+    // Note that here we only add one validator, where as `Signers` already contains two as a
+    // minimum.
     let _ = Staking::<T>::new_session_handler(&vec![validator_id]);
   }
   verify {
