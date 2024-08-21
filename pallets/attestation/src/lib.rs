@@ -14,6 +14,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! # Attestation Pallet
+//!
+//! This handles attestations that the TS servers are running on TDX hardware and that the binary
+//! from our release is correctly loaded.
+//!
+//! It stores the nonces of all pending (requested) attestations, storing them under the associated
+//! TSS account ID. So there may be at most one pending attestation per TS server. The nonce is just
+//! a random 32 bytes, which is included in the input data to the TDX quote, to prove that this is
+//! a freshly made quote.
+//!
+//! An attestation request is responded to by submitting the quote using the attest extrinsic. If
+//! there was a pending attestation for the caller, the quote is verified. Verification currently
+//! just means checking that the quote parses correctly and has a valid signature.
+//!
+//! It also stores a mapping of block number to TSS account IDs of nodes for who an attestation
+//! request should be initiated. This is used by the propagation pallet to make a POST request to
+//! the TS server's /attest endpoint whenever there are requests to be made.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
@@ -38,6 +54,9 @@ pub mod pallet {
     use tdx_quote::Quote;
 
     pub use crate::weights::WeightInfo;
+
+    /// A nonce included as input for a TDX quote
+    type Nonce = [u8; 32];
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -74,7 +93,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn pending_attestations)]
     pub type PendingAttestations<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, [u8; 32], OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, Nonce, OptionQuery>;
 
     /// A mapping between block numbers and TSS nodes for who we want to make a request for
     /// attestation, used to make attestation requests via an offchain worker
@@ -89,23 +108,33 @@ pub mod pallet {
         AttestationMade,
     }
 
+    /// Errors related to the attestation pallet
     #[pallet::error]
     pub enum Error<T> {
+        /// Quote could not be parsed or verified
         BadQuote,
+        /// Attestation extrinsic submitted when not requested
         UnexpectedAttestation,
+        /// Hashed input data does not match what was expected
         IncorrectInputData,
+        /// Cannot lookup associated stash account
         NoStashAccount,
+        /// Cannot lookup associated TS server info
         NoServerInfo,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// A TDX quote given in response to an attestation request.
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
         #[pallet::call_index(0)]
         #[pallet::weight({
             <T as Config>::WeightInfo::attest()
         })]
         pub fn attest(origin: OriginFor<T>, quote: Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
+
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
             let nonce =
@@ -138,18 +167,19 @@ pub mod pallet {
                 Error::<T>::IncorrectInputData
             );
 
+            // TODO #982 Check measurements match current release of entropy-tss
+            let _mrtd = quote.mrtd();
+
+            // TODO #982 Check that the attestation public key matches that from PCK certificate
+            let _attestation_key = quote.attestation_key;
+
             // Remove the entry from PendingAttestations
             PendingAttestations::<T>::remove(&who);
 
-            // TODO Check measurements match current release of entropy-tss
-            let _mrtd = quote.mrtd();
-
-            // TODO Check that the attestation public key matches that from PCK certificate
-            let _attestation_key = quote.attestation_key;
-
-            // TODO If anything fails, don't just return an error - do something mean
+            // TODO #982 If anything fails, don't just return an error - do something mean
 
             Self::deposit_event(Event::AttestationMade);
+
             Ok(())
         }
     }
