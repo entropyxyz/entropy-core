@@ -614,18 +614,22 @@ pub mod pallet {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
             if let Some(validators) = &new_session {
-                let result_weight = Pallet::<T>::new_session_handler(validators);
-                if let Err(why) = result_weight {
-                    log::warn!(
-                        "Error splitting validators, Session: {:?}, reason: {:?}",
-                        new_index,
-                        why
-                    )
-                } else {
-                    frame_system::Pallet::<T>::register_extra_weight_unchecked(
-                        result_weight.expect("Error unwraping non error value"),
-                        DispatchClass::Mandatory,
-                    );
+                let weight = Pallet::<T>::new_session_handler(validators);
+
+                match weight {
+                    Ok(weight) => {
+                        frame_system::Pallet::<T>::register_extra_weight_unchecked(
+                            weight,
+                            DispatchClass::Mandatory,
+                        );
+                    },
+                    Err(why) => {
+                        log::warn!(
+                            "Error splitting validators, Session: {:?}, reason: {:?}",
+                            new_index,
+                            why
+                        )
+                    },
                 }
             }
             new_session
