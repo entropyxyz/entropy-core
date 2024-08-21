@@ -20,7 +20,6 @@ use crate::{
             self,
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec, pallet_programs::pallet::ProgramInfo,
-                pallet_registry::pallet::RegisteredInfo,
             },
         },
         EntropyConfig,
@@ -70,38 +69,6 @@ pub async fn get_oracle_data(
     let oracle_info =
         query_chain(api, rpc, oracle_data_call, None).await?.unwrap_or(BoundedVec(vec![]));
     Ok(oracle_info.0)
-}
-
-/// Returns a registered user's key visibility
-#[tracing::instrument(skip_all, fields(verifying_key))]
-pub async fn get_registered_details(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    verifying_key: Vec<u8>,
-) -> Result<RegisteredInfo, UserErr> {
-    tracing::info!("Querying chain for registration info.");
-
-    let registered_info_query =
-        entropy::storage().registry().registered(BoundedVec(verifying_key.clone()));
-    let registered_result = query_chain(api, rpc, registered_info_query, None).await?;
-
-    let registration_info = if let Some(old_registration_info) = registered_result {
-        tracing::debug!("Found user in old `Registered` struct.");
-
-        old_registration_info
-    } else {
-        // We failed with the old registration path, let's try the new one
-        tracing::warn!("Didn't find user in old `Registered` struct, trying new one.");
-
-        let registered_info_query =
-            entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
-
-        query_chain(api, rpc, registered_info_query, None)
-            .await?
-            .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?
-    };
-
-    Ok(registration_info)
 }
 
 /// Takes Stash keys and returns validator info from chain

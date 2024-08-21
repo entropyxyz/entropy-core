@@ -26,6 +26,7 @@ use axum::{
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use blake2::{Blake2s256, Digest};
+use entropy_client::substrate::get_registered_details;
 use entropy_kvdb::kv_manager::{
     error::{InnerKvError, KvError},
     helpers::serialize as key_serialize,
@@ -68,8 +69,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_oracle_data, get_program, get_registered_details, get_stash_address, query_chain,
-            submit_transaction,
+            get_oracle_data, get_program, get_stash_address, query_chain, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
         validator::{get_signer, get_signer_and_x25519_secret},

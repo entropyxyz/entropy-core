@@ -360,6 +360,7 @@ impl pallet_programs::Config for Test {
 
 impl pallet_propagation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
 }
 
 impl pallet_parameters::Config for Test {

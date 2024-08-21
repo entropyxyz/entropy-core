@@ -214,6 +214,7 @@ runtime-benchmarks=[
   "pallet-offences-benchmarking/runtime-benchmarks",
   "pallet-oracle/runtime-benchmarks",
   "pallet-parameters/runtime-benchmarks",
+  "pallet-propagation/runtime-benchmarks",
   "pallet-preimage/runtime-benchmarks",
   "pallet-programs/runtime-benchmarks",
   "pallet-proxy/runtime-benchmarks",

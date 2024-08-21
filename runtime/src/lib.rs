@@ -1485,6 +1485,7 @@ impl pallet_transaction_pause::Config for Runtime {
 
 impl pallet_propagation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = weights::pallet_propagation::WeightInfo<Runtime>;
 }
 
 impl pallet_parameters::Config for Runtime {
@@ -1644,6 +1645,7 @@ mod benches {
       [pallet_oracle, Oracle]
       [pallet_preimage, Preimage]
       [pallet_parameters, Parameters]
+      [pallet_propagation, Propagation]
       [pallet_proxy, Proxy]
       [pallet_recovery, Recovery]
       [pallet_registry, Registry]
