@@ -77,6 +77,109 @@ fn it_tests_get_validators_info() {
     });
 }
 
+// Nando: Old flow
+#[test]
+fn it_confirms_registers_a_user() {
+    new_test_ext().execute_with(|| {
+        let expected_verifying_key =
+            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+        assert_noop!(
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
+            Error::<Test>::NoThresholdKey
+        );
+
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
+
+        assert_noop!(
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
+            Error::<Test>::NotRegistering
+        );
+
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
+        pallet_programs::Programs::<Test>::insert(
+            program_hash,
+            ProgramInfo {
+                bytecode: empty_program.clone(),
+                configuration_schema: empty_program.clone(),
+                auxiliary_data_schema: empty_program.clone(),
+                oracle_data_pointer: empty_program.clone(),
+                deployer: 1,
+                ref_counter: 0,
+            },
+        );
+
+        assert_ok!(Registry::register(
+            RuntimeOrigin::signed(1),
+            2 as <Test as frame_system::Config>::AccountId,
+            programs_info.clone(),
+        ));
+
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
+
+        assert!(Registry::registered(expected_verifying_key.clone()).is_none());
+
+        assert_ok!(Registry::confirm_register(
+            RuntimeOrigin::signed(1),
+            1,
+            expected_verifying_key.clone()
+        ));
+
+        assert_noop!(
+            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
+            Error::<Test>::AlreadyConfirmed
+        );
+
+        assert_noop!(
+            Registry::confirm_register(RuntimeOrigin::signed(8), 1, expected_verifying_key.clone()),
+            Error::<Test>::NotValidator
+        );
+
+        let registering_info = RegisteringDetails::<Test> {
+            confirmations: vec![1],
+            programs_data: programs_info.clone(),
+            verifying_key: Some(expected_verifying_key.clone()),
+            program_modification_account: 2,
+            version_number: 1,
+        };
+
+        assert_eq!(Registry::registering(1), Some(registering_info));
+
+        assert_ok!(Registry::confirm_register(
+            RuntimeOrigin::signed(2),
+            1,
+            expected_verifying_key.clone()
+        ));
+
+        assert_ok!(Registry::confirm_register(
+            RuntimeOrigin::signed(7),
+            1,
+            expected_verifying_key.clone()
+        ));
+
+        assert_eq!(Registry::registering(1), None);
+        assert_eq!(
+            Registry::registered(expected_verifying_key.clone()).unwrap(),
+            RegisteredInfo {
+                programs_data: programs_info.clone(),
+                program_modification_account: 2,
+                derivation_path: None,
+                version_number: 1,
+            }
+        );
+        assert_eq!(
+            Registry::modifiable_keys(2),
+            vec![expected_verifying_key],
+            "list of modifable keys exist"
+        );
+    });
+}
+
 #[test]
 fn it_registers_a_user_on_chain() {
     new_test_ext().execute_with(|| {
@@ -117,6 +220,40 @@ fn it_registers_a_user_on_chain() {
         assert!(registered_info.is_some());
         assert_eq!(registered_info.unwrap().program_modification_account, bob);
     });
+}
+
+#[test]
+fn it_increases_program_reference_count_on_register() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: We expect that the program reference count has gone up
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            1,
+            "The reference counter was not incremented during registration."
+        );
+    })
 }
 
 #[test]
@@ -259,42 +396,6 @@ fn it_fails_registration_if_parent_key_matches_derived_key() {
 }
 
 #[test]
-fn it_registers_a_user() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
-        ));
-        assert_eq!(Registry::dkg(0), vec![1u64.encode()]);
-        assert_eq!(
-            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
-            1,
-            "ref counter is incremented"
-        );
-    });
-}
-
-#[test]
 fn it_jumps_the_network() {
     new_test_ext().execute_with(|| {
         assert_eq!(
@@ -419,108 +520,6 @@ fn it_tests_jump_start_result() {
             pallet_staking_extension::Signers::<Test>::get(),
             vec![1, 2, 5],
             "Jumpstart sets inital signers"
-        );
-    });
-}
-
-#[test]
-fn it_confirms_registers_a_user() {
-    new_test_ext().execute_with(|| {
-        let expected_verifying_key =
-            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
-            Error::<Test>::NoThresholdKey
-        );
-
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
-            Error::<Test>::NotRegistering
-        );
-
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info.clone(),
-        ));
-
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-
-        assert!(Registry::registered(expected_verifying_key.clone()).is_none());
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(1),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
-            Error::<Test>::AlreadyConfirmed
-        );
-
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(8), 1, expected_verifying_key.clone()),
-            Error::<Test>::NotValidator
-        );
-
-        let registering_info = RegisteringDetails::<Test> {
-            confirmations: vec![1],
-            programs_data: programs_info.clone(),
-            verifying_key: Some(expected_verifying_key.clone()),
-            program_modification_account: 2,
-            version_number: 1,
-        };
-
-        assert_eq!(Registry::registering(1), Some(registering_info));
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(2),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(7),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        assert_eq!(Registry::registering(1), None);
-        assert_eq!(
-            Registry::registered(expected_verifying_key.clone()).unwrap(),
-            RegisteredInfo {
-                programs_data: programs_info.clone(),
-                program_modification_account: 2,
-                derivation_path: None,
-                version_number: 1,
-            }
-        );
-        assert_eq!(
-            Registry::modifiable_keys(2),
-            vec![expected_verifying_key],
-            "list of modifable keys exist"
         );
     });
 }
@@ -865,6 +864,7 @@ fn it_tests_prune_registration() {
         );
     });
 }
+
 #[test]
 fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {
