@@ -13,12 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// This is a randomly generated secret p256 ECDSA key
-const ENCLAVE_SIGNING_KEY: [u8; 32] = [
-    167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
-    27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
-];
-
 use entropy_shared::QuoteInputData;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{EventRecord, RawOrigin};
@@ -27,6 +21,12 @@ use pallet_staking_extension::{ServerInfo, ThresholdServers, ThresholdToStash};
 use super::*;
 #[allow(unused)]
 use crate::Pallet as AttestationPallet;
+
+// This is a randomly generated secret p256 ECDSA key
+const ENCLAVE_SIGNING_KEY: [u8; 32] = [
+    167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
+    27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+];
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
@@ -70,6 +70,8 @@ benchmarks! {
     assert_last_event::<T>(
         Event::<T>::AttestationMade.into()
     );
+    // Check that there is no longer a pending attestation
+    assert!(!<PendingAttestations<T>>::contains_key(attestee));
   }
 }
 
