@@ -12,12 +12,16 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use crate::helpers::tests::{initialize_test_logger, spawn_testing_validators};
+use crate::{
+    chain_api::{entropy, get_api, get_rpc},
+    helpers::{
+        substrate::query_chain,
+        tests::{initialize_test_logger, run_to_block, spawn_testing_validators},
+    },
+};
 use entropy_kvdb::clean_tests;
-use entropy_shared::QuoteInputData;
 use entropy_testing_utils::{
-    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    substrate_context::test_node_process_testing_state,
+    constants::TSS_ACCOUNTS, substrate_context::test_node_process_stationary,
 };
 use serial_test::serial;
 
@@ -27,25 +31,34 @@ async fn test_attest() {
     initialize_test_logger().await;
     clean_tests();
 
-    let _cxt = test_node_process_testing_state(false).await;
+    let cxt = test_node_process_stationary().await;
     let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let nonce = [0; 32];
-    let client = reqwest::Client::new();
-    let res = client
-        .post(format!("http://127.0.0.1:3001/attest"))
-        .body(nonce.to_vec())
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(res.status(), 200);
-    let quote = res.bytes().await.unwrap();
+    // Check that there is an attestation request at block 3 from the genesis config
+    let attestation_requests_query = entropy::storage().attestation().attestation_requests(3);
+    query_chain(&api, &rpc, attestation_requests_query, None).await.unwrap().unwrap();
 
-    // This internally verifies the signature in the quote
-    let quote = tdx_quote::Quote::from_bytes(&quote).unwrap();
+    // Get the nonce from the pending attestation from the genesis config
+    let nonce = {
+        let pending_attestation_query =
+            entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
+        query_chain(&api, &rpc, pending_attestation_query, None).await.unwrap().unwrap()
+    };
+    assert_eq!(nonce, [0; 32]);
 
-    // Check the input data of the quote
-    let expected_input_data =
-        QuoteInputData::new(TSS_ACCOUNTS[0].0, X25519_PUBLIC_KEYS[0], nonce, 0);
-    assert_eq!(quote.report_input_data(), expected_input_data.0);
+    // Wait for the attestation to be handled
+    for _ in 0..10 {
+        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+        run_to_block(&rpc, block_number + 1).await;
+
+        // There should be no more pending attestation as the attestation has been handled
+        let pending_attestation_query =
+            entropy::storage().attestation().pending_attestations(&TSS_ACCOUNTS[0]);
+        if query_chain(&api, &rpc, pending_attestation_query, None).await.unwrap().is_none() {
+            return;
+        }
+    }
+    panic!("Waited 10 blocks and attestation is still pending");
 }

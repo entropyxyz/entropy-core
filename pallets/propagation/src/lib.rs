@@ -14,11 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-//! # Propogation Pallet
+//! # Propagation Pallet
 //!
 //! ## Overview
 //!
-//! Propgates messages to signing client through offchain worker
+//! Propagates messages to signing client through offchain worker
 pub use pallet::*;
 
 #[cfg(test)]
@@ -37,7 +37,8 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
     use codec::Encode;
     use entropy_shared::{
-        OcwMessageDkg, OcwMessageProactiveRefresh, OcwMessageReshare, ValidatorInfo,
+        OcwMessageAttestationRequest, OcwMessageDkg, OcwMessageProactiveRefresh, OcwMessageReshare,
+        ValidatorInfo,
     };
     use frame_support::{pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
@@ -53,6 +54,7 @@ pub mod pallet {
         + pallet_authorship::Config
         + pallet_registry::Config
         + pallet_staking_extension::Config
+        + pallet_attestation::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The weight information of this pallet.
@@ -69,6 +71,7 @@ pub mod pallet {
             let _ = Self::post_reshare(block_number);
             let _ = Self::post_user_registration(block_number);
             let _ = Self::post_proactive_refresh(block_number);
+            let _ = Self::post_attestation_request(block_number);
         }
 
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
@@ -92,6 +95,9 @@ pub mod pallet {
         /// Proactive Refresh Message passed to validators
         /// parameters. [OcwMessageReshare]
         KeyReshareMessagePassed(OcwMessageReshare),
+
+        /// Attestations request message passed
+        AttestationRequestMessagePassed(OcwMessageAttestationRequest),
     }
 
     #[pallet::call]
@@ -310,6 +316,50 @@ pub mod pallet {
 
             Self::deposit_event(Event::ProactiveRefreshMessagePassed(req_body));
 
+            Ok(())
+        }
+
+        /// Submits a request for a TDX attestation.
+        pub fn post_attestation_request(
+            block_number: BlockNumberFor<T>,
+        ) -> Result<(), http::Error> {
+            if let Some(attestations_to_request) =
+                pallet_attestation::Pallet::<T>::attestation_requests(block_number)
+            {
+                if attestations_to_request.is_empty() {
+                    return Ok(());
+                }
+
+                let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+                let kind = sp_core::offchain::StorageKind::PERSISTENT;
+                let from_local = sp_io::offchain::local_storage_get(kind, b"attest")
+                    .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
+                let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/attest");
+
+                let req_body = OcwMessageAttestationRequest {
+                    tss_account_ids: attestations_to_request
+                        .into_iter()
+                        .filter_map(|v| v.try_into().ok())
+                        .collect(),
+                };
+                log::debug!("propagation::post attestation: {:?}", &[req_body.encode()]);
+
+                let pending = http::Request::post(url, vec![req_body.encode()])
+                    .deadline(deadline)
+                    .send()
+                    .map_err(|_| http::Error::IoError)?;
+
+                let response =
+                    pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+
+                if response.code != 200 {
+                    log::warn!("Unexpected status code: {}", response.code);
+                    return Err(http::Error::Unknown);
+                }
+                let _res_body = response.body().collect::<Vec<u8>>();
+
+                Self::deposit_event(Event::AttestationRequestMessagePassed(req_body));
+            };
             Ok(())
         }
     }

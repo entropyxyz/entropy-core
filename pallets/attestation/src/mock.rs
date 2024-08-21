@@ -19,9 +19,10 @@ use frame_election_provider_support::{
 };
 use frame_support::{
     derive_impl, parameter_types,
-    traits::{ConstU32, FindAuthor, OneSessionHandler, Randomness},
+    traits::{ConstU32, OneSessionHandler, Randomness},
 };
-use frame_system::{self as system, EnsureRoot};
+use frame_system as system;
+use frame_system::EnsureRoot;
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
@@ -33,7 +34,7 @@ use sp_runtime::{
 use sp_staking::{EraIndex, SessionIndex};
 use std::cell::RefCell;
 
-use crate as pallet_propagation;
+use crate as pallet_attestation;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -46,22 +47,23 @@ type Balance = u64;
 frame_support::construct_runtime!(
   pub enum Test
   {
+    Attestation: pallet_attestation,
     System: frame_system,
     Balances: pallet_balances,
     Timestamp: pallet_timestamp,
-    Authorship: pallet_authorship,
-    Registry: pallet_registry,
-    Programs: pallet_programs,
-    Propagation: pallet_propagation,
     Staking: pallet_staking_extension,
     FrameStaking: pallet_staking,
     Session: pallet_session,
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
-    Attestation: pallet_attestation,
   }
 );
+
+impl pallet_attestation::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+}
 
 parameter_types! {
   pub const BlockHashCount: u64 = 250;
@@ -78,7 +80,6 @@ impl system::Config for Test {
     type BlockLength = ();
     type BlockWeights = ();
     type DbWeight = ();
-    type RuntimeTask = RuntimeTask;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Lookup = IdentityLookup<Self::AccountId>;
@@ -227,7 +228,6 @@ parameter_types! {
   pub const ElectionLookahead: u64 = 0;
   pub const StakingUnsignedPriority: u64 = u64::MAX / 2;
   pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
-  pub static MaxNominations: u32 = 16;
 }
 
 pub struct StakingBenchmarkingConfig;
@@ -315,32 +315,9 @@ parameter_types! {
   pub const UncleGenerations: u64 = 0;
 }
 
-/// Author of block is always 11
-pub struct Author11;
-impl FindAuthor<u64> for Author11 {
-    fn find_author<'a, I>(_digests: I) -> Option<u64>
-    where
-        I: 'a + IntoIterator<Item = (frame_support::ConsensusEngineId, &'a [u8])>,
-    {
-        Some(11)
-    }
-}
-
-impl pallet_authorship::Config for Test {
-    type EventHandler = ();
-    type FindAuthor = Author11;
-}
-
 parameter_types! {
-  pub const MaxProgramHashes: u32 = 5;
+  pub const MaxProgramHashes: u32 = 5u32;
   pub const KeyVersionNumber: u8 = 1;
-}
-
-impl pallet_registry::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type MaxProgramHashes = MaxProgramHashes;
-    type KeyVersionNumber = KeyVersionNumber;
-    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -349,52 +326,31 @@ parameter_types! {
   pub const MaxOwnedPrograms: u32 = 5;
 }
 
-impl pallet_programs::Config for Test {
-    type Currency = ();
-    type MaxBytecodeLength = MaxBytecodeLength;
-    type ProgramDepositPerByte = ProgramDepositPerByte;
-    type MaxOwnedPrograms = MaxOwnedPrograms;
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-}
-
-impl pallet_propagation::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-}
-
 impl pallet_parameters::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<Self::AccountId>;
     type WeightInfo = ();
 }
 
-impl pallet_attestation::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-}
-
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
+
+    let pallet_attestation = pallet_attestation::GenesisConfig::<Test> {
+        initial_pending_attestations: vec![(0, NULL_ARR)],
+        initial_attestation_requests: Vec::new(),
+    };
+    pallet_attestation.assimilate_storage(&mut t).unwrap();
+
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         threshold_servers: vec![
             // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
-            (5, (7, NULL_ARR, vec![20])),
-            (6, (8, NULL_ARR, vec![40])),
-            (1, (3, NULL_ARR, vec![10])),
-            (2, (4, NULL_ARR, vec![11])),
+            (5, (0, NULL_ARR, vec![20])),
         ],
         proactive_refresh_data: (vec![], vec![]),
         mock_signer_rotate: (false, vec![], vec![]),
     };
-
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
-
-    let stakers = vec![1, 2];
-    let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
-
-    pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();
 
     t.into()
 }

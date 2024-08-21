@@ -32,9 +32,14 @@ pub enum AttestationErr {
     NotImplemented,
     #[error("Input must be 32 bytes: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
-    #[cfg(any(test, feature = "unsafe"))]
     #[error("Could not get block number")]
     BlockNumber,
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("Got an attestation request but there is no pending attestation request on chain")]
+    Unexpected,
+    #[error("Could not decode message: {0}")]
+    Codec(#[from] parity_scale_codec::Error),
 }
 
 impl IntoResponse for AttestationErr {

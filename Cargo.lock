@@ -2619,6 +2619,7 @@ dependencies = [
  "frame-try-runtime 0.35.0",
  "hex-literal",
  "log",
+ "pallet-attestation",
  "pallet-authority-discovery",
  "pallet-authorship",
  "pallet-babe",
@@ -6672,6 +6673,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-attestation"
+version = "0.2.0"
+dependencies = [
+ "entropy-shared",
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-support 29.0.2",
+ "frame-system",
+ "log",
+ "pallet-bags-list",
+ "pallet-balances",
+ "pallet-parameters",
+ "pallet-session",
+ "pallet-staking",
+ "pallet-staking-extension",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rand_core 0.6.4",
+ "scale-info",
+ "sp-core 29.0.0",
+ "sp-io 31.0.0",
+ "sp-npos-elections",
+ "sp-runtime 32.0.0",
+ "sp-staking 27.0.0",
+ "sp-std 14.0.0",
+ "tdx-quote",
+]
+
+[[package]]
 name = "pallet-authority-discovery"
 version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7162,6 +7193,7 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
+ "pallet-attestation",
  "pallet-authorship",
  "pallet-babe",
  "pallet-bags-list",

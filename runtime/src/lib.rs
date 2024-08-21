@@ -1494,6 +1494,11 @@ impl pallet_parameters::Config for Runtime {
     type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
+impl pallet_attestation::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
+}
+
 parameter_types! {
     pub const MaxOracleKeyLength: u32 = 100;
     pub const MaxOracleValueLength: u32 = 100;
@@ -1559,6 +1564,7 @@ construct_runtime!(
     Propagation: pallet_propagation = 55,
     Parameters: pallet_parameters = 56,
     Oracle: pallet_oracle = 57,
+    Attestation: pallet_attestation = 58,
   }
 );
 
@@ -1616,6 +1622,7 @@ extern crate frame_benchmarking;
 mod benches {
     define_benchmarks!(
       [frame_benchmarking, BaselineBench::<Runtime>]
+      [pallet_attestation, Attestation]
       [pallet_babe, Babe]
       [pallet_bags_list, BagsList]
       [pallet_balances, Balances]

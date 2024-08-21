@@ -82,6 +82,15 @@ pub struct OcwMessageProactiveRefresh {
     pub proactive_refresh_keys: Vec<Vec<u8>>,
 }
 
+/// Offchain worker message for requesting a TDX attestation
+#[cfg(not(feature = "wasm"))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OcwMessageAttestationRequest {
+    /// The account ids of all TSS servers who must submit an attestation this block
+    pub tss_account_ids: Vec<[u8; 32]>,
+}
+
 /// 256-bit hashing algorithms for deriving the point to be signed.
 #[cfg_attr(any(feature = "wasm", feature = "std"), derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "std", derive(EnumIter))]
@@ -105,14 +114,14 @@ pub type EncodedVerifyingKey = [u8; VERIFICATION_KEY_LENGTH as usize];
 pub struct QuoteInputData(pub [u8; 64]);
 
 impl QuoteInputData {
-    pub fn new(
-        tss_account_id: [u8; 32],
+    pub fn new<T: Encode>(
+        tss_account_id: T,
         x25519_public_key: X25519PublicKey,
         nonce: [u8; 32],
         block_number: u32,
     ) -> Self {
         let mut hasher = Blake2b512::new();
-        hasher.update(tss_account_id);
+        hasher.update(tss_account_id.encode());
         hasher.update(x25519_public_key);
         hasher.update(nonce);
         hasher.update(block_number.to_be_bytes());
