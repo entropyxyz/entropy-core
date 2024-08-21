@@ -412,12 +412,6 @@ fn it_fails_registration_with_too_many_modifiable_keys() {
     })
 }
 
-#[ignore]
-#[test]
-fn it_fails_registration_if_parent_key_matches_derived_key() {
-    new_test_ext().execute_with(|| unimplemented!())
-}
-
 #[test]
 fn it_jumps_the_network() {
     new_test_ext().execute_with(|| {
