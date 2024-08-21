@@ -448,7 +448,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change their program pointer
-        #[pallet::call_index(4)]
+        #[pallet::call_index(3)]
         #[pallet::weight({
              <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
@@ -509,7 +509,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change itself.
-        #[pallet::call_index(5)]
+        #[pallet::call_index(4)]
         #[pallet::weight({
                  <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
              })]
@@ -568,7 +568,7 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(6)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
@@ -677,7 +677,7 @@ pub mod pallet {
         ///
         /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
         /// registration request will produce a different verifying key.
-        #[pallet::call_index(7)]
+        #[pallet::call_index(6)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
         })]
