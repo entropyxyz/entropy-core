@@ -228,7 +228,7 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::SignersRotation(signers.clone()).into());
   }
 
-  new_session_validators_less_then_signers {
+  new_session_base_weight {
     let s in 2 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();

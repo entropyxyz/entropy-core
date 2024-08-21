@@ -185,7 +185,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	}
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn new_session_validators_less_then_signers() -> Weight {
+	fn new_session_base_weight() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `234`
 		//  Estimated: `1719`

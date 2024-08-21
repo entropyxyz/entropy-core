@@ -539,9 +539,7 @@ pub mod pallet {
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
         ) -> Result<Weight, DispatchError> {
-            // TODO (Nando): Change this into base weight
-            let mut weight: Weight =
-                <T as Config>::WeightInfo::new_session_validators_less_then_signers();
+            let mut weight: Weight = <T as Config>::WeightInfo::new_session_base_weight();
 
             let mut current_signers = Self::signers();
             let current_signers_length = current_signers.len();

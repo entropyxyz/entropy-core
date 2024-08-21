@@ -59,7 +59,7 @@ pub trait WeightInfo {
 	fn declare_synced() -> Weight;
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
 	fn confirm_key_reshare_completed() -> Weight;
-	fn new_session_validators_less_then_signers() -> Weight;
+	fn new_session_base_weight() -> Weight;
 	fn new_session(c: u32, l: u32) -> Weight;
 }
 
@@ -194,7 +194,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn new_session_validators_less_then_signers() -> Weight {
+	fn new_session_base_weight() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `234`
 		//  Estimated: `1719`
@@ -366,7 +366,7 @@ impl WeightInfo for () {
 	}
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn new_session_validators_less_then_signers() -> Weight {
+	fn new_session_base_weight() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `234`
 		//  Estimated: `1719`
