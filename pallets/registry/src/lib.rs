@@ -447,30 +447,6 @@ pub mod pallet {
             Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
         }
 
-        /// Allows a user to remove themselves from registering state if it has been longer than prune block
-        #[pallet::call_index(3)]
-        #[pallet::weight({
-            <T as Config>::WeightInfo::prune_registration(<T as Config>::MaxProgramHashes::get())
-        })]
-        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            for program_instance in &registering_info.programs_data {
-                pallet_programs::Programs::<T>::mutate(
-                    program_instance.program_pointer,
-                    |maybe_program_info| {
-                        if let Some(program_info) = maybe_program_info {
-                            program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
-                        }
-                    },
-                );
-            }
-            let program_length = registering_info.programs_data.len();
-            Registering::<T>::remove(&who);
-            Self::deposit_event(Event::RegistrationCancelled(who));
-            Ok(Some(<T as Config>::WeightInfo::register(program_length as u32)).into())
-        }
-
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(4)]
         #[pallet::weight({
