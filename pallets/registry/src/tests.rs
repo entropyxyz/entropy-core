@@ -31,7 +31,7 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
+    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo, RegisteredOnChain,
     RegisteringDetails, ValidateConfirmRegistered,
 };
 
@@ -319,7 +319,7 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
 #[test]
 fn it_fails_registration_if_no_program_is_set() {
     new_test_ext().execute_with(|| {
-        let (alice, bob) = (1u64, 2);
+        let (alice, bob) = (1, 2);
 
         // Note that we also don't write any programs into storage here.
         let programs_info = BoundedVec::try_from(vec![]).unwrap();
@@ -390,9 +390,10 @@ fn it_fails_registration_with_too_many_modifiable_keys() {
     })
 }
 
+#[ignore]
 #[test]
 fn it_fails_registration_if_parent_key_matches_derived_key() {
-    new_test_ext().execute_with(|| {})
+    new_test_ext().execute_with(|| unimplemented!())
 }
 
 #[test]
@@ -525,7 +526,7 @@ fn it_tests_jump_start_result() {
 }
 
 #[test]
-fn it_changes_a_program_pointer() {
+fn it_changes_a_program_instance() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
@@ -576,16 +577,23 @@ fn it_changes_a_program_pointer() {
             version_number: 1,
         };
 
-        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
+        RegisteredOnChain::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(
+            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
+            registered_info
+        );
 
         assert_ok!(Registry::change_program_instance(
             RuntimeOrigin::signed(2),
             expected_verifying_key.clone(),
             new_programs_info.clone(),
         ));
+
         registered_info.programs_data = new_programs_info;
-        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
+        assert_eq!(
+            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
+            registered_info
+        );
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             0,
@@ -605,6 +613,7 @@ fn it_changes_a_program_pointer() {
             ProgramInstance { program_pointer: unreigistered_program_hash, program_config: vec![] },
         ])
         .unwrap();
+
         assert_noop!(
             Registry::change_program_instance(
                 RuntimeOrigin::signed(2),
