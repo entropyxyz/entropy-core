@@ -152,6 +152,14 @@ async fn test_reshare() {
             serialize(&aux_info_after_rotate).unwrap()
         );
     }
+
+    run_to_block(&rpc, block_number + 5).await;
+
+    let response_stale =
+        client.post("http://127.0.0.1:3001/validator/rotate_network_key").send().await.unwrap();
+
+    assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
+
     // TODO #981 - test signing a message with the new keyshare set
     clean_tests();
 }
