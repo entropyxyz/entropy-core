@@ -137,23 +137,6 @@ impl<T: frame_system::Config> pallet_registry::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn prune_registration(p: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `540`
-		//  Estimated: `4005`
-		// Minimum execution time: 17_000_000 picoseconds.
-		Weight::from_parts(17_300_000, 0)
-			.saturating_add(Weight::from_parts(0, 4005))
-			// Standard Error: 117_260
-			.saturating_add(Weight::from_parts(100_000, 0).saturating_mul(p.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Registry::Registered` (r:1 w:1)

@@ -250,34 +250,6 @@ benchmarks! {
     assert!(RegisteredOnChain::<T>::contains_key(expected_verifying_key));
   }
 
-  prune_registration {
-    let p in 1 .. T::MaxProgramHashes::get();
-    let program_modification_account: T::AccountId = whitelisted_caller();
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  }]).unwrap();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, oracle_data_pointer, deployer: program_modification_account.clone(), ref_counter: 1});
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-      <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        program_modification_account: sig_req_account.clone(),
-        confirmations: vec![],
-        programs_data: programs_info,
-        verifying_key: Some(BoundedVec::default()),
-        version_number: T::KeyVersionNumber::get()
-    });
-  }: _(RawOrigin::Signed(sig_req_account.clone()))
-  verify {
-    assert_last_event::<T>(Event::RegistrationCancelled(sig_req_account.clone()).into());
-  }
-
   change_program_instance {
     let n in 1 .. T::MaxProgramHashes::get();
     let o in 1 .. T::MaxProgramHashes::get();
