@@ -215,7 +215,6 @@ pub async fn sign(
 #[tracing::instrument(
     skip_all,
     fields(
-        signature_request_account,
         deployer = ?deployer_pair.public(),
     )
 )]
@@ -259,7 +258,7 @@ pub async fn update_programs(
 #[tracing::instrument(
     skip_all,
     fields(
-        signature_request_account,
+        program_hash,
         deployer = ?deployer_pair.public(),
     )
 )]
