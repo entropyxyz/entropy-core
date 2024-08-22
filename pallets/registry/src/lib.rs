@@ -30,7 +30,6 @@
 //! ### Public Functions
 //!
 //! `register` - Allows a user to signal their intent to register onto the Entropy network.
-//! `confirm_register` - Allows validator nodes to confirm that they have recieved a user's
 //! key-share. After enough succesful confirmations from validators that user will be succesfully
 //! registered.
 
