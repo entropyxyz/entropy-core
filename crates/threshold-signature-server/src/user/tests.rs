@@ -120,9 +120,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
-            check_has_confirmation, create_clients, initialize_test_logger,
-            jump_start_network_with_signer, remove_program, run_to_block, setup_client,
-            spawn_testing_validators, unsafe_get,
+            create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
+            run_to_block, setup_client, spawn_testing_validators, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,

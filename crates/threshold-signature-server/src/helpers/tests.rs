@@ -31,7 +31,7 @@ use crate::{
             ValidatorName, DEFAULT_ENDPOINT,
         },
         logger::{Instrumentation, Logger},
-        substrate::{query_chain, submit_transaction},
+        substrate::submit_transaction,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
