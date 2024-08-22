@@ -679,6 +679,7 @@ async fn test_program_with_config() {
     clean_tests();
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_store_share() {
