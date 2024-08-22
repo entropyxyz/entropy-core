@@ -228,14 +228,14 @@ pub async fn store_program(
     auxiliary_data_interface: Vec<u8>,
     oracle_data_pointer: Vec<u8>,
 ) -> Result<<EntropyConfig as Config>::Hash, ClientError> {
-    let update_program_tx = entropy::tx().programs().set_program(
+    let set_program_tx = entropy::tx().programs().set_program(
         program,
         configuration_interface,
         auxiliary_data_interface,
         oracle_data_pointer,
     );
     let in_block =
-        submit_transaction_with_pair(api, rpc, deployer_pair, &update_program_tx, None).await?;
+        submit_transaction_with_pair(api, rpc, deployer_pair, &set_program_tx, None).await?;
     let result_event = in_block.find_first::<entropy::programs::events::ProgramCreated>()?;
     Ok(result_event.ok_or(ClientError::CannotConfirmProgramCreated)?.program_hash)
 }
@@ -254,6 +254,35 @@ pub async fn update_programs(
     submit_transaction_with_pair(entropy_api, rpc, deployer_pair, &update_pointer_tx, None).await?;
     Ok(())
 }
+
+/// Removed a stored a program with a given hash
+#[tracing::instrument(
+    skip_all,
+    fields(
+        signature_request_account,
+        deployer = ?deployer_pair.public(),
+    )
+)]
+pub async fn remove_program(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    deployer_pair: &sr25519::Pair,
+    program_hash: <EntropyConfig as Config>::Hash,
+) -> Result<(), ClientError> {
+    let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
+    let in_block =
+        submit_transaction_with_pair(api, rpc, deployer_pair, &remove_program_tx, None).await?;
+
+    let event = in_block
+        .find_first::<entropy::programs::events::ProgramRemoved>()?
+        .ok_or(ClientError::CannotConfirmProgramRemoved)?;
+
+    if event.old_program_hash != program_hash {
+        return Err(ClientError::CannotConfirmProgramRemoved);
+    }
+    Ok(())
+}
+
 /// Get info on all registered accounts
 pub async fn get_accounts(
     api: &OnlineClient<EntropyConfig>,
