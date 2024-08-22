@@ -72,13 +72,12 @@ pub mod pallet {
             let _ = Self::post_user_registration(block_number);
             let _ = Self::post_attestation_request(block_number);
             let _ = Self::post_proactive_refresh(block_number);
-            let _ = Self::post_rotate_keyshare
+            let _ = Self::post_rotate_keyshare(block_number);
         }
 
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             pallet_registry::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
             pallet_staking_extension::ProactiveRefresh::<T>::take();
-            // delete rotate keyshare trigger
             <T as Config>::WeightInfo::on_initialize()
         }
     }
@@ -328,7 +327,7 @@ pub mod pallet {
         /// Submits a request to rotate parent network key the threshold servers.
         pub fn post_rotate_keyshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let rotate_keyshares = pallet_staking_extension::Pallet::<T>::rotate_keyshares();
-            if !rotate_keyshares {
+            if rotate_keyshares != block_number {
                 return Ok(());
             }
 

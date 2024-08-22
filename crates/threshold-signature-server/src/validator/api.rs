@@ -200,6 +200,7 @@ pub async fn rotate_network_key(
     // validate from chain
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+    validate_rotate_network_key(&api, &rpc).await?;
 
     let (signer, _) = get_signer_and_x25519_secret(&app_state.kv_store)
         .await
@@ -284,6 +285,29 @@ pub async fn validate_new_reshare(
     Ok(())
 }
 
+/// Validates rotate_network_key
+/// Checks the chain that the reshare was completed
+pub async fn validate_rotate_network_key(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(), ValidatorErr> {
+    let latest_block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get block number".to_string()))?
+        .number;
+
+    let rotate_keyshares_info_query = entropy::storage().staking_extension().rotate_keyshares();
+    let rotate_keyshare_block = query_chain(api, rpc, rotate_keyshares_info_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Rotate Keyshare not in progress"))?;
+
+    if latest_block_number > rotate_keyshare_block {
+        return Err(ValidatorErr::StaleData);
+    }
+
+    Ok(())
+}
 /// Confirms that a validator has succefully reshared.
 pub async fn confirm_key_reshare(
     api: &OnlineClient<EntropyConfig>,

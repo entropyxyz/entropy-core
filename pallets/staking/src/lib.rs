@@ -233,7 +233,7 @@ pub mod pallet {
     /// Tell Signers to rotate keyshare
     #[pallet::storage]
     #[pallet::getter(fn rotate_keyshares)]
-    pub type RotateKeyshares<T: Config> = StorageValue<_, bool, ValueQuery>;
+    pub type RotateKeyshares<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
@@ -510,7 +510,9 @@ pub mod pallet {
             let current_signer_length = signers_info.next_signers.len();
             if signers_info.confirmations.len() == (current_signer_length - 1) {
                 Signers::<T>::put(signers_info.next_signers.clone());
-                RotateKeyshares::<T>::put(true);
+                RotateKeyshares::<T>::put(
+                    <frame_system::Pallet<T>>::block_number() + sp_runtime::traits::One::one(),
+                );
                 Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
                 Ok(Pays::No.into())
             } else {

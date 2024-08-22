@@ -146,7 +146,7 @@ fn knows_how_to_mock_several_http_calls() {
         // now triggers
         Propagation::post_reshare(7).unwrap();
 
-        pallet_staking_extension::RotateKeyshares::<Test>::put(true);
+        pallet_staking_extension::RotateKeyshares::<Test>::put(10);
         Propagation::post_rotate_keyshare(10).unwrap();
     })
 }
