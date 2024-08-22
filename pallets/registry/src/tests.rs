@@ -30,7 +30,7 @@ use sp_runtime::{
 
 use crate as pallet_registry;
 use crate::{
-    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
+    mock::*, Error, ModifiableKeys, ProgramInstance, RegisteredInfo, RegisteredOnChain,
     RegisteringDetails, ValidateConfirmRegistered,
 };
 
@@ -119,6 +119,40 @@ fn it_registers_a_user_on_chain() {
 }
 
 #[test]
+fn it_increases_program_reference_count_on_register() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob, _charlie) = (1u64, 2, 3);
+
+        // Setup: Ensure programs exist and a valid verifying key is available
+        let programs_info = setup_programs();
+        let empty_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        pallet_staking_extension::JumpStartProgress::<Test>::set(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        // Test: Run through registration
+        assert_ok!(Registry::register_on_chain(
+            RuntimeOrigin::signed(alice),
+            bob,
+            programs_info.clone(),
+        ));
+
+        // Validate: We expect that the program reference count has gone up
+        assert_eq!(
+            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
+            1,
+            "The reference counter was not incremented during registration."
+        );
+    })
+}
+
+#[test]
 fn it_registers_different_users_with_the_same_sig_req_account() {
     new_test_ext().execute_with(|| {
         use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
@@ -181,10 +215,32 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
 #[test]
 fn it_fails_registration_if_no_program_is_set() {
     new_test_ext().execute_with(|| {
-        let (alice, bob) = (1u64, 2);
+        let (alice, bob) = (1, 2);
 
         // Note that we also don't write any programs into storage here.
         let programs_info = BoundedVec::try_from(vec![]).unwrap();
+
+        // Test: Run through registration, this should fail
+        assert_noop!(
+            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Error::<Test>::NoProgramSet
+        );
+    })
+}
+
+#[test]
+fn it_fails_registration_if_an_empty_program_is_set() {
+    new_test_ext().execute_with(|| {
+        let (alice, bob) = (1, 2);
+
+        // Note that we also don't write any programs into storage here.
+        let non_existent_program = vec![];
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existent_program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        }])
+        .unwrap();
 
         // Test: Run through registration, this should fail
         assert_noop!(
@@ -250,47 +306,6 @@ fn it_fails_registration_with_too_many_modifiable_keys() {
             Error::<Test>::TooManyModifiableKeys
         );
     })
-}
-
-#[test]
-fn it_fails_registration_if_parent_key_matches_derived_key() {
-    new_test_ext().execute_with(|| {})
-}
-
-#[test]
-fn it_registers_a_user() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
-        ));
-        assert_eq!(Registry::dkg(0), vec![1u64.encode()]);
-        assert_eq!(
-            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
-            1,
-            "ref counter is incremented"
-        );
-    });
 }
 
 #[test]
@@ -525,7 +540,7 @@ fn it_confirms_registers_a_user() {
 }
 
 #[test]
-fn it_changes_a_program_pointer() {
+fn it_changes_a_program_instance() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
@@ -576,16 +591,23 @@ fn it_changes_a_program_pointer() {
             version_number: 1,
         };
 
-        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
+        RegisteredOnChain::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(
+            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
+            registered_info
+        );
 
         assert_ok!(Registry::change_program_instance(
             RuntimeOrigin::signed(2),
             expected_verifying_key.clone(),
             new_programs_info.clone(),
         ));
+
         registered_info.programs_data = new_programs_info;
-        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
+        assert_eq!(
+            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
+            registered_info
+        );
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             0,
@@ -605,6 +627,7 @@ fn it_changes_a_program_pointer() {
             ProgramInstance { program_pointer: unreigistered_program_hash, program_config: vec![] },
         ])
         .unwrap();
+
         assert_noop!(
             Registry::change_program_instance(
                 RuntimeOrigin::signed(2),
@@ -628,26 +651,8 @@ fn it_changes_a_program_pointer() {
 #[test]
 fn it_changes_a_program_mod_account() {
     new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 1,
-            },
-        );
-
+        // Setup: Ensure programs exist and a verifying key is available
+        let programs_info = setup_programs();
         let expected_verifying_key = BoundedVec::default();
 
         let mut registered_info = RegisteredInfo {
@@ -657,8 +662,11 @@ fn it_changes_a_program_mod_account() {
             version_number: 1,
         };
 
-        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
+        RegisteredOnChain::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(
+            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
+            registered_info
+        );
 
         // Idk why this state could happen but still test to make sure it fails with a noop if ModifiableKeys not set
         assert_noop!(
@@ -687,13 +695,15 @@ fn it_changes_a_program_mod_account() {
             vec![expected_verifying_key.clone()],
             "account 3 now has control of the account"
         );
+
         registered_info.program_modification_account = 3;
         assert_eq!(
-            Registry::registered(expected_verifying_key.clone()).unwrap(),
+            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
             registered_info,
             "account 3 now in registered info"
         );
         assert_eq!(Registry::modifiable_keys(2), vec![], "account 2 no longer has control");
+
         // account 2 no longer in control, fails
         assert_noop!(
             Registry::change_program_modification_account(
@@ -759,68 +769,6 @@ fn it_fails_on_non_matching_verifying_keys() {
         assert_eq!(Registry::registering(1), None);
         assert_eq!(Registry::registered(expected_verifying_key.clone()), None);
     })
-}
-#[test]
-fn it_doesnt_allow_double_registering() {
-    new_test_ext().execute_with(|| {
-        // register a user
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
-
-        // error if they try to submit another request, even with a different program key
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
-            Error::<Test>::AlreadySubmitted
-        );
-    });
-}
-
-#[test]
-fn it_fails_no_program() {
-    new_test_ext().execute_with(|| {
-        // register a user
-        let non_existing_program = vec![10];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&non_existing_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
-            Error::<Test>::NoProgramSet
-        );
-    });
-}
-
-#[test]
-fn it_fails_empty_program_list() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, BoundedVec::try_from(vec![]).unwrap(),),
-            Error::<Test>::NoProgramSet
-        );
-    });
 }
 
 #[test]
