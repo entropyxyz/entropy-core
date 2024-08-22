@@ -55,18 +55,15 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{MAX_SIGNERS, NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
     use frame_support::{
-        dispatch::{DispatchResultWithPostInfo, Pays},
-        pallet_prelude::*,
-        traits::{ConstU32, IsSubType},
+        dispatch::DispatchResultWithPostInfo, pallet_prelude::*, traits::ConstU32,
     };
     use frame_system::pallet_prelude::*;
     use pallet_staking_extension::{
         JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo, VerifyingKey,
     };
     use scale_info::TypeInfo;
-    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::vec;
-    use sp_std::{fmt::Debug, vec::Vec};
+    use sp_std::vec::Vec;
 
     pub use crate::weights::WeightInfo;
 

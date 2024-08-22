@@ -13,27 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[allow(unused)]
+use pallet_registry::Call as RegistryCall;
+
 use codec::Encode;
 use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
-use frame_support::{
-    assert_noop, assert_ok,
-    dispatch::{GetDispatchInfo, Pays},
-    traits::Currency,
-    BoundedVec,
-};
+use frame_support::{assert_noop, assert_ok, traits::Currency, BoundedVec};
 use pallet_programs::ProgramInfo;
-use pallet_registry::Call as RegistryCall;
 use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
-use sp_runtime::{
-    traits::{Hash, SignedExtension},
-    transaction_validity::{TransactionValidity, ValidTransaction},
-};
+use sp_runtime::traits::Hash;
 
 use crate as pallet_registry;
-use crate::{
-    mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo,
-    RegisteringDetails, ValidateConfirmRegistered,
-};
+use crate::{mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
