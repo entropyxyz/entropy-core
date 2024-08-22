@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::QuoteInputData;
+    use entropy_shared::{QuoteInputData, ACCEPTED_MRTD_VALUES};
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
@@ -121,6 +121,8 @@ pub mod pallet {
         NoStashAccount,
         /// Cannot lookup associated TS server info
         NoServerInfo,
+        /// Unacceptable VM image running
+        BadMrtdValue,
     }
 
     #[pallet::call]
@@ -167,8 +169,8 @@ pub mod pallet {
                 Error::<T>::IncorrectInputData
             );
 
-            // TODO #982 Check measurements match current release of entropy-tss
-            let _mrtd = quote.mrtd();
+            // Check measurements match current release of entropy-tss
+            ensure!(ACCEPTED_MRTD_VALUES.contains(&quote.mrtd()), Error::<T>::BadMrtdValue);
 
             // TODO #982 Check that the attestation public key matches that from PCK certificate
             let _attestation_key = quote.attestation_key;
