@@ -446,7 +446,10 @@ pub mod pallet {
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(3)]
         #[pallet::weight({
-             <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
+             <T as Config>::WeightInfo::change_program_instance(
+                 <T as Config>::MaxProgramHashes::get(),
+                 <T as Config>::MaxProgramHashes::get()
+             )
          })]
         pub fn change_program_instance(
             origin: OriginFor<T>,
@@ -469,9 +472,10 @@ pub mod pallet {
                     },
                 )?;
             }
+
             let mut old_programs_length = 0;
             let programs_data =
-                Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+                RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                     if let Some(registered_details) = maybe_registered_details {
                         ensure!(
                             who == registered_details.program_modification_account,
@@ -496,7 +500,9 @@ pub mod pallet {
                         Err(Error::<T>::NotRegistered)
                     }
                 })?;
+
             Self::deposit_event(Event::ProgramInfoChanged(who, programs_data.clone()));
+
             Ok(Some(<T as Config>::WeightInfo::change_program_instance(
                 programs_data.len() as u32,
                 old_programs_length as u32,
@@ -515,7 +521,8 @@ pub mod pallet {
             new_program_mod_account: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+
+            RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                 if let Some(registered_details) = maybe_registered_details {
                     ensure!(
                         who == registered_details.program_modification_account,
@@ -528,6 +535,7 @@ pub mod pallet {
                     Err(Error::<T>::NotRegistered)
                 }
             })?;
+
             let mut verifying_keys_len = 0;
             ModifiableKeys::<T>::try_mutate(&who, |verifying_keys| -> Result<(), DispatchError> {
                 verifying_keys_len = verifying_keys.len();
@@ -548,6 +556,7 @@ pub mod pallet {
                     Ok(())
                 },
             )?;
+
             Self::deposit_event(Event::ProgramModificationAccountChanged(
                 who,
                 new_program_mod_account,

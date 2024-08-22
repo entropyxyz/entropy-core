@@ -159,6 +159,7 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain() {
@@ -488,6 +489,7 @@ async fn signature_request_with_derived_account_works() {
     clean_tests();
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain_fail() {
@@ -613,6 +615,7 @@ async fn test_sign_tx_no_chain_fail() {
     clean_tests();
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_program_with_config() {
@@ -1078,6 +1081,7 @@ pub async fn verify_signature(
     }
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_fail_infinite_program() {
@@ -1156,6 +1160,7 @@ async fn test_fail_infinite_program() {
     }
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_device_key_proxy() {

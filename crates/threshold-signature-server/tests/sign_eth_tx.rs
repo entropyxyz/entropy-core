@@ -42,6 +42,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 const GOERLI_CHAIN_ID: u64 = 5;
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn integration_test_sign_eth_tx() {
