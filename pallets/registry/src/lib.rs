@@ -567,7 +567,7 @@ pub mod pallet {
         ///
         /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
         /// registration request will produce a different verifying key.
-        #[pallet::call_index(6)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
         })]
