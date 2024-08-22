@@ -144,8 +144,8 @@ wish to store, for example:
 
 ### Remove program
 
-To remove a program you need to give the account which will 'owns' the program (the one which stored
-it) and the hex-encoded hash of the program you wish to remove, for example:
+To remove a program you need to give the account which 'owns' the program (the one which stored it)
+and the hex-encoded hash of the program you wish to remove, for example:
 
 `entropy-test-cli remove-program a2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bbac -m //Alice`
 
