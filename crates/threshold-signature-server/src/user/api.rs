@@ -451,7 +451,7 @@ pub async fn confirm_jump_start(
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
 
-    if !(who.encode() == NETWORK_PARENT_KEY.encode()) {
+    if who.encode() != NETWORK_PARENT_KEY.encode() {
         return Err(UserErr::UnableToConfirmJumpStart);
     }
 
