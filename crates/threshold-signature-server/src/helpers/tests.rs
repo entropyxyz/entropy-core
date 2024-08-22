@@ -212,38 +212,6 @@ pub async fn remove_program(
     submit_transaction(entropy_api, rpc, &deployer, &remove_program_tx, None).await.unwrap();
 }
 
-/// Verify that a Registering account has all confirmation, and that it is registered.
-pub async fn check_if_confirmation(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    key: &sr25519::Pair,
-    verifying_key: Vec<u8>,
-) {
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().registry().registering(signer.account_id());
-    let registered_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
-    let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-    let is_registering = query_chain(api, rpc, registering_query, block_hash).await;
-    // cleared from is_registering state
-    assert!(is_registering.unwrap().is_none());
-    let is_registered = query_chain(api, rpc, registered_query, block_hash).await.unwrap();
-    //TODO assert something here
-    assert_eq!(is_registered.unwrap().version_number, 1);
-}
-
-/// Verify that an account got one confirmation.
-pub async fn check_has_confirmation(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    key: &sr25519::Pair,
-) {
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(key.clone());
-    let registering_query = entropy::storage().registry().registering(signer.account_id());
-    // cleared from is_registering state
-    let is_registering = query_chain(api, rpc, registering_query, None).await.unwrap();
-    assert_eq!(is_registering.unwrap().confirmations.len(), 1);
-}
-
 pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
     let mut current_block = 0;
     while current_block < block_run {
