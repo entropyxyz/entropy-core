@@ -121,7 +121,8 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            remove_program, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
+            jump_start_network_with_signer, remove_program, run_to_block, setup_client,
+            spawn_testing_validators, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -1554,6 +1555,7 @@ async fn test_new_registration_flow() {
 
     clean_tests();
 }
+
 #[tokio::test]
 #[serial]
 async fn test_mutiple_confirm_done() {
@@ -1750,24 +1752,12 @@ pub async fn get_sign_tx_data(
     (validators_info, generic_msg, validator_ips_and_keys)
 }
 
+/// Mock jump starting the network
 pub async fn jump_start_network(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) {
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-
-    let jump_start_request = entropy::tx().registry().jump_start_network();
-    let _result = submit_transaction(api, rpc, &signer, &jump_start_request, None).await.unwrap();
-
-    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
-    for validator_name in validators_names {
-        let mnemonic = development_mnemonic(&Some(validator_name));
-        let (tss_signer, _static_secret) =
-            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
-        let jump_start_confirm_request =
-            entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
-
-        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
-    }
+    jump_start_network_with_signer(api, rpc, &signer).await;
 }
