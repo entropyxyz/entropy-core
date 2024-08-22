@@ -77,7 +77,6 @@ fn it_tests_get_validators_info() {
     });
 }
 
-// Nando: Old flow
 #[test]
 fn it_confirms_registers_a_user() {
     new_test_ext().execute_with(|| {
