@@ -155,6 +155,8 @@ pub enum UserErr {
     CustomHashOutOfBounds,
     #[error("No signing from parent key")]
     NoSigningFromParentKey,
+    #[error("The account being used is not allowed to confirm a network jump start.")]
+    UnableToConfirmJumpStart,
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),
     #[error("Error creating sr25519 keypair from seed: {0}")]

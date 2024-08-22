@@ -402,7 +402,7 @@ async fn setup_dkg(
         let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
         // TODO: Error handling really complex needs to be thought about.
-        confirm_registered(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
+        confirm_jump_start(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
     }
     Ok(())
 }
@@ -437,8 +437,8 @@ pub async fn is_registering(
     Ok(register_info.is_some())
 }
 
-/// Confirms that a address has finished registering on chain.
-pub async fn confirm_registered(
+/// Confirms that the network wide distributed key generation process has taken place.
+pub async fn confirm_jump_start(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     who: SubxtAccountId32,
@@ -450,18 +450,15 @@ pub async fn confirm_registered(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-    if who.encode() == NETWORK_PARENT_KEY.encode() {
-        let jump_start_request = entropy::tx().registry().confirm_jump_start(
-            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-        );
-        submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
-    } else {
-        let confirm_register_request = entropy::tx().registry().confirm_register(
-            who,
-            entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
-        );
-        submit_transaction(api, rpc, signer, &confirm_register_request, Some(nonce)).await?;
+
+    if !(who.encode() == NETWORK_PARENT_KEY.encode()) {
+        return Err(UserErr::UnableToConfirmJumpStart);
     }
+
+    let jump_start_request = entropy::tx().registry().confirm_jump_start(
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
+    );
+    submit_transaction(api, rpc, signer, &jump_start_request, Some(nonce)).await?;
 
     Ok(())
 }
