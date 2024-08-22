@@ -18,7 +18,6 @@ use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
 use frame_support::{
     assert_noop, assert_ok,
     dispatch::{GetDispatchInfo, Pays},
-    traits::Currency,
     BoundedVec,
 };
 use pallet_programs::ProgramInfo;
@@ -824,47 +823,6 @@ fn it_fails_empty_program_list() {
     });
 }
 
-#[test]
-fn it_tests_prune_registration() {
-    new_test_ext().execute_with(|| {
-        let inital_program = vec![10];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&inital_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: inital_program.clone(),
-                configuration_schema: inital_program.clone(),
-                auxiliary_data_schema: inital_program.clone(),
-                oracle_data_pointer: inital_program.clone(),
-                deployer: 1,
-                ref_counter: 1,
-            },
-        );
-
-        Balances::make_free_balance_be(&2, 100);
-        // register a user
-        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info,));
-        assert_eq!(
-            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
-            2,
-            "ref counter is increment"
-        );
-        assert!(Registry::registering(1).is_some(), "Make sure there is registering state");
-        assert_ok!(Registry::prune_registration(RuntimeOrigin::signed(1)));
-        assert_eq!(Registry::registering(1), None, "Make sure registering is pruned");
-        assert_eq!(
-            pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
-            1,
-            "ref counter is decremented"
-        );
-    });
-}
 #[test]
 fn it_provides_free_txs_confirm_done() {
     new_test_ext().execute_with(|| {

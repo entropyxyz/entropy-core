@@ -447,32 +447,8 @@ pub mod pallet {
             Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
         }
 
-        /// Allows a user to remove themselves from registering state if it has been longer than prune block
-        #[pallet::call_index(3)]
-        #[pallet::weight({
-            <T as Config>::WeightInfo::prune_registration(<T as Config>::MaxProgramHashes::get())
-        })]
-        pub fn prune_registration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            let registering_info = Self::registering(&who).ok_or(Error::<T>::NotRegistering)?;
-            for program_instance in &registering_info.programs_data {
-                pallet_programs::Programs::<T>::mutate(
-                    program_instance.program_pointer,
-                    |maybe_program_info| {
-                        if let Some(program_info) = maybe_program_info {
-                            program_info.ref_counter = program_info.ref_counter.saturating_sub(1);
-                        }
-                    },
-                );
-            }
-            let program_length = registering_info.programs_data.len();
-            Registering::<T>::remove(&who);
-            Self::deposit_event(Event::RegistrationCancelled(who));
-            Ok(Some(<T as Config>::WeightInfo::register(program_length as u32)).into())
-        }
-
         /// Allows a user's program modification account to change their program pointer
-        #[pallet::call_index(4)]
+        #[pallet::call_index(3)]
         #[pallet::weight({
              <T as Config>::WeightInfo::change_program_instance(<T as Config>::MaxProgramHashes::get(), <T as Config>::MaxProgramHashes::get())
          })]
@@ -533,7 +509,7 @@ pub mod pallet {
         }
 
         /// Allows a user's program modification account to change itself.
-        #[pallet::call_index(5)]
+        #[pallet::call_index(4)]
         #[pallet::weight({
                  <T as Config>::WeightInfo::change_program_modification_account(MAX_MODIFIABLE_KEYS)
              })]
@@ -592,7 +568,7 @@ pub mod pallet {
         ///
         /// After a validator from each partition confirms they have a keyshare the user will be
         /// considered as registered on the network.
-        #[pallet::call_index(6)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
             let weight =
                 <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
@@ -701,7 +677,7 @@ pub mod pallet {
         ///
         /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
         /// registration request will produce a different verifying key.
-        #[pallet::call_index(7)]
+        #[pallet::call_index(6)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
         })]
