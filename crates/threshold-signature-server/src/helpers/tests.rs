@@ -32,6 +32,7 @@ use crate::{
         },
         logger::{Instrumentation, Logger},
         substrate::{query_chain, submit_transaction},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
     AppState,
@@ -263,4 +264,26 @@ pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) 
         .unwrap();
 
     get_result.bytes().await.unwrap().into()
+}
+
+/// Mock the network being jump started by confirming a jump start even though no DKG took place,
+/// so that we can use pre-store parent keyshares for testing
+pub async fn jump_start_network_with_signer(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+) {
+    let jump_start_request = entropy::tx().registry().jump_start_network();
+    let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
+
+    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    for validator_name in validators_names {
+        let mnemonic = development_mnemonic(&Some(validator_name));
+        let (tss_signer, _static_secret) =
+            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+        let jump_start_confirm_request =
+            entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
+
+        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
+    }
 }

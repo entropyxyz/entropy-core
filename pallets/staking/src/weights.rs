@@ -59,6 +59,8 @@ pub trait WeightInfo {
 	fn declare_synced() -> Weight;
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
 	fn confirm_key_reshare_completed() -> Weight;
+	fn new_session_base_weight(s: u32) -> Weight;
+	fn new_session(c: u32, l: u32) -> Weight;
 }
 
 /// Weights for pallet_staking_extension using the Substrate node and recommended hardware.
@@ -190,6 +192,49 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn new_session_base_weight(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `254 + s * (32 ±0)`
+		//  Estimated: `1739 + s * (32 ±0)`
+		// Minimum execution time: 7_000_000 picoseconds.
+		Weight::from_parts(7_682_879, 0)
+			.saturating_add(Weight::from_parts(0, 1739))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
+	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
+	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Babe::NextRandomness` (r:1 w:0)
+	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Babe::EpochStart` (r:1 w:0)
+	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
+	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
+	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[1, 14]`.
+	/// The range of component `l` is `[0, 15]`.
+	fn new_session(c: u32, l: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `482 + c * (32 ±0)`
+		//  Estimated: `1966 + c * (32 ±0)`
+		// Minimum execution time: 13_000_000 picoseconds.
+		Weight::from_parts(12_791_889, 0)
+			.saturating_add(Weight::from_parts(0, 1966))
+			// Standard Error: 22_917
+			.saturating_add(Weight::from_parts(65_067, 0).saturating_mul(c.into()))
+			// Standard Error: 19_636
+			.saturating_add(Weight::from_parts(30_071, 0).saturating_mul(l.into()))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(3))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
+	}
 }
 
 // For backwards compatibility and tests
@@ -319,5 +364,48 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 3942))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn new_session_base_weight(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `254 + s * (32 ±0)`
+		//  Estimated: `1739 + s * (32 ±0)`
+		// Minimum execution time: 7_000_000 picoseconds.
+		Weight::from_parts(7_682_879, 0)
+			.saturating_add(Weight::from_parts(0, 1739))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
+	}
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
+	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Babe::NextRandomness` (r:1 w:0)
+	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Babe::EpochStart` (r:1 w:0)
+	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `StakingExtension::JumpStartProgress` (r:1 w:1)
+	/// Proof: `StakingExtension::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ReshareData` (r:0 w:1)
+	/// Proof: `StakingExtension::ReshareData` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:0 w:1)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[1, 14]`.
+	/// The range of component `l` is `[0, 15]`.
+	fn new_session(c: u32, l: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `482 + c * (32 ±0)`
+		//  Estimated: `1966 + c * (32 ±0)`
+		// Minimum execution time: 13_000_000 picoseconds.
+		Weight::from_parts(12_791_889, 0)
+			.saturating_add(Weight::from_parts(0, 1966))
+			// Standard Error: 22_917
+			.saturating_add(Weight::from_parts(65_067, 0).saturating_mul(c.into()))
+			// Standard Error: 19_636
+			.saturating_add(Weight::from_parts(30_071, 0).saturating_mul(l.into()))
+			.saturating_add(RocksDbWeight::get().reads(5))
+			.saturating_add(RocksDbWeight::get().writes(3))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
 	}
 }
