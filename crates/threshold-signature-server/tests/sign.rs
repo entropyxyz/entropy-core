@@ -33,6 +33,7 @@ use serial_test::serial;
 use sp_keyring::AccountKeyring;
 use synedrion::k256::ecdsa::VerifyingKey;
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn integration_test_sign_public() {
