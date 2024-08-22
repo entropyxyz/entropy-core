@@ -169,7 +169,7 @@ pub mod pallet {
                 Error::<T>::IncorrectInputData
             );
 
-            // Check measurements match current release of entropy-tss
+            // Check build-time measurement matches a current-supported release of entropy-tss
             ensure!(ACCEPTED_MRTD_VALUES.contains(&quote.mrtd()), Error::<T>::BadMrtdValue);
 
             // TODO #982 Check that the attestation public key matches that from PCK certificate
