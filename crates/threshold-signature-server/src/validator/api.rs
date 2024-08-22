@@ -286,7 +286,8 @@ pub async fn validate_new_reshare(
 }
 
 /// Validates rotate_network_key
-/// Checks the chain that the reshare was completed
+/// Checks the chain that the reshare was completed recently
+/// We only care that this happens after a reshare so we just check that message isn't stale
 pub async fn validate_rotate_network_key(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
