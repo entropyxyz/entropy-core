@@ -538,28 +538,36 @@ pub mod pallet {
 
         pub fn new_session_handler(
             validators: &[<T as pallet_session::Config>::ValidatorId],
-        ) -> Result<(), DispatchError> {
+        ) -> Result<Weight, DispatchError> {
             let mut current_signers = Self::signers();
             let current_signers_length = current_signers.len();
+            let signers_info = pallet_parameters::Pallet::<T>::signers_info();
+
+            let mut weight: Weight =
+                <T as Config>::WeightInfo::new_session_base_weight(current_signers_length as u32);
+
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
-                return Ok(());
+                return Ok(weight);
             }
 
-            let signers_info = pallet_parameters::Pallet::<T>::signers_info();
             let mut new_signer = vec![];
+            let mut count = 0u32;
 
             if current_signers_length <= signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
                 let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
+
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
+                    count += 1;
                 }
+
                 current_signers.push(next_signer_up.clone());
                 new_signer = next_signer_up.encode();
             }
@@ -570,20 +578,25 @@ pub mod pallet {
             }
 
             NextSigners::<T>::put(NextSignerInfo {
-                next_signers: current_signers,
+                next_signers: current_signers.clone(),
                 confirmations: vec![],
             });
+
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
                 new_signer,
             };
+
             ReshareData::<T>::put(reshare_info);
             JumpStartProgress::<T>::mutate(|jump_start_details| {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
-            Ok(())
+
+            weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count);
+
+            Ok(weight)
         }
     }
 
@@ -600,9 +613,22 @@ pub mod pallet {
         fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
             let new_session = I::new_session(new_index);
             if let Some(validators) = &new_session {
-                let result = Pallet::<T>::new_session_handler(validators);
-                if result.is_err() {
-                    log::warn!("Error splitting validators, Session: {:?}", new_index)
+                let weight = Pallet::<T>::new_session_handler(validators);
+
+                match weight {
+                    Ok(weight) => {
+                        frame_system::Pallet::<T>::register_extra_weight_unchecked(
+                            weight,
+                            DispatchClass::Mandatory,
+                        );
+                    },
+                    Err(why) => {
+                        log::warn!(
+                            "Error splitting validators, Session: {:?}, reason: {:?}",
+                            new_index,
+                            why
+                        )
+                    },
                 }
             }
             new_session

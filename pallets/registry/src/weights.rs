@@ -54,7 +54,6 @@ pub trait WeightInfo {
 	fn register(p: u32) -> Weight;
 	fn register_on_chain(_p: u32) -> Weight;
 	fn jump_start_network() -> Weight;
-	fn prune_registration(p: u32) -> Weight;
 	fn confirm_jump_start_done(c: u32, ) -> Weight;
 	fn confirm_jump_start_confirm(c: u32, ) -> Weight;
 	fn change_program_instance(n: u32, o:u32) -> Weight;
@@ -156,21 +155,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(0, 4028))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
-	}
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn prune_registration(_p: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `468`
-		//  Estimated: `3933`
-		// Minimum execution time: 15_000_000 picoseconds.
-		Weight::from_parts(16_500_000, 0)
-			.saturating_add(Weight::from_parts(0, 3933))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -354,21 +338,6 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 4028))
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(4))
-	}
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn prune_registration(_p: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `468`
-		//  Estimated: `3933`
-		// Minimum execution time: 15_000_000 picoseconds.
-		Weight::from_parts(16_500_000, 0)
-			.saturating_add(Weight::from_parts(0, 3933))
-			.saturating_add(RocksDbWeight::get().reads(2))
-			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
