@@ -621,7 +621,7 @@ async fn test_program_with_config() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Dave;
+    let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
     let add_parent_key = true;
@@ -942,23 +942,28 @@ pub async fn verify_signature(
     }
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_fail_infinite_program() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Dave;
+    let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators(false).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let add_parent_key = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+
+    let api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    jump_start_network(&api, &rpc).await;
 
     let program_hash = store_program(
-        &entropy_api,
+        &api,
         &rpc,
         &two.pair(),
         TEST_INFINITE_LOOP_BYTECODE.to_owned(),
@@ -969,53 +974,41 @@ async fn test_fail_infinite_program() {
     .await
     .unwrap();
 
-    update_programs(
-        &entropy_api,
-        &rpc,
-        DAVE_VERIFYING_KEY,
-        &one.pair(),
-        OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }]),
-    )
-    .await
-    .unwrap();
+    let verifying_key = {
+        let registration_request = put_new_register_request_on_chain(
+            &api,
+            &rpc,
+            &one,                       // This is our signature request account
+            two.to_account_id().into(), // This is our program modification account
+            BoundedVec(vec![ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            }]),
+        )
+        .await;
 
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "localhost:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
+        let entropy::registry::events::AccountRegistered(
+            _actual_signature_request_account,
+            actual_verifying_key,
+        ) = registration_request.unwrap();
 
-    let mut generic_msg = UserSignatureRequest {
-        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(vec![
-            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-            Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
-        ]),
-        validators_info,
-        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
-        hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+        // This is slightly more convenient to work with later on
+        actual_verifying_key.0
     };
 
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
+    // Now we'll send off a signature request using the new program
+    let with_parent_key = true;
+    let (_validators_info, mut signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key).await;
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    // We'll use the actual verifying key we registered for the signature request
+    signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let test_infinite_loop =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
+
     for res in test_infinite_loop {
         assert_eq!(res.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
     }
