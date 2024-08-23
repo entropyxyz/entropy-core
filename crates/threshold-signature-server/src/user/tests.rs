@@ -159,24 +159,34 @@ async fn test_get_signer_does_not_throw_err() {
     clean_tests();
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Dave;
+    let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    // We first need to jump start the network and grab the resulting network wide verifying key
+    // for later
+    jump_start_network(&entropy_api, &rpc).await;
+
+    // We need to store a program in order to be able to register succesfully
     let program_hash = store_program(
         &entropy_api,
         &rpc,
-        &two.pair(),
+        &two.pair(), // This is our program deployer
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -185,20 +195,39 @@ async fn test_sign_tx_no_chain() {
     .await
     .unwrap();
 
-    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    let signature_request_account = subxtAccountId32(one.pair().public().0);
-    let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
-        message_hash,
-        request_author: signature_request_account.clone(),
-    });
+    let verifying_key = {
+        let registration_request = put_new_register_request_on_chain(
+            &entropy_api,
+            &rpc,
+            &one,                       // This is our signature request account
+            two.to_account_id().into(), // This is our program modification account
+            BoundedVec(vec![ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            }]),
+        )
+        .await;
 
-    let with_parent_key = false;
+        let entropy::registry::events::AccountRegistered(
+            _actual_signature_request_account,
+            actual_verifying_key,
+        ) = registration_request.unwrap();
+
+        // This is slightly more convenient to work with later on
+        actual_verifying_key.0
+    };
+
+    // Test: We check that an account without a program fails to submit a signature request
+
+    let with_parent_key = true;
     let (validators_info, mut generic_msg, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
+    // This verifying key doesn't have a program registered with it
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    // generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
+
     // test points to no program
     let test_no_program =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -206,11 +235,15 @@ async fn test_sign_tx_no_chain() {
     for res in test_no_program {
         assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
     }
+
+    // Test: We check that an account with a program succeeds in submiting a signature request
+
+    // The account we registered does have a program pointer, so this should succeed
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY,
-        &one.pair(),
+        verifying_key.as_slice().try_into().unwrap(),
+        &two.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
             OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
@@ -220,15 +253,23 @@ async fn test_sign_tx_no_chain() {
     .unwrap();
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
+
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
-    verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let decoded_verifying_key =
+        decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
+
+    // Test: We check that the rate limiter changes as expected when signature requests are sent
+
     let mock_client = reqwest::Client::new();
+
     // check request limiter increases
     let unsafe_get =
-        UnsafeQuery::new(request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())), vec![])
+        UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
             .to_json();
 
     let get_response = mock_client
@@ -249,7 +290,11 @@ async fn test_sign_tx_no_chain() {
     let test_user_res_order =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
-    verify_signature(test_user_res_order, message_hash, &verifying_key, &validators_info).await;
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    verify_signature(test_user_res_order, message_hash, &decoded_verifying_key, &validators_info)
+        .await;
+
+    // Test: A user that is not registered is not able to send a signature request
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
@@ -263,63 +308,79 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    // Test attempting to connect over ws by someone who is not in the signing group
-    let validator_ip_and_key = validator_ips_and_keys[0].clone();
-    let connection_attempt_handle = tokio::spawn(async move {
-        // Wait for the "user" to submit the signing request
-        tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+    // --- Another test ---
 
-        let ferdie_pair = AccountKeyring::Ferdie.pair();
+    // TODO: Nando, do we need this?
+    //
+    // Nando: Looks like this isn't used until later...
+    //    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    //    let signature_request_account = subxtAccountId32(one.pair().public().0);
+    //    let session_id = SessionId::Sign(SigningSessionInfo {
+    //        signature_verifying_key: verifying_key.clone(), // DAVE_VERIFYING_KEY.to_vec(),
+    //        message_hash,
+    //        request_author: signature_request_account.clone(),
+    //    });
+    // // Test attempting to connect over ws by someone who is not in the signing group
+    // let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    // let connection_attempt_handle = tokio::spawn(async move {
+    //     // Wait for the "user" to submit the signing request
+    //     tokio::time::sleep(Duration::from_millis(500)).await;
+    //     let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+    //     let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        // create a SubscribeMessage from a party who is not in the signing commitee
-        let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
+    //     let ferdie_pair = AccountKeyring::Ferdie.pair();
 
-        // Attempt a noise handshake including the subscribe message in the payload
-        let mut encrypted_connection = noise_handshake_initiator(
-            ws_stream,
-            &FERDIE_X25519_SECRET_KEY.into(),
-            validator_ip_and_key.1,
-            subscribe_message_vec,
-        )
-        .await
-        .unwrap();
+    //     // create a SubscribeMessage from a party who is not in the signing commitee
+    //     let subscribe_message_vec =
+    //         bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
 
-        // Check the response as to whether they accepted our SubscribeMessage
-        let response_message = encrypted_connection.recv().await.unwrap();
-        let subscribe_response: Result<(), String> =
-            bincode::deserialize(&response_message).unwrap();
+    //     // Attempt a noise handshake including the subscribe message in the payload
+    //     let mut encrypted_connection = noise_handshake_initiator(
+    //         ws_stream,
+    //         &FERDIE_X25519_SECRET_KEY.into(),
+    //         validator_ip_and_key.1,
+    //         subscribe_message_vec,
+    //     )
+    //     .await
+    //     .unwrap();
 
-        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
-        // The stream should not continue to send messages
-        // returns true if this part of the test passes
-        encrypted_connection.recv().await.is_err()
-    });
+    //     // Check the response as to whether they accepted our SubscribeMessage
+    //     let response_message = encrypted_connection.recv().await.unwrap();
+    //     let subscribe_response: Result<(), String> =
+    //         bincode::deserialize(&response_message).unwrap();
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
-    let test_user_bad_connection_res = submit_transaction_requests(
-        vec![validator_ips_and_keys[1].clone()],
-        generic_msg.clone(),
-        one,
-    )
-    .await;
+    //     assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
+    //     // The stream should not continue to send messages
+    //     // returns true if this part of the test passes
+    //     encrypted_connection.recv().await.is_err()
+    // });
 
-    for res in test_user_bad_connection_res {
-        assert_eq!(
-            res.unwrap().text().await.unwrap(),
-            "{\"Err\":\"Timed out waiting for remote party\"}"
-        );
-    }
+    // generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    // generic_msg.signature_verifying_key = verifying_key.to_vec();
+    // // generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
 
-    assert!(connection_attempt_handle.await.unwrap());
+    // let test_user_bad_connection_res = submit_transaction_requests(
+    //     vec![validator_ips_and_keys[1].clone()],
+    //     generic_msg.clone(),
+    //     one,
+    // )
+    // .await;
 
-    // Now, test a signature request that should fail
+    // for res in test_user_bad_connection_res {
+    //     assert_eq!(
+    //         res.unwrap().text().await.unwrap(),
+    //         "{\"Err\":\"Timed out waiting for remote party\"}"
+    //     );
+    // }
+
+    // assert!(connection_attempt_handle.await.unwrap());
+
+    // Test: Signature requests fail if no auxiliary data is set
+
     // The test program is written to fail when `auxilary_data` is `None`
-    generic_msg.auxilary_data = None;
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
+    generic_msg.auxilary_data = None;
 
     let test_user_failed_programs_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -331,9 +392,11 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    // The test program is written to fail when `auxilary_data` is `None` but only on the second program
-    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+    // The test program is written to fail when `auxilary_data` is `None` but only on the second
+    // program
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
+    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
 
     let test_user_failed_aux_data =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
@@ -342,8 +405,12 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
     }
 
+    // Test: Signature requests fails if a user provides an invalid hashing algorithm option
+
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
     generic_msg.hash = HashingAlgorithm::Custom(3);
+
     let test_user_custom_hash_out_of_bounds =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
 
@@ -351,17 +418,22 @@ async fn test_sign_tx_no_chain() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
     }
 
+    // Test: Signature requests fails if a the network parent key is used
+
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     generic_msg.signature_verifying_key = NETWORK_PARENT_KEY.as_bytes().to_vec();
+
     let test_user_sign_with_parent_key = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
         generic_msg.clone(),
         one,
     )
     .await;
+
     for res in test_user_sign_with_parent_key {
         assert_eq!(res.unwrap().text().await.unwrap(), "No signing from parent key");
     }
+
     clean_tests();
 }
 
