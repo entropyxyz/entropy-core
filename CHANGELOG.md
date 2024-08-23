@@ -35,6 +35,7 @@ At the moment this project **does not** adhere to
 
 ### Removed
 -  Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
+-  Remove `confirm_registered` extrinsic ([#1025](https://github.com/entropyxyz/entropy-core/pull/1025))
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 

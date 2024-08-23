@@ -30,7 +30,6 @@
 //! ### Public Functions
 //!
 //! `register` - Allows a user to signal their intent to register onto the Entropy network.
-//! `confirm_register` - Allows validator nodes to confirm that they have recieved a user's
 //! key-share. After enough succesful confirmations from validators that user will be succesfully
 //! registered.
 
@@ -55,18 +54,15 @@ pub mod weights;
 pub mod pallet {
     use entropy_shared::{MAX_SIGNERS, NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
     use frame_support::{
-        dispatch::{DispatchResultWithPostInfo, Pays},
-        pallet_prelude::*,
-        traits::{ConstU32, IsSubType},
+        dispatch::DispatchResultWithPostInfo, pallet_prelude::*, traits::ConstU32,
     };
     use frame_system::pallet_prelude::*;
     use pallet_staking_extension::{
         JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo, VerifyingKey,
     };
     use scale_info::TypeInfo;
-    use sp_runtime::traits::{DispatchInfoOf, SignedExtension};
     use sp_std::vec;
-    use sp_std::{fmt::Debug, vec::Vec};
+    use sp_std::vec::Vec;
 
     pub use crate::weights::WeightInfo;
 
@@ -573,121 +569,13 @@ pub mod pallet {
             .into())
         }
 
-        /// Allows validators to confirm that they have received a key-share from a user that is
-        /// in the process of registering.
-        ///
-        /// After a validator from each partition confirms they have a keyshare the user will be
-        /// considered as registered on the network.
-        #[pallet::call_index(5)]
-        #[pallet::weight({
-            let weight =
-                <T as Config>::WeightInfo::confirm_register_registering(pallet_session::Pallet::<T>::validators().len() as u32)
-                .max(<T as Config>::WeightInfo::confirm_register_registered(pallet_session::Pallet::<T>::validators().len() as u32))
-                .max(<T as Config>::WeightInfo::confirm_register_failed_registering(pallet_session::Pallet::<T>::validators().len() as u32));
-            (weight, DispatchClass::Operational, Pays::No)
-        })]
-        pub fn confirm_register(
-            origin: OriginFor<T>,
-            sig_req_account: T::AccountId,
-            verifying_key: BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>,
-        ) -> DispatchResultWithPostInfo {
-            let ts_server_account = ensure_signed(origin)?;
-            ensure!(
-                verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH,
-                Error::<T>::MismatchedVerifyingKeyLength
-            );
-            let validator_stash =
-                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
-                    .ok_or(Error::<T>::NoThresholdKey)?;
-
-            let mut registering_info =
-                Self::registering(&sig_req_account).ok_or(Error::<T>::NotRegistering)?;
-
-            let validators = pallet_session::Pallet::<T>::validators();
-            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
-            let confirmation_length = registering_info.confirmations.len() as u32;
-            ensure!(
-                !registering_info.confirmations.contains(&ts_server_account),
-                Error::<T>::AlreadyConfirmed
-            );
-
-            // if no one has sent in a verifying key yet, use current
-            if registering_info.verifying_key.is_none() {
-                registering_info.verifying_key = Some(verifying_key.clone());
-            }
-
-            let registering_info_verifying_key =
-                registering_info.verifying_key.clone().ok_or(Error::<T>::NoVerifyingKey)?;
-
-            if registering_info.confirmations.len() == validators.len() - 1 {
-                // If verifying key does not match for everyone, registration failed
-                if registering_info_verifying_key != verifying_key {
-                    Registering::<T>::remove(&sig_req_account);
-                    Self::deposit_event(Event::FailedRegistration(sig_req_account));
-                    return Ok(Some(
-                        <T as Config>::WeightInfo::confirm_register_failed_registering(
-                            confirmation_length,
-                        ),
-                    )
-                    .into());
-                }
-                ModifiableKeys::<T>::try_mutate(
-                    &registering_info.program_modification_account,
-                    |verifying_keys| -> Result<(), DispatchError> {
-                        verifying_keys
-                            .try_push(verifying_key.clone())
-                            .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
-                        Ok(())
-                    },
-                )?;
-                Registered::<T>::insert(
-                    &verifying_key,
-                    RegisteredInfo {
-                        programs_data: registering_info.programs_data,
-                        program_modification_account: registering_info.program_modification_account,
-                        derivation_path: None,
-                        version_number: registering_info.version_number,
-                    },
-                );
-                Registering::<T>::remove(&sig_req_account);
-
-                let weight =
-                    <T as Config>::WeightInfo::confirm_register_registered(confirmation_length);
-
-                Self::deposit_event(Event::AccountRegistered(sig_req_account, verifying_key));
-                Ok(Some(weight).into())
-            } else {
-                // If verifying key does not match for everyone, registration failed
-                if registering_info_verifying_key != verifying_key {
-                    Registering::<T>::remove(&sig_req_account);
-                    Self::deposit_event(Event::FailedRegistration(sig_req_account));
-                    return Ok(Some(
-                        <T as Config>::WeightInfo::confirm_register_failed_registering(
-                            confirmation_length,
-                        ),
-                    )
-                    .into());
-                }
-                registering_info.confirmations.push(ts_server_account);
-                Registering::<T>::insert(&sig_req_account, registering_info);
-                Self::deposit_event(Event::RecievedConfirmation(
-                    sig_req_account,
-                    registering_info_verifying_key,
-                ));
-                Ok(Some(<T as Config>::WeightInfo::confirm_register_registering(
-                    confirmation_length,
-                ))
-                .into())
-            }
-        }
-
         /// Allows a user to signal that they want to register an account with the Entropy network.
         ///
         /// The caller provides an initial program pointer.
         ///
         /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
         /// registration request will produce a different verifying key.
-        #[pallet::call_index(6)]
+        #[pallet::call_index(5)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
         })]
@@ -796,89 +684,6 @@ pub mod pallet {
             }
 
             Ok(validators_info)
-        }
-    }
-
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
-    #[scale_info(skip_type_params(T))]
-    pub struct ValidateConfirmRegistered<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
-
-    impl<T: Config + Send + Sync> Debug for ValidateConfirmRegistered<T>
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
-    {
-        #[cfg(feature = "std")]
-        fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            write!(f, "ValidateConfirmRegistered")
-        }
-
-        #[cfg(not(feature = "std"))]
-        fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-            Ok(())
-        }
-    }
-
-    impl<T: Config + Send + Sync> ValidateConfirmRegistered<T>
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
-    {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> Self {
-            Self(sp_std::marker::PhantomData)
-        }
-    }
-
-    impl<T: Config + Send + Sync> SignedExtension for ValidateConfirmRegistered<T>
-    where
-        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
-    {
-        type AccountId = T::AccountId;
-        type AdditionalSigned = ();
-        type Call = <T as frame_system::Config>::RuntimeCall;
-        type Pre = ();
-
-        const IDENTIFIER: &'static str = "ValidateConfirmRegistered";
-
-        fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
-            Ok(())
-        }
-
-        fn pre_dispatch(
-            self,
-            who: &Self::AccountId,
-            call: &Self::Call,
-            info: &DispatchInfoOf<Self::Call>,
-            len: usize,
-        ) -> Result<Self::Pre, TransactionValidityError> {
-            self.validate(who, call, info, len).map(|_| ())
-        }
-
-        fn validate(
-            &self,
-            who: &Self::AccountId,
-            call: &Self::Call,
-            _info: &DispatchInfoOf<Self::Call>,
-            _len: usize,
-        ) -> TransactionValidity {
-            if let Some(Call::confirm_register { sig_req_account, .. }) = call.is_sub_type() {
-                let validator_stash =
-                    pallet_staking_extension::Pallet::<T>::threshold_to_stash(who)
-                        .ok_or(InvalidTransaction::Custom(1))?;
-
-                let registering_info =
-                    Registering::<T>::get(sig_req_account).ok_or(InvalidTransaction::Custom(2))?;
-                ensure!(
-                    !registering_info.confirmations.contains(who),
-                    InvalidTransaction::Custom(3)
-                );
-
-                let validators = pallet_session::Pallet::<T>::validators();
-                ensure!(validators.contains(&validator_stash), InvalidTransaction::Custom(4));
-            }
-            Ok(ValidTransaction::default())
         }
     }
 }

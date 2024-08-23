@@ -13,26 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[allow(unused)]
+use pallet_registry::Call as RegistryCall;
+
 use codec::Encode;
 use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
-use frame_support::{
-    assert_noop, assert_ok,
-    dispatch::{GetDispatchInfo, Pays},
-    BoundedVec,
-};
+use frame_support::{assert_noop, assert_ok, BoundedVec};
 use pallet_programs::ProgramInfo;
-use pallet_registry::Call as RegistryCall;
 use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
-use sp_runtime::{
-    traits::{Hash, SignedExtension},
-    transaction_validity::{TransactionValidity, ValidTransaction},
-};
+use sp_runtime::traits::Hash;
 
 use crate as pallet_registry;
-use crate::{
-    mock::*, Error, ModifiableKeys, ProgramInstance, RegisteredInfo, RegisteredOnChain,
-    RegisteringDetails, ValidateConfirmRegistered,
-};
+use crate::{mock::*, Error, ModifiableKeys, ProgramInstance, RegisteredInfo, RegisteredOnChain};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -438,108 +430,6 @@ fn it_tests_jump_start_result() {
 }
 
 #[test]
-fn it_confirms_registers_a_user() {
-    new_test_ext().execute_with(|| {
-        let expected_verifying_key =
-            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
-            Error::<Test>::NoThresholdKey
-        );
-
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
-            Error::<Test>::NotRegistering
-        );
-
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info.clone(),
-        ));
-
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-
-        assert!(Registry::registered(expected_verifying_key.clone()).is_none());
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(1),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(1), 1, expected_verifying_key.clone()),
-            Error::<Test>::AlreadyConfirmed
-        );
-
-        assert_noop!(
-            Registry::confirm_register(RuntimeOrigin::signed(8), 1, expected_verifying_key.clone()),
-            Error::<Test>::NotValidator
-        );
-
-        let registering_info = RegisteringDetails::<Test> {
-            confirmations: vec![1],
-            programs_data: programs_info.clone(),
-            verifying_key: Some(expected_verifying_key.clone()),
-            program_modification_account: 2,
-            version_number: 1,
-        };
-
-        assert_eq!(Registry::registering(1), Some(registering_info));
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(2),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(7),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        assert_eq!(Registry::registering(1), None);
-        assert_eq!(
-            Registry::registered(expected_verifying_key.clone()).unwrap(),
-            RegisteredInfo {
-                programs_data: programs_info.clone(),
-                program_modification_account: 2,
-                derivation_path: None,
-                version_number: 1,
-            }
-        );
-        assert_eq!(
-            Registry::modifiable_keys(2),
-            vec![expected_verifying_key],
-            "list of modifable keys exist"
-        );
-    });
-}
-
-#[test]
 fn it_changes_a_program_instance() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];
@@ -739,200 +629,12 @@ fn it_fails_on_non_matching_verifying_keys() {
             },
         );
 
-        let expected_verifying_key =
-            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
-        let unexpected_verifying_key =
-            BoundedVec::try_from(vec![1; VERIFICATION_KEY_LENGTH as usize]).unwrap();
+        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
 
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(1),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
-        ));
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(1),
-            1,
-            expected_verifying_key.clone()
-        ));
-
-        // uses different verifying key
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(2),
-            1,
-            unexpected_verifying_key.try_into().unwrap()
-        ));
-
-        // not registered or registering
-        assert_eq!(Registry::registering(1), None);
-        assert_eq!(Registry::registered(expected_verifying_key.clone()), None);
-    })
-}
-
-#[test]
-fn it_provides_free_txs_confirm_done() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
+        // error if they try to submit another request, even with a different program key
+        assert_noop!(
+            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
+            Error::<Test>::AlreadySubmitted
         );
-
-        let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(5),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
-        ));
-        let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
-            sig_req_account: 5,
-            verifying_key: expected_verifying_key,
-        });
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&3, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
-    });
-}
-
-#[test]
-#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(1)"]
-fn it_provides_free_txs_confirm_done_fails_1() {
-    new_test_ext().execute_with(|| {
-        let expected_verifying_key = BoundedVec::default();
-        let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
-            sig_req_account: 5,
-            verifying_key: expected_verifying_key,
-        });
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&2, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
-    });
-}
-
-#[test]
-#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(2)"]
-fn it_provides_free_txs_confirm_done_fails_2() {
-    new_test_ext().execute_with(|| {
-        let expected_verifying_key = BoundedVec::default();
-        let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
-            sig_req_account: 5,
-            verifying_key: expected_verifying_key,
-        });
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&7, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
-    });
-}
-
-#[test]
-#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(3)"]
-fn it_provides_free_txs_confirm_done_fails_3() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        let expected_verifying_key =
-            BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(5),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
-        ));
-
-        assert_ok!(Registry::confirm_register(
-            RuntimeOrigin::signed(3),
-            5,
-            expected_verifying_key.clone()
-        ));
-        let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
-            sig_req_account: 5,
-            verifying_key: expected_verifying_key,
-        });
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&3, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
-    });
-}
-
-#[test]
-#[should_panic = "TransactionValidityError::Invalid(InvalidTransaction::Custom(4)"]
-fn it_provides_free_txs_confirm_done_fails_4() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        let expected_verifying_key = BoundedVec::default();
-        assert_ok!(Registry::register(
-            RuntimeOrigin::signed(5),
-            2 as <Test as frame_system::Config>::AccountId,
-            programs_info,
-        ));
-        let p = ValidateConfirmRegistered::<Test>::new();
-        let c = RuntimeCall::Registry(RegistryCall::confirm_register {
-            sig_req_account: 5,
-            verifying_key: expected_verifying_key,
-        });
-        let di = c.get_dispatch_info();
-        assert_eq!(di.pays_fee, Pays::No);
-        let r = p.validate(&8, &c, &di, 20);
-        assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
     });
 }
