@@ -153,7 +153,7 @@ async fn test_reshare() {
         );
     }
 
-    run_to_block(&rpc, block_number + 5).await;
+    run_to_block(&rpc, block_number + 7).await;
 
     let response_stale =
         client.post("http://127.0.0.1:3001/validator/rotate_network_key").send().await.unwrap();
