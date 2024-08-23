@@ -161,7 +161,7 @@ async fn test_get_signer_does_not_throw_err() {
 
 #[tokio::test]
 #[serial]
-async fn test_sign_tx_no_chain() {
+async fn test_signature_requests_fail_on_different_conditions() {
     initialize_test_logger().await;
     clean_tests();
 
