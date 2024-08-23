@@ -226,7 +226,6 @@ async fn test_sign_tx_no_chain() {
 
     // This verifying key doesn't have a program registered with it
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    // generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
 
     // test points to no program
     let test_no_program =
@@ -262,37 +261,6 @@ async fn test_sign_tx_no_chain() {
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
-
-    // Test: We check that the rate limiter changes as expected when signature requests are sent
-
-    let mock_client = reqwest::Client::new();
-
-    // check request limiter increases
-    let unsafe_get =
-        UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
-            .to_json();
-
-    let get_response = mock_client
-        .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
-        .header("Content-Type", "application/json")
-        .body(unsafe_get.clone())
-        .send()
-        .await
-        .unwrap();
-    let serialized_request_amount = get_response.text().await.unwrap();
-
-    let request_info: RequestLimitStorage =
-        RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
-    assert_eq!(request_info.request_amount, 1);
-
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.validators_info = generic_msg.validators_info.into_iter().rev().collect::<Vec<_>>();
-    let test_user_res_order =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
-
-    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    verify_signature(test_user_res_order, message_hash, &decoded_verifying_key, &validators_info)
-        .await;
 
     // Test: A user that is not registered is not able to send a signature request
 
@@ -561,7 +529,6 @@ async fn signature_request_with_derived_account_works() {
     clean_tests();
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_sign_tx_no_chain_fail() {
@@ -627,14 +594,33 @@ async fn test_sign_tx_no_chain_fail() {
         "Encryption or signing error: Cannot verify signature"
     );
 
-    let request_limit_query = entropy::storage().parameters().request_limit();
-    let request_limit =
-        query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_request_limit_are_updated_during_signing() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
+
+    let add_parent_key = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    jump_start_network(&entropy_api, &rpc).await;
 
     let program_hash = store_program(
         &entropy_api,
         &rpc,
-        &one.pair(),
+        &two.pair(), // This is our program deployer
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -642,26 +628,81 @@ async fn test_sign_tx_no_chain_fail() {
     )
     .await
     .unwrap();
-    update_programs(
-        &entropy_api,
-        &rpc,
-        DAVE_VERIFYING_KEY,
-        &one.pair(),
-        OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-        ]),
-    )
-    .await
-    .unwrap();
-    // test request limit reached
 
-    // gets current blocknumber, potential race condition run to block + 1
+    let verifying_key = {
+        let registration_request = put_new_register_request_on_chain(
+            &entropy_api,
+            &rpc,
+            &one,                       // This is our signature request account
+            two.to_account_id().into(), // This is our program modification account
+            BoundedVec(vec![ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            }]),
+        )
+        .await;
+
+        let entropy::registry::events::AccountRegistered(
+            _actual_signature_request_account,
+            actual_verifying_key,
+        ) = registration_request.unwrap();
+
+        // This is slightly more convenient to work with later on
+        actual_verifying_key.0
+    };
+
+    // Test: We check that the rate limiter changes as expected when signature requests are sent
+
+    // First we need to get a signature request to populate the KVDB for our verifying key
+    let with_parent_key = true;
+    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
+
+    let test_user_res =
+        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let decoded_verifying_key =
+        decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
+
+    // Next we check request limiter increases
+    let mock_client = reqwest::Client::new();
+
+    let unsafe_get =
+        UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
+            .to_json();
+
+    let get_response = mock_client
+        .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
+        .header("Content-Type", "application/json")
+        .body(unsafe_get.clone())
+        .send()
+        .await
+        .unwrap();
+    let serialized_request_amount = get_response.text().await.unwrap();
+
+    let request_info: RequestLimitStorage =
+        RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
+    assert_eq!(request_info.request_amount, 1);
+
+    // Test: If we send too many requests though, we'll be blocked from signing
+
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit =
+        query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+
+    // Gets current block number, potential race condition run to block + 1
     // to reset block and give us 6 seconds to hit rate limit
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     run_to_block(&rpc, block_number + 1).await;
+
     let unsafe_put = UnsafeQuery::new(
-        request_limit_key(hex::encode(DAVE_VERIFYING_KEY.to_vec())),
+        request_limit_key(hex::encode(verifying_key.to_vec())),
         RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
             .encode(),
     )
@@ -678,12 +719,15 @@ async fn test_sign_tx_no_chain_fail() {
     }
 
     generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
+
     let test_user_failed_request_limit =
         submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
 
     for res in test_user_failed_request_limit {
         assert_eq!(res.unwrap().text().await.unwrap(), "Too many requests - wait a block");
     }
+
     clean_tests();
 }
 
