@@ -100,6 +100,8 @@ pub enum ClientError {
     NoSyncedValidators,
     #[error("Cannot confirm program was created")]
     CannotConfirmProgramCreated,
+    #[error("Cannot confirm program was removed")]
+    CannotConfirmProgramRemoved,
     #[error("Subgroup fetch error")]
     SubgroupFetch,
     #[error("Cannot query whether validator is synced")]

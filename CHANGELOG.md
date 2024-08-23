@@ -28,6 +28,7 @@ At the moment this project **does not** adhere to
 - Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
 - Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
 - Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
+- Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))

@@ -140,7 +140,14 @@ a program you can use the `store-program` command.
 You need to give the account which will store the program, and the path to a program binary file you
 wish to store, for example:
 
-`entropy-test-cli store-program ./crates/testing-utils/example_barebones_with_auxilary.wasm //Alice`
+`entropy-test-cli store-program ./crates/testing-utils/example_barebones_with_auxilary.wasm -m //Alice`
+
+### Remove program
+
+To remove a program you need to give the account which 'owns' the program (the one which stored it)
+and the hex-encoded hash of the program you wish to remove, for example:
+
+`entropy-test-cli remove-program a2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bbac -m //Alice`
 
 ### Update programs
 
