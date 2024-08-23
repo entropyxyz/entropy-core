@@ -220,16 +220,17 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // Test: We check that an account without a program fails to submit a signature request
 
     let with_parent_key = true;
-    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
     // This verifying key doesn't have a program registered with it
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     // test points to no program
     let test_no_program =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
     for res in test_no_program {
         assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
@@ -251,11 +252,12 @@ async fn test_signature_requests_fail_on_different_conditions() {
     .await
     .unwrap();
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
 
     let test_user_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
@@ -264,10 +266,11 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: A user that is not registered is not able to send a signature request
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), two)
+            .await;
 
     for res in test_user_res_not_registered {
         assert_eq!(
@@ -279,12 +282,13 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // Test: Signature requests fail if no auxiliary data is set
 
     // The test program is written to fail when `auxilary_data` is `None`
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
-    generic_msg.auxilary_data = None;
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.auxilary_data = None;
 
     let test_user_failed_programs_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
     for res in test_user_failed_programs_res {
         assert_eq!(
@@ -295,12 +299,13 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // The test program is written to fail when `auxilary_data` is `None` but only on the second
     // program
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
-    generic_msg.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
 
     let test_user_failed_aux_data =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
     for res in test_user_failed_aux_data {
         assert_eq!(res.unwrap().text().await.unwrap(), "Auxilary data is mismatched");
@@ -308,12 +313,13 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: Signature requests fails if a user provides an invalid hashing algorithm option
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
-    generic_msg.hash = HashingAlgorithm::Custom(3);
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.hash = HashingAlgorithm::Custom(3);
 
     let test_user_custom_hash_out_of_bounds =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), two).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), two)
+            .await;
 
     for res in test_user_custom_hash_out_of_bounds {
         assert_eq!(res.unwrap().text().await.unwrap(), "Custom hash choice out of bounds");
@@ -321,12 +327,12 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: Signature requests fails if a the network parent key is used
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = NETWORK_PARENT_KEY.as_bytes().to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = NETWORK_PARENT_KEY.as_bytes().to_vec();
 
     let test_user_sign_with_parent_key = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
-        generic_msg.clone(),
+        signature_request.clone(),
         one,
     )
     .await;
@@ -477,7 +483,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let mock_client = reqwest::Client::new();
 
     let with_parent_key = false;
-    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
@@ -485,7 +491,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     // wrong key for wrong validator
     let failed_signed_message = EncryptedSignedMessage::new(
         &one.pair(),
-        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        serde_json::to_vec(&signature_request.clone()).unwrap(),
         &X25519_PUBLIC_KEYS[1],
         &[],
     )
@@ -506,7 +512,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let sig: [u8; 64] = [0; 64];
     let user_input_bad = EncryptedSignedMessage::new_with_given_signature(
         &one.pair(),
-        serde_json::to_vec(&generic_msg.clone()).unwrap(),
+        serde_json::to_vec(&signature_request.clone()).unwrap(),
         &X25519_PUBLIC_KEYS[0],
         &[],
         sr25519::Signature::from_raw(sig),
@@ -588,15 +594,16 @@ async fn test_request_limit_are_updated_during_signing() {
 
     // First we need to get a signature request to populate the KVDB for our verifying key
     let with_parent_key = true;
-    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
 
     let test_user_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
@@ -651,11 +658,12 @@ async fn test_request_limit_are_updated_during_signing() {
             .unwrap();
     }
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
 
     let test_user_failed_request_limit =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
     for res in test_user_failed_request_limit {
         assert_eq!(res.unwrap().text().await.unwrap(), "Too many requests - wait a block");
@@ -720,7 +728,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     };
 
     let with_parent_key = true;
-    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
@@ -768,12 +776,12 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         encrypted_connection.recv().await.is_err()
     });
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    generic_msg.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
 
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[1].clone()],
-        generic_msg.clone(),
+        signature_request.clone(),
         one,
     )
     .await;
@@ -1470,7 +1478,7 @@ async fn test_faucet() {
     let partial =
         entropy_api.tx().create_partial_signed_offline(&balance_transfer_tx, tx_params).unwrap();
 
-    let mut generic_msg = UserSignatureRequest {
+    let mut signature_request = UserSignatureRequest {
         message: hex::encode(partial.signer_payload()),
         auxilary_data: Some(vec![Some(hex::encode(
             &serde_json::to_string(&aux_data.clone()).unwrap(),
@@ -1486,9 +1494,10 @@ async fn test_faucet() {
         (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
     ];
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
     let mut decoded_sig: Vec<u8> = vec![];
     for res in test_user_res {
         let chunk = res.unwrap().chunk().await.unwrap().unwrap();
@@ -1742,7 +1751,7 @@ pub async fn get_sign_tx_data(
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
     let validators_info = get_signers_from_chain(api, rpc, with_parent_key).await.unwrap();
 
-    let generic_msg = UserSignatureRequest {
+    let signature_request = UserSignatureRequest {
         message,
         auxilary_data: Some(vec![
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
@@ -1757,7 +1766,7 @@ pub async fn get_sign_tx_data(
     let validator_ips_and_keys =
         validators_info.iter().map(|v| (v.ip_address.clone(), v.x25519_public_key)).collect();
 
-    (validators_info, generic_msg, validator_ips_and_keys)
+    (validators_info, signature_request, validator_ips_and_keys)
 }
 
 /// Mock jump starting the network
