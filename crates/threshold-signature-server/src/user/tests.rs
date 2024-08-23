@@ -427,7 +427,7 @@ async fn signature_request_with_derived_account_works() {
         actual_verifying_key,
     ) = registration_request.unwrap();
 
-    // This is slightly more convenient to work with later one
+    // This is slightly more convenient to work with later on
     let actual_verifying_key = actual_verifying_key.0;
 
     // Next we want to check that the info that's on-chain is what we actually expect
@@ -615,7 +615,6 @@ async fn test_sign_tx_no_chain_fail() {
     clean_tests();
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_program_with_config() {
@@ -625,10 +624,16 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let add_parent_key = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    jump_start_network(&entropy_api, &rpc).await;
 
     let program_hash = store_program(
         &entropy_api,
@@ -642,15 +647,30 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    // this message is an ethereum tx rlp encoded with a proper allow listed address
+    let verifying_key = {
+        let registration_request = put_new_register_request_on_chain(
+            &entropy_api,
+            &rpc,
+            &one,                       // This is our signature request account
+            two.to_account_id().into(), // This is our program modification account
+            BoundedVec(vec![ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            }]),
+        )
+        .await;
+
+        let entropy::registry::events::AccountRegistered(
+            _actual_signature_request_account,
+            actual_verifying_key,
+        ) = registration_request.unwrap();
+
+        // This is slightly more convenient to work with later on
+        actual_verifying_key.0
+    };
+
+    // This message is an ethereum tx rlp encoded with a proper allow listed address
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
-
-    let message_hash = Hasher::keccak(message.as_bytes());
-
-    let with_parent_key = false;
-    let (validators_info, mut generic_msg, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), with_parent_key).await;
-
     let config = r#"
         {
             "allowlisted_addresses": [
@@ -660,11 +680,12 @@ async fn test_program_with_config() {
     "#
     .as_bytes();
 
+    // We update the program to use the new config
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY,
-        &one.pair(),
+        verifying_key.as_slice().try_into().unwrap(),
+        &two.pair(),
         OtherBoundedVec(vec![
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
             OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
@@ -673,12 +694,25 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    let test_user_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+    // Now we'll send off a signature request using the new program
+    let with_parent_key = true;
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), with_parent_key).await;
 
-    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
-    verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
+    // We'll use the actual verifying key we registered for the signature request
+    signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+
+    // Here we check that the signature request was indeed completed successfully
+    let signature_request_responses =
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
+
+    let message_hash = Hasher::keccak(message.as_bytes());
+    let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+    verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
+        .await;
+
     clean_tests();
 }
 
