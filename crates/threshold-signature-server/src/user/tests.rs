@@ -276,73 +276,6 @@ async fn test_sign_tx_no_chain() {
         );
     }
 
-    // --- Another test ---
-
-    // TODO: Nando, do we need this?
-    //
-    // Nando: Looks like this isn't used until later...
-    //    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    //    let signature_request_account = subxtAccountId32(one.pair().public().0);
-    //    let session_id = SessionId::Sign(SigningSessionInfo {
-    //        signature_verifying_key: verifying_key.clone(), // DAVE_VERIFYING_KEY.to_vec(),
-    //        message_hash,
-    //        request_author: signature_request_account.clone(),
-    //    });
-    // // Test attempting to connect over ws by someone who is not in the signing group
-    // let validator_ip_and_key = validator_ips_and_keys[0].clone();
-    // let connection_attempt_handle = tokio::spawn(async move {
-    //     // Wait for the "user" to submit the signing request
-    //     tokio::time::sleep(Duration::from_millis(500)).await;
-    //     let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-    //     let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
-
-    //     let ferdie_pair = AccountKeyring::Ferdie.pair();
-
-    //     // create a SubscribeMessage from a party who is not in the signing commitee
-    //     let subscribe_message_vec =
-    //         bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
-
-    //     // Attempt a noise handshake including the subscribe message in the payload
-    //     let mut encrypted_connection = noise_handshake_initiator(
-    //         ws_stream,
-    //         &FERDIE_X25519_SECRET_KEY.into(),
-    //         validator_ip_and_key.1,
-    //         subscribe_message_vec,
-    //     )
-    //     .await
-    //     .unwrap();
-
-    //     // Check the response as to whether they accepted our SubscribeMessage
-    //     let response_message = encrypted_connection.recv().await.unwrap();
-    //     let subscribe_response: Result<(), String> =
-    //         bincode::deserialize(&response_message).unwrap();
-
-    //     assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
-    //     // The stream should not continue to send messages
-    //     // returns true if this part of the test passes
-    //     encrypted_connection.recv().await.is_err()
-    // });
-
-    // generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    // generic_msg.signature_verifying_key = verifying_key.to_vec();
-    // // generic_msg.signature_verifying_key = DAVE_VERIFYING_KEY.to_vec().to_vec();
-
-    // let test_user_bad_connection_res = submit_transaction_requests(
-    //     vec![validator_ips_and_keys[1].clone()],
-    //     generic_msg.clone(),
-    //     one,
-    // )
-    // .await;
-
-    // for res in test_user_bad_connection_res {
-    //     assert_eq!(
-    //         res.unwrap().text().await.unwrap(),
-    //         "{\"Err\":\"Timed out waiting for remote party\"}"
-    //     );
-    // }
-
-    // assert!(connection_attempt_handle.await.unwrap());
-
     // Test: Signature requests fail if no auxiliary data is set
 
     // The test program is written to fail when `auxilary_data` is `None`
@@ -727,6 +660,131 @@ async fn test_request_limit_are_updated_during_signing() {
     for res in test_user_failed_request_limit {
         assert_eq!(res.unwrap().text().await.unwrap(), "Too many requests - wait a block");
     }
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
+
+    let add_parent_key = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    jump_start_network(&entropy_api, &rpc).await;
+
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(), // This is our program deployer
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    let verifying_key = {
+        let registration_request = put_new_register_request_on_chain(
+            &entropy_api,
+            &rpc,
+            &one,                       // This is our signature request account
+            two.to_account_id().into(), // This is our program modification account
+            BoundedVec(vec![ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            }]),
+        )
+        .await;
+
+        let entropy::registry::events::AccountRegistered(
+            _actual_signature_request_account,
+            actual_verifying_key,
+        ) = registration_request.unwrap();
+
+        // This is slightly more convenient to work with later on
+        actual_verifying_key.0
+    };
+
+    let with_parent_key = true;
+    let (validators_info, mut generic_msg, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
+
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
+    let session_id = SessionId::Sign(SigningSessionInfo {
+        signature_verifying_key: verifying_key.clone(), // DAVE_VERIFYING_KEY.to_vec(),
+        message_hash,
+        request_author: signature_request_account.clone(),
+    });
+
+    // Test attempting to connect over ws by someone who is not in the signing group
+    let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    let connection_attempt_handle = tokio::spawn(async move {
+        // Wait for the "user" to submit the signing request
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+
+        let ferdie_pair = AccountKeyring::Ferdie.pair();
+
+        // create a SubscribeMessage from a party who is not in the signing commitee
+        let subscribe_message_vec =
+            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
+
+        // Attempt a noise handshake including the subscribe message in the payload
+        let mut encrypted_connection = noise_handshake_initiator(
+            ws_stream,
+            &FERDIE_X25519_SECRET_KEY.into(),
+            validator_ip_and_key.1,
+            subscribe_message_vec,
+        )
+        .await
+        .unwrap();
+
+        // Check the response as to whether they accepted our SubscribeMessage
+        let response_message = encrypted_connection.recv().await.unwrap();
+        let subscribe_response: Result<(), String> =
+            bincode::deserialize(&response_message).unwrap();
+
+        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
+
+        // The stream should not continue to send messages
+        // returns true if this part of the test passes
+        encrypted_connection.recv().await.is_err()
+    });
+
+    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    generic_msg.signature_verifying_key = verifying_key.to_vec();
+
+    let test_user_bad_connection_res = submit_transaction_requests(
+        vec![validator_ips_and_keys[1].clone()],
+        generic_msg.clone(),
+        one,
+    )
+    .await;
+
+    for res in test_user_bad_connection_res {
+        assert_eq!(
+            res.unwrap().text().await.unwrap(),
+            "{\"Err\":\"Timed out waiting for remote party\"}"
+        );
+    }
+
+    assert!(connection_attempt_handle.await.unwrap());
 
     clean_tests();
 }
