@@ -1014,12 +1014,12 @@ async fn test_fail_infinite_program() {
     }
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_device_key_proxy() {
     initialize_test_logger().await;
     clean_tests();
+
     /// JSON-deserializable struct that will be used to derive the program-JSON interface.
     /// Note how this uses JSON-native types only.
     #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, JsonSchema)]
@@ -1029,6 +1029,7 @@ async fn test_device_key_proxy() {
         pub sr25519_public_keys: Option<Vec<String>>,
         pub ed25519_public_keys: Option<Vec<String>>,
     }
+
     /// JSON representation of the auxiliary data
     #[cfg_attr(feature = "std", derive(schemars::JsonSchema))]
     #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -1043,12 +1044,58 @@ async fn test_device_key_proxy() {
         pub context: String,
     }
 
-    let one = AccountKeyring::Dave;
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    // We first need to jump start the network and grab the resulting network wide verifying key
+    // for later
+    jump_start_network(&entropy_api, &rpc).await;
+
+    // We need to store a program in order to be able to register succesfully
+    let program_hash = store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(), // This is our program deployer
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    let verifying_key = {
+        let registration_request = put_new_register_request_on_chain(
+            &entropy_api,
+            &rpc,
+            &one,                       // This is our signature request account
+            two.to_account_id().into(), // This is our program modification account
+            BoundedVec(vec![ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            }]),
+        )
+        .await;
+
+        let entropy::registry::events::AccountRegistered(
+            _actual_signature_request_account,
+            actual_verifying_key,
+        ) = registration_request.unwrap();
+
+        // This is slightly more convenient to work with later on
+        actual_verifying_key.0
+    };
+
     let keypair = Sr25519Keypair::generate();
     let public_key = BASE64_STANDARD.encode(keypair.public);
 
@@ -1057,6 +1104,7 @@ async fn test_device_key_proxy() {
         sr25519_public_keys: Some(vec![public_key.clone()]),
         ed25519_public_keys: None,
     };
+
     // check to make sure config data stored properly
     let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
     let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
@@ -1073,11 +1121,12 @@ async fn test_device_key_proxy() {
         program_data.auxiliary_data_schema,
         "aux data interface recoverable through schemers"
     );
+
     update_programs(
         &entropy_api,
         &rpc,
-        DAVE_VERIFYING_KEY,
-        &one.pair(),
+        verifying_key.as_slice().try_into().unwrap(),
+        &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: *DEVICE_KEY_HASH,
             program_config: serde_json::to_vec(&device_key_user_config).unwrap(),
@@ -1086,11 +1135,8 @@ async fn test_device_key_proxy() {
     .await
     .unwrap();
 
-    let with_parent_key = false;
-    let validators_info =
-        get_signers_from_chain(&entropy_api, &rpc, with_parent_key).await.unwrap();
+    // We now set up the auxilary data for our program
     let context = signing_context(b"");
-
     let sr25519_signature: Sr25519Signature = keypair.sign(context.bytes(PREIMAGE_SHOULD_SUCCEED));
 
     let aux_data_json_sr25519 = AuxData {
@@ -1099,30 +1145,29 @@ async fn test_device_key_proxy() {
         signature: BASE64_STANDARD.encode(sr25519_signature.to_bytes()),
         context: "".to_string(),
     };
-    let mut generic_msg = UserSignatureRequest {
-        message: hex::encode(PREIMAGE_SHOULD_SUCCEED),
-        auxilary_data: Some(vec![Some(hex::encode(
-            &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
-        ))]),
-        validators_info: validators_info.clone(),
-        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
-        hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
-    };
 
-    let validator_ips_and_keys: Vec<_> = validators_info
-        .iter()
-        .map(|validator_info| {
-            (validator_info.ip_address.clone(), validator_info.x25519_public_key.clone())
-        })
-        .collect();
+    let auxilary_data = Some(vec![Some(hex::encode(
+        &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
+    ))]);
 
-    generic_msg.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    // Now we'll send off a signature request using the new program with auxilary data
+    let with_parent_key = true;
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
+            .await;
+
+    // We'll use the actual verifying key we registered for the signature request
+    signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.auxilary_data = auxilary_data;
+
     let test_user_res =
-        submit_transaction_requests(validator_ips_and_keys.clone(), generic_msg.clone(), one).await;
+        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
+            .await;
 
-    let verifying_key = decode_verifying_key(&DAVE_VERIFYING_KEY).unwrap();
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+
     verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
 }
 
