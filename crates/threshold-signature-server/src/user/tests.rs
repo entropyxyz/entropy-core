@@ -531,7 +531,7 @@ async fn signature_request_with_derived_account_works() {
 
 #[tokio::test]
 #[serial]
-async fn test_sign_tx_no_chain_fail() {
+async fn test_signing_fails_if_wrong_participants_are_used() {
     initialize_test_logger().await;
     clean_tests();
 
