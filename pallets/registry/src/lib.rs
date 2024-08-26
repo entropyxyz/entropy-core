@@ -124,29 +124,12 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    // #[pallet::storage]
-    // #[pallet::getter(fn registering)]
-    // pub type Registering<T: Config> =
-    //     StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
-
     /// Used for triggering a network wide distributed key generation request via an offchain
     /// worker.
     #[pallet::storage]
     #[pallet::getter(fn jumpstart_dkg)]
     pub type JumpstartDkg<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
-
-    // /// Used to store requests and trigger distributed key generation for users via an offchain
-    // /// worker.
-    // #[pallet::storage]
-    // #[pallet::getter(fn dkg)]
-    // pub type Dkg<T: Config> =
-    //     StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
-
-    // #[pallet::storage]
-    // #[pallet::getter(fn registered)]
-    // pub type Registered<T: Config> =
-    //     StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
     /// An item tracking all the users registered on the Entropy network.
     ///
@@ -180,41 +163,24 @@ pub mod pallet {
         FinishedNetworkJumpStart(),
         /// The network has had a jump start confirmation. [who, confirmation_count]
         JumpStartConfirmation(T::ValidatorId, u8),
-        // /// An account has signaled to be registered. [signature request account]
-        // SignalRegister(T::AccountId),
-        // /// An account has been registered. [who, verifying_key]
-        // RecievedConfirmation(T::AccountId, VerifyingKey),
         /// An account has been registered. \[who, verifying_key]
         AccountRegistered(T::AccountId, VerifyingKey),
-        // /// An account registration has failed
-        // FailedRegistration(T::AccountId),
-        // /// An account cancelled their registration
-        // RegistrationCancelled(T::AccountId),
         /// An account hash changed their program info [who, new_program_instance]
         ProgramInfoChanged(T::AccountId, BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>),
         /// An account has changed their program modification account [old, new, verifying_key]
         ProgramModificationAccountChanged(T::AccountId, T::AccountId, VerifyingKey),
-        // /// An account has been registered. [who, block_number, failures]
-        // ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
 
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
-        // AlreadySubmitted,
         NoThresholdKey,
-        // NotRegistering,
         NotRegistered,
         AlreadyConfirmed,
         IpAddressError,
-        // NoSyncedValidators,
-        // MaxProgramLengthExceeded,
-        // NoVerifyingKey,
         NotAuthorized,
-        // ProgramDoesNotExist,
         NoProgramSet,
         TooManyModifiableKeys,
-        // MismatchedVerifyingKeyLength,
         MismatchedVerifyingKey,
         NotValidator,
         JumpStartProgressNotReady,
@@ -352,70 +318,6 @@ pub mod pallet {
                 .into());
             }
         }
-
-        /// Allows a user to signal that they want to register an account with the Entropy network.
-        ///
-        /// The caller provides an initial program pointer.
-        ///
-        /// Note that a user needs to be confirmed by validators through the
-        /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
-        /// network.
-        // #[pallet::call_index(2)]
-        // #[pallet::weight({
-        //     <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
-        // })]
-        // pub fn register(
-        //     origin: OriginFor<T>,
-        //     program_modification_account: T::AccountId,
-        //     programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
-        // ) -> DispatchResultWithPostInfo {
-        //     let sig_req_account = ensure_signed(origin)?;
-
-        //     ensure!(
-        //         sig_req_account.encode() != NETWORK_PARENT_KEY.encode(),
-        //         Error::<T>::NoRegisteringFromParentKey
-        //     );
-        //     ensure!(
-        //         !Registering::<T>::contains_key(&sig_req_account),
-        //         Error::<T>::AlreadySubmitted
-        //     );
-        //     ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
-        //     let block_number = <frame_system::Pallet<T>>::block_number();
-        //     // Change program ref counter
-        //     for program_instance in &programs_data {
-        //         pallet_programs::Programs::<T>::try_mutate(
-        //             program_instance.program_pointer,
-        //             |maybe_program_info| {
-        //                 if let Some(program_info) = maybe_program_info {
-        //                     program_info.ref_counter = program_info.ref_counter.saturating_add(1);
-        //                     Ok(())
-        //                 } else {
-        //                     Err(Error::<T>::NoProgramSet)
-        //                 }
-        //             },
-        //         )?;
-        //     }
-
-        //     Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-        //         messages.push(sig_req_account.encode());
-        //         Ok(())
-        //     })?;
-
-        //     // Put account into a registering state
-        //     Registering::<T>::insert(
-        //         &sig_req_account,
-        //         RegisteringDetails::<T> {
-        //             program_modification_account,
-        //             confirmations: vec![],
-        //             programs_data: programs_data.clone(),
-        //             verifying_key: None,
-        //             version_number: T::KeyVersionNumber::get(),
-        //         },
-        //     );
-        //     Self::deposit_event(Event::SignalRegister(sig_req_account));
-
-        //     Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
-        // }
 
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(3)]
