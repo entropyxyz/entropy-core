@@ -19,7 +19,8 @@ use bip39::{Language, Mnemonic};
 use blake3::hash;
 use entropy_client::substrate::get_registered_details;
 use entropy_client::{
-    client::{sign, store_program, update_programs},
+    client as test_client,
+    client::{sign, update_programs},
     user::get_signers_from_chain,
 };
 use entropy_kvdb::{
@@ -183,7 +184,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     jump_start_network(&entropy_api, &rpc).await;
 
     // We need to store a program in order to be able to register succesfully
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &two.pair(), // This is our program deployer
@@ -195,27 +196,17 @@ async fn test_signature_requests_fail_on_different_conditions() {
     .await
     .unwrap();
 
-    let verifying_key = {
-        let registration_request = put_new_register_request_on_chain(
-            &entropy_api,
-            &rpc,
-            &one,                       // This is our signature request account
-            two.to_account_id().into(), // This is our program modification account
-            BoundedVec(vec![ProgramInstance {
-                program_pointer: program_hash,
-                program_config: vec![],
-            }]),
-        )
-        .await;
-
-        let entropy::registry::events::AccountRegistered(
-            _actual_signature_request_account,
-            actual_verifying_key,
-        ) = registration_request.unwrap();
-
-        // This is slightly more convenient to work with later on
-        actual_verifying_key.0
-    };
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
+        &entropy_api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
 
     // Test: We check that an account without a program fails to submit a signature request
 
@@ -372,10 +363,8 @@ async fn signature_request_with_derived_account_works() {
     let jump_start_progress =
         query_chain(&entropy_api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
 
-    let network_verifying_key = jump_start_progress.verifying_key.unwrap().0;
-
     // We need to store a program in order to be able to register succesfully
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &bob.pair(), // This is our program deployer
@@ -387,59 +376,17 @@ async fn signature_request_with_derived_account_works() {
     .await
     .unwrap();
 
-    let registration_request = put_new_register_request_on_chain(
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
-        &alice,                         // This is our signature request account
-        charlie.to_account_id().into(), // This is our program modification account
+        charlie.clone().into(), // This is our program modification account
+        subxtAccountId32(alice.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
     )
-    .await;
-
-    assert!(
-        matches!(registration_request, Ok(_)),
-        "We expect our registration request to succeed."
-    );
-
-    let entropy::registry::events::AccountRegistered(
-        _actual_signature_request_account,
-        actual_verifying_key,
-    ) = registration_request.unwrap();
-
-    // This is slightly more convenient to work with later on
-    let actual_verifying_key = actual_verifying_key.0;
-
-    // Next we want to check that the info that's on-chain is what we actually expect
-    let registered_info =
-        get_registered_details(&entropy_api, &rpc, actual_verifying_key.to_vec()).await;
-
-    assert!(
-        matches!(registered_info, Ok(_)),
-        "We expect that the verifying key we got back matches registration entry in storage."
-    );
-
-    assert_eq!(
-        registered_info.unwrap().program_modification_account,
-        charlie.to_account_id().into()
-    );
-
-    // Next, let's check that the child verifying key matches
-    let network_verifying_key =
-        SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
-
-    // We hardcode the derivation path here since we know that there's only been one registration
-    // request (ours).
-    let derivation_path = "m/0/0".parse().unwrap();
-    let expected_verifying_key =
-        network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
-    let expected_verifying_key = expected_verifying_key.to_encoded_point(true).as_bytes().to_vec();
-
-    assert_eq!(
-        expected_verifying_key, actual_verifying_key,
-        "The derived child key doesn't match our registered verifying key."
-    );
-
-    // Now that we've set up and registered a user, we can proceed with testing the signing flow
+    .await
+    .unwrap();
 
     let with_parent_key = true;
     let (validators_info, mut signature_request, validator_ips_and_keys) =
@@ -447,7 +394,7 @@ async fn signature_request_with_derived_account_works() {
             .await;
 
     // We'll use the actual verifying key we registered for the signature request
-    signature_request.signature_verifying_key = actual_verifying_key.to_vec();
+    signature_request.signature_verifying_key = verifying_key.to_vec();
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let signature_request_responses = submit_transaction_requests(
@@ -556,7 +503,7 @@ async fn test_request_limit_are_updated_during_signing() {
 
     jump_start_network(&entropy_api, &rpc).await;
 
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &two.pair(), // This is our program deployer
@@ -568,27 +515,17 @@ async fn test_request_limit_are_updated_during_signing() {
     .await
     .unwrap();
 
-    let verifying_key = {
-        let registration_request = put_new_register_request_on_chain(
-            &entropy_api,
-            &rpc,
-            &one,                       // This is our signature request account
-            two.to_account_id().into(), // This is our program modification account
-            BoundedVec(vec![ProgramInstance {
-                program_pointer: program_hash,
-                program_config: vec![],
-            }]),
-        )
-        .await;
-
-        let entropy::registry::events::AccountRegistered(
-            _actual_signature_request_account,
-            actual_verifying_key,
-        ) = registration_request.unwrap();
-
-        // This is slightly more convenient to work with later on
-        actual_verifying_key.0
-    };
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
+        &entropy_api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
 
     // Test: We check that the rate limiter changes as expected when signature requests are sent
 
@@ -692,7 +629,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
     jump_start_network(&entropy_api, &rpc).await;
 
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &two.pair(), // This is our program deployer
@@ -704,27 +641,17 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     .await
     .unwrap();
 
-    let verifying_key = {
-        let registration_request = put_new_register_request_on_chain(
-            &entropy_api,
-            &rpc,
-            &one,                       // This is our signature request account
-            two.to_account_id().into(), // This is our program modification account
-            BoundedVec(vec![ProgramInstance {
-                program_pointer: program_hash,
-                program_config: vec![],
-            }]),
-        )
-        .await;
-
-        let entropy::registry::events::AccountRegistered(
-            _actual_signature_request_account,
-            actual_verifying_key,
-        ) = registration_request.unwrap();
-
-        // This is slightly more convenient to work with later on
-        actual_verifying_key.0
-    };
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
+        &entropy_api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
 
     let with_parent_key = true;
     let (_validators_info, mut signature_request, validator_ips_and_keys) =
@@ -734,7 +661,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
     let session_id = SessionId::Sign(SigningSessionInfo {
-        signature_verifying_key: verifying_key.clone(), // DAVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: verifying_key.to_vec(),
         message_hash,
         request_author: signature_request_account.clone(),
     });
@@ -817,7 +744,7 @@ async fn test_program_with_config() {
 
     jump_start_network(&entropy_api, &rpc).await;
 
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &two.pair(),
@@ -829,27 +756,17 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    let verifying_key = {
-        let registration_request = put_new_register_request_on_chain(
-            &entropy_api,
-            &rpc,
-            &one,                       // This is our signature request account
-            two.to_account_id().into(), // This is our program modification account
-            BoundedVec(vec![ProgramInstance {
-                program_pointer: program_hash,
-                program_config: vec![],
-            }]),
-        )
-        .await;
-
-        let entropy::registry::events::AccountRegistered(
-            _actual_signature_request_account,
-            actual_verifying_key,
-        ) = registration_request.unwrap();
-
-        // This is slightly more convenient to work with later on
-        actual_verifying_key.0
-    };
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
+        &entropy_api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
 
     // This message is an ethereum tx rlp encoded with a proper allow listed address
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
@@ -1053,7 +970,7 @@ async fn test_compute_hash() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let mut runtime = Runtime::default();
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &api,
         &rpc,
         &one.pair(),
@@ -1144,7 +1061,7 @@ async fn test_fail_infinite_program() {
 
     jump_start_network(&api, &rpc).await;
 
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &api,
         &rpc,
         &two.pair(),
@@ -1156,27 +1073,17 @@ async fn test_fail_infinite_program() {
     .await
     .unwrap();
 
-    let verifying_key = {
-        let registration_request = put_new_register_request_on_chain(
-            &api,
-            &rpc,
-            &one,                       // This is our signature request account
-            two.to_account_id().into(), // This is our program modification account
-            BoundedVec(vec![ProgramInstance {
-                program_pointer: program_hash,
-                program_config: vec![],
-            }]),
-        )
-        .await;
-
-        let entropy::registry::events::AccountRegistered(
-            _actual_signature_request_account,
-            actual_verifying_key,
-        ) = registration_request.unwrap();
-
-        // This is slightly more convenient to work with later on
-        actual_verifying_key.0
-    };
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
+        &api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
 
     // Now we'll send off a signature request using the new program
     let with_parent_key = true;
@@ -1244,7 +1151,7 @@ async fn test_device_key_proxy() {
     jump_start_network(&entropy_api, &rpc).await;
 
     // We need to store a program in order to be able to register succesfully
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &two.pair(), // This is our program deployer
@@ -1256,27 +1163,17 @@ async fn test_device_key_proxy() {
     .await
     .unwrap();
 
-    let verifying_key = {
-        let registration_request = put_new_register_request_on_chain(
-            &entropy_api,
-            &rpc,
-            &one,                       // This is our signature request account
-            two.to_account_id().into(), // This is our program modification account
-            BoundedVec(vec![ProgramInstance {
-                program_pointer: program_hash,
-                program_config: vec![],
-            }]),
-        )
-        .await;
-
-        let entropy::registry::events::AccountRegistered(
-            _actual_signature_request_account,
-            actual_verifying_key,
-        ) = registration_request.unwrap();
-
-        // This is slightly more convenient to work with later on
-        actual_verifying_key.0
-    };
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = test_client::register(
+        &entropy_api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
 
     let keypair = Sr25519Keypair::generate();
     let public_key = BASE64_STANDARD.encode(keypair.public);
@@ -1411,7 +1308,7 @@ async fn test_faucet() {
         .await
         .unwrap();
 
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &two.pair(),
@@ -1574,7 +1471,7 @@ async fn test_new_registration_flow() {
     let network_verifying_key = jump_start_progress.verifying_key.unwrap().0;
 
     // We need to store a program in order to be able to register succesfully
-    let program_hash = store_program(
+    let program_hash = test_client::store_program(
         &entropy_api,
         &rpc,
         &bob.pair(), // This is our program deployer
