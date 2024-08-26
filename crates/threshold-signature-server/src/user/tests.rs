@@ -230,19 +230,6 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // Test: We check that an account with a program succeeds in submiting a signature request
 
     // The account we registered does have a program pointer, so this should succeed
-    update_programs(
-        &entropy_api,
-        &rpc,
-        verifying_key.as_slice().try_into().unwrap(),
-        &two.pair(),
-        OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-        ]),
-    )
-    .await
-    .unwrap();
-
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = verifying_key.to_vec();
 
@@ -290,6 +277,19 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // The test program is written to fail when `auxilary_data` is `None` but only on the second
     // program
+    update_programs(
+        &entropy_api,
+        &rpc,
+        verifying_key.as_slice().try_into().unwrap(),
+        &two.pair(),
+        OtherBoundedVec(vec![
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+        ]),
+    )
+    .await
+    .unwrap();
+
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = verifying_key.to_vec();
     signature_request.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
@@ -358,10 +358,6 @@ async fn signature_request_with_derived_account_works() {
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
     jump_start_network(&entropy_api, &rpc).await;
-
-    let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
-    let jump_start_progress =
-        query_chain(&entropy_api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
 
     // We need to store a program in order to be able to register succesfully
     let program_hash = test_client::store_program(
