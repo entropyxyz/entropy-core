@@ -672,7 +672,6 @@ async fn test_request_limit_are_updated_during_signing() {
     clean_tests();
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
@@ -728,7 +727,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     };
 
     let with_parent_key = true;
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
+    let (_validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
@@ -769,7 +768,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         let subscribe_response: Result<(), String> =
             bincode::deserialize(&response_message).unwrap();
 
-        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
+        assert_eq!(Err("Decryption(\"Public key does not match any of those expected for this protocol session\")".to_string()), subscribe_response);
 
         // The stream should not continue to send messages
         // returns true if this part of the test passes
@@ -780,20 +779,16 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     signature_request.signature_verifying_key = verifying_key.to_vec();
 
     let test_user_bad_connection_res = submit_transaction_requests(
-        vec![validator_ips_and_keys[1].clone()],
+        vec![validator_ips_and_keys[0].clone()],
         signature_request.clone(),
         one,
     )
     .await;
 
-    // thread 'user::tests::test_fails_to_sign_if_non_signing_group_participants_are_used' panicked at crates/threshold-signature-server/src/user/tests.rs:848:9:
-    // assertion `left == right` failed
-    //   left: "{\"Err\":\"Subscribe message rejected: NoListener(\\\"no listener\\\")\"}"
-    //  right: "{\"Err\":\"Timed out waiting for remote party\"}"
     for res in test_user_bad_connection_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "{\"Err\":\"Timed out waiting for remote party\"}"
+            "{\"Err\":\"Oneshot timeout error: channel closed\"}"
         );
     }
 
