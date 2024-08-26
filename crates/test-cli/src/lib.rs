@@ -211,7 +211,6 @@ pub async fn run_command(
                 program_keypair.clone(),
                 program_account,
                 BoundedVec(programs_info),
-                on_chain,
             )
             .await?;
 

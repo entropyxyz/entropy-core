@@ -37,7 +37,7 @@ use crate::{
         EntropyConfig,
     },
     client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
-    substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
+    substrate::{get_registered_details, submit_transaction_with_pair},
     user::{get_signers_from_chain, UserSignatureRequest},
     Hasher,
 };
@@ -49,7 +49,6 @@ use futures::{future, stream::StreamExt};
 use sp_core::{sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    events::EventsClient,
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
@@ -76,27 +75,15 @@ pub async fn register(
     signature_request_keypair: sr25519::Pair,
     program_account: SubxtAccountId32,
     programs_data: BoundedVec<ProgramInstance>,
-    on_chain: bool,
 ) -> Result<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo), ClientError> {
-    let registration_event = if on_chain {
-        put_register_request_on_chain(
-            api,
-            rpc,
-            signature_request_keypair.clone(),
-            program_account,
-            programs_data,
-        )
-        .await?
-    } else {
-        put_old_register_request_on_chain(
-            api,
-            rpc,
-            signature_request_keypair.clone(),
-            program_account,
-            programs_data,
-        )
-        .await?
-    };
+    let registration_event = put_register_request_on_chain(
+        api,
+        rpc,
+        signature_request_keypair.clone(),
+        program_account,
+        programs_data,
+    )
+    .await?;
 
     let verifying_key = registration_event.1 .0;
     let registered_info = get_registered_details(api, rpc, verifying_key.clone()).await?;
@@ -288,7 +275,7 @@ pub async fn get_accounts(
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
     let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
-    let storage_address = entropy::storage().registry().registered_iter();
+    let storage_address = entropy::storage().registry().registered_on_chain_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
     while let Some(Ok(kv)) = iter.next().await {
@@ -346,63 +333,6 @@ pub async fn put_register_request_on_chain(
         .ok_or(ClientError::NotRegistered);
 
     registered_event
-}
-
-/// Submits a transaction registering an account on-chain using the old off-chain flow.
-#[tracing::instrument(
-    skip_all,
-    fields(
-        user_account = ?signature_request_keypair.public(),
-    )
-)]
-pub async fn put_old_register_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    signature_request_keypair: sr25519::Pair,
-    deployer: SubxtAccountId32,
-    program_instances: BoundedVec<ProgramInstance>,
-) -> Result<entropy::registry::events::AccountRegistered, ClientError> {
-    tracing::debug!("Registering an account using old off-chain flow.");
-
-    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
-    submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
-        .await?;
-
-    let account_id: SubxtAccountId32 = signature_request_keypair.public().into();
-
-    for _ in 0..50 {
-        let block_hash = rpc.chain_get_block_hash(None).await?;
-        let events =
-            EventsClient::new(api.clone()).at(block_hash.ok_or(ClientError::BlockHash)?).await?;
-        let registered_event = events.find::<entropy::registry::events::AccountRegistered>();
-        for event in registered_event.flatten() {
-            // check if the event belongs to this user
-            if event.0 == account_id {
-                return Ok(event);
-            }
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-    }
-
-    Err(ClientError::RegistrationTimeout)
-}
-
-/// Check that the verfiying key from a new signature matches that in the from the
-/// on-chain registration info for a given account
-pub async fn check_verifying_key(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    verifying_key: VerifyingKey,
-) -> Result<(), ClientError> {
-    let verifying_key_serialized = verifying_key.to_encoded_point(true).as_bytes().to_vec();
-
-    // Get the verifying key associated with this account, if it exist return ok
-    let registered_query =
-        entropy::storage().registry().registered(BoundedVec(verifying_key_serialized));
-    let query_registered_status = query_chain(api, rpc, registered_query, None).await;
-    query_registered_status?.ok_or(ClientError::NotRegistered)?;
-
-    Ok(())
 }
 
 /// Changes the endpoint of a validator
