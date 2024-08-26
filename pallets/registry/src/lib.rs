@@ -120,32 +120,6 @@ pub mod pallet {
         pub version_number: u8,
     }
 
-    #[pallet::genesis_config]
-    #[derive(frame_support::DefaultNoBound)]
-    pub struct GenesisConfig<T: Config> {
-        #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, VerifyingKey)>,
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
-        fn build(&self) {
-            for (account_id, verifying_key) in &self.registered_accounts {
-                assert!(verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH);
-
-                Registered::<T>::insert(
-                    verifying_key.clone(),
-                    RegisteredInfo {
-                        programs_data: BoundedVec::default(),
-                        program_modification_account: account_id.clone(),
-                        derivation_path: None,
-                        version_number: T::KeyVersionNumber::get(),
-                    },
-                );
-            }
-        }
-    }
-
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
