@@ -605,36 +605,3 @@ fn it_changes_a_program_mod_account() {
         );
     })
 }
-
-#[test]
-fn it_fails_on_non_matching_verifying_keys() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
-
-        // error if they try to submit another request, even with a different program key
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
-            Error::<Test>::AlreadySubmitted
-        );
-    });
-}
