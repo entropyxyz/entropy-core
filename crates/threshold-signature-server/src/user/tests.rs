@@ -410,10 +410,17 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let one = AccountKeyring::Dave;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
-    let substrate_context = test_context_stationary().await;
-    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let add_parent_key = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    jump_start_network(&entropy_api, &rpc).await;
+
     let mock_client = reqwest::Client::new();
 
     let (_validators_info, signature_request, _validator_ips_and_keys) =
