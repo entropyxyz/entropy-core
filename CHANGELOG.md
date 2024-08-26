@@ -14,6 +14,10 @@ At the moment this project **does not** adhere to
   fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
   `pallet_parameters::threshold`, which are used to set up the initial threshold signing
   configuration for the network.
+- In [#1030](https://github.com/entropyxyz/entropy-core/pull/1030), the registration flow got
+  cleaned up. A lot of storage entries, events, and extrinsics were removed from the `Registry`
+  pallet. The genesis build config was also removed. Additionally, the `new/user/` HTTP endpoint in
+  the TSS was removed since it was no longer necessary.
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
