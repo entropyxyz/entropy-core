@@ -25,8 +25,7 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{decode_verifying_key, RecoverableSignature};
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
-    jump_start_network, spawn_testing_validators,
-    test_node_process_testing_state,
+    jump_start_network, spawn_testing_validators, test_node_process_testing_state,
 };
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
