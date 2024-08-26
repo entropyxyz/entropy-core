@@ -24,7 +24,7 @@ use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartSta
 use sp_runtime::traits::Hash;
 
 use crate as pallet_registry;
-use crate::{mock::*, Error, ModifiableKeys, ProgramInstance, RegisteredInfo, Registered};
+use crate::{mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -466,10 +466,7 @@ fn it_changes_a_program_instance() {
         };
 
         Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(
-            Registry::registered(expected_verifying_key.clone()).unwrap(),
-            registered_info
-        );
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
 
         assert_ok!(Registry::change_program_instance(
             RuntimeOrigin::signed(2),
@@ -478,10 +475,7 @@ fn it_changes_a_program_instance() {
         ));
 
         registered_info.programs_data = new_programs_info;
-        assert_eq!(
-            Registry::registered(expected_verifying_key.clone()).unwrap(),
-            registered_info
-        );
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             0,
@@ -537,10 +531,7 @@ fn it_changes_a_program_mod_account() {
         };
 
         Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(
-            Registry::registered(expected_verifying_key.clone()).unwrap(),
-            registered_info
-        );
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
 
         // Idk why this state could happen but still test to make sure it fails with a noop if ModifiableKeys not set
         assert_noop!(
