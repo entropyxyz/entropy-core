@@ -182,7 +182,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::DAVE,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        "127.0.0.1:3004".as_bytes().to_vec(),
                     ),
                 ),
             ],
@@ -215,7 +215,7 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Alice//stash")],),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")],),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
