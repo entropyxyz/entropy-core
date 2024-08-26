@@ -359,11 +359,6 @@ pub fn new_full_base(
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
-                b"registration",
-                &format!("{}/user/new", endpoint).into_bytes(),
-            );
-            offchain_db.local_storage_set(
-                sp_core::offchain::StorageKind::PERSISTENT,
                 b"refresh",
                 &format!("{}/signer/proactive_refresh", endpoint).into_bytes(),
             );
