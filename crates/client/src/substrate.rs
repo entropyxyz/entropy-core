@@ -120,7 +120,7 @@ pub async fn get_registered_details(
     tracing::info!("Querying chain for registration info.");
 
     let registered_info_query =
-        entropy::storage().registry().registered_on_chain(BoundedVec(verifying_key));
+        entropy::storage().registry().registered(BoundedVec(verifying_key));
 
     let registration_info = query_chain(api, rpc, registered_info_query, None)
         .await?

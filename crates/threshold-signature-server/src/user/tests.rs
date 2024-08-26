@@ -893,9 +893,7 @@ async fn test_jumpstart_network() {
 }
 
 /// Registers an account on-chain using the new registration flow.
-///
-/// TODO (Nando): Rename to ``put_register_request_on_chain
-pub async fn put_new_register_request_on_chain(
+pub async fn put_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signature_request_account: &Sr25519Keyring,
@@ -907,7 +905,7 @@ pub async fn put_new_register_request_on_chain(
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_account.pair());
 
     let registering_tx =
-        entropy::tx().registry().register_on_chain(program_modification_account, program_instances);
+        entropy::tx().registry().register(program_modification_account, program_instances);
 
     let events =
         submit_transaction(api, rpc, &signature_request_account, &registering_tx, None).await?;
@@ -1451,7 +1449,7 @@ async fn test_new_registration_flow() {
     .await
     .unwrap();
 
-    let registration_request = put_new_register_request_on_chain(
+    let registration_request = put_register_request_on_chain(
         &entropy_api,
         &rpc,
         &alice,                         // This is our signature request account

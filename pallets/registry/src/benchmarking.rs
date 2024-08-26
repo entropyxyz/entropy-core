@@ -164,7 +164,7 @@ benchmarks! {
     assert!(Registering::<T>::contains_key(sig_req_account));
   }
 
-  register_on_chain {
+  register {
     let p in 1 .. T::MaxProgramHashes::get();
 
     let program_modification_account: T::AccountId = whitelisted_caller();
@@ -225,7 +225,7 @@ benchmarks! {
 
     // We substract one from the count since this gets incremented after a succesful registration,
     // and we're interested in the account we just registered.
-    let count = <RegisteredOnChain<T>>::count() - 1;
+    let count = <Registered<T>>::count() - 1;
     let derivation_path =
         bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count)).unwrap();
 
@@ -247,7 +247,7 @@ benchmarks! {
         ).into(),
     );
 
-    assert!(RegisteredOnChain::<T>::contains_key(expected_verifying_key));
+    assert!(Registered::<T>::contains_key(expected_verifying_key));
   }
 
   change_program_instance {

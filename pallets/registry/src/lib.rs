@@ -137,8 +137,8 @@ pub mod pallet {
     /// registered, but rather a _verifying key_, which represents the user beyond the scope of the
     /// Entropy network itself (e.g it can be an account on Bitcoin or Ethereum).
     #[pallet::storage]
-    #[pallet::getter(fn registered_on_chain)]
-    pub type RegisteredOnChain<T: Config> =
+    #[pallet::getter(fn registered)]
+    pub type Registered<T: Config> =
         CountedStorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
     /// Mapping of program_modification accounts to verifying keys they can control
@@ -351,7 +351,7 @@ pub mod pallet {
 
             let mut old_programs_length = 0;
             let programs_data =
-                RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+                Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                     if let Some(registered_details) = maybe_registered_details {
                         ensure!(
                             who == registered_details.program_modification_account,
@@ -398,7 +398,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+            Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                 if let Some(registered_details) = maybe_registered_details {
                     ensure!(
                         who == registered_details.program_modification_account,
@@ -453,9 +453,9 @@ pub mod pallet {
         /// registration request will produce a different verifying key.
         #[pallet::call_index(5)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
         })]
-        pub fn register_on_chain(
+        pub fn register(
             origin: OriginFor<T>,
             program_modification_account: T::AccountId,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
@@ -498,13 +498,13 @@ pub mod pallet {
 
             // TODO (#984): For a `CountedStorageMap` there is the possibility that the counter
             // can decrease as storage entries are removed from the map. In our case we don't ever
-            // remove entries from the `RegisteredOnChain` map so the counter should never
+            // remove entries from the `Registered` map so the counter should never
             // decrease. If it does we will end up with the same verifying key for different
             // accounts, which would be bad.
             //
             // For a V1 of this flow it's fine, but we'll need to think about a better solution
             // down the line.
-            let count = RegisteredOnChain::<T>::count();
+            let count = Registered::<T>::count();
             let inner_path = scale_info::prelude::format!("m/0/{}", count);
             let path = bip32::DerivationPath::from_str(&inner_path)
                 .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
@@ -517,7 +517,7 @@ pub mod pallet {
             )
             .expect("Synedrion must have returned a valid verifying key.");
 
-            RegisteredOnChain::<T>::insert(
+            Registered::<T>::insert(
                 child_verifying_key.clone(),
                 RegisteredInfo {
                     programs_data,

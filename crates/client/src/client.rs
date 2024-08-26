@@ -275,7 +275,7 @@ pub async fn get_accounts(
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<Vec<([u8; VERIFYING_KEY_LENGTH], RegisteredInfo)>, ClientError> {
     let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
-    let storage_address = entropy::storage().registry().registered_on_chain_iter();
+    let storage_address = entropy::storage().registry().registered_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut accounts = Vec::new();
     while let Some(Ok(kv)) = iter.next().await {
@@ -319,7 +319,7 @@ pub async fn put_register_request_on_chain(
 ) -> Result<entropy::registry::events::AccountRegistered, ClientError> {
     tracing::debug!("Registering an account using on-chain flow.");
 
-    let registering_tx = entropy::tx().registry().register_on_chain(deployer, program_instances);
+    let registering_tx = entropy::tx().registry().register(deployer, program_instances);
     let registered_events =
         submit_transaction_with_pair(api, rpc, &signature_request_keypair, &registering_tx, None)
             .await?;
