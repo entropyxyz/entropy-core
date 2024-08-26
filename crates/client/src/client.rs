@@ -113,10 +113,7 @@ pub async fn sign(
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
 
-    let registered_info =
-        get_registered_details(api, rpc, signature_verifying_key.to_vec()).await?;
-    let with_parent_key = registered_info.derivation_path.is_some();
-    let validators_info = get_signers_from_chain(api, rpc, with_parent_key).await?;
+    let validators_info = get_signers_from_chain(api, rpc).await?;
 
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;

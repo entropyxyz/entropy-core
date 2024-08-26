@@ -207,10 +207,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: We check that an account without a program fails to submit a signature request
 
-    let with_parent_key = true;
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // This verifying key doesn't have a program registered with it
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -379,10 +377,8 @@ async fn signature_request_with_derived_account_works() {
     .await
     .unwrap();
 
-    let with_parent_key = true;
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // We'll use the actual verifying key we registered for the signature request
     signature_request.signature_verifying_key = verifying_key.to_vec();
@@ -420,10 +416,8 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let mock_client = reqwest::Client::new();
 
-    let with_parent_key = false;
     let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // fails verification tests
     // wrong key for wrong validator
@@ -519,10 +513,8 @@ async fn test_request_limit_are_updated_during_signing() {
     // Test: We check that the rate limiter changes as expected when signature requests are sent
 
     // First we need to get a signature request to populate the KVDB for our verifying key
-    let with_parent_key = true;
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = verifying_key.to_vec();
@@ -640,10 +632,8 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     .await
     .unwrap();
 
-    let with_parent_key = true;
     let (_validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
@@ -779,9 +769,8 @@ async fn test_program_with_config() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let with_parent_key = true;
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), with_parent_key).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message)).await;
 
     // We'll use the actual verifying key we registered for the signature request
     signature_request.signature_verifying_key = verifying_key.to_vec();
@@ -1054,9 +1043,8 @@ async fn test_fail_infinite_program() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let with_parent_key = true;
     let (_validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key).await;
+        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // We'll use the actual verifying key we registered for the signature request
     signature_request.signature_verifying_key = verifying_key.to_vec();
@@ -1196,10 +1184,8 @@ async fn test_device_key_proxy() {
     ))]);
 
     // Now we'll send off a signature request using the new program with auxilary data
-    let with_parent_key = true;
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
-            .await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // We'll use the actual verifying key we registered for the signature request
     signature_request.signature_verifying_key = verifying_key.to_vec();
@@ -1605,9 +1591,8 @@ pub async fn get_sign_tx_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     message: String,
-    with_parent_key: bool,
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
-    let validators_info = get_signers_from_chain(api, rpc, with_parent_key).await.unwrap();
+    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
 
     let signature_request = UserSignatureRequest {
         message,

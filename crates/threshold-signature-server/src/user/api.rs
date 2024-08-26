@@ -188,8 +188,7 @@ pub async fn sign_tx(
         )?;
     }
 
-    let with_parent_key = user_details.derivation_path.is_some();
-    let signers = get_signers_from_chain(&api, &rpc, with_parent_key).await?;
+    let signers = get_signers_from_chain(&api, &rpc).await?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
@@ -210,12 +209,6 @@ pub async fn sign_tx(
         message_hash,
         request_author,
     };
-
-    // In the new registration flow we don't store the verifying key in the KVDB, so we only do this
-    // check if we're using the old registration flow
-    if user_details.derivation_path.is_none() {
-        let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
-    }
 
     let derivation_path = if let Some(path) = user_details.derivation_path {
         let decoded_path = String::decode(&mut path.as_ref())?;
