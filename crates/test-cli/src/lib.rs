@@ -26,7 +26,8 @@ use entropy_client::{
     },
     client::{
         change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
-        jumpstart_network, register, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
+        jumpstart_network, register, remove_program, sign, store_program, update_programs,
+        VERIFYING_KEY_LENGTH,
     },
 };
 use sp_core::{sr25519, Hasher, Pair};
@@ -124,6 +125,14 @@ enum CliCommand {
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
         /// The mnemonic to use for the call
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Remove a given program from chain
+    RemoveProgram {
+        /// The 32 bytes hash of the program to remove, encoded as hex
+        hash: String,
+        /// The mnemonic to use for the call, which must be the program deployer
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
@@ -282,6 +291,23 @@ pub async fn run_command(
             )
             .await?;
             Ok(format!("Program stored {hash}"))
+        },
+        CliCommand::RemoveProgram { mnemonic_option, hash } => {
+            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
+                mnemonic_option
+            } else {
+                passed_mnemonic.expect("No Mnemonic set")
+            };
+            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            println!("Removing program using account: {}", keypair.public());
+
+            let hash: [u8; 32] = hex::decode(hash)?
+                .try_into()
+                .map_err(|_| anyhow!("Program hash must be 32 bytes"))?;
+
+            remove_program(&api, &rpc, &keypair, H256(hash)).await?;
+
+            Ok("Program removed".to_string())
         },
         CliCommand::UpdatePrograms { signature_verifying_key, mnemonic_option, programs } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {

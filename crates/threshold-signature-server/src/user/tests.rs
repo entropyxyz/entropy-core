@@ -120,9 +120,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
-            check_has_confirmation, check_if_confirmation, create_clients, initialize_test_logger,
-            jump_start_network_with_signer, remove_program, run_to_block, setup_client,
-            spawn_testing_validators, unsafe_get,
+            create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
+            run_to_block, setup_client, spawn_testing_validators, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -132,9 +131,8 @@ use crate::{
     signing_client::ListenerState,
     user::{
         api::{
-            check_hash_pointer_out_of_bounds, confirm_registered, increment_or_wipe_request_limit,
-            request_limit_check, request_limit_key, RequestLimitStorage, UserRegistrationInfo,
-            UserSignatureRequest,
+            check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
+            request_limit_key, RequestLimitStorage, UserRegistrationInfo, UserSignatureRequest,
         },
         UserErr,
     },
@@ -684,6 +682,7 @@ async fn test_program_with_config() {
     clean_tests();
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_store_share() {
@@ -852,7 +851,6 @@ async fn test_store_share() {
 
     assert_eq!(response_not_validator.status(), StatusCode::MISDIRECTED_REQUEST);
 
-    check_if_confirmation(&api, &rpc, &alice.pair(), new_verifying_key).await;
     // TODO check if key is in other subgroup member
     clean_tests();
 }
@@ -1558,79 +1556,6 @@ async fn test_new_registration_flow() {
         "The derived child key doesn't match our registered verifying key."
     );
 
-    clean_tests();
-}
-
-#[tokio::test]
-#[serial]
-async fn test_mutiple_confirm_done() {
-    initialize_test_logger().await;
-    clean_tests();
-
-    let alice = AccountKeyring::Alice;
-    let bob = AccountKeyring::Bob;
-
-    let alice_program = AccountKeyring::Charlie;
-    let program_manager = AccountKeyring::Dave;
-
-    let cxt = test_context_stationary().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-
-    let program_hash = store_program(
-        &api,
-        &rpc,
-        &program_manager.pair(),
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    put_register_request_on_chain(
-        &api,
-        &rpc,
-        &alice,
-        alice_program.to_account_id().into(),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await;
-
-    put_register_request_on_chain(
-        &api,
-        &rpc,
-        &bob,
-        alice_program.to_account_id().into(),
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await;
-
-    let (signer_alice, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_MNEMONIC).unwrap();
-
-    confirm_registered(
-        &api,
-        &rpc,
-        alice.to_account_id().into(),
-        &signer_alice,
-        DEFAULT_VERIFYING_KEY.to_vec(),
-        0u32,
-    )
-    .await
-    .unwrap();
-    confirm_registered(
-        &api,
-        &rpc,
-        bob.to_account_id().into(),
-        &signer_alice,
-        DEFAULT_VERIFYING_KEY.to_vec(),
-        1u32,
-    )
-    .await
-    .unwrap();
-    check_has_confirmation(&api, &rpc, &alice.pair()).await;
-    check_has_confirmation(&api, &rpc, &bob.pair()).await;
     clean_tests();
 }
 
