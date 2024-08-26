@@ -319,6 +319,106 @@ pub mod pallet {
             }
         }
 
+        /// Allows a user to signal that they want to register an account with the Entropy network.
+        ///
+        /// The caller provides an initial program pointer.
+        ///
+        /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
+        /// registration request will produce a different verifying key.
+        #[pallet::call_index(2)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
+        })]
+        pub fn register(
+            origin: OriginFor<T>,
+            program_modification_account: T::AccountId,
+            programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
+        ) -> DispatchResultWithPostInfo {
+            use core::str::FromStr;
+            use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+
+            let signature_request_account = ensure_signed(origin)?;
+
+            ensure!(
+                signature_request_account.encode() != NETWORK_PARENT_KEY.encode(),
+                Error::<T>::NoRegisteringFromParentKey
+            );
+
+            let num_programs = programs_data.len();
+            ensure!(num_programs != 0, Error::<T>::NoProgramSet);
+
+            // Change program ref counter
+            for program_instance in &programs_data {
+                pallet_programs::Programs::<T>::try_mutate(
+                    program_instance.program_pointer,
+                    |maybe_program_info| {
+                        if let Some(program_info) = maybe_program_info {
+                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
+                            Ok(())
+                        } else {
+                            Err(Error::<T>::NoProgramSet)
+                        }
+                    },
+                )?;
+            }
+
+            let network_verifying_key =
+                if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
+                    SynedrionVerifyingKey::try_from(key.as_slice())
+                        .expect("The network verifying key must be valid.")
+                } else {
+                    return Err(Error::<T>::JumpStartNotCompleted.into());
+                };
+
+            // TODO (#984): For a `CountedStorageMap` there is the possibility that the counter
+            // can decrease as storage entries are removed from the map. In our case we don't ever
+            // remove entries from the `Registered` map so the counter should never
+            // decrease. If it does we will end up with the same verifying key for different
+            // accounts, which would be bad.
+            //
+            // For a V1 of this flow it's fine, but we'll need to think about a better solution
+            // down the line.
+            let count = Registered::<T>::count();
+            let inner_path = scale_info::prelude::format!("m/0/{}", count);
+            let path = bip32::DerivationPath::from_str(&inner_path)
+                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
+            let child_verifying_key = network_verifying_key
+                .derive_verifying_key_bip32(&path)
+                .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
+
+            let child_verifying_key = BoundedVec::try_from(
+                child_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+            )
+            .expect("Synedrion must have returned a valid verifying key.");
+
+            Registered::<T>::insert(
+                child_verifying_key.clone(),
+                RegisteredInfo {
+                    programs_data,
+                    program_modification_account: program_modification_account.clone(),
+                    derivation_path: Some(inner_path.encode()),
+                    version_number: T::KeyVersionNumber::get(),
+                },
+            );
+
+            ModifiableKeys::<T>::try_mutate(
+                program_modification_account,
+                |verifying_keys| -> Result<(), DispatchError> {
+                    verifying_keys
+                        .try_push(child_verifying_key.clone())
+                        .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
+                    Ok(())
+                },
+            )?;
+
+            Self::deposit_event(Event::AccountRegistered(
+                signature_request_account,
+                child_verifying_key,
+            ));
+
+            Ok(Some(<T as Config>::WeightInfo::register(num_programs as u32)).into())
+        }
+
         /// Allows a user's program modification account to change their program pointer
         #[pallet::call_index(3)]
         #[pallet::weight({
@@ -443,106 +543,6 @@ pub mod pallet {
                 verifying_keys_len as u32,
             ))
             .into())
-        }
-
-        /// Allows a user to signal that they want to register an account with the Entropy network.
-        ///
-        /// The caller provides an initial program pointer.
-        ///
-        /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
-        /// registration request will produce a different verifying key.
-        #[pallet::call_index(5)]
-        #[pallet::weight({
-            <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
-        })]
-        pub fn register(
-            origin: OriginFor<T>,
-            program_modification_account: T::AccountId,
-            programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
-        ) -> DispatchResultWithPostInfo {
-            use core::str::FromStr;
-            use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
-
-            let signature_request_account = ensure_signed(origin)?;
-
-            ensure!(
-                signature_request_account.encode() != NETWORK_PARENT_KEY.encode(),
-                Error::<T>::NoRegisteringFromParentKey
-            );
-
-            let num_programs = programs_data.len();
-            ensure!(num_programs != 0, Error::<T>::NoProgramSet);
-
-            // Change program ref counter
-            for program_instance in &programs_data {
-                pallet_programs::Programs::<T>::try_mutate(
-                    program_instance.program_pointer,
-                    |maybe_program_info| {
-                        if let Some(program_info) = maybe_program_info {
-                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
-                            Ok(())
-                        } else {
-                            Err(Error::<T>::NoProgramSet)
-                        }
-                    },
-                )?;
-            }
-
-            let network_verifying_key =
-                if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
-                    SynedrionVerifyingKey::try_from(key.as_slice())
-                        .expect("The network verifying key must be valid.")
-                } else {
-                    return Err(Error::<T>::JumpStartNotCompleted.into());
-                };
-
-            // TODO (#984): For a `CountedStorageMap` there is the possibility that the counter
-            // can decrease as storage entries are removed from the map. In our case we don't ever
-            // remove entries from the `Registered` map so the counter should never
-            // decrease. If it does we will end up with the same verifying key for different
-            // accounts, which would be bad.
-            //
-            // For a V1 of this flow it's fine, but we'll need to think about a better solution
-            // down the line.
-            let count = Registered::<T>::count();
-            let inner_path = scale_info::prelude::format!("m/0/{}", count);
-            let path = bip32::DerivationPath::from_str(&inner_path)
-                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
-            let child_verifying_key = network_verifying_key
-                .derive_verifying_key_bip32(&path)
-                .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
-
-            let child_verifying_key = BoundedVec::try_from(
-                child_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
-            )
-            .expect("Synedrion must have returned a valid verifying key.");
-
-            Registered::<T>::insert(
-                child_verifying_key.clone(),
-                RegisteredInfo {
-                    programs_data,
-                    program_modification_account: program_modification_account.clone(),
-                    derivation_path: Some(inner_path.encode()),
-                    version_number: T::KeyVersionNumber::get(),
-                },
-            );
-
-            ModifiableKeys::<T>::try_mutate(
-                program_modification_account,
-                |verifying_keys| -> Result<(), DispatchError> {
-                    verifying_keys
-                        .try_push(child_verifying_key.clone())
-                        .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
-                    Ok(())
-                },
-            )?;
-
-            Self::deposit_event(Event::AccountRegistered(
-                signature_request_account,
-                child_verifying_key,
-            ));
-
-            Ok(Some(<T as Config>::WeightInfo::register(num_programs as u32)).into())
         }
     }
 
