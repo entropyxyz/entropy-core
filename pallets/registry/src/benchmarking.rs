@@ -142,30 +142,6 @@ benchmarks! {
 
   register {
     let p in 1 .. T::MaxProgramHashes::get();
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  };  p as usize])
-  .unwrap();
-
-  let program_modification_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, oracle_data_pointer, deployer: program_modification_account.clone(), ref_counter: 0});
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, programs_info)
-  verify {
-    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
-    assert!(Registering::<T>::contains_key(sig_req_account));
-  }
-
-  register {
-    let p in 1 .. T::MaxProgramHashes::get();
 
     let program_modification_account: T::AccountId = whitelisted_caller();
     let signature_request_account: T::AccountId = whitelisted_caller();
