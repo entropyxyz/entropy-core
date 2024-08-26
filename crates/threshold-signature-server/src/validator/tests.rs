@@ -18,7 +18,7 @@ use crate::{
     helpers::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         tests::{
-            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            initialize_test_logger, run_to_block, setup_client, spawn_four_testing_validators,
             unsafe_get,
         },
     },
@@ -56,7 +56,8 @@ async fn test_reshare() {
     let cxt = test_node_process_testing_state(true).await;
 
     let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_four_testing_validators(add_parent_key_to_kvdb).await;
 
     let validator_ports = vec![3001, 3002, 3003];
     let api = get_api(&cxt.ws_url).await.unwrap();
