@@ -243,6 +243,10 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
 fn it_deletes_when_no_bond_left() {
     new_test_ext().execute_with(|| {
         Signers::<Test>::put(vec![5, 6]);
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![7, 8],
+            confirmations: vec![],
+        });
         start_active_era(1);
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(2),
@@ -311,6 +315,28 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(Staking::threshold_to_stash(3), None);
         // validator no longer synced
         assert_eq!(Staking::is_validator_synced(2), false);
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(7),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(7), 0),
+            Error::<Test>::NoUnbodingWhenNextSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(8),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(8), 0),
+            Error::<Test>::NoUnbodingWhenNextSigner
+        );
     });
 }
 

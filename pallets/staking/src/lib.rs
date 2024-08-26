@@ -304,6 +304,8 @@ pub mod pallet {
         NotNextSigner,
         ReshareNotInProgress,
         AlreadyConfirmed,
+        NoUnbodingWhenSigner,
+        NoUnbodingWhenNextSigner,
     }
 
     #[pallet::event]
@@ -397,8 +399,55 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
         #[pallet::call_index(2)]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        pub fn unbonded(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let controller = ensure_signed(origin.clone())?;
+            let ledger =
+                pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            ensure!(
+                !Self::next_signers().unwrap().next_signers.contains(&validator_id),
+                Error::<T>::NoUnbodingWhenNextSigner
+            );
+
+            pallet_staking::Pallet::<T>::unbond(origin, value)?;
+
+            Ok(().into())
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            let controller = ensure_signed(origin.clone())?;
+            let ledger =
+                pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
+                .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            ensure!(
+                !Self::next_signers().unwrap().next_signers.contains(&validator_id),
+                Error::<T>::NoUnbodingWhenNextSigner
+            );
+
+            pallet_staking::Pallet::<T>::chill(origin)?;
+
+            Ok(().into())
+        }
+
+        /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
@@ -411,6 +460,12 @@ pub mod pallet {
 
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            ensure!(
+                !Self::next_signers().unwrap().next_signers.contains(&validator_id),
+                Error::<T>::NoUnbodingWhenNextSigner
+            );
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
@@ -429,7 +484,7 @@ pub mod pallet {
         ///
         /// Note that - just like the original `validate()` extrinsic - the effects of this are
         /// only applied in the following era.
-        #[pallet::call_index(3)]
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::validate())]
         pub fn validate(
             origin: OriginFor<T>,
@@ -468,7 +523,7 @@ pub mod pallet {
 
         /// Let a validator declare if their kvdb is synced or not synced
         /// `synced`: State of validator's kvdb
-        #[pallet::call_index(4)]
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
         pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
@@ -478,7 +533,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(5)]
+        #[pallet::call_index(7)]
         #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
