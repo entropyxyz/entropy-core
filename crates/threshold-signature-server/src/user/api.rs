@@ -272,22 +272,10 @@ pub async fn generate_network_key(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
-    distributed_key_generation(app_state, data).await
-}
-
-/// An internal helper which kicks off the distributed key generation (DKG) process.
-///
-/// Since the jumpstart and registration flows are both doing DKG at the moment, we've split this
-/// out. In the future though, only the jumpstart flow will require this.
-///
-/// TODO (Nando): Inline this
-async fn distributed_key_generation(
-    app_state: AppState,
-    data: OcwMessageDkg,
-) -> Result<StatusCode, UserErr> {
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
@@ -321,7 +309,7 @@ async fn distributed_key_generation(
 
 /// Setup and execute DKG.
 ///
-/// Called internally by the [new_user] function.
+/// Called internally by the [generate_network_key] function.
 #[tracing::instrument(
     skip_all,
     fields(data),
