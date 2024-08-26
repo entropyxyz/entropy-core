@@ -483,7 +483,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let mock_client = reqwest::Client::new();
 
     let with_parent_key = false;
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), with_parent_key)
             .await;
 
