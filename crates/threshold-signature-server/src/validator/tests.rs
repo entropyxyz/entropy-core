@@ -101,9 +101,9 @@ async fn test_reshare() {
         let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after).unwrap();
 
-        // Check key share has changed
+        // Check key share has not yet changed
         assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
-        // Check aux info has changed
+        // Check aux info has not yet changed
         assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
 
         let _ = client
