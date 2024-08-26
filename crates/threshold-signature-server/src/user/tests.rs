@@ -127,7 +127,6 @@ use crate::{
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    new_user,
     r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
     user::{
@@ -196,14 +195,12 @@ async fn test_signature_requests_fail_on_different_conditions() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
@@ -372,14 +369,12 @@ async fn signature_request_with_derived_account_works() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
         charlie.clone().into(), // This is our program modification account
         subxtAccountId32(alice.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
@@ -511,14 +506,12 @@ async fn test_request_limit_are_updated_during_signing() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
@@ -637,14 +630,12 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
@@ -752,14 +743,12 @@ async fn test_program_with_config() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
@@ -903,22 +892,9 @@ async fn test_jumpstart_network() {
     clean_tests();
 }
 
-pub async fn put_register_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
-    program_modification_account: subxtAccountId32,
-    program_instances: BoundedVec<ProgramInstance>,
-) {
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-
-    let registering_tx =
-        entropy::tx().registry().register(program_modification_account, program_instances);
-    submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
-}
-
 /// Registers an account on-chain using the new registration flow.
+///
+/// TODO (Nando): Rename to ``put_register_request_on_chain
 pub async fn put_new_register_request_on_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -1069,14 +1045,12 @@ async fn test_fail_infinite_program() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
@@ -1159,14 +1133,12 @@ async fn test_device_key_proxy() {
     .await
     .unwrap();
 
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = test_client::register(
         &entropy_api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();
