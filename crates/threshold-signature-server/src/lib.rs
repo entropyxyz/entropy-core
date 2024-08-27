@@ -72,14 +72,6 @@
 //!
 //! ### For the blockchain node
 //!
-//! #### `/user/new` - POST
-//!
-//! [crate::user::api::new_user()]
-//!
-//! Called by the off-chain worker (propagation pallet) during user registration.
-//! This takes a parity scale encoded [entropy_shared::types::OcwMessageDkg] which tells us which
-//! validators are in the registration group and will perform a DKG.
-//!
 //! ### For other instances of the threshold server
 //!
 //!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
