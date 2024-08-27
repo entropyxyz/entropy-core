@@ -485,3 +485,71 @@ fn it_confirms_keyshare() {
         assert_eq!(Staking::signers(), [6, 5], "next signers rotated into current signers");
     });
 }
+
+#[test]
+fn it_stops_unbonded_when_signer_or_next_signer() {
+    new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![5, 6]);
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![7, 8],
+            confirmations: vec![],
+        });
+        start_active_era(1);
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(7),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(7), 0),
+            Error::<Test>::NoUnbodingWhenNextSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(8),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(8), 0),
+            Error::<Test>::NoUnbodingWhenNextSigner
+        );
+    });
+}
+
+#[test]
+fn it_stops_chill_when_signer_or_next_signer() {
+    new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![5, 6]);
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![7, 8],
+            confirmations: vec![],
+        });
+        start_active_era(1);
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(7),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(7)),
+            Error::<Test>::NoUnbodingWhenNextSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(8),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(8)),
+            Error::<Test>::NoUnbodingWhenNextSigner
+        );
+    });
+}

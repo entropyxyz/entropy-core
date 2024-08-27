@@ -400,8 +400,9 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
+        // TODO
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
-        pub fn unbonded(
+        pub fn unbond(
             origin: OriginFor<T>,
             #[pallet::compact] value: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
@@ -425,6 +426,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(3)]
+        // TODO
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
@@ -448,6 +450,7 @@ pub mod pallet {
 
         /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
         #[pallet::call_index(4)]
+        // TODO: add contains O(n) to bench
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
