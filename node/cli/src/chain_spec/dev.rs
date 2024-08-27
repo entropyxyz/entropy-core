@@ -19,14 +19,14 @@ use crate::endowed_accounts::endowed_accounts_dev;
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AttestationConfig, AuthorityDiscoveryConfig,
     BabeConfig, BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
-    MaxNominations, ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig, StakerStatus,
-    StakingConfig, StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
+    MaxNominations, ParametersConfig, ProgramsConfig, SessionConfig, StakerStatus, StakingConfig,
+    StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    X25519PublicKey as TssX25519PublicKey, DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE,
-    DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY, EVE_VERIFYING_KEY,
-    FERDIE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
+    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
+    TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -35,7 +35,7 @@ use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, ByteArray};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::Perbill;
 
 pub fn devnet_three_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String)> {
@@ -303,22 +303,6 @@ pub fn development_genesis_config(
         "imOnline": ImOnlineConfig { keys: vec![] },
         "authorityDiscovery": AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
         "grandpa": GrandpaConfig  { authorities: vec![], ..Default::default() },
-        "registry": RegistryConfig {
-            registered_accounts: vec![
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
-                ),
-            ],
-        },
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,

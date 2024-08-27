@@ -61,10 +61,7 @@ use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
 use crate::{
-    chain_api::{
-        entropy::{self, runtime_types::pallet_registry::pallet::RegisteringDetails},
-        get_api, get_rpc, EntropyConfig,
-    },
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
@@ -82,12 +79,6 @@ use crate::{
 
 pub use entropy_client::user::{get_signers_from_chain, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
-
-/// Used to differentiate different flows which perform distributed key generation.
-enum DkgFlow {
-    Jumpstart,
-    Registration,
-}
 
 /// Type for validators to send user key's back and forth
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -197,8 +188,7 @@ pub async fn sign_tx(
         )?;
     }
 
-    let with_parent_key = user_details.derivation_path.is_some();
-    let signers = get_signers_from_chain(&api, &rpc, with_parent_key).await?;
+    let signers = get_signers_from_chain(&api, &rpc).await?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
@@ -219,12 +209,6 @@ pub async fn sign_tx(
         message_hash,
         request_author,
     };
-
-    // In the new registration flow we don't store the verifying key in the KVDB, so we only do this
-    // check if we're using the old registration flow
-    if user_details.derivation_path.is_none() {
-        let _has_key = check_for_key(&string_verifying_key, &app_state.kv_store).await?;
-    }
 
     let derivation_path = if let Some(path) = user_details.derivation_path {
         let decoded_path = String::decode(&mut path.as_ref())?;
@@ -281,38 +265,10 @@ pub async fn generate_network_key(
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
-    distributed_key_generation(app_state, data, DkgFlow::Jumpstart).await
-}
-
-/// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during user registration.
-///
-/// The HTTP request takes a Parity SCALE encoded [OcwMessageDkg] which indicates which validators
-/// are in the validator group.
-///
-/// This will trigger the Distributed Key Generation (DKG) process.
-#[tracing::instrument(skip_all, fields(block_number))]
-pub async fn new_user(
-    State(app_state): State<AppState>,
-    encoded_data: Bytes,
-) -> Result<StatusCode, UserErr> {
-    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
-    tracing::Span::current().record("block_number", data.block_number);
-
-    distributed_key_generation(app_state, data, DkgFlow::Registration).await
-}
-
-/// An internal helper which kicks off the distributed key generation (DKG) process.
-///
-/// Since the jumpstart and registration flows are both doing DKG at the moment, we've split this
-/// out. In the future though, only the jumpstart flow will require this.
-async fn distributed_key_generation(
-    app_state: AppState,
-    data: OcwMessageDkg,
-    flow: DkgFlow,
-) -> Result<StatusCode, UserErr> {
     if data.sig_request_accounts.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
@@ -330,7 +286,7 @@ async fn distributed_key_generation(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
-    validate_new_user(&data, &api, &rpc, &app_state.kv_store, flow).await?;
+    validate_jump_start(&data, &api, &rpc, &app_state.kv_store).await?;
 
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
@@ -346,7 +302,7 @@ async fn distributed_key_generation(
 
 /// Setup and execute DKG.
 ///
-/// Called internally by the [new_user] function.
+/// Called internally by the [generate_network_key] function.
 #[tracing::instrument(
     skip_all,
     fields(data),
@@ -407,36 +363,6 @@ async fn setup_dkg(
     Ok(())
 }
 
-/// Returns details of a given registering user including key key visibility and X25519 public key.
-#[tracing::instrument(
-    skip_all,
-    fields(who),
-    level = tracing::Level::DEBUG
-)]
-pub async fn get_registering_user_details(
-    api: &OnlineClient<EntropyConfig>,
-    who: &<EntropyConfig as Config>::AccountId,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<RegisteringDetails, UserErr> {
-    let registering_info_query = entropy::storage().registry().registering(who);
-    let register_info = query_chain(api, rpc, registering_info_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Register Onchain first"))?;
-    Ok(register_info)
-}
-
-/// Returns `true` if the given account is in a "registering" state.
-pub async fn is_registering(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    who: &<EntropyConfig as Config>::AccountId,
-) -> Result<bool, UserErr> {
-    let registering_info_query = entropy::storage().registry().registering(who);
-    let register_info = query_chain(api, rpc, registering_info_query, None).await?;
-
-    Ok(register_info.is_some())
-}
-
 /// Confirms that the network wide distributed key generation process has taken place.
 pub async fn confirm_jump_start(
     api: &OnlineClient<EntropyConfig>,
@@ -463,14 +389,14 @@ pub async fn confirm_jump_start(
     Ok(())
 }
 
-/// Validates new user endpoint
+/// Validates network jump start endpoint.
+///
 /// Checks the chain for validity of data and block number of data matches current block
-async fn validate_new_user(
+async fn validate_jump_start(
     chain_data: &OcwMessageDkg,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     kv_manager: &KvManager,
-    flow: DkgFlow,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     if u32::from_be_bytes(
@@ -498,10 +424,7 @@ async fn validate_new_user(
     let chain_data_hash = hasher_chain_data.finalize();
     let mut hasher_verifying_data = Blake2s256::new();
 
-    let verifying_data_query = match flow {
-        DkgFlow::Jumpstart => entropy::storage().registry().jumpstart_dkg(chain_data.block_number),
-        DkgFlow::Registration => entropy::storage().registry().dkg(chain_data.block_number),
-    };
+    let verifying_data_query = entropy::storage().registry().jumpstart_dkg(chain_data.block_number);
 
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
     hasher_verifying_data.update(verifying_data.encode());
@@ -510,9 +433,11 @@ async fn validate_new_user(
     if verifying_data_hash != chain_data_hash {
         return Err(UserErr::InvalidData);
     }
+
     kv_manager.kv().delete(LATEST_BLOCK_NUMBER_NEW_USER).await?;
     let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
+
     Ok(())
 }
 

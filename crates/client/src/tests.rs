@@ -147,14 +147,12 @@ async fn test_remove_program_reference_counter() {
     .unwrap();
 
     // Register, using that program
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = register(
         &api,
         &rpc,
         program_owner.clone(),
         AccountId32(program_owner.public().0),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();

@@ -43,22 +43,11 @@ pub struct UserSignatureRequest {
 pub async fn get_signers_from_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    with_parent_key: bool,
 ) -> Result<Vec<ValidatorInfo>, SubgroupGetError> {
-    let mut validators = if with_parent_key {
-        let signer_query = entropy::storage().staking_extension().signers();
-        query_chain(api, rpc, signer_query, None)
-            .await?
-            .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?
-    } else {
-        let all_validators_query = entropy::storage().session().validators();
-        let mut validators = query_chain(api, rpc, all_validators_query, None)
-            .await?
-            .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
-
-        validators.sort();
-        validators
-    };
+    let signer_query = entropy::storage().staking_extension().signers();
+    let mut validators = query_chain(api, rpc, signer_query, None)
+        .await?
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
 
     // TODO #898 For now we use a fix proportion of the number of validators as the threshold
     let threshold = (validators.len() as f32 * 0.75) as usize;
