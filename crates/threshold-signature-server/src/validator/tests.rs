@@ -14,19 +14,27 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::api::{check_balance_for_fees, check_forbidden_key};
 use crate::{
-    chain_api::{get_api, get_rpc},
     helpers::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         tests::{
-            initialize_test_logger, run_to_block, setup_client, spawn_four_testing_validators,
-            unsafe_get,
+            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            unsafe_get, ChainSpecType,
         },
     },
+    user::tests::jump_start_network,
     validator::{
         api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
         errors::ValidatorErr,
     },
 };
+use entropy_client::{
+    chain_api::{
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+    },
+    Hasher,
+};
+use entropy_client::{register, sign, store_program};
 use entropy_kvdb::{
     clean_tests,
     kv_manager::helpers::{deserialize, serialize},
@@ -34,6 +42,9 @@ use entropy_kvdb::{
 use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::{
     OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_RESHARE_BLOCK_NUMBER,
+};
+use entropy_testing_utils::constants::{
+    AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
 };
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
@@ -43,7 +54,10 @@ use entropy_testing_utils::{
 use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
+use sp_core::Pair;
 use sp_keyring::AccountKeyring;
+use subxt::utils::AccountId32;
+use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
@@ -51,34 +65,34 @@ async fn test_reshare() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::AliceStash;
+    let dave = AccountKeyring::DaveStash;
 
     let cxt = test_node_process_testing_state(true).await;
 
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_four_testing_validators(add_parent_key_to_kvdb).await;
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
 
-    let validator_ports = vec![3001, 3002, 3003];
+    let validator_ports = vec![3001, 3002, 3003, 3004];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
     let mut key_shares_before = vec![];
-    for port in &validator_ports {
+    for port in &validator_ports[..3] {
         key_shares_before.push(unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), *port).await);
     }
 
-    crate::user::tests::jump_start_network(&api, &rpc).await;
+    jump_start_network(&api, &rpc).await;
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request =
-        OcwMessageReshare { new_signer: alice.public().encode(), block_number };
+        OcwMessageReshare { new_signer: dave.public().encode(), block_number };
 
     run_to_block(&rpc, block_number + 1).await;
 
     let response_results = join_all(
-        validator_ports
+        validator_ports[1..]
             .iter()
             .map(|port| {
                 client
@@ -93,12 +107,14 @@ async fn test_reshare() {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
 
-    for i in 0..validator_ports.len() {
+    for i in 0..3 {
         let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
             deserialize(&key_shares_before[i]).unwrap();
 
+        // We add one to the port number here because after the reshare the siging committee has
+        // shifted from alice, bob, charlie to bob, charlie, dave
         let key_share_and_aux_data_after =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i + 1]).await;
         let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after).unwrap();
 
@@ -107,7 +123,60 @@ async fn test_reshare() {
         // Check aux info has changed
         assert_ne!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
     }
-    // TODO #981 - test signing a message with the new keyshare set
+
+    // Now test signing a message with the new keyshare set
+    let account_owner = AccountKeyring::Ferdie.pair();
+    let signature_request_author = AccountKeyring::One;
+    // Store a program
+    let program_pointer = store_program(
+        &api,
+        &rpc,
+        &account_owner,
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    // Register, using that program
+    let register_on_chain = true;
+    let (verifying_key, _registered_info) = register(
+        &api,
+        &rpc,
+        account_owner.clone(),
+        AccountId32(account_owner.public().0),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
+        register_on_chain,
+    )
+    .await
+    .unwrap();
+
+    // Sign a message
+    let recoverable_signature = sign(
+        &api,
+        &rpc,
+        signature_request_author.pair(),
+        verifying_key,
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
+    )
+    .await
+    .unwrap();
+
+    // Check the signature
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_should_succeed_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(
+        verifying_key.to_vec(),
+        recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
+    );
     clean_tests();
 }
 

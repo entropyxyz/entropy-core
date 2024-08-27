@@ -56,7 +56,7 @@ pub async fn new_reshare(
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
-
+    println!("reshare endpoint called");
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
@@ -75,6 +75,7 @@ pub async fn new_reshare(
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
+    println!("account id {:?}", hex::encode(signer.account_id().0));
     let verifying_key_query = entropy::storage().staking_extension().jump_start_progress();
     let parent_key_details = query_chain(&api, &rpc, verifying_key_query, None)
         .await?
@@ -93,6 +94,7 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
+    println!("got parent key {:?}", hex::encode(signer.account_id().0));
     let is_proper_signer = is_signer_or_delete_parent_key(
         signer.account_id(),
         validators_info.clone(),
@@ -103,6 +105,7 @@ pub async fn new_reshare(
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
+    println!("am proper signer {:?}", hex::encode(signer.account_id().0));
 
     let my_stash_address = get_stash_address(&api, &rpc, signer.account_id())
         .await
@@ -161,6 +164,7 @@ pub async fn new_reshare(
         tss_accounts.push(validator_info.tss_account.clone());
     }
 
+    println!("getting channels {:?}", hex::encode(signer.account_id().0));
     let channels = get_channels(
         &app_state.listener_state,
         converted_validator_info,
@@ -170,6 +174,8 @@ pub async fn new_reshare(
         &x25519_secret_key,
     )
     .await?;
+
+    println!("starting protocol {:?}", hex::encode(signer.account_id().0));
 
     let (new_key_share, aux_info) =
         execute_reshare(session_id.clone(), channels, signer.signer(), inputs, None).await?;
@@ -184,6 +190,7 @@ pub async fn new_reshare(
 
     let reservation = app_state.kv_store.kv().reserve_key(network_parent_key).await?;
     app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
+    println!("stored new keyshare {:?}", hex::encode(signer.account_id().0));
 
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(&api, &rpc, &signer).await?;
