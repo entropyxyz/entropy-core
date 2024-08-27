@@ -187,9 +187,9 @@ pub async fn new_reshare(
     Ok(StatusCode::OK)
 }
 
-// HTTP POST endpoint called by the off-chain worker (propagation pallet) after  network reshare.
+/// HTTP POST endpoint called by the off-chain worker (propagation pallet) after a network key reshare.
 ///
-/// This roatates network key.
+/// This rotates network key, deleting the previous network parent key.
 #[tracing::instrument(skip_all)]
 pub async fn rotate_network_key(
     State(app_state): State<AppState>,
@@ -285,8 +285,8 @@ pub async fn validate_new_reshare(
     Ok(())
 }
 
-/// Validates rotate_network_key
-/// Checks the chain that the reshare was completed recently
+/// Checks the chain that the reshare was completed recently.
+///
 /// We only care that this happens after a reshare so we just check that message isn't stale
 pub async fn validate_rotate_network_key(
     api: &OnlineClient<EntropyConfig>,
