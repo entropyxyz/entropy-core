@@ -69,14 +69,12 @@ pub mod pallet {
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             let _ = Self::post_dkg(block_number);
             let _ = Self::post_reshare(block_number);
-            let _ = Self::post_user_registration(block_number);
-            let _ = Self::post_attestation_request(block_number);
             let _ = Self::post_proactive_refresh(block_number);
+            let _ = Self::post_attestation_request(block_number);
             let _ = Self::post_rotate_keyshare(block_number);
         }
 
-        fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
-            pallet_registry::Dkg::<T>::remove(block_number.saturating_sub(2u32.into()));
+        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             pallet_staking_extension::ProactiveRefresh::<T>::take();
             <T as Config>::WeightInfo::on_initialize()
         }
@@ -122,64 +120,6 @@ pub mod pallet {
                 .unwrap_or_else(|| b"http://localhost:3001/generate_network_key".to_vec());
             let url =
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/generate_network_key");
-
-            log::warn!("propagation::post::messages: {:?}", &messages);
-            let converted_block_number: u32 =
-                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
-            let servers_info =
-                pallet_registry::Pallet::<T>::get_validators_info().unwrap_or_default();
-            let validators_info = servers_info
-                .iter()
-                .map(|server_info| ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: server_info.endpoint.clone(),
-                    tss_account: server_info.tss_account.encode(),
-                })
-                .collect::<Vec<_>>();
-            // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
-            let req_body = OcwMessageDkg {
-                // subtract 1 from blocknumber since the request is from the last block
-                block_number: converted_block_number.saturating_sub(1),
-                sig_request_accounts: messages,
-                validators_info,
-            };
-
-            log::warn!("propagation::post::req_body: {:?}", &[req_body.encode()]);
-            // We construct the request
-            // important: the header->Content-Type must be added and match that of the receiving
-            // party!!
-            let pending = http::Request::post(url, vec![req_body.encode()])
-                .deadline(deadline)
-                .send()
-                .map_err(|_| http::Error::IoError)?;
-
-            // We await response, same as in fn get()
-            let response =
-                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
-
-            // check response code
-            if response.code != 200 {
-                log::warn!("Unexpected status code: {}", response.code);
-                return Err(http::Error::Unknown);
-            }
-            let _res_body = response.body().collect::<Vec<u8>>();
-
-            Self::deposit_event(Event::DkgMessagePassed(req_body));
-
-            Ok(())
-        }
-
-        /// Submits a distributed key generation request to register a set of users to the threshold
-        /// servers.
-        pub fn post_user_registration(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
-            let messages =
-                pallet_registry::Pallet::<T>::dkg(block_number.saturating_sub(1u32.into()));
-
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
-            let kind = sp_core::offchain::StorageKind::PERSISTENT;
-            let from_local = sp_io::offchain::local_storage_get(kind, b"registration")
-                .unwrap_or_else(|| b"http://localhost:3001/user/new".to_vec());
-            let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/user/new");
 
             log::warn!("propagation::post::messages: {:?}", &messages);
             let converted_block_number: u32 =
