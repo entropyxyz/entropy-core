@@ -401,7 +401,7 @@ pub mod pallet {
 
         #[pallet::call_index(2)]
         // TODO
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
         pub fn unbond(
             origin: OriginFor<T>,
             #[pallet::compact] value: BalanceOf<T>,
@@ -415,10 +415,16 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
-            ensure!(
-                !Self::next_signers().unwrap().next_signers.contains(&validator_id),
-                Error::<T>::NoUnbodingWhenNextSigner
-            );
+            let next_signers = Self::next_signers();
+            if next_signers.is_some() {
+                ensure!(
+                    !next_signers
+                        .ok_or(Error::<T>::ReshareNotInProgress)?
+                        .next_signers
+                        .contains(&validator_id),
+                    Error::<T>::NoUnbodingWhenNextSigner
+                );
+            }
 
             pallet_staking::Pallet::<T>::unbond(origin, value)?;
 
@@ -427,7 +433,7 @@ pub mod pallet {
 
         #[pallet::call_index(3)]
         // TODO
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
         pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
             let ledger =
@@ -438,10 +444,16 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
-            ensure!(
-                !Self::next_signers().unwrap().next_signers.contains(&validator_id),
-                Error::<T>::NoUnbodingWhenNextSigner
-            );
+            let next_signers = Self::next_signers();
+            if next_signers.is_some() {
+                ensure!(
+                    !next_signers
+                        .ok_or(Error::<T>::ReshareNotInProgress)?
+                        .next_signers
+                        .contains(&validator_id),
+                    Error::<T>::NoUnbodingWhenNextSigner
+                );
+            }
 
             pallet_staking::Pallet::<T>::chill(origin)?;
 
@@ -451,7 +463,7 @@ pub mod pallet {
         /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
         #[pallet::call_index(4)]
         // TODO: add contains O(n) to bench
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
             num_slashing_spans: u32,
@@ -464,11 +476,18 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
-            ensure!(
-                !Self::next_signers().unwrap().next_signers.contains(&validator_id),
-                Error::<T>::NoUnbodingWhenNextSigner
-            );
+            let signers = Self::signers();
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            let next_signers = Self::next_signers();
+            if next_signers.is_some() {
+                ensure!(
+                    !next_signers
+                        .ok_or(Error::<T>::ReshareNotInProgress)?
+                        .next_signers
+                        .contains(&validator_id),
+                    Error::<T>::NoUnbodingWhenNextSigner
+                );
+            }
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
@@ -479,7 +498,7 @@ pub mod pallet {
                 IsValidatorSynced::<T>::remove(&validator_id);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
-            Ok(().into())
+            Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(signers.len() as u32)).into())
         }
 
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that

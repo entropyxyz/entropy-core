@@ -126,13 +126,23 @@ benchmarks! {
 
 
   withdraw_unbonded {
+    let c in 0 .. MAX_SIGNERS as u32;
+
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    
+    let signers = vec![validator_id_res.clone(); c as usize];
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![],
+  });
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
-
+    
     // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
     assert_ok!(<FrameStaking<T>>::unbond(
       RawOrigin::Signed(bonder.clone()).into(),
