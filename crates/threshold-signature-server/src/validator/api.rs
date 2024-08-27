@@ -93,12 +93,9 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer = is_signer_or_delete_parent_key(
-        signer.account_id(),
-        validators_info.clone(),
-        &app_state.kv_store,
-    )
-    .await?;
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
@@ -215,9 +212,12 @@ pub async fn rotate_network_key(
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
-    let is_proper_signer = validators_info
-        .iter()
-        .any(|validator_info| validator_info.tss_account == *signer.account_id());
+    let is_proper_signer = is_signer_or_delete_parent_key(
+        signer.account_id(),
+        validators_info.clone(),
+        &app_state.kv_store,
+    )
+    .await?;
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
