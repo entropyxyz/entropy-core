@@ -28,6 +28,7 @@ use entropy_testing_utils::{
     },
     spawn_testing_validators,
     substrate_context::test_context_stationary,
+    ChainSpecType,
 };
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
@@ -41,7 +42,8 @@ async fn integration_test_sign_public() {
     let eve = AccountKeyring::Eve;
     let request_author = AccountKeyring::One;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
 
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();

@@ -20,7 +20,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get,
+            unsafe_get, ChainSpecType,
         },
     },
 };
@@ -45,7 +45,7 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, _ids) = spawn_testing_validators(false).await;
+    let (validator_ips, _ids) = spawn_testing_validators(false, ChainSpecType::Integration).await;
 
     let client = reqwest::Client::new();
 

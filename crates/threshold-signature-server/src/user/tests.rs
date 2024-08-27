@@ -121,7 +121,7 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
-            run_to_block, setup_client, spawn_testing_validators, unsafe_get,
+            run_to_block, setup_client, spawn_testing_validators, unsafe_get, ChainSpecType,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -169,7 +169,8 @@ async fn test_sign_tx_no_chain() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -376,7 +377,8 @@ async fn signature_request_with_derived_account_works() {
     let charlie = AccountKeyring::Charlie;
 
     let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Development).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -498,7 +500,8 @@ async fn test_sign_tx_no_chain_fail() {
 
     let one = AccountKeyring::Dave;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -625,7 +628,8 @@ async fn test_program_with_config() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -694,7 +698,8 @@ async fn test_store_share() {
     let program_manager = AccountKeyring::Dave;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -864,7 +869,8 @@ async fn test_jumpstart_network() {
     let alice = AccountKeyring::Alice;
 
     let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -1091,7 +1097,8 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::Dave;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1191,7 +1198,8 @@ async fn test_device_key_proxy() {
 
     let one = AccountKeyring::Dave;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_context_stationary().await;
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1301,7 +1309,8 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_node_process_testing_state(true).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -1472,7 +1481,8 @@ async fn test_new_registration_flow() {
     let charlie = AccountKeyring::Charlie;
 
     let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Development).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.

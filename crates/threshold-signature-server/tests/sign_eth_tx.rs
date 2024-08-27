@@ -27,6 +27,7 @@ use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     spawn_testing_validators,
     substrate_context::test_context_stationary,
+    ChainSpecType,
 };
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
@@ -49,7 +50,8 @@ async fn integration_test_sign_eth_tx() {
     clean_tests();
     let pre_registered_user = AccountKeyring::Eve;
 
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();

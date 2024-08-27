@@ -26,7 +26,7 @@ use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
-    jump_start_network, spawn_testing_validators, test_node_process_testing_state,
+    jump_start_network, spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
@@ -42,7 +42,8 @@ async fn integration_test_register_and_sign() {
     let signature_request_author = AccountKeyring::One;
 
     let add_parent_key = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
