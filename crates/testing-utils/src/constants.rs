@@ -32,6 +32,8 @@ lazy_static! {
         hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into(),
         // Charlie - from DEFAULT_CHARLIE_MNEMONIC in entropy_tss::helpers::launch
         hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into(),
+        // Dave - from DEFAULT_DAVE_MNEMONIC in entropy_tss::helpers::launch
+        hex!["0a9054ef6b6b8ad0dd2c89895b2515583f2fbf1edced68e7328ae456d86b9402"].into(),
     ];
 
     // See entropy_tss::helpers::validator::get_signer_and_x25519_secret for how these are derived
@@ -57,6 +59,13 @@ lazy_static! {
         ]
         .try_into()
         .unwrap(),
+        // Dave - from DEFAULT_DAVE_MNEMONIC in entropy_tss::helpers::launch
+        vec![
+            165, 202, 97, 104, 222, 190, 168, 183, 231, 63, 209, 233, 19, 185, 187, 200, 10, 29, 102,
+            240, 39, 50, 140, 15, 124, 112, 94, 121, 44, 182, 40, 71
+        ]
+        .try_into()
+        .unwrap()
     ];
 }
 
