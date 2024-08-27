@@ -444,7 +444,7 @@ pub mod pallet {
 
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
-            
+
             let signers = Self::signers();
             ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
 

@@ -24,7 +24,9 @@ use frame_support::{
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
-use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
+use pallet_staking::{
+    Event as FrameStakingEvent, Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
+};
 use sp_std::{vec, vec::Vec};
 
 use super::*;
@@ -35,6 +37,16 @@ const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
+}
+
+fn assert_last_event_frame_staking<T: Config>(
+    generic_event: <T as pallet_staking::Config>::RuntimeEvent,
+) {
     let events = frame_system::Pallet::<T>::events();
     let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
     // compare to the last event record
@@ -140,21 +152,12 @@ benchmarks! {
   });
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
-    let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
-
-    // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
-    assert_ok!(<FrameStaking<T>>::unbond(
-      RawOrigin::Signed(bonder.clone()).into(),
-      bond,
-    ));
 
 
-  }:  _(RawOrigin::Signed(bonder.clone()), 0u32.into())
+  }:  _(RawOrigin::Signed(bonder.clone()), 10u32.into())
   verify {
-    // TODO: JA fix, pretty much benching this pathway requiers moving the session forward
-    // This is diffcult, from the test we were able to mock it but benchamrks use runtime configs
-    // It is fine for now but should come back to it
-    // assert_last_event::<T>(Event::NodeInfoRemoved(caller).into());
+    assert_last_event_frame_staking::<T>(FrameStakingEvent::Unbonded{ stash: bonder, amount: 10u32.into() }.into() );
+
   }
 
   chill {
@@ -184,10 +187,8 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(bonder.clone()))
   verify {
-    // TODO: JA fix, pretty much benching this pathway requiers moving the session forward
-    // This is diffcult, from the test we were able to mock it but benchamrks use runtime configs
-    // It is fine for now but should come back to it
-    // assert_last_event::<T>(Event::NodeInfoRemoved(caller).into());
+    assert_last_event_frame_staking::<T>(FrameStakingEvent::Chilled{ stash: bonder }.into() );
+
   }
 
 
