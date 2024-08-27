@@ -56,7 +56,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `1309`
 		//  Estimated: `4774`
 		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(25_000_000, 0)
+		Weight::from_parts(30_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4774))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -73,11 +73,64 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `1430`
 		//  Estimated: `4895`
-		// Minimum execution time: 32_000_000 picoseconds.
-		Weight::from_parts(38_000_000, 0)
+		// Minimum execution time: 29_000_000 picoseconds.
+		Weight::from_parts(29_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4895))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	/// Storage: `Staking::Ledger` (r:1 w:0)
+	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 15]`.
+	fn unbond(c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1153 + c * (64 ±0)`
+		//  Estimated: `4556 + c * (64 ±0)`
+		// Minimum execution time: 30_000_000 picoseconds.
+		Weight::from_parts(31_919_889, 0)
+			.saturating_add(Weight::from_parts(0, 4556))
+			// Standard Error: 69_754
+			.saturating_add(Weight::from_parts(122_237, 0).saturating_mul(c.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+	}
+	/// Storage: `Staking::Ledger` (r:1 w:0)
+	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
+	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Staking::Validators` (r:1 w:1)
+	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::CounterForValidators` (r:1 w:1)
+	/// Proof: `Staking::CounterForValidators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `BagsList::ListNodes` (r:2 w:2)
+	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `BagsList::ListBags` (r:1 w:1)
+	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `BagsList::CounterForListNodes` (r:1 w:1)
+	/// Proof: `BagsList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:0)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// The range of component `c` is `[0, 15]`.
+	fn chill(c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `2093 + c * (64 ±0)`
+		//  Estimated: `6248 + c * (64 ±0)`
+		// Minimum execution time: 56_000_000 picoseconds.
+		Weight::from_parts(60_113_259, 0)
+			.saturating_add(Weight::from_parts(0, 6248))
+			.saturating_add(T::DbWeight::get().reads(11))
+			.saturating_add(T::DbWeight::get().writes(6))
+			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
@@ -101,10 +154,10 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `1460 + c * (64 ±0)`
 		//  Estimated: `4764 + c * (64 ±0)`
 		// Minimum execution time: 46_000_000 picoseconds.
-		Weight::from_parts(47_190_607, 0)
+		Weight::from_parts(46_132_596, 0)
 			.saturating_add(Weight::from_parts(0, 4764))
-			// Standard Error: 140_766
-			.saturating_add(Weight::from_parts(140_193, 0).saturating_mul(c.into()))
+			// Standard Error: 47_282
+			.saturating_add(Weight::from_parts(64_917, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
@@ -140,7 +193,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `1918`
 		//  Estimated: `6248`
 		// Minimum execution time: 65_000_000 picoseconds.
-		Weight::from_parts(66_000_000, 0)
+		Weight::from_parts(69_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 6248))
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(8))
@@ -154,7 +207,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `320`
 		//  Estimated: `3785`
 		// Minimum execution time: 10_000_000 picoseconds.
-		Weight::from_parts(10_000_000, 0)
+		Weight::from_parts(14_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 3785))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -169,10 +222,8 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `797 + c * (32 ±0)`
 		//  Estimated: `4298 + c * (29 ±1)`
 		// Minimum execution time: 11_000_000 picoseconds.
-		Weight::from_parts(12_080_110, 0)
+		Weight::from_parts(12_383_977, 0)
 			.saturating_add(Weight::from_parts(0, 4298))
-			// Standard Error: 35_366
-			.saturating_add(Weight::from_parts(2_762, 0).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(Weight::from_parts(0, 29).saturating_mul(c.into()))
@@ -188,7 +239,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `1309`
 		//  Estimated: `4774`
 		// Minimum execution time: 12_000_000 picoseconds.
-		Weight::from_parts(13_000_000, 0)
+		Weight::from_parts(18_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 4774))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -203,7 +254,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 		//  Measured:  `254 + s * (32 ±0)`
 		//  Estimated: `1739 + s * (32 ±0)`
 		// Minimum execution time: 6_000_000 picoseconds.
-		Weight::from_parts(7_574_902, 0)
+		Weight::from_parts(6_523_346, 0)
 			.saturating_add(Weight::from_parts(0, 1739))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
@@ -224,13 +275,17 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[1, 14]`.
 	/// The range of component `l` is `[0, 15]`.
-	fn new_session(c: u32, _l: u32, ) -> Weight {
+	fn new_session(c: u32, l: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `482 + c * (32 ±0)`
 		//  Estimated: `1966 + c * (32 ±0)`
-		// Minimum execution time: 14_000_000 picoseconds.
-		Weight::from_parts(20_840_061, 0)
+		// Minimum execution time: 13_000_000 picoseconds.
+		Weight::from_parts(13_804_739, 0)
 			.saturating_add(Weight::from_parts(0, 1966))
+			// Standard Error: 35_656
+			.saturating_add(Weight::from_parts(15_438, 0).saturating_mul(c.into()))
+			// Standard Error: 30_550
+			.saturating_add(Weight::from_parts(8_718, 0).saturating_mul(l.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))

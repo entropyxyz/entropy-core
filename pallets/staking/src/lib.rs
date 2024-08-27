@@ -399,9 +399,9 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Wraps's substrate unbond but checks to make targeted validator sure not signer or next signe
         #[pallet::call_index(2)]
-        // TODO
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
+        #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32))]
         pub fn unbond(
             origin: OriginFor<T>,
             #[pallet::compact] value: BalanceOf<T>,
@@ -414,7 +414,9 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            let signers = Self::signers();
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+
             let next_signers = Self::next_signers();
             if next_signers.is_some() {
                 ensure!(
@@ -428,12 +430,12 @@ pub mod pallet {
 
             pallet_staking::Pallet::<T>::unbond(origin, value)?;
 
-            Ok(().into())
+            Ok(Some(<T as Config>::WeightInfo::unbond(signers.len() as u32)).into())
         }
 
+        /// Wraps's substrate chill but checks to make targeted validator sure not signer or next signer
         #[pallet::call_index(3)]
-        // TODO
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
+        #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32))]
         pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
             let ledger =
@@ -442,8 +444,10 @@ pub mod pallet {
 
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
+            
+            let signers = Self::signers();
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
 
-            ensure!(!Self::signers().contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
             let next_signers = Self::next_signers();
             if next_signers.is_some() {
                 ensure!(
@@ -457,12 +461,11 @@ pub mod pallet {
 
             pallet_staking::Pallet::<T>::chill(origin)?;
 
-            Ok(().into())
+            Ok(Some(<T as Config>::WeightInfo::chill(signers.len() as u32)).into())
         }
 
         /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
         #[pallet::call_index(4)]
-        // TODO: add contains O(n) to bench
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,

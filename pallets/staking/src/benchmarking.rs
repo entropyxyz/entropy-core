@@ -124,15 +124,14 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
 
-
-  withdraw_unbonded {
+  unbond {
     let c in 0 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    
+
     let signers = vec![validator_id_res.clone(); c as usize];
     Signers::<T>::put(signers.clone());
     NextSigners::<T>::put(NextSignerInfo {
@@ -142,7 +141,74 @@ benchmarks! {
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
-    
+
+    // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
+    assert_ok!(<FrameStaking<T>>::unbond(
+      RawOrigin::Signed(bonder.clone()).into(),
+      bond,
+    ));
+
+
+  }:  _(RawOrigin::Signed(bonder.clone()), 0u32.into())
+  verify {
+    // TODO: JA fix, pretty much benching this pathway requiers moving the session forward
+    // This is diffcult, from the test we were able to mock it but benchamrks use runtime configs
+    // It is fine for now but should come back to it
+    // assert_last_event::<T>(Event::NodeInfoRemoved(caller).into());
+  }
+
+  chill {
+    let c in 0 .. MAX_SIGNERS as u32;
+
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let bonder: T::AccountId = account("bond", 0, SEED);
+    let threshold: T::AccountId = account("threshold", 0, SEED);
+
+    let signers = vec![validator_id_res.clone(); c as usize];
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![],
+  });
+
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
+    let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
+
+    // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
+    assert_ok!(<FrameStaking<T>>::unbond(
+      RawOrigin::Signed(bonder.clone()).into(),
+      bond,
+    ));
+
+
+  }:  _(RawOrigin::Signed(bonder.clone()))
+  verify {
+    // TODO: JA fix, pretty much benching this pathway requiers moving the session forward
+    // This is diffcult, from the test we were able to mock it but benchamrks use runtime configs
+    // It is fine for now but should come back to it
+    // assert_last_event::<T>(Event::NodeInfoRemoved(caller).into());
+  }
+
+
+  withdraw_unbonded {
+    let c in 0 .. MAX_SIGNERS as u32;
+
+    let caller: T::AccountId = whitelisted_caller();
+    let bonder: T::AccountId = account("bond", 0, SEED);
+    let threshold: T::AccountId = account("threshold", 0, SEED);
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+
+    let signers = vec![validator_id_res.clone(); c as usize];
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![],
+  });
+
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
+    let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
+
     // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
     assert_ok!(<FrameStaking<T>>::unbond(
       RawOrigin::Signed(bonder.clone()).into(),
