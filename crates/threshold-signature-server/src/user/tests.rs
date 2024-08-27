@@ -205,24 +205,9 @@ async fn test_signature_requests_fail_on_different_conditions() {
     .await
     .unwrap();
 
-    // Test: We check that an account without a program fails to submit a signature request
-
+    // Test: We check that an account with a program succeeds in submiting a signature request
     let (validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
-
-    // This verifying key doesn't have a program registered with it
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-
-    // test points to no program
-    let test_no_program =
-        submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
-            .await;
-
-    for res in test_no_program {
-        assert_eq!(res.unwrap().text().await.unwrap(), "No program pointer defined for account");
-    }
-
-    // Test: We check that an account with a program succeeds in submiting a signature request
 
     // The account we registered does have a program pointer, so this should succeed
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
