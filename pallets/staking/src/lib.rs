@@ -414,23 +414,11 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
-
-            let next_signers = Self::next_signers();
-            if next_signers.is_some() {
-                ensure!(
-                    !next_signers
-                        .ok_or(Error::<T>::ReshareNotInProgress)?
-                        .next_signers
-                        .contains(&validator_id),
-                    Error::<T>::NoUnbondingWhenNextSigner
-                );
-            }
+            let signers_length = Self::ensure_not_signer_or_next_signer(&validator_id)?;
 
             pallet_staking::Pallet::<T>::unbond(origin, value)?;
 
-            Ok(Some(<T as Config>::WeightInfo::unbond(signers.len() as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::unbond(signers_length)).into())
         }
 
         /// Wraps's substrate chill but checks to make targeted validator sure not signer or next signer
@@ -445,23 +433,11 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
-
-            let next_signers = Self::next_signers();
-            if next_signers.is_some() {
-                ensure!(
-                    !next_signers
-                        .ok_or(Error::<T>::ReshareNotInProgress)?
-                        .next_signers
-                        .contains(&validator_id),
-                    Error::<T>::NoUnbondingWhenNextSigner
-                );
-            }
+            let signers_length = Self::ensure_not_signer_or_next_signer(&validator_id)?;
 
             pallet_staking::Pallet::<T>::chill(origin)?;
 
-            Ok(Some(<T as Config>::WeightInfo::chill(signers.len() as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::chill(signers_length)).into())
         }
 
         /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
@@ -479,18 +455,7 @@ pub mod pallet {
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
-            let next_signers = Self::next_signers();
-            if next_signers.is_some() {
-                ensure!(
-                    !next_signers
-                        .ok_or(Error::<T>::ReshareNotInProgress)?
-                        .next_signers
-                        .contains(&validator_id),
-                    Error::<T>::NoUnbondingWhenNextSigner
-                );
-            }
+            let signers_length = Self::ensure_not_signer_or_next_signer(&validator_id)?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
@@ -501,7 +466,7 @@ pub mod pallet {
                 IsValidatorSynced::<T>::remove(&validator_id);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
-            Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(signers.len() as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(signers_length)).into())
         }
 
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
@@ -603,6 +568,23 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NotController)?;
             Ok(ledger.stash)
+        }
+
+        /// Ensures that the current validator is not a signer or a next signer
+        pub fn ensure_not_signer_or_next_signer(
+            validator_id: &<T as pallet_session::Config>::ValidatorId,
+        ) -> Result<u32, DispatchError> {
+            let signers = Self::signers();
+            ensure!(!signers.contains(validator_id), Error::<T>::NoUnbondingWhenSigner);
+
+            if let Some(next_signers) = Self::next_signers() {
+                ensure!(
+                    !next_signers.next_signers.contains(validator_id),
+                    Error::<T>::NoUnbondingWhenNextSigner
+                );
+            }
+
+            Ok(signers.len() as u32)
         }
 
         pub fn get_randomness() -> ChaCha20Rng {
