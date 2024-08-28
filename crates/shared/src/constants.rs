@@ -73,8 +73,3 @@ pub const SIGNER_THRESHOLD: u8 = 2;
 
 /// For testing to line up chain mock data and reshare_test
 pub const TEST_RESHARE_BLOCK_NUMBER: u32 = 5;
-
-/// Accepted values of the TDX build-time measurement register - from the currently-supported
-/// releases of entropy-tss
-/// TODO #982 These are currently just mock values
-pub const ACCEPTED_MRTD_VALUES: [[u8; 48]; 2] = [[0; 48], [1; 48]];
