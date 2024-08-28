@@ -101,13 +101,93 @@ async fn test_reshare() {
         let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after).unwrap();
 
+        // Check key share has not yet changed
+        assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
+        // Check aux info has not yet changed
+        assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
+
+        let _ = client
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .send()
+            .await
+            .unwrap();
+
+        let key_share_and_aux_data_after_rotate =
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+        let (key_share_after_rotate, aux_info_after_rotate): KeyShareWithAuxInfo =
+            deserialize(&key_share_and_aux_data_after_rotate).unwrap();
+
         // Check key share has changed
-        assert_ne!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
+        assert_ne!(
+            serialize(&key_share_before).unwrap(),
+            serialize(&key_share_after_rotate).unwrap()
+        );
         // Check aux info has changed
-        assert_ne!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
+        assert_ne!(
+            serialize(&aux_info_before).unwrap(),
+            serialize(&aux_info_after_rotate).unwrap()
+        );
+
+        // calling twice doesn't do anything
+        let response = client
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.text().await.unwrap(), "Kv error: Recv Error: channel closed");
+        let key_share_and_aux_data_after_rotate_twice =
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+        let (key_share_after_rotate_twice, aux_info_after_rotate_twice): KeyShareWithAuxInfo =
+            deserialize(&key_share_and_aux_data_after_rotate_twice).unwrap();
+
+        // Check key share has not changed
+        assert_eq!(
+            serialize(&key_share_after_rotate_twice).unwrap(),
+            serialize(&key_share_after_rotate).unwrap()
+        );
+        // Check aux info has not changed
+        assert_eq!(
+            serialize(&aux_info_after_rotate_twice).unwrap(),
+            serialize(&aux_info_after_rotate).unwrap()
+        );
     }
+
+    run_to_block(&rpc, block_number + 7).await;
+
+    let response_stale =
+        client.post("http://127.0.0.1:3001/validator/rotate_network_key").send().await.unwrap();
+
+    assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
+
     // TODO #981 - test signing a message with the new keyshare set
     clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_reshare_none_called() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let _cxt = test_node_process_testing_state(true).await;
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key_to_kvdb).await;
+
+    let validator_ports = vec![3001, 3002, 3003];
+
+    let client = reqwest::Client::new();
+
+    for i in 0..validator_ports.len() {
+        let response = client
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.text().await.unwrap(), "Chain Fetch: Rotate Keyshare not in progress");
+    }
 }
 
 #[tokio::test]

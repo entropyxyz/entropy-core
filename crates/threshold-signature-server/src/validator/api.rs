@@ -35,7 +35,7 @@ pub use entropy_protocol::{
     execute_protocol::{execute_protocol_generic, execute_reshare, Channels, PairWrapper},
     KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY};
+use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::Pair;
 use std::{collections::BTreeSet, str::FromStr};
@@ -93,12 +93,9 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer = is_signer_or_delete_parent_key(
-        signer.account_id(),
-        validators_info.clone(),
-        &app_state.kv_store,
-    )
-    .await?;
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
@@ -176,17 +173,69 @@ pub async fn new_reshare(
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-    let network_parent_key = hex::encode(NETWORK_PARENT_KEY);
-    // TODO: should this be a two step process? see # https://github.com/entropyxyz/entropy-core/issues/968
-    if app_state.kv_store.kv().exists(&network_parent_key).await? {
-        app_state.kv_store.kv().delete(&network_parent_key).await?
+    let next_network_parent_key = hex::encode(NEXT_NETWORK_PARENT_KEY);
+
+    if app_state.kv_store.kv().exists(&next_network_parent_key).await? {
+        app_state.kv_store.kv().delete(&next_network_parent_key).await?
     };
 
-    let reservation = app_state.kv_store.kv().reserve_key(network_parent_key).await?;
+    let reservation = app_state.kv_store.kv().reserve_key(next_network_parent_key).await?;
     app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(&api, &rpc, &signer).await?;
+    Ok(StatusCode::OK)
+}
+
+/// HTTP POST endpoint called by the off-chain worker (propagation pallet) after a network key reshare.
+///
+/// This rotates network key, deleting the previous network parent key.
+#[tracing::instrument(skip_all)]
+pub async fn rotate_network_key(
+    State(app_state): State<AppState>,
+) -> Result<StatusCode, ValidatorErr> {
+    // validate from chain
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+    validate_rotate_network_key(&api, &rpc).await?;
+
+    let (signer, _) = get_signer_and_x25519_secret(&app_state.kv_store)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
+    let signers_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signers_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, signers)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+
+    let is_proper_signer = is_signer_or_delete_parent_key(
+        signer.account_id(),
+        validators_info.clone(),
+        &app_state.kv_store,
+    )
+    .await?;
+
+    if !is_proper_signer {
+        return Ok(StatusCode::MISDIRECTED_REQUEST);
+    }
+
+    let network_parent_key_heading = hex::encode(NETWORK_PARENT_KEY);
+    let next_network_parent_key_heading = hex::encode(NEXT_NETWORK_PARENT_KEY);
+
+    let new_parent_key = app_state.kv_store.kv().get(&next_network_parent_key_heading).await?;
+
+    if app_state.kv_store.kv().exists(&network_parent_key_heading).await? {
+        app_state.kv_store.kv().delete(&network_parent_key_heading).await?;
+    };
+
+    app_state.kv_store.kv().delete(&next_network_parent_key_heading).await?;
+
+    let reservation = app_state.kv_store.kv().reserve_key(network_parent_key_heading).await?;
+    app_state.kv_store.kv().put(reservation, new_parent_key).await?;
     Ok(StatusCode::OK)
 }
 
@@ -236,6 +285,30 @@ pub async fn validate_new_reshare(
     Ok(())
 }
 
+/// Checks the chain that the reshare was completed recently.
+///
+/// We only care that this happens after a reshare so we just check that message isn't stale
+pub async fn validate_rotate_network_key(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(), ValidatorErr> {
+    let latest_block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get block number".to_string()))?
+        .number;
+
+    let rotate_keyshares_info_query = entropy::storage().staking_extension().rotate_keyshares();
+    let rotate_keyshare_block = query_chain(api, rpc, rotate_keyshares_info_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Rotate Keyshare not in progress"))?;
+
+    if latest_block_number > rotate_keyshare_block {
+        return Err(ValidatorErr::StaleData);
+    }
+
+    Ok(())
+}
 /// Confirms that a validator has succefully reshared.
 pub async fn confirm_key_reshare(
     api: &OnlineClient<EntropyConfig>,
