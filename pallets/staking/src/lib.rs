@@ -304,8 +304,8 @@ pub mod pallet {
         NotNextSigner,
         ReshareNotInProgress,
         AlreadyConfirmed,
-        NoUnbodingWhenSigner,
-        NoUnbodingWhenNextSigner,
+        NoUnbondingWhenSigner,
+        NoUnbondingWhenNextSigner,
     }
 
     #[pallet::event]
@@ -399,7 +399,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Wraps's substrate unbond but checks to make targeted validator sure not signer or next signe
+        /// Wraps's substrate unbond but checks to make sure targeted validator is not a signer or next signer
         #[pallet::call_index(2)]
         #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32))]
         pub fn unbond(
