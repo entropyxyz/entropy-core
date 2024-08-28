@@ -42,7 +42,6 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvMa
 use entropy_protocol::PartyId;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
 use std::time::Duration;
-
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -121,7 +120,7 @@ pub async fn create_clients(
 
 /// A way to specify whether the test environment uses the Development chainspec, which has 3 TSS
 /// nodes, or the Integration test chainspec which has 4 TSS nodes
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ChainSpecType {
     Development,
     Integration,
