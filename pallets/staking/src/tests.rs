@@ -527,7 +527,10 @@ fn it_stops_chill_when_signer_or_next_signer() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        assert_noop!(Staking::chill(RuntimeOrigin::signed(7)), Error::<Test>::NoUnbondingWhenSigner);
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(7)),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
 
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(8),
