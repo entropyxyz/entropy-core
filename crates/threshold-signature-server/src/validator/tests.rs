@@ -141,14 +141,12 @@ async fn test_reshare() {
     .unwrap();
 
     // Register, using that program
-    let register_on_chain = true;
     let (verifying_key, _registered_info) = register(
         &api,
         &rpc,
         account_owner.clone(),
         AccountId32(account_owner.public().0),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
-        register_on_chain,
     )
     .await
     .unwrap();

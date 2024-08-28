@@ -52,7 +52,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{MAX_SIGNERS, NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
+    use entropy_shared::{MAX_SIGNERS, NETWORK_PARENT_KEY};
     use frame_support::{
         dispatch::DispatchResultWithPostInfo, pallet_prelude::*, traits::ConstU32,
     };
@@ -120,40 +120,9 @@ pub mod pallet {
         pub version_number: u8,
     }
 
-    #[pallet::genesis_config]
-    #[derive(frame_support::DefaultNoBound)]
-    pub struct GenesisConfig<T: Config> {
-        #[allow(clippy::type_complexity)]
-        pub registered_accounts: Vec<(T::AccountId, VerifyingKey)>,
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
-        fn build(&self) {
-            for (account_id, verifying_key) in &self.registered_accounts {
-                assert!(verifying_key.len() as u32 == VERIFICATION_KEY_LENGTH);
-
-                Registered::<T>::insert(
-                    verifying_key.clone(),
-                    RegisteredInfo {
-                        programs_data: BoundedVec::default(),
-                        program_modification_account: account_id.clone(),
-                        derivation_path: None,
-                        version_number: T::KeyVersionNumber::get(),
-                    },
-                );
-            }
-        }
-    }
-
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
-
-    #[pallet::storage]
-    #[pallet::getter(fn registering)]
-    pub type Registering<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, RegisteringDetails<T>, OptionQuery>;
 
     /// Used for triggering a network wide distributed key generation request via an offchain
     /// worker.
@@ -162,26 +131,14 @@ pub mod pallet {
     pub type JumpstartDkg<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
 
-    /// Used to store requests and trigger distributed key generation for users via an offchain
-    /// worker.
-    #[pallet::storage]
-    #[pallet::getter(fn dkg)]
-    pub type Dkg<T: Config> =
-        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn registered)]
-    pub type Registered<T: Config> =
-        StorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
-
     /// An item tracking all the users registered on the Entropy network.
     ///
     /// Notice that the registration state does not depend on any Substrate account being
     /// registered, but rather a _verifying key_, which represents the user beyond the scope of the
     /// Entropy network itself (e.g it can be an account on Bitcoin or Ethereum).
     #[pallet::storage]
-    #[pallet::getter(fn registered_on_chain)]
-    pub type RegisteredOnChain<T: Config> =
+    #[pallet::getter(fn registered)]
+    pub type Registered<T: Config> =
         CountedStorageMap<_, Blake2_128Concat, VerifyingKey, RegisteredInfo<T>, OptionQuery>;
 
     /// Mapping of program_modification accounts to verifying keys they can control
@@ -206,41 +163,24 @@ pub mod pallet {
         FinishedNetworkJumpStart(),
         /// The network has had a jump start confirmation. [who, confirmation_count]
         JumpStartConfirmation(T::ValidatorId, u8),
-        /// An account has signaled to be registered. [signature request account]
-        SignalRegister(T::AccountId),
-        /// An account has been registered. [who, verifying_key]
-        RecievedConfirmation(T::AccountId, VerifyingKey),
         /// An account has been registered. \[who, verifying_key]
         AccountRegistered(T::AccountId, VerifyingKey),
-        /// An account registration has failed
-        FailedRegistration(T::AccountId),
-        /// An account cancelled their registration
-        RegistrationCancelled(T::AccountId),
         /// An account hash changed their program info [who, new_program_instance]
         ProgramInfoChanged(T::AccountId, BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>),
         /// An account has changed their program modification account [old, new, verifying_key]
         ProgramModificationAccountChanged(T::AccountId, T::AccountId, VerifyingKey),
-        /// An account has been registered. [who, block_number, failures]
-        ConfirmedDone(T::AccountId, BlockNumberFor<T>, Vec<u32>),
     }
 
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
-        AlreadySubmitted,
         NoThresholdKey,
-        NotRegistering,
         NotRegistered,
         AlreadyConfirmed,
         IpAddressError,
-        NoSyncedValidators,
-        MaxProgramLengthExceeded,
-        NoVerifyingKey,
         NotAuthorized,
-        ProgramDoesNotExist,
         NoProgramSet,
         TooManyModifiableKeys,
-        MismatchedVerifyingKeyLength,
         MismatchedVerifyingKey,
         NotValidator,
         JumpStartProgressNotReady,
@@ -383,9 +323,8 @@ pub mod pallet {
         ///
         /// The caller provides an initial program pointer.
         ///
-        /// Note that a user needs to be confirmed by validators through the
-        /// [`Self::confirm_register`] extrinsic before they can be considered as registered on the
-        /// network.
+        /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
+        /// registration request will produce a different verifying key.
         #[pallet::call_index(2)]
         #[pallet::weight({
             <T as Config>::WeightInfo::register(<T as Config>::MaxProgramHashes::get())
@@ -395,18 +334,19 @@ pub mod pallet {
             program_modification_account: T::AccountId,
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
-            let sig_req_account = ensure_signed(origin)?;
+            use core::str::FromStr;
+            use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+
+            let signature_request_account = ensure_signed(origin)?;
 
             ensure!(
-                sig_req_account.encode() != NETWORK_PARENT_KEY.encode(),
+                signature_request_account.encode() != NETWORK_PARENT_KEY.encode(),
                 Error::<T>::NoRegisteringFromParentKey
             );
-            ensure!(
-                !Registering::<T>::contains_key(&sig_req_account),
-                Error::<T>::AlreadySubmitted
-            );
-            ensure!(!programs_data.is_empty(), Error::<T>::NoProgramSet);
-            let block_number = <frame_system::Pallet<T>>::block_number();
+
+            let num_programs = programs_data.len();
+            ensure!(num_programs != 0, Error::<T>::NoProgramSet);
+
             // Change program ref counter
             for program_instance in &programs_data {
                 pallet_programs::Programs::<T>::try_mutate(
@@ -422,25 +362,61 @@ pub mod pallet {
                 )?;
             }
 
-            Dkg::<T>::try_mutate(block_number, |messages| -> Result<_, DispatchError> {
-                messages.push(sig_req_account.encode());
-                Ok(())
-            })?;
+            let network_verifying_key =
+                if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
+                    SynedrionVerifyingKey::try_from(key.as_slice())
+                        .expect("The network verifying key must be valid.")
+                } else {
+                    return Err(Error::<T>::JumpStartNotCompleted.into());
+                };
 
-            // Put account into a registering state
-            Registering::<T>::insert(
-                &sig_req_account,
-                RegisteringDetails::<T> {
-                    program_modification_account,
-                    confirmations: vec![],
-                    programs_data: programs_data.clone(),
-                    verifying_key: None,
+            // TODO (#984): For a `CountedStorageMap` there is the possibility that the counter
+            // can decrease as storage entries are removed from the map. In our case we don't ever
+            // remove entries from the `Registered` map so the counter should never
+            // decrease. If it does we will end up with the same verifying key for different
+            // accounts, which would be bad.
+            //
+            // For a V1 of this flow it's fine, but we'll need to think about a better solution
+            // down the line.
+            let count = Registered::<T>::count();
+            let inner_path = scale_info::prelude::format!("m/0/{}", count);
+            let path = bip32::DerivationPath::from_str(&inner_path)
+                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
+            let child_verifying_key = network_verifying_key
+                .derive_verifying_key_bip32(&path)
+                .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
+
+            let child_verifying_key = BoundedVec::try_from(
+                child_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
+            )
+            .expect("Synedrion must have returned a valid verifying key.");
+
+            Registered::<T>::insert(
+                child_verifying_key.clone(),
+                RegisteredInfo {
+                    programs_data,
+                    program_modification_account: program_modification_account.clone(),
+                    derivation_path: Some(inner_path.encode()),
                     version_number: T::KeyVersionNumber::get(),
                 },
             );
-            Self::deposit_event(Event::SignalRegister(sig_req_account));
 
-            Ok(Some(<T as Config>::WeightInfo::register(programs_data.len() as u32)).into())
+            ModifiableKeys::<T>::try_mutate(
+                program_modification_account,
+                |verifying_keys| -> Result<(), DispatchError> {
+                    verifying_keys
+                        .try_push(child_verifying_key.clone())
+                        .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
+                    Ok(())
+                },
+            )?;
+
+            Self::deposit_event(Event::AccountRegistered(
+                signature_request_account,
+                child_verifying_key,
+            ));
+
+            Ok(Some(<T as Config>::WeightInfo::register(num_programs as u32)).into())
         }
 
         /// Allows a user's program modification account to change their program pointer
@@ -475,7 +451,7 @@ pub mod pallet {
 
             let mut old_programs_length = 0;
             let programs_data =
-                RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+                Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                     if let Some(registered_details) = maybe_registered_details {
                         ensure!(
                             who == registered_details.program_modification_account,
@@ -522,7 +498,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            RegisteredOnChain::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
+            Registered::<T>::try_mutate(&verifying_key, |maybe_registered_details| {
                 if let Some(registered_details) = maybe_registered_details {
                     ensure!(
                         who == registered_details.program_modification_account,
@@ -567,106 +543,6 @@ pub mod pallet {
                 verifying_keys_len as u32,
             ))
             .into())
-        }
-
-        /// Allows a user to signal that they want to register an account with the Entropy network.
-        ///
-        /// The caller provides an initial program pointer.
-        ///
-        /// Note: Substrate origins are allowed to register as many accounts as they wish. Each
-        /// registration request will produce a different verifying key.
-        #[pallet::call_index(5)]
-        #[pallet::weight({
-            <T as Config>::WeightInfo::register_on_chain(<T as Config>::MaxProgramHashes::get())
-        })]
-        pub fn register_on_chain(
-            origin: OriginFor<T>,
-            program_modification_account: T::AccountId,
-            programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
-        ) -> DispatchResultWithPostInfo {
-            use core::str::FromStr;
-            use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
-
-            let signature_request_account = ensure_signed(origin)?;
-
-            ensure!(
-                signature_request_account.encode() != NETWORK_PARENT_KEY.encode(),
-                Error::<T>::NoRegisteringFromParentKey
-            );
-
-            let num_programs = programs_data.len();
-            ensure!(num_programs != 0, Error::<T>::NoProgramSet);
-
-            // Change program ref counter
-            for program_instance in &programs_data {
-                pallet_programs::Programs::<T>::try_mutate(
-                    program_instance.program_pointer,
-                    |maybe_program_info| {
-                        if let Some(program_info) = maybe_program_info {
-                            program_info.ref_counter = program_info.ref_counter.saturating_add(1);
-                            Ok(())
-                        } else {
-                            Err(Error::<T>::NoProgramSet)
-                        }
-                    },
-                )?;
-            }
-
-            let network_verifying_key =
-                if let Some(key) = <JumpStartProgress<T>>::get().verifying_key {
-                    SynedrionVerifyingKey::try_from(key.as_slice())
-                        .expect("The network verifying key must be valid.")
-                } else {
-                    return Err(Error::<T>::JumpStartNotCompleted.into());
-                };
-
-            // TODO (#984): For a `CountedStorageMap` there is the possibility that the counter
-            // can decrease as storage entries are removed from the map. In our case we don't ever
-            // remove entries from the `RegisteredOnChain` map so the counter should never
-            // decrease. If it does we will end up with the same verifying key for different
-            // accounts, which would be bad.
-            //
-            // For a V1 of this flow it's fine, but we'll need to think about a better solution
-            // down the line.
-            let count = RegisteredOnChain::<T>::count();
-            let inner_path = scale_info::prelude::format!("m/0/{}", count);
-            let path = bip32::DerivationPath::from_str(&inner_path)
-                .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
-            let child_verifying_key = network_verifying_key
-                .derive_verifying_key_bip32(&path)
-                .map_err(|_| Error::<T>::Bip32AccountDerivationFailed)?;
-
-            let child_verifying_key = BoundedVec::try_from(
-                child_verifying_key.to_encoded_point(true).as_bytes().to_vec(),
-            )
-            .expect("Synedrion must have returned a valid verifying key.");
-
-            RegisteredOnChain::<T>::insert(
-                child_verifying_key.clone(),
-                RegisteredInfo {
-                    programs_data,
-                    program_modification_account: program_modification_account.clone(),
-                    derivation_path: Some(inner_path.encode()),
-                    version_number: T::KeyVersionNumber::get(),
-                },
-            );
-
-            ModifiableKeys::<T>::try_mutate(
-                program_modification_account,
-                |verifying_keys| -> Result<(), DispatchError> {
-                    verifying_keys
-                        .try_push(child_verifying_key.clone())
-                        .map_err(|_| Error::<T>::TooManyModifiableKeys)?;
-                    Ok(())
-                },
-            )?;
-
-            Self::deposit_event(Event::AccountRegistered(
-                signature_request_account,
-                child_verifying_key,
-            ));
-
-            Ok(Some(<T as Config>::WeightInfo::register(num_programs as u32)).into())
         }
     }
 
