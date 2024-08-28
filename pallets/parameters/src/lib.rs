@@ -87,7 +87,7 @@ pub mod module {
             assert!(self.threshold > 0, "Threhsold too low");
             assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
             assert!(
-                self.accepted_mrtd_values.len() > 0,
+                !self.accepted_mrtd_values.is_empty(),
                 "At least one accepted MRTD value is required"
             );
             RequestLimit::<T>::put(self.request_limit);
