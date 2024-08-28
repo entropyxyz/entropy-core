@@ -14,6 +14,7 @@ At the moment this project **does not** adhere to
   fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
   `pallet_parameters::threshold`, which are used to set up the initial threshold signing
   configuration for the network.
+- in [#1031](https://github.com/entropyxyz/entropy-core/pull/1031), more Staking calls were blocked to go through staking_extention. This makes sure no funds can be unbonded from a validator if they are currently in the signing comittee. This was applied to `unbond`, `chill`, and `withdraw_unbonded`
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -32,6 +33,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+- No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
 
 ### Removed
 -  Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
