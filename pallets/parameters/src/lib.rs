@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! # Programs Parameters
+//! # Parameters Pallet
 //!
 //! ## Overview
 //!
@@ -37,6 +37,7 @@ use entropy_shared::MAX_SIGNERS;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
