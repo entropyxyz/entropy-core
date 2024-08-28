@@ -58,7 +58,6 @@ pub fn integration_tests_config() -> ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             vec![
-                // get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                 get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
             ],
