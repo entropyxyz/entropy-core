@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{QuoteInputData, ACCEPTED_MRTD_VALUES};
+    use entropy_shared::QuoteInputData;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
@@ -170,7 +170,10 @@ pub mod pallet {
             );
 
             // Check build-time measurement matches a current-supported release of entropy-tss
-            ensure!(ACCEPTED_MRTD_VALUES.contains(&quote.mrtd()), Error::<T>::BadMrtdValue);
+            let mrtd_value = BoundedVec::try_from(quote.mrtd().to_vec())
+                .map_err(|_| Error::<T>::BadMrtdValue)?;
+            let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
+            ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
             // TODO #982 Check that the attestation public key matches that from PCK certificate
             let _attestation_key = quote.attestation_key;
