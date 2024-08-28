@@ -415,7 +415,7 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
 
             let next_signers = Self::next_signers();
             if next_signers.is_some() {
@@ -424,7 +424,7 @@ pub mod pallet {
                         .ok_or(Error::<T>::ReshareNotInProgress)?
                         .next_signers
                         .contains(&validator_id),
-                    Error::<T>::NoUnbodingWhenNextSigner
+                    Error::<T>::NoUnbondingWhenNextSigner
                 );
             }
 
@@ -446,7 +446,7 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
 
             let next_signers = Self::next_signers();
             if next_signers.is_some() {
@@ -455,7 +455,7 @@ pub mod pallet {
                         .ok_or(Error::<T>::ReshareNotInProgress)?
                         .next_signers
                         .contains(&validator_id),
-                    Error::<T>::NoUnbodingWhenNextSigner
+                    Error::<T>::NoUnbondingWhenNextSigner
                 );
             }
 
@@ -480,7 +480,7 @@ pub mod pallet {
                 .or(Err(Error::<T>::InvalidValidatorId))?;
 
             let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbodingWhenSigner);
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
             let next_signers = Self::next_signers();
             if next_signers.is_some() {
                 ensure!(
@@ -488,7 +488,7 @@ pub mod pallet {
                         .ok_or(Error::<T>::ReshareNotInProgress)?
                         .next_signers
                         .contains(&validator_id),
-                    Error::<T>::NoUnbodingWhenNextSigner
+                    Error::<T>::NoUnbondingWhenNextSigner
                 );
             }
 

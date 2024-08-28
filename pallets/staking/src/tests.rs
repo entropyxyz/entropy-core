@@ -320,7 +320,7 @@ fn it_deletes_when_no_bond_left() {
 
         assert_noop!(
             Staking::withdraw_unbonded(RuntimeOrigin::signed(7), 0),
-            Error::<Test>::NoUnbodingWhenSigner
+            Error::<Test>::NoUnbondingWhenSigner
         );
 
         assert_ok!(FrameStaking::bond(
@@ -333,7 +333,7 @@ fn it_deletes_when_no_bond_left() {
 
         assert_noop!(
             Staking::withdraw_unbonded(RuntimeOrigin::signed(8), 0),
-            Error::<Test>::NoUnbodingWhenNextSigner
+            Error::<Test>::NoUnbondingWhenNextSigner
         );
     });
 }
@@ -498,7 +498,7 @@ fn it_stops_unbonded_when_signer_or_next_signer() {
 
         assert_noop!(
             Staking::unbond(RuntimeOrigin::signed(7), 0),
-            Error::<Test>::NoUnbodingWhenSigner
+            Error::<Test>::NoUnbondingWhenSigner
         );
 
         assert_ok!(FrameStaking::bond(
@@ -510,7 +510,7 @@ fn it_stops_unbonded_when_signer_or_next_signer() {
         NextSigners::<Test>::put(NextSignerInfo { next_signers: vec![8], confirmations: vec![] });
         assert_noop!(
             Staking::unbond(RuntimeOrigin::signed(8), 0),
-            Error::<Test>::NoUnbodingWhenNextSigner
+            Error::<Test>::NoUnbondingWhenNextSigner
         );
     });
 }
@@ -527,7 +527,7 @@ fn it_stops_chill_when_signer_or_next_signer() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        assert_noop!(Staking::chill(RuntimeOrigin::signed(7)), Error::<Test>::NoUnbodingWhenSigner);
+        assert_noop!(Staking::chill(RuntimeOrigin::signed(7)), Error::<Test>::NoUnbondingWhenSigner);
 
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(8),
@@ -539,7 +539,7 @@ fn it_stops_chill_when_signer_or_next_signer() {
 
         assert_noop!(
             Staking::chill(RuntimeOrigin::signed(8)),
-            Error::<Test>::NoUnbodingWhenNextSigner
+            Error::<Test>::NoUnbondingWhenNextSigner
         );
     });
 }
