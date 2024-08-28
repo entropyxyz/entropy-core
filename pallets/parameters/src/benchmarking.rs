@@ -16,6 +16,7 @@
 use frame_benchmarking::benchmarks;
 use frame_support::assert_ok;
 use frame_system::EventRecord;
+use sp_std::vec;
 
 use super::*;
 #[allow(unused)]
