@@ -522,6 +522,18 @@ fn it_stops_chill_when_signer_or_next_signer() {
         start_active_era(1);
 
         assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(101),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        // test nominating flow
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(7),
             100u64,
             pallet_staking::RewardDestination::Account(1),
@@ -542,6 +554,12 @@ fn it_stops_chill_when_signer_or_next_signer() {
 
         assert_noop!(
             Staking::chill(RuntimeOrigin::signed(8)),
+            Error::<Test>::NoUnbondingWhenNextSigner
+        );
+
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
             Error::<Test>::NoUnbondingWhenNextSigner
         );
     });

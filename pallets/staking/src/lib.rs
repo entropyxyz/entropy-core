@@ -411,10 +411,7 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
-
-            let signers_length = Self::ensure_not_signer_or_next_signer(&validator_id)?;
+            let signers_length = Self::ensure_not_signer_or_next_signer(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::unbond(origin, value)?;
 
@@ -430,10 +427,7 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
-
-            let signers_length = Self::ensure_not_signer_or_next_signer(&validator_id)?;
+            let signers_length = Self::ensure_not_signer_or_next_signer(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::chill(origin)?;
 
@@ -452,10 +446,11 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
+            let validator_id =
+                <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash.clone())
+                    .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            let signers_length = Self::ensure_not_signer_or_next_signer(&validator_id)?;
+            let signers_length = Self::ensure_not_signer_or_next_signer(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
@@ -572,16 +567,42 @@ pub mod pallet {
 
         /// Ensures that the current validator is not a signer or a next signer
         pub fn ensure_not_signer_or_next_signer(
-            validator_id: &<T as pallet_session::Config>::ValidatorId,
+            stash: &T::AccountId,
         ) -> Result<u32, DispatchError> {
+            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash.clone())
+                .or(Err(Error::<T>::InvalidValidatorId))?;
+            let nominations = pallet_staking::Nominators::<T>::get(stash)
+                .map_or_else(Vec::new, |x| x.targets.into_inner());
+
             let signers = Self::signers();
-            ensure!(!signers.contains(validator_id), Error::<T>::NoUnbondingWhenSigner);
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
+            for nominated in &nominations {
+                let validator_id_nominated =
+                    <T as pallet_session::Config>::ValidatorId::try_from(nominated.clone())
+                        .or(Err(Error::<T>::InvalidValidatorId))?;
+                ensure!(
+                    !signers.contains(&validator_id_nominated),
+                    Error::<T>::NoUnbondingWhenSigner
+                );
+            }
+
+            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
 
             if let Some(next_signers) = Self::next_signers() {
                 ensure!(
-                    !next_signers.next_signers.contains(validator_id),
+                    !next_signers.next_signers.contains(&validator_id),
                     Error::<T>::NoUnbondingWhenNextSigner
                 );
+
+                for nominated in &nominations {
+                    let validator_id_nominated =
+                        <T as pallet_session::Config>::ValidatorId::try_from(nominated.clone())
+                            .or(Err(Error::<T>::InvalidValidatorId))?;
+                    ensure!(
+                        !next_signers.next_signers.contains(&validator_id_nominated),
+                        Error::<T>::NoUnbondingWhenNextSigner
+                    );
+                }
             }
 
             Ok(signers.len() as u32)
