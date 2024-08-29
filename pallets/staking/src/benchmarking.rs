@@ -137,7 +137,7 @@ benchmarks! {
   }
 
   unbond {
-    let c in 0 .. MAX_SIGNERS as u32;
+    let s in 0 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
