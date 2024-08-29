@@ -37,7 +37,7 @@ use sc_telemetry::TelemetryEndpoints;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
-use sp_runtime::Perbill;
+use sp_runtime::{BoundedVec, Perbill};
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
 type TssAccountId = sp_runtime::AccountId32;
