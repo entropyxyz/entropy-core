@@ -71,6 +71,7 @@ pub mod pallet {
             let _ = Self::post_reshare(block_number);
             let _ = Self::post_proactive_refresh(block_number);
             let _ = Self::post_attestation_request(block_number);
+            let _ = Self::post_rotate_keyshare(block_number);
         }
 
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
@@ -96,6 +97,10 @@ pub mod pallet {
 
         /// Attestations request message passed
         AttestationRequestMessagePassed(OcwMessageAttestationRequest),
+
+        /// Key Rotate Message passed to validators
+        /// parameters. [BlockNumberFor<T>]
+        KeyRotatesMessagePassed(BlockNumberFor<T>),
     }
 
     #[pallet::call]
@@ -255,6 +260,49 @@ pub mod pallet {
             let _res_body = response.body().collect::<Vec<u8>>();
 
             Self::deposit_event(Event::ProactiveRefreshMessagePassed(req_body));
+
+            Ok(())
+        }
+
+        /// Submits a request to rotate parent network key the threshold servers.
+        pub fn post_rotate_keyshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+            let rotate_keyshares = pallet_staking_extension::Pallet::<T>::rotate_keyshares();
+            if rotate_keyshares != block_number {
+                return Ok(());
+            }
+
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let kind = sp_core::offchain::StorageKind::PERSISTENT;
+            let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_keyshares")
+                .unwrap_or_else(|| b"http://localhost:3001/validator/rotate_keyshares".to_vec());
+            let url = str::from_utf8(&from_local)
+                .unwrap_or("http://localhost:3001/validator/rotate_keyshares");
+
+            log::warn!("propagation::post rotate keyshare");
+
+            let converted_block_number: u32 =
+                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
+
+            // We construct the request
+            // important: the header->Content-Type must be added and match that of the receiving
+            // party!!
+            let pending = http::Request::post(url, vec![converted_block_number.encode()])
+                .deadline(deadline)
+                .send()
+                .map_err(|_| http::Error::IoError)?;
+
+            // We await response, same as in fn get()
+            let response =
+                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+
+            // check response code
+            if response.code != 200 {
+                log::warn!("Unexpected status code: {}", response.code);
+                return Err(http::Error::Unknown);
+            }
+            let _res_body = response.body().collect::<Vec<u8>>();
+
+            Self::deposit_event(Event::KeyRotatesMessagePassed(block_number));
 
             Ok(())
         }
