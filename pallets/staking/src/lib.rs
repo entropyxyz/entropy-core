@@ -569,40 +569,38 @@ pub mod pallet {
         pub fn ensure_not_signer_or_next_signer(
             stash: &T::AccountId,
         ) -> Result<u32, DispatchError> {
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash.clone())
-                .or(Err(Error::<T>::InvalidValidatorId))?;
             let nominations = pallet_staking::Nominators::<T>::get(stash)
                 .map_or_else(Vec::new, |x| x.targets.into_inner());
 
             let signers = Self::signers();
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
-            for nominated in &nominations {
-                let validator_id_nominated =
-                    <T as pallet_session::Config>::ValidatorId::try_from(nominated.clone())
-                        .or(Err(Error::<T>::InvalidValidatorId))?;
-                ensure!(
-                    !signers.contains(&validator_id_nominated),
-                    Error::<T>::NoUnbondingWhenSigner
-                );
-            }
 
-            ensure!(!signers.contains(&validator_id), Error::<T>::NoUnbondingWhenSigner);
+            // Check if the validator_id or any nominated validator is in signers
+            let in_signers = |id: &T::AccountId| {
+                let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(id.clone());
+                match validator_id {
+                    Ok(v_id) => signers.contains(&v_id),
+                    Err(_) => false,
+                }
+            };
+
+            ensure!(!in_signers(stash), Error::<T>::NoUnbondingWhenSigner);
+            ensure!(!nominations.iter().any(|n| in_signers(n)), Error::<T>::NoUnbondingWhenSigner);
 
             if let Some(next_signers) = Self::next_signers() {
+                let next_signers_contains = |id: &T::AccountId| {
+                    let validator_id =
+                        <T as pallet_session::Config>::ValidatorId::try_from(id.clone());
+                    match validator_id {
+                        Ok(v_id) => next_signers.next_signers.contains(&v_id),
+                        Err(_) => false,
+                    }
+                };
+
+                ensure!(!next_signers_contains(stash), Error::<T>::NoUnbondingWhenNextSigner);
                 ensure!(
-                    !next_signers.next_signers.contains(&validator_id),
+                    !nominations.iter().any(|n| next_signers_contains(n)),
                     Error::<T>::NoUnbondingWhenNextSigner
                 );
-
-                for nominated in &nominations {
-                    let validator_id_nominated =
-                        <T as pallet_session::Config>::ValidatorId::try_from(nominated.clone())
-                            .or(Err(Error::<T>::InvalidValidatorId))?;
-                    ensure!(
-                        !next_signers.next_signers.contains(&validator_id_nominated),
-                        Error::<T>::NoUnbondingWhenNextSigner
-                    );
-                }
             }
 
             Ok(signers.len() as u32)
