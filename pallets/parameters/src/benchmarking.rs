@@ -66,7 +66,7 @@ benchmarks! {
     assert_last_event::<T>(Event::SignerInfoChanged{ signer_info }.into());
   }
 
-  change_mrtd_values {
+  change_accepted_mrtd_values {
     let origin = T::UpdateOrigin::try_successful_origin().unwrap();
     let accepted_mrtd_values = vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()];
   }: {

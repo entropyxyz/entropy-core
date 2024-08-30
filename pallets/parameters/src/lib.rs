@@ -224,8 +224,7 @@ pub mod module {
         }
 
         #[pallet::call_index(3)]
-        // #[pallet::weight( <T as Config>::WeightInfo::change_accepted_mrtd_values())]
-        #[pallet::weight({100})]
+        #[pallet::weight( <T as Config>::WeightInfo::change_accepted_mrtd_values())]
         pub fn change_accepted_mrtd_values(
             origin: OriginFor<T>,
             accepted_mrtd_values: MrtdValues,
