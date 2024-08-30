@@ -144,16 +144,13 @@ benchmarks! {
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
 
-    let signers = vec![validator_id_res.clone(); c as usize];
+    let signers = vec![validator_id_res.clone(); s as usize];
     Signers::<T>::put(signers.clone());
     NextSigners::<T>::put(NextSignerInfo {
       next_signers: signers,
       confirmations: vec![],
   });
-
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
-
-
   }:  _(RawOrigin::Signed(bonder.clone()), 10u32.into())
   verify {
     assert_last_event_frame_staking::<T>(FrameStakingEvent::Unbonded{ stash: bonder, amount: 10u32.into() }.into() );

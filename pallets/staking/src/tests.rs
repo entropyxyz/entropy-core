@@ -323,6 +323,18 @@ fn it_deletes_when_no_bond_left() {
             Error::<Test>::NoUnbondingWhenSigner
         );
 
+        // test nominating flow
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(101),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(101), 0),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
+
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(8),
             100u64,
@@ -333,6 +345,13 @@ fn it_deletes_when_no_bond_left() {
 
         assert_noop!(
             Staking::withdraw_unbonded(RuntimeOrigin::signed(8), 0),
+            Error::<Test>::NoUnbondingWhenNextSigner
+        );
+
+        // test nominating flow
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(101), 0),
             Error::<Test>::NoUnbondingWhenNextSigner
         );
     });
@@ -490,6 +509,18 @@ fn it_stops_unbonded_when_signer_or_next_signer() {
         Signers::<Test>::put(vec![7]);
         start_active_era(1);
 
+        // test nominating flow
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(101),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
+
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(7),
             100u64,
@@ -512,6 +543,13 @@ fn it_stops_unbonded_when_signer_or_next_signer() {
             Staking::unbond(RuntimeOrigin::signed(8), 0),
             Error::<Test>::NoUnbondingWhenNextSigner
         );
+
+        // test nominating flow
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
+            Error::<Test>::NoUnbondingWhenNextSigner
+        );
     });
 }
 
@@ -521,15 +559,15 @@ fn it_stops_chill_when_signer_or_next_signer() {
         Signers::<Test>::put(vec![7]);
         start_active_era(1);
 
+        // test nominating flow
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(101),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
-        // test nominating flow
         assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
         assert_noop!(
-            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
+            Staking::chill(RuntimeOrigin::signed(101)),
             Error::<Test>::NoUnbondingWhenSigner
         );
 
@@ -556,10 +594,10 @@ fn it_stops_chill_when_signer_or_next_signer() {
             Staking::chill(RuntimeOrigin::signed(8)),
             Error::<Test>::NoUnbondingWhenNextSigner
         );
-
+        // test nominating flow
         assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
         assert_noop!(
-            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
+            Staking::chill(RuntimeOrigin::signed(101)),
             Error::<Test>::NoUnbondingWhenNextSigner
         );
     });
