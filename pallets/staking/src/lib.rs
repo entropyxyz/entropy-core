@@ -584,7 +584,7 @@ pub mod pallet {
             };
 
             ensure!(!in_signers(stash), Error::<T>::NoUnbondingWhenSigner);
-            ensure!(!nominations.iter().any(|n| in_signers(n)), Error::<T>::NoUnbondingWhenSigner);
+            ensure!(!nominations.iter().any(in_signers), Error::<T>::NoUnbondingWhenSigner);
 
             if let Some(next_signers) = Self::next_signers() {
                 let next_signers_contains = |id: &T::AccountId| {
@@ -598,7 +598,7 @@ pub mod pallet {
 
                 ensure!(!next_signers_contains(stash), Error::<T>::NoUnbondingWhenNextSigner);
                 ensure!(
-                    !nominations.iter().any(|n| next_signers_contains(n)),
+                    !nominations.iter().any(next_signers_contains),
                     Error::<T>::NoUnbondingWhenNextSigner
                 );
             }
