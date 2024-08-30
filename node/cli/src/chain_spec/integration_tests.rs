@@ -247,6 +247,10 @@ pub fn integration_tests_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
+            accepted_mrtd_values: vec![
+                BoundedVec::try_from([0; 48].to_vec()).unwrap(),
+                BoundedVec::try_from([1; 48].to_vec()).unwrap(),
+            ],
             ..Default::default()
         },
         "programs": ProgramsConfig {

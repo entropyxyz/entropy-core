@@ -121,6 +121,8 @@ pub mod pallet {
         NoStashAccount,
         /// Cannot lookup associated TS server info
         NoServerInfo,
+        /// Unacceptable VM image running
+        BadMrtdValue,
     }
 
     #[pallet::call]
@@ -167,8 +169,11 @@ pub mod pallet {
                 Error::<T>::IncorrectInputData
             );
 
-            // TODO #982 Check measurements match current release of entropy-tss
-            let _mrtd = quote.mrtd();
+            // Check build-time measurement matches a current-supported release of entropy-tss
+            let mrtd_value = BoundedVec::try_from(quote.mrtd().to_vec())
+                .map_err(|_| Error::<T>::BadMrtdValue)?;
+            let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
+            ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
             // TODO #982 Check that the attestation public key matches that from PCK certificate
             let _attestation_key = quote.attestation_key;
