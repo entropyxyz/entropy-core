@@ -122,7 +122,8 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
-            run_to_block, setup_client, spawn_testing_validators, unsafe_get,
+            run_to_block, setup_client, spawn_testing_validators, store_program_and_register,
+            unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -182,28 +183,31 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // for later
     jump_start_network(&entropy_api, &rpc).await;
 
-    // We need to store a program in order to be able to register succesfully
-    let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
-        &two.pair(), // This is our program deployer
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
-        one.clone().into(), // This is our program modification account
-        subxtAccountId32(two.public().0), // This is our signature request account
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
+    // Register the user with a test program
+    let (verifying_key, program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+    // // We need to store a program in order to be able to register succesfully
+    // let program_hash = test_client::store_program(
+    //     &entropy_api,
+    //     &rpc,
+    //     &two.pair(), // This is our program deployer
+    //     TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+    //     vec![],
+    //     vec![],
+    //     vec![],
+    // )
+    // .await
+    // .unwrap();
+    //
+    // let (verifying_key, _registered_info) = test_client::register(
+    //     &entropy_api,
+    //     &rpc,
+    //     one.clone().into(), // This is our program modification account
+    //     subxtAccountId32(two.public().0), // This is our signature request account
+    //     BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    // )
+    // .await
+    // .unwrap();
 
     // Test: We check that an account with a program succeeds in submiting a signature request
     let (validators_info, mut signature_request, validator_ips_and_keys) =

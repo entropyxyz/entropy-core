@@ -255,3 +255,45 @@ pub async fn jump_start_network_with_signer(
         submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
     }
 }
+
+/// Helper to store a program and register a user. Returns the verify key
+#[cfg(test)]
+pub async fn store_program_and_register(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user: &sr25519::Pair,
+    deployer: &sr25519::Pair,
+) -> ([u8; 33], sp_core::H256) {
+    use entropy_client::{
+        self as test_client,
+        chain_api::entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
+    };
+    use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
+    use sp_core::Pair;
+
+    let program_hash = test_client::store_program(
+        &api,
+        &rpc,
+        deployer, // This is our program deployer
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .await
+    .unwrap();
+
+    println!("Program hash {:?}", program_hash);
+
+    let (verifying_key, _registered_info) = test_client::register(
+        &api,
+        &rpc,
+        user.clone(),
+        SubxtAccountId32(deployer.public().0), // Program modification account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
+
+    (verifying_key, program_hash)
+}
