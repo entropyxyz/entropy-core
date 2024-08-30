@@ -120,47 +120,49 @@ async fn test_reshare() {
         assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
         // Check aux info has not yet changed
         assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
+    }
 
-        // We add one to the port number here because after the reshare the siging committee has
-        // shifted from alice, bob, charlie to bob, charlie, dave
+    // We add one here because after the reshare the siging committee has
+    // shifted from alice, bob, charlie to bob, charlie, dave
+    for i in 1..4 {
         let _ = client
-            .post(format!(
-                "http://127.0.0.1:{}/validator/rotate_network_key",
-                validator_ports[i + 1]
-            ))
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
             .send()
             .await
             .unwrap();
 
         let key_share_and_aux_data_after_rotate =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i + 1]).await;
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
         let (key_share_after_rotate, aux_info_after_rotate): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after_rotate).unwrap();
 
-        // Check key share has changed
-        assert_ne!(
-            serialize(&key_share_before).unwrap(),
-            serialize(&key_share_after_rotate).unwrap()
-        );
-        // Check aux info has changed
-        assert_ne!(
-            serialize(&aux_info_before).unwrap(),
-            serialize(&aux_info_after_rotate).unwrap()
-        );
+        // We can only check if the first two keyshares changed as dave did not have a keyshare at
+        // all before
+        if i < 3 {
+            let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
+                deserialize(&key_shares_before[i]).unwrap();
+            // Check key share has changed
+            assert_ne!(
+                serialize(&key_share_before).unwrap(),
+                serialize(&key_share_after_rotate).unwrap()
+            );
+            // Check aux info has changed
+            assert_ne!(
+                serialize(&aux_info_before).unwrap(),
+                serialize(&aux_info_after_rotate).unwrap()
+            );
+        }
 
         // calling twice doesn't do anything
         let response = client
-            .post(format!(
-                "http://127.0.0.1:{}/validator/rotate_network_key",
-                validator_ports[i + 1]
-            ))
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
             .send()
             .await
             .unwrap();
 
         assert_eq!(response.text().await.unwrap(), "Kv error: Recv Error: channel closed");
         let key_share_and_aux_data_after_rotate_twice =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i + 1]).await;
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
         let (key_share_after_rotate_twice, aux_info_after_rotate_twice): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after_rotate_twice).unwrap();
 
