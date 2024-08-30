@@ -111,10 +111,8 @@ async fn test_reshare() {
         let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
             deserialize(&key_shares_before[i]).unwrap();
 
-        // We add one to the port number here because after the reshare the siging committee has
-        // shifted from alice, bob, charlie to bob, charlie, dave
         let key_share_and_aux_data_after =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i + 1]).await;
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
         let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after).unwrap();
 
@@ -123,8 +121,13 @@ async fn test_reshare() {
         // Check aux info has not yet changed
         assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
 
+        // We add one to the port number here because after the reshare the siging committee has
+        // shifted from alice, bob, charlie to bob, charlie, dave
         let _ = client
-            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .post(format!(
+                "http://127.0.0.1:{}/validator/rotate_network_key",
+                validator_ports[i + 1]
+            ))
             .send()
             .await
             .unwrap();
@@ -147,7 +150,10 @@ async fn test_reshare() {
 
         // calling twice doesn't do anything
         let response = client
-            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .post(format!(
+                "http://127.0.0.1:{}/validator/rotate_network_key",
+                validator_ports[i + 1]
+            ))
             .send()
             .await
             .unwrap();
