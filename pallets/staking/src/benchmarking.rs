@@ -149,7 +149,7 @@ benchmarks! {
     NextSigners::<T>::put(NextSignerInfo {
       next_signers: signers,
       confirmations: vec![],
-  });
+    });
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
   }:  _(RawOrigin::Signed(bonder.clone()), 10u32.into())
   verify {
@@ -170,7 +170,7 @@ benchmarks! {
     NextSigners::<T>::put(NextSignerInfo {
       next_signers: signers,
       confirmations: vec![],
-  });
+    });
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
@@ -202,7 +202,7 @@ benchmarks! {
     NextSigners::<T>::put(NextSignerInfo {
       next_signers: signers,
       confirmations: vec![],
-  });
+    });
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
