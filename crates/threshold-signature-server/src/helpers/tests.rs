@@ -118,11 +118,12 @@ pub async fn create_clients(
     (app, kv_store)
 }
 
-/// A way to specify whether the test environment uses the Development chainspec, which has 3 TSS
-/// nodes, or the Integration test chainspec which has 4 TSS nodes
+/// A way to specify which chainspec to use in testing
 #[derive(Clone, PartialEq)]
 pub enum ChainSpecType {
+    /// The development chainspec, which has 3 TSS nodes
     Development,
+    /// The integration test chainspec, which has 4 TSS nodes
     Integration,
 }
 
