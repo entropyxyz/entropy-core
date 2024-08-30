@@ -80,9 +80,6 @@ enum CliCommand {
         /// If giving a mnemonic it must be enclosed in quotes, eg: "--mnemonic-option "alarm mutual concert...""
         #[arg(short, long)]
         mnemonic_option: Option<String>,
-        /// Indicates that a user wants to register using the fully on-chain registration flow.
-        #[arg(long)]
-        on_chain: bool,
     },
     /// Ask the network to sign a given message
     Sign {
@@ -186,7 +183,7 @@ pub async fn run_command(
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register { mnemonic_option, programs, on_chain } => {
+        CliCommand::Register { mnemonic_option, programs } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
@@ -211,7 +208,6 @@ pub async fn run_command(
                 program_keypair.clone(),
                 program_account,
                 BoundedVec(programs_info),
-                on_chain,
             )
             .await?;
 

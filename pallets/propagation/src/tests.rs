@@ -17,9 +17,7 @@ use std::sync::Arc;
 
 use codec::Encode;
 use entropy_shared::ValidatorInfo;
-use frame_support::{assert_ok, traits::OnInitialize, BoundedVec};
-use pallet_programs::ProgramInfo;
-use pallet_registry::ProgramInstance;
+use frame_support::traits::OnInitialize;
 use pallet_staking_extension::{RefreshInfo, ReshareInfo};
 use sp_core::offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt};
 use sp_io::TestExternalities;
@@ -37,21 +35,6 @@ fn knows_how_to_mock_several_http_calls() {
             response: Some([].to_vec()),
             body: [
                 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 10, 32, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
-                11, 32, 4, 0, 0, 0, 0, 0, 0, 0,
-            ]
-            .to_vec(),
-            ..Default::default()
-        });
-
-        state.expect_request(testing::PendingRequest {
-            method: "POST".into(),
-            uri: "http://localhost:3001/generate_network_key".into(),
-            sent: true,
-            response: Some([].to_vec()),
-            body: [
-                3, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 10, 32, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
                 11, 32, 4, 0, 0, 0, 0, 0, 0, 0,
@@ -81,39 +64,18 @@ fn knows_how_to_mock_several_http_calls() {
             body: [32, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0].to_vec(),
             ..Default::default()
         });
+        state.expect_request(testing::PendingRequest {
+            method: "POST".into(),
+            uri: "http://localhost:3001/validator/rotate_keyshares".into(),
+            sent: true,
+            response: Some([].to_vec()),
+            body: [10, 0, 0, 0].to_vec(),
+            ..Default::default()
+        });
     });
 
     t.execute_with(|| {
         Propagation::post_dkg(1).unwrap();
-
-        System::set_block_number(3);
-        pallet_programs::Programs::<Test>::insert(
-            <Test as frame_system::Config>::Hash::default(),
-            ProgramInfo {
-                bytecode: vec![],
-                configuration_schema: vec![],
-                auxiliary_data_schema: vec![],
-                oracle_data_pointer: vec![],
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: <Test as frame_system::Config>::Hash::default(),
-            program_config: vec![],
-        }])
-        .unwrap();
-        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
-        assert_ok!(Registry::register(RuntimeOrigin::signed(2), 3, programs_info,));
-
-        // full send
-        Propagation::post_dkg(4).unwrap();
-
-        // test pruning
-        assert_eq!(Registry::dkg(3).len(), 2);
-        Propagation::on_initialize(5);
-        assert_eq!(Registry::dkg(3).len(), 0);
 
         Propagation::post_proactive_refresh(6).unwrap();
         let ocw_message = RefreshInfo {
@@ -137,6 +99,9 @@ fn knows_how_to_mock_several_http_calls() {
         });
         // now triggers
         Propagation::post_reshare(7).unwrap();
+
+        pallet_staking_extension::RotateKeyshares::<Test>::put(10);
+        Propagation::post_rotate_keyshare(10).unwrap();
     })
 }
 

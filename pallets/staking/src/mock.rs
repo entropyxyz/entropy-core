@@ -31,9 +31,10 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup, OpaqueKeys, Zero},
-    BuildStorage, KeyTypeId, Perbill,
+    BoundedVec, BuildStorage, KeyTypeId, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
+use sp_std::vec;
 
 use crate as pallet_staking_extension;
 
@@ -411,6 +412,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         max_instructions_per_programs: 5u64,
         total_signers: 3u8,
         threshold: 2u8,
+        accepted_mrtd_values: vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()],
         _config: Default::default(),
     }
     .assimilate_storage(&mut t)

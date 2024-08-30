@@ -72,14 +72,6 @@
 //!
 //! ### For the blockchain node
 //!
-//! #### `/user/new` - POST
-//!
-//! [crate::user::api::new_user()]
-//!
-//! Called by the off-chain worker (propagation pallet) during user registration.
-//! This takes a parity scale encoded [entropy_shared::types::OcwMessageDkg] which tells us which
-//! validators are in the registration group and will perform a DKG.
-//!
 //! ### For other instances of the threshold server
 //!
 //!   Takes a [UserRegistrationInfo] containing the users account ID and associated keyshare, wrapped
@@ -157,7 +149,7 @@ use crate::{
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
-    validator::api::new_reshare,
+    validator::api::{new_reshare, rotate_network_key},
 };
 
 #[derive(Clone)]
@@ -176,10 +168,10 @@ impl AppState {
 pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/generate_network_key", post(generate_network_key))
-        .route("/user/new", post(new_user))
         .route("/user/sign_tx", post(sign_tx))
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/reshare", post(new_reshare))
+        .route("/validator/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))

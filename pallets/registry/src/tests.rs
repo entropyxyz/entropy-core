@@ -24,7 +24,7 @@ use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartSta
 use sp_runtime::traits::Hash;
 
 use crate as pallet_registry;
-use crate::{mock::*, Error, ModifiableKeys, ProgramInstance, RegisteredInfo, RegisteredOnChain};
+use crate::{mock::*, Error, ModifiableKeys, ProgramInstance, Registered, RegisteredInfo};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -69,7 +69,7 @@ fn it_tests_get_validators_info() {
 }
 
 #[test]
-fn it_registers_a_user_on_chain() {
+fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
         use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 
@@ -87,11 +87,7 @@ fn it_registers_a_user_on_chain() {
         });
 
         // Test: Run through registration
-        assert_ok!(Registry::register_on_chain(
-            RuntimeOrigin::signed(alice),
-            bob,
-            programs_info.clone(),
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(alice), bob, programs_info.clone(),));
 
         // Validate: Our expected verifying key is registered correctly
         let network_verifying_key =
@@ -104,7 +100,7 @@ fn it_registers_a_user_on_chain() {
             BoundedVec::try_from(expected_verifying_key.to_encoded_point(true).as_bytes().to_vec())
                 .unwrap();
 
-        let registered_info = Registry::registered_on_chain(expected_verifying_key.clone());
+        let registered_info = Registry::registered(expected_verifying_key.clone());
         assert!(registered_info.is_some());
         assert_eq!(registered_info.unwrap().program_modification_account, bob);
     });
@@ -129,11 +125,7 @@ fn it_increases_program_reference_count_on_register() {
         });
 
         // Test: Run through registration
-        assert_ok!(Registry::register_on_chain(
-            RuntimeOrigin::signed(alice),
-            bob,
-            programs_info.clone(),
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(alice), bob, programs_info.clone(),));
 
         // Validate: We expect that the program reference count has gone up
         assert_eq!(
@@ -164,17 +156,9 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
 
         // Test: Run through registration twice using the same signature request account. We should
         // get different verifying keys.
-        assert_ok!(Registry::register_on_chain(
-            RuntimeOrigin::signed(alice),
-            bob,
-            programs_info.clone(),
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(alice), bob, programs_info.clone(),));
 
-        assert_ok!(Registry::register_on_chain(
-            RuntimeOrigin::signed(alice),
-            bob,
-            programs_info.clone(),
-        ));
+        assert_ok!(Registry::register(RuntimeOrigin::signed(alice), bob, programs_info.clone(),));
 
         // Validate: We expect two different verifying keys to be registered
         let network_verifying_key =
@@ -199,8 +183,8 @@ fn it_registers_different_users_with_the_same_sig_req_account() {
         // Knowing that the two keys are indeed different, we still expect both registration
         // requests to have succeeded.
         assert!(first_expected_verifying_key != second_expected_verifying_key);
-        assert!(Registry::registered_on_chain(first_expected_verifying_key).is_some());
-        assert!(Registry::registered_on_chain(second_expected_verifying_key).is_some());
+        assert!(Registry::registered(first_expected_verifying_key).is_some());
+        assert!(Registry::registered(second_expected_verifying_key).is_some());
     });
 }
 
@@ -214,7 +198,7 @@ fn it_fails_registration_if_no_program_is_set() {
 
         // Test: Run through registration, this should fail
         assert_noop!(
-            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Registry::register(RuntimeOrigin::signed(alice), bob, programs_info,),
             Error::<Test>::NoProgramSet
         );
     })
@@ -236,7 +220,7 @@ fn it_fails_registration_if_an_empty_program_is_set() {
 
         // Test: Run through registration, this should fail
         assert_noop!(
-            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Registry::register(RuntimeOrigin::signed(alice), bob, programs_info,),
             Error::<Test>::NoProgramSet
         );
     })
@@ -260,7 +244,7 @@ fn it_fails_registration_if_no_jump_start_has_happened() {
 
         // Test: Run through registration, this should fail
         assert_noop!(
-            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Registry::register(RuntimeOrigin::signed(alice), bob, programs_info,),
             Error::<Test>::JumpStartNotCompleted
         );
     })
@@ -294,7 +278,7 @@ fn it_fails_registration_with_too_many_modifiable_keys() {
 
         // Test: Run through registration, this should fail
         assert_noop!(
-            Registry::register_on_chain(RuntimeOrigin::signed(alice), bob, programs_info,),
+            Registry::register(RuntimeOrigin::signed(alice), bob, programs_info,),
             Error::<Test>::TooManyModifiableKeys
         );
     })
@@ -481,11 +465,8 @@ fn it_changes_a_program_instance() {
             version_number: 1,
         };
 
-        RegisteredOnChain::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(
-            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
-            registered_info
-        );
+        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
 
         assert_ok!(Registry::change_program_instance(
             RuntimeOrigin::signed(2),
@@ -494,10 +475,7 @@ fn it_changes_a_program_instance() {
         ));
 
         registered_info.programs_data = new_programs_info;
-        assert_eq!(
-            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
-            registered_info
-        );
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
         assert_eq!(
             pallet_programs::Programs::<Test>::get(program_hash).unwrap().ref_counter,
             0,
@@ -552,11 +530,8 @@ fn it_changes_a_program_mod_account() {
             version_number: 1,
         };
 
-        RegisteredOnChain::<Test>::insert(expected_verifying_key.clone(), &registered_info);
-        assert_eq!(
-            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
-            registered_info
-        );
+        Registered::<Test>::insert(expected_verifying_key.clone(), &registered_info);
+        assert_eq!(Registry::registered(expected_verifying_key.clone()).unwrap(), registered_info);
 
         // Idk why this state could happen but still test to make sure it fails with a noop if ModifiableKeys not set
         assert_noop!(
@@ -588,7 +563,7 @@ fn it_changes_a_program_mod_account() {
 
         registered_info.program_modification_account = 3;
         assert_eq!(
-            Registry::registered_on_chain(expected_verifying_key.clone()).unwrap(),
+            Registry::registered(expected_verifying_key.clone()).unwrap(),
             registered_info,
             "account 3 now in registered info"
         );
@@ -604,37 +579,4 @@ fn it_changes_a_program_mod_account() {
             Error::<Test>::NotAuthorized
         );
     })
-}
-
-#[test]
-fn it_fails_on_non_matching_verifying_keys() {
-    new_test_ext().execute_with(|| {
-        let empty_program = vec![];
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&empty_program);
-        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-            program_pointer: program_hash,
-            program_config: vec![],
-        }])
-        .unwrap();
-
-        pallet_programs::Programs::<Test>::insert(
-            program_hash,
-            ProgramInfo {
-                bytecode: empty_program.clone(),
-                configuration_schema: empty_program.clone(),
-                auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
-                deployer: 1,
-                ref_counter: 0,
-            },
-        );
-
-        assert_ok!(Registry::register(RuntimeOrigin::signed(1), 2, programs_info.clone(),));
-
-        // error if they try to submit another request, even with a different program key
-        assert_noop!(
-            Registry::register(RuntimeOrigin::signed(1), 2, programs_info),
-            Error::<Test>::AlreadySubmitted
-        );
-    });
 }

@@ -14,6 +14,10 @@ At the moment this project **does not** adhere to
   fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
   `pallet_parameters::threshold`, which are used to set up the initial threshold signing
   configuration for the network.
+- In [#1030](https://github.com/entropyxyz/entropy-core/pull/1030), the registration flow got
+  cleaned up. A lot of storage entries, events, and extrinsics were removed from the `Registry`
+  pallet. The genesis build config was also removed. Additionally, the `new/user/` HTTP endpoint in
+  the TSS was removed since it was no longer necessary.
 - in [#1031](https://github.com/entropyxyz/entropy-core/pull/1031), more Staking calls were blocked to go through staking_extention. This makes sure no funds can be unbonded from a validator if they are currently in the signing comittee. This was applied to `unbond`, `chill`, and `withdraw_unbonded`
 
 ### Added
@@ -36,8 +40,9 @@ At the moment this project **does not** adhere to
 - No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
 
 ### Removed
--  Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
--  Remove `confirm_registered` extrinsic ([#1025](https://github.com/entropyxyz/entropy-core/pull/1025))
+- Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
+- Remove `confirm_registered` extrinsic ([#1025](https://github.com/entropyxyz/entropy-core/pull/1025))
+- Remove old registration flow ([#1030](https://github.com/entropyxyz/entropy-core/pull/1030))
 
 ## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
 
