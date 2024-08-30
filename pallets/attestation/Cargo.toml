@@ -21,8 +21,8 @@ sp-staking        ={ version="27.0.0", default-features=false }
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 sp-std            ={ version="14.0.0", default-features=false }
 pallet-session    ={ version="29.0.0", default-features=false, optional=true }
-pallet-parameters ={ version="0.2.0", path="../parameters", default-features=false }
 
+pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
