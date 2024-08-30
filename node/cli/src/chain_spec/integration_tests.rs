@@ -35,7 +35,7 @@ use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, ByteArray};
-use sp_runtime::{Perbill, BoundedVec};
+use sp_runtime::{BoundedVec, Perbill};
 
 /// The configuration used for the Threshold Signature Scheme server integration tests.
 ///
