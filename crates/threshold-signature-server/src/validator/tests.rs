@@ -27,6 +27,7 @@ use crate::{
         errors::ValidatorErr,
     },
 };
+use entropy_client as test_client;
 use entropy_client::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -34,7 +35,6 @@ use entropy_client::{
     },
     Hasher,
 };
-use entropy_client::{register, sign, store_program};
 use entropy_kvdb::{
     clean_tests,
     kv_manager::helpers::{deserialize, serialize},
@@ -128,7 +128,7 @@ async fn test_reshare() {
     let account_owner = AccountKeyring::Ferdie.pair();
     let signature_request_author = AccountKeyring::One;
     // Store a program
-    let program_pointer = store_program(
+    let program_pointer = test_client::store_program(
         &api,
         &rpc,
         &account_owner,
@@ -141,7 +141,7 @@ async fn test_reshare() {
     .unwrap();
 
     // Register, using that program
-    let (verifying_key, _registered_info) = register(
+    let (verifying_key, _registered_info) = test_client::register(
         &api,
         &rpc,
         account_owner.clone(),
@@ -152,7 +152,7 @@ async fn test_reshare() {
     .unwrap();
 
     // Sign a message
-    let recoverable_signature = sign(
+    let recoverable_signature = test_client::sign(
         &api,
         &rpc,
         signature_request_author.pair(),
