@@ -130,7 +130,7 @@ async fn test_reshare() {
             .unwrap();
 
         let key_share_and_aux_data_after_rotate =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i + 1]).await;
         let (key_share_after_rotate, aux_info_after_rotate): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after_rotate).unwrap();
 
@@ -154,7 +154,7 @@ async fn test_reshare() {
 
         assert_eq!(response.text().await.unwrap(), "Kv error: Recv Error: channel closed");
         let key_share_and_aux_data_after_rotate_twice =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i]).await;
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), validator_ports[i + 1]).await;
         let (key_share_after_rotate_twice, aux_info_after_rotate_twice): KeyShareWithAuxInfo =
             deserialize(&key_share_and_aux_data_after_rotate_twice).unwrap();
 
