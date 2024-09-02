@@ -20,7 +20,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get,
+            unsafe_get, ChainSpecType,
         },
     },
 };
@@ -45,7 +45,8 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, _ids) = spawn_testing_validators(false).await;
+    let (validator_ips, _ids) = spawn_testing_validators(false, ChainSpecType::Integration).await;
+    let signing_committee_ips = &validator_ips[..3].to_vec();
 
     let client = reqwest::Client::new();
 
@@ -78,14 +79,14 @@ async fn test_proactive_refresh() {
     };
 
     let test_fail_incorrect_data =
-        submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
+        submit_transaction_requests(signing_committee_ips.clone(), ocw_message.clone()).await;
 
     for res in test_fail_incorrect_data {
         assert_eq!(res.unwrap().text().await.unwrap(), "Proactive Refresh data incorrect");
     }
     ocw_message.validators_info[0].x25519_public_key = X25519_PUBLIC_KEYS[0];
     let test_user_res =
-        submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
+        submit_transaction_requests(signing_committee_ips.clone(), ocw_message.clone()).await;
 
     for res in test_user_res {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
@@ -104,7 +105,7 @@ async fn test_proactive_refresh() {
     ocw_message.validators_info[2].tss_account = alice.public().encode();
 
     let test_user_res_not_in_group =
-        submit_transaction_requests(validator_ips.clone(), ocw_message.clone()).await;
+        submit_transaction_requests(signing_committee_ips.clone(), ocw_message.clone()).await;
     for res in test_user_res_not_in_group {
         assert_eq!(
             res.unwrap().text().await.unwrap(),

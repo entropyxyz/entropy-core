@@ -19,10 +19,11 @@ extern crate lazy_static;
 pub use entropy_tss::chain_api;
 pub mod constants;
 pub mod create_test_keyshares;
+pub mod helpers;
 mod node_proc;
 pub mod substrate_context;
 pub use entropy_tss::helpers::tests::{
-    jump_start_network_with_signer as jump_start_network, spawn_testing_validators,
+    jump_start_network_with_signer as jump_start_network, spawn_testing_validators, ChainSpecType,
 };
 pub use node_proc::TestNodeProcess;
 pub use substrate_context::*;
