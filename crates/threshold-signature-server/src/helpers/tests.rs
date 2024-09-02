@@ -256,7 +256,7 @@ pub async fn jump_start_network_with_signer(
     }
 }
 
-/// Helper to store a program and register a user. Returns the verify key
+/// Helper to store a program and register a user. Returns the verify key and program hash.
 #[cfg(test)]
 pub async fn store_program_and_register(
     api: &OnlineClient<EntropyConfig>,
@@ -274,7 +274,7 @@ pub async fn store_program_and_register(
     let program_hash = test_client::store_program(
         &api,
         &rpc,
-        deployer, // This is our program deployer
+        deployer,
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
         vec![],
@@ -282,8 +282,6 @@ pub async fn store_program_and_register(
     )
     .await
     .unwrap();
-
-    println!("Program hash {:?}", program_hash);
 
     let (verifying_key, _registered_info) = test_client::register(
         &api,
