@@ -16,6 +16,7 @@
 use frame_benchmarking::benchmarks;
 use frame_support::assert_ok;
 use frame_system::EventRecord;
+use sp_std::vec;
 
 use super::*;
 #[allow(unused)]
@@ -55,7 +56,18 @@ benchmarks! {
   change_signers_info {
     let origin = T::UpdateOrigin::try_successful_origin().unwrap();
     pallet_session::CurrentIndex::<T>::put(1);
-    let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 1 };
+
+    let SignersSize {
+        threshold: old_threshold,
+        total_signers: old_total_signers,
+        last_session_change: old_last_session_change,
+    } = SignersInfo::<T>::get();
+
+    let signer_info = SignersSize {
+        total_signers: old_total_signers + 1,
+        threshold: old_threshold + 1,
+        last_session_change: old_last_session_change + 1,
+    };
   }: {
     assert_ok!(
       <Parameters<T>>::change_signers_info(origin, signer_info.total_signers, signer_info.threshold)
@@ -65,6 +77,17 @@ benchmarks! {
     assert_last_event::<T>(Event::SignerInfoChanged{ signer_info }.into());
   }
 
+  change_accepted_mrtd_values {
+    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+    let accepted_mrtd_values = vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()];
+  }: {
+    assert_ok!(
+      <Parameters<T>>::change_accepted_mrtd_values(origin, accepted_mrtd_values.clone())
+    );
+  }
+  verify {
+    assert_last_event::<T>(Event::AcceptedMrtdValuesChanged{ accepted_mrtd_values }.into());
+  }
 
   impl_benchmark_test_suite!(Parameters, crate::mock::new_test_ext(), crate::mock::Runtime);
 }

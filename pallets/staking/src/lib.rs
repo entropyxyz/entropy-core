@@ -279,14 +279,10 @@ pub mod pallet {
             ProactiveRefresh::<T>::put(refresh_info);
             // mocks a signer rotation for tss new_reshare tests
             if self.mock_signer_rotate.0 {
-                self.mock_signer_rotate
-                    .clone()
-                    .1
-                    .push(self.mock_signer_rotate.clone().2[0].clone());
-                NextSigners::<T>::put(NextSignerInfo {
-                    next_signers: self.mock_signer_rotate.clone().1,
-                    confirmations: vec![],
-                });
+                let next_signers = &mut self.mock_signer_rotate.1.clone();
+                next_signers.push(self.mock_signer_rotate.2[0].clone());
+                let next_signers = next_signers.to_vec();
+                NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
 
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup

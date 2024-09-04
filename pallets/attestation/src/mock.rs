@@ -29,7 +29,7 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-    BuildStorage, Perbill,
+    BoundedVec, BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use std::cell::RefCell;
@@ -351,6 +351,17 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         mock_signer_rotate: (false, vec![], vec![]),
     };
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
+    let pallet_parameters = pallet_parameters::GenesisConfig::<Test> {
+        request_limit: 5u32,
+        max_instructions_per_programs: 5u64,
+        total_signers: 3u8,
+        threshold: 2u8,
+        accepted_mrtd_values: vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()],
+        _config: Default::default(),
+    };
+
+    pallet_parameters.assimilate_storage(&mut t).unwrap();
 
     t.into()
 }

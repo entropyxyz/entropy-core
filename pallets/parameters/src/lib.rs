@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! # Programs Parameters
+//! # Parameters Pallet
 //!
 //! ## Overview
 //!
@@ -37,6 +37,7 @@ use entropy_shared::MAX_SIGNERS;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -67,6 +68,8 @@ pub mod module {
         type WeightInfo: WeightInfo;
     }
 
+    pub type MrtdValues = Vec<BoundedVec<u8, ConstU32<48>>>;
+
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
@@ -74,6 +77,7 @@ pub mod module {
         pub max_instructions_per_programs: u64,
         pub threshold: u8,
         pub total_signers: u8,
+        pub accepted_mrtd_values: MrtdValues,
         #[serde(skip)]
         pub _config: sp_std::marker::PhantomData<T>,
     }
@@ -83,6 +87,10 @@ pub mod module {
         fn build(&self) {
             assert!(self.threshold > 0, "Threhsold too low");
             assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
+            assert!(
+                !self.accepted_mrtd_values.is_empty(),
+                "At least one accepted MRTD value is required"
+            );
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
             let signer_info = SignersSize {
@@ -91,6 +99,7 @@ pub mod module {
                 last_session_change: 0,
             };
             SignersInfo::<T>::put(signer_info);
+            AcceptedMrtdValues::<T>::put(self.accepted_mrtd_values.clone());
         }
     }
 
@@ -128,6 +137,8 @@ pub mod module {
         MaxInstructionsPerProgramsChanged { max_instructions_per_programs: u64 },
         /// Signer Info changed
         SignerInfoChanged { signer_info: SignersSize },
+        /// Accepted MRTD values changed
+        AcceptedMrtdValuesChanged { accepted_mrtd_values: MrtdValues },
     }
 
     /// The request limit a user can ask to a specific set of TSS in a block
@@ -144,6 +155,12 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn signers_info)]
     pub type SignersInfo<T: Config> = StorageValue<_, SignersSize, ValueQuery>;
+
+    /// Accepted values of the TDX build-time measurement register - from the currently-supported
+    /// releases of entropy-tss
+    #[pallet::storage]
+    #[pallet::getter(fn accepted_mrtd_values)]
+    pub type AcceptedMrtdValues<T: Config> = StorageValue<_, MrtdValues, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -203,6 +220,18 @@ pub mod module {
                 SignersSize { total_signers, threshold, last_session_change: current_session };
             SignersInfo::<T>::put(&signer_info);
             Self::deposit_event(Event::SignerInfoChanged { signer_info });
+            Ok(())
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight( <T as Config>::WeightInfo::change_accepted_mrtd_values())]
+        pub fn change_accepted_mrtd_values(
+            origin: OriginFor<T>,
+            accepted_mrtd_values: MrtdValues,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            AcceptedMrtdValues::<T>::put(&accepted_mrtd_values);
+            Self::deposit_event(Event::AcceptedMrtdValuesChanged { accepted_mrtd_values });
             Ok(())
         }
     }
