@@ -10,36 +10,45 @@ You'll also need the following dependencies:
 
 1. The latest LTS version of Rust:
 
-    ```shell
-    # Any unix-based operating system.
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    ```
+   ```shell
+   # Any unix-based operating system.
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
 
 1. OpenSSL version 3.0.0 or higher:
 
-    ```shell
-    # Debian/Ubuntu
-    sudo apt install libssl-dev
-    ```
+   ```shell
+   # MacOS
+   brew install openssl
+   ```
 
-    ```shell
-    # Arch
-    # OpenSSL comes pre-installed on most Arch releases.
-    # However, to install a specific version, run:
-    sudo pacman -S openss3-3.0
-    ```
+   ```shell
+   # Debian/Ubuntu
+   sudo apt install libssl-dev
+   ```
+
+   ```shell
+   # Arch
+   # OpenSSL comes pre-installed on most Arch releases.
+   # However, to install a specific version, run:
+   sudo pacman -S openss3-3.0
+   ```
 
 1. `pkg-config` version 0.29.0 or higher:
 
-    ```shell
-    # Debian/Ubuntu
-    sudo apt install pkg-config
-    ```
+   ```shell
+   brew install pkg-config
+   ```
 
-    ```shell
-    # Arch
-    sudo pacman -S pkgconf
-    ```
+   ```shell
+   # Debian/Ubuntu
+   sudo apt install pkg-config
+   ```
+
+   ```shell
+   # Arch
+   sudo pacman -S pkgconf
+   ```
 
 ## Installation
 
@@ -196,11 +205,11 @@ That took 808.977979ms
 
 To register an entropy account, you need three things:
 
--   An Entropy chain account name, which we will call the 'program modification account'. This must be funded in order to submit the register transaction. On the local `docker compose` setup, you can use one of the [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/master/node/cli/src/endowed_accounts.rs), for example, `Alice`.
--   One or more programs, which define the conditions under which a given message will be signed by the Entropy network. The test-cli `register` command takes programs as either the hex-encoded hash of an existing program on-chain or the local path to a `.wasm` file containing the compiled program.
-    -   The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/master/examples/device-key-proxy/src/lib.rs) program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
-    -   The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils) crate contains some ready-to-use compiled programs, the simplest of which is [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/master/crates/testing-utils/template_barebones.wasm) which allow you to sign any message which is more than 10 bytes long.
-    -   See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as instructions on how to write and build your own programs.
+- An Entropy chain account name, which we will call the 'program modification account'. This must be funded in order to submit the register transaction. On the local `docker compose` setup, you can use one of the [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/master/node/cli/src/endowed_accounts.rs), for example, `Alice`.
+- One or more programs, which define the conditions under which a given message will be signed by the Entropy network. The test-cli `register` command takes programs as either the hex-encoded hash of an existing program on-chain or the local path to a `.wasm` file containing the compiled program.
+  - The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/master/examples/device-key-proxy/src/lib.rs) program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
+  - The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils) crate contains some ready-to-use compiled programs, the simplest of which is [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/master/crates/testing-utils/template_barebones.wasm) which allow you to sign any message which is more than 10 bytes long.
+  - See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as instructions on how to write and build your own programs.
 
 For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
 
@@ -247,4 +256,4 @@ Note that the program modification account must be funded for this to work.
 
 **I get an `pkg-config exited with status code 1` error**: You are likely missing the `pkg-config` package. Make sure you have the dependencies listed in the [requirements section](#requirements) installed properly.
 
-**I get an `error: failed to run custom build command for `openssl-sys v0.9.102` error**: You are likely missing the `openssl` package. Make sure you have the dependencies listed in the [requirements section](#requirements) installed properly.
+**I get an `error: failed to run custom build command for openssl-sys v0.9.102` error**: You are likely missing the `openssl` package. Make sure you have the dependencies listed in the [requirements section](#requirements) installed properly.
