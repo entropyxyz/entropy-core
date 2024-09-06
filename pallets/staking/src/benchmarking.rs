@@ -15,7 +15,7 @@
 
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
-use entropy_shared::SIGNING_PARTY_SIZE;
+use entropy_shared::MAX_SIGNERS;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -23,6 +23,7 @@ use frame_support::{
     traits::{Currency, Get},
 };
 use frame_system::{EventRecord, RawOrigin};
+use pallet_parameters::{SignersInfo, SignersSize};
 use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
 use sp_std::{vec, vec::Vec};
 
@@ -32,9 +33,6 @@ use crate::Pallet as Staking;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
-const SEED_2: u32 = 1;
-
-type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     let events = frame_system::Pallet::<T>::events();
@@ -180,36 +178,123 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
   }
 
-  new_session_handler_helper {
-    let c in 0 .. MaxValidators::<T>::get();
-    let n in 0 .. MaxValidators::<T>::get();
-    let current_validators = create_validators::<T>(c, SEED);
-    let new_validators = create_validators::<T>(n, SEED_2);
-    let _ =Staking::<T>::new_session_handler(&current_validators);
-    let mut current_subgroups: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> = vec![];
-    for signing_group in 0..SIGNING_PARTY_SIZE {
-      let current_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
-      current_subgroups.push(current_subgroup)
-    };
-}: {
-    let _ = Staking::<T>::new_session_handler(&new_validators);
-} verify {
-    let one_current_validator = &SigningGroups::<T>::get(0).unwrap();
-    if n == 0 {
-        if !one_current_validator.is_empty() {
-            assert!(!new_validators.contains(&one_current_validator[0]));
-        }
-    } else {
-      let mut new_subgroups: Vec<Vec<<T as pallet_session::Config>::ValidatorId>> = vec![];
-      for signing_group in 0..SIGNING_PARTY_SIZE {
-        let new_subgroup = SigningGroups::<T>::get(signing_group as u8).unwrap();
-        new_subgroups.push(new_subgroup)
-      };
-        assert_last_event::<T>(Event::<T>::ValidatorSubgroupsRotated(current_subgroups,  new_subgroups).into());
-        assert!(new_validators.contains(&one_current_validator[0]));
-    }
-}
+  confirm_key_reshare_confirmed {
+    let c in 0 .. MAX_SIGNERS as u32;
+    // leave a space for two as not to rotate and only confirm rotation
+    let confirmation_num = c.checked_sub(2).unwrap_or(0);
+    let signer_num =  MAX_SIGNERS - 1;
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
 
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); signer_num as usize];
+    signers.push(validator_id_res.clone());
+    Signers::<T>::put(signers.clone());
+
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![second_signer_id.clone(); confirmation_num as usize],
+  });
+
+  }: confirm_key_reshare(RawOrigin::Signed(caller.clone()))
+  verify {
+    assert_last_event::<T>(Event::<T>::SignerConfirmed(validator_id_res).into());
+  }
+
+  confirm_key_reshare_completed {
+    // once less confirmation to always flip to rotate
+    let confirmation_num = MAX_SIGNERS as usize - 1;
+
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id = <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); confirmation_num as usize];
+    signers.push(validator_id_res.clone());
+
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers.clone(),
+      confirmations: vec![second_signer_id; confirmation_num as usize],
+  });
+
+  }:  confirm_key_reshare(RawOrigin::Signed(caller.clone()))
+  verify {
+    assert_last_event::<T>(Event::<T>::SignersRotation(signers.clone()).into());
+  }
+
+  new_session_base_weight {
+    let s in 2 .. MAX_SIGNERS as u32;
+
+    let caller: T::AccountId = whitelisted_caller();
+
+    // For the purpose of the bench these values don't actually matter, we just care that there's a
+    // storage entry available
+    SignersInfo::<T>::put(SignersSize {
+        total_signers: MAX_SIGNERS,
+        threshold: 3,
+        last_session_change: 0,
+    });
+
+    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    let signers = vec![validator_id.clone(); s as usize];
+    Signers::<T>::put(signers);
+  }:  {
+    // Note that here we only add one validator, where as `Signers` already contains two as a
+    // minimum.
+    let _ = Staking::<T>::new_session_handler(&vec![validator_id]);
+  }
+  verify {
+    assert!(NextSigners::<T>::get().is_none());
+  }
+
+  new_session {
+    let c in 1 .. MAX_SIGNERS as u32 - 1;
+    let l in 0 .. MAX_SIGNERS as u32;
+
+    let caller: T::AccountId = whitelisted_caller();
+
+    // For the purpose of the bench these values don't actually matter, we just care that there's a
+    // storage entry available
+    SignersInfo::<T>::put(SignersSize {
+        total_signers: MAX_SIGNERS,
+        threshold: 3,
+        last_session_change: 0,
+    });
+
+    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+
+    // full signer list leaving room for one extra validator
+    let mut signers = vec![second_signer_id.clone(); c as usize];
+
+    Signers::<T>::put(signers.clone());
+    signers.push(second_signer_id.clone());
+
+    // place new signer in the signers struct in different locations to calculate random selection
+    // re-run
+    signers[l as usize % c as usize] = validator_id.clone();
+  }:  {
+    let _ = Staking::<T>::new_session_handler(&signers);
+  }
+  verify {
+    assert!(NextSigners::<T>::get().is_some());
+  }
 }
 
 impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test);

@@ -50,6 +50,32 @@ You'll also need the following dependencies:
    sudo pacman -S pkgconf
    ```
 
+You'll also need the following packages:
+
+1. OpenSSL:
+
+    ```shell
+    # Debian/Ubuntu
+    sudo apt install libssl-dev
+    ```
+
+    ```shell
+    # MacOS
+    brew install openssl
+    ```
+
+2. `pkg-config`:
+
+    ```shell
+    # Debian/Ubuntu
+    sudo apt install pkg-config
+    ```
+
+    ```shell
+    # MacOS
+    brew install pkg-config
+    ```
+
 ## Installation
 
 To install this Rust Test CLI, run:
@@ -212,8 +238,7 @@ To register an entropy account, you need three things:
   - See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as instructions on how to write and build your own programs.
 
 For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
-
-`entropy-test-cli register public template_barebones.wasm template_barebones_config_data template_barebones_aux_data -m //Alice`
+`entropy-test-cli register public template_barebones.wasm -m //Alice`
 
 Example of registering in public access mode, with two programs, one given as a binary file and one given as a hash of an existing program:
 
@@ -242,6 +267,13 @@ You need to supply the account which will store the program, and the path to a p
 ```shell
 entropy-test-cli store-program ./crates/testing-utils/example_barebones_with_auxilary.wasm //Alice
 ```
+
+### Remove program
+
+To remove a program you need to give the account which 'owns' the program (the one which stored it)
+and the hex-encoded hash of the program you wish to remove, for example:
+
+`entropy-test-cli remove-program a2a16982fa6176e3fa9ae8dc408386ff040bf91196d3ec0aa981e5ba3fc1bbac -m //Alice`
 
 ### Update programs
 

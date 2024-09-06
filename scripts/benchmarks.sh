@@ -10,6 +10,9 @@ entropyTemplate=.maintain/frame-weight-template.hbs
 licenseHeader=.maintain/AGPL-3.0-header.txt
 # Manually exclude some pallets.
 excluded_pallets=(
+    # FIXME (#914): Changes to the ED have broken these benchmarks, we need to address that before
+    # we can run them.
+    pallet_nomination_pools
 )
 
 # Load all pallet names in an array.

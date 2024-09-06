@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::{KeyVisibility, SIGNING_PARTY_SIZE as SIG_PARTIES, VERIFICATION_KEY_LENGTH};
+use entropy_shared::MAX_SIGNERS;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -22,9 +22,10 @@ use frame_support::{
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_programs::{ProgramInfo, Programs};
+use pallet_session::Validators;
 use pallet_staking_extension::{
-    benchmarking::create_validators, IsValidatorSynced, ServerInfo, SigningGroups,
-    ThresholdServers, ThresholdToStash, ValidatorToSubgroup,
+    benchmarking::create_validators, IsValidatorSynced, JumpStartDetails, JumpStartProgress,
+    JumpStartStatus, ServerInfo, ThresholdServers, ThresholdToStash,
 };
 use sp_runtime::traits::Hash;
 use sp_std::{vec, vec::Vec};
@@ -33,7 +34,6 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as Registry;
 
-type MaxValidators<T> =  <<T as pallet_staking::Config>::BenchmarkingConfig as pallet_staking::BenchmarkingConfig>::MaxValidators;
 const SEED: u32 = 0;
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -46,81 +46,184 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 }
 
 pub fn add_non_syncing_validators<T: Config>(
-    sig_party_size: u32,
+    validator_amount: u32,
     syncing_validators: u32,
-    sig_party_number: u8,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
-    let validators = create_validators::<T>(sig_party_size, SEED);
+    let validators = create_validators::<T>(validator_amount, SEED);
     let account = account::<T::AccountId>("ts_account", 1, SEED);
     let server_info =
         ServerInfo { tss_account: account, x25519_public_key: NULL_ARR, endpoint: vec![20] };
-    <SigningGroups<T>>::remove(sig_party_number);
-    <SigningGroups<T>>::insert(sig_party_number, validators.clone());
     for (c, validator) in validators.iter().enumerate() {
         <ThresholdServers<T>>::insert(validator, server_info.clone());
-        <ValidatorToSubgroup<T>>::insert(validator, 0);
         if c >= syncing_validators.try_into().unwrap() {
             <IsValidatorSynced<T>>::insert(validator, true);
         }
     }
-    if syncing_validators == sig_party_size {
+    if syncing_validators == validator_amount {
         <IsValidatorSynced<T>>::insert(&validators[0], true);
     }
     validators
 }
 
 benchmarks! {
-  register {
-    let p in 1 .. T::MaxProgramHashes::get();
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  };  p as usize])
-  .unwrap();
+  jump_start_network {
 
-  let program_modification_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, oracle_data_pointer, deployer: program_modification_account.clone(), ref_counter: 0});
     let sig_req_account: T::AccountId = whitelisted_caller();
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  }: _(RawOrigin::Signed(sig_req_account.clone()), program_modification_account, KeyVisibility::Public, programs_info)
-  verify {
-    assert_last_event::<T>(Event::SignalRegister(sig_req_account.clone()).into());
-    assert!(Registering::<T>::contains_key(sig_req_account));
-  }
 
-  prune_registration {
-    let p in 1 .. T::MaxProgramHashes::get();
-    let program_modification_account: T::AccountId = whitelisted_caller();
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  }]).unwrap();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, oracle_data_pointer, deployer: program_modification_account.clone(), ref_counter: 1});
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-      <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        program_modification_account: sig_req_account.clone(),
-        confirmations: vec![],
-        programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
-        verifying_key: Some(BoundedVec::default()),
-        version_number: T::KeyVersionNumber::get()
-    });
   }: _(RawOrigin::Signed(sig_req_account.clone()))
   verify {
-    assert_last_event::<T>(Event::RegistrationCancelled(sig_req_account.clone()).into());
+    assert_last_event::<T>(Event::StartedNetworkJumpStart().into());
+  }
+
+  confirm_jump_start_done {
+    let c in 0 .. MAX_SIGNERS as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let expected_verifying_key = BoundedVec::default();
+
+    let mut accounts = vec![];
+    for i in 0..MAX_SIGNERS {
+        accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
+    }
+
+    let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
+    <Validators<T>>::set(validators.clone());
+
+    for i in 0..MAX_SIGNERS {
+        <ThresholdToStash<T>>::insert(accounts[i as usize].clone(), &validators[i as usize]);
+    }
+
+    <JumpStartProgress<T>>::put(JumpStartDetails {
+      jump_start_status: JumpStartStatus::InProgress(0),
+      confirmations: vec![validators[0].clone(), validators[0].clone()],
+      verifying_key: None,
+      parent_key_threshold: 2
+      });
+
+
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
+  }: confirm_jump_start(RawOrigin::Signed(accounts[1].clone()), expected_verifying_key)
+  verify {
+    assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
+  }
+
+  confirm_jump_start_confirm {
+    let c in 0 .. MAX_SIGNERS as u32;
+    let sig_req_account: T::AccountId = whitelisted_caller();
+    let validator_account: T::AccountId = whitelisted_caller();
+    let threshold_account: T::AccountId = whitelisted_caller();
+    let expected_verifying_key = BoundedVec::default();
+
+    // add validators and a registering user
+    for i in 0..MAX_SIGNERS {
+        let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
+        <Validators<T>>::set(validators.clone());
+        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
+    }
+    <JumpStartProgress<T>>::put(JumpStartDetails {
+      jump_start_status: JumpStartStatus::InProgress(0),
+      confirmations: vec![],
+      verifying_key: None,
+      parent_key_threshold: 2
+  });
+
+
+    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
+  }: confirm_jump_start(RawOrigin::Signed(threshold_account.clone()), expected_verifying_key)
+  verify {
+    let validator_stash =
+        pallet_staking_extension::Pallet::<T>::threshold_to_stash(&threshold_account).unwrap();
+    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(validator_stash, 1).into());
+  }
+
+  register {
+    let p in 1 .. T::MaxProgramHashes::get();
+
+    let program_modification_account: T::AccountId = whitelisted_caller();
+    let signature_request_account: T::AccountId = whitelisted_caller();
+
+    let program = vec![0u8];
+    let configuration_schema = vec![1u8];
+    let auxiliary_data_schema = vec![2u8];
+    let oracle_data_pointer = vec![3u8];
+    let program_hash = T::Hashing::hash(&program);
+    let programs_info = BoundedVec::try_from(vec![
+        ProgramInstance {
+            program_pointer: program_hash,
+            program_config: vec![],
+        };
+        p as usize
+    ])
+    .unwrap();
+
+    Programs::<T>::insert(
+        program_hash,
+        ProgramInfo {
+            bytecode: program,
+            configuration_schema,
+            auxiliary_data_schema,
+            oracle_data_pointer,
+            deployer: program_modification_account.clone(),
+            ref_counter: 0,
+        },
+    );
+
+    let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+    <pallet_staking_extension::JumpStartProgress<T>>::put(JumpStartDetails {
+        jump_start_status: JumpStartStatus::Done,
+        confirmations: vec![],
+        verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+        parent_key_threshold: 0,
+    });
+
+
+    let balance =
+        <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+        &signature_request_account,
+        balance,
+    );
+  }: _(
+      RawOrigin::Signed(signature_request_account.clone()),
+      program_modification_account,
+      programs_info
+  )
+  verify {
+    use core::str::FromStr;
+    use synedrion::DeriveChildKey;
+
+    let network_verifying_key =
+        synedrion::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+    // We substract one from the count since this gets incremented after a succesful registration,
+    // and we're interested in the account we just registered.
+    let count = <Registered<T>>::count() - 1;
+    let derivation_path =
+        bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count)).unwrap();
+
+    let expected_verifying_key = network_verifying_key
+        .derive_verifying_key_bip32(&derivation_path)
+        .unwrap();
+    let expected_verifying_key = BoundedVec::try_from(
+        expected_verifying_key
+            .to_encoded_point(true)
+            .as_bytes()
+            .to_vec(),
+    )
+    .unwrap();
+
+    assert_last_event::<T>(
+        Event::<T>::AccountRegistered(
+            signature_request_account,
+            expected_verifying_key.clone()
+        ).into(),
+    );
+
+    assert!(Registered::<T>::contains_key(expected_verifying_key));
   }
 
   change_program_instance {
@@ -155,7 +258,7 @@ benchmarks! {
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
             programs_data: programs_info,
-            key_visibility: KeyVisibility::Public,
+            derivation_path: None,
             version_number: T::KeyVersionNumber::get()
         },
     );
@@ -190,127 +293,13 @@ benchmarks! {
         RegisteredInfo {
             program_modification_account: sig_req_account.clone(),
             programs_data: programs_info,
-            key_visibility: KeyVisibility::Public,
+            derivation_path: None,
             version_number: T::KeyVersionNumber::get()
         },
     );
   }: _(RawOrigin::Signed(sig_req_account.clone()), BoundedVec::default(), sig_req_account.clone())
   verify {
     assert_last_event::<T>(Event::ProgramModificationAccountChanged(sig_req_account.clone(), sig_req_account.clone(), BoundedVec::default()).into());
-  }
-
-  confirm_register_registering {
-    let c in 0 .. SIG_PARTIES as u32;
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  }]).unwrap();
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    // add validators and a registering user
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-    }
-
-    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        program_modification_account: sig_req_account.clone(),
-        confirmations: vec![],
-        programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
-        verifying_key: None,
-        version_number: T::KeyVersionNumber::get()
-    });
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap())
-  verify {
-    assert_last_event::<T>(Event::<T>::RecievedConfirmation(sig_req_account, 0, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap()).into());
-  }
-
-  confirm_register_failed_registering {
-    let c in 0 .. SIG_PARTIES as u32;
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  }]).unwrap();
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    let invalid_verifying_key = BoundedVec::try_from(vec![2; VERIFICATION_KEY_LENGTH as usize]).unwrap();
-    // add validators and a registering user with different verifying key
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-    }
-    let adjusted_sig_size = SIG_PARTIES - 1;
-    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
-    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        program_modification_account: sig_req_account.clone(),
-        confirmations: confirmation,
-        programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
-        verifying_key: Some(BoundedVec::default()),
-        version_number: T::KeyVersionNumber::get()
-    });
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, invalid_verifying_key)
-  verify {
-    assert_last_event::<T>(Event::<T>::FailedRegistration(sig_req_account).into());
-  }
-
-
-confirm_register_registered {
-    let c in 0 .. SIG_PARTIES as u32;
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointer = vec![3u8];
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  }]).unwrap();
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
-    let sig_party_size = MaxValidators::<T>::get() / SIG_PARTIES as u32;
-    // add validators, a registering user and one less than all confirmations
-    for i in 0..SIG_PARTIES {
-        let validators = add_non_syncing_validators::<T>(sig_party_size, 0, i as u8);
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i]);
-    }
-    let adjusted_sig_size = SIG_PARTIES - 1;
-    let confirmation: Vec<u8> = (1u8..=adjusted_sig_size.try_into().unwrap()).collect();
-    <Registering<T>>::insert(&sig_req_account, RegisteringDetails::<T> {
-        program_modification_account: sig_req_account.clone(),
-        confirmations: confirmation,
-        programs_data: programs_info,
-        key_visibility: KeyVisibility::Public,
-        verifying_key: None,
-        version_number: T::KeyVersionNumber::get()
-    });
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_register(RawOrigin::Signed(threshold_account), sig_req_account.clone(), 0, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap())
-  verify {
-    assert_last_event::<T>(Event::<T>::AccountRegistered(sig_req_account, BoundedVec::try_from(vec![3; VERIFICATION_KEY_LENGTH as usize]).unwrap()).into());
   }
 }
 

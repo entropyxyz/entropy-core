@@ -7,19 +7,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[Unreleased]](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
 
 ### Breaking Changes
-- In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for stale checks
+- In [#938](https://github.com/entropyxyz/entropy-core/pull/938), the chainspec got a couple of new
+  fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
+  `pallet_parameters::threshold`, which are used to set up the initial threshold signing
+  configuration for the network.
+- In [#1030](https://github.com/entropyxyz/entropy-core/pull/1030), the registration flow got
+  cleaned up. A lot of storage entries, events, and extrinsics were removed from the `Registry`
+  pallet. The genesis build config was also removed. Additionally, the `new/user/` HTTP endpoint in
+  the TSS was removed since it was no longer necessary.
 
 ### Added
-- Add a way to change program modification account  ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
-- Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
+- Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
+- Add Signer groups and rotation ([#938](https://github.com/entropyxyz/entropy-core/pull/938))
+- Split jumpstart and register flows ([#952](https://github.com/entropyxyz/entropy-core/pull/952))
+- New on-chain registration flow ([#955](https://github.com/entropyxyz/entropy-core/pull/955))
+- Reshare confirmation ([#965](https://github.com/entropyxyz/entropy-core/pull/965))
+- Set inital signers ([#971](https://github.com/entropyxyz/entropy-core/pull/971))
+- Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
+- Signing flow with derived accounts ([#990](https://github.com/entropyxyz/entropy-core/pull/990))
+- TSS attestation endpoint ([#1001](https://github.com/entropyxyz/entropy-core/pull/1001))
+- Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
+- Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
+- Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
+- Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
 
 ### Changed
-- Move TSS mnemonic out of keystore [#853](https://github.com/entropyxyz/entropy-core/pull/853)
+- Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+
+### Removed
+- Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
+- Remove `confirm_registered` extrinsic ([#1025](https://github.com/entropyxyz/entropy-core/pull/1025))
+- Remove old registration flow ([#1030](https://github.com/entropyxyz/entropy-core/pull/1030))
+
+## [0.2.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.1.0...release/v0.2.0) - 2024-07-11
+
+### Breaking Changes
+- In [#853](https://github.com/entropyxyz/entropy-core/pull/853) the responsibility of generating a
+  TSS mnemonic was shifted to operators, which can be done using the `--mnemonic` flag during
+  process startup. This also allows operators to back up the mnemonic for their TSS.
+- In [#856](https://github.com/entropyxyz/entropy-core/pull/856) a new flag, `--mnemonic-option`,
+  and environment variable `DEPLOYER_MNEMONIC`, were added to the `entropy-test-cli` as ways to
+  indicate which account to use during registration. This replaces having an account name or
+  mnemonic directly in the command invocation.
+- In [#866](https://github.com/entropyxyz/entropy-core/pull/866) timestamp was removed from
+  `UserSignatureRequest` and replaced with block_number. Thus check_stale now uses block_number for
+  stale checks
+- In [#881](https://github.com/entropyxyz/entropy-core/pull/881) the `HashingAlgorithm` enum is
+  given an additional variant `Blake2_256` and marked as `non_exhaustive` meaning we must handle the
+  case that an unknown variant is added in the future.
+- In [#900](https://github.com/entropyxyz/entropy-core/pull/900) the subgroup signer selection was
+  sorted to ensure a predicatble order across libraries, languages and clients.
+- In [#901](https://github.com/entropyxyz/entropy-core/pull/901) the network's currency units were
+  changed. This resulted in a change to the existential deposit as well as balances of endowed
+  accounts (e.g development accounts like `//Alice`).
+
+### Added
+- Add a way to change program modification account ([#843](https://github.com/entropyxyz/entropy-core/pull/843))
+- Add support for `--mnemonic-file` and `THRESHOLD_SERVER_MNEMONIC` ([#864](https://github.com/entropyxyz/entropy-core/pull/864))
+- Add validator helpers to cli ([#870](https://github.com/entropyxyz/entropy-core/pull/870))
+- Add `blake2` as built in hash function and make `HashingAlgorithm` non-exhaustive ([#881](https://github.com/entropyxyz/entropy-core/pull/881))
+- Add sort to subgroup signer selection ([#900](https://github.com/entropyxyz/entropy-core/pull/900))
+- Create four node Docker Compose chainspec ([#902](https://github.com/entropyxyz/entropy-core/pull/902))
+- Oracle data integration ([#922](https://github.com/entropyxyz/entropy-core/pull/922))
+
+### Changed
+- Move TSS mnemonic out of keystore ([#853](https://github.com/entropyxyz/entropy-core/pull/853))
 - Prepare test CLI for use in Programs repo ([#856](https://github.com/entropyxyz/entropy-core/pull/856))
 - Replace timestamp with block number ([#866](https://github.com/entropyxyz/entropy-core/pull/866))
+- Change currency units ([#901](https://github.com/entropyxyz/entropy-core/pull/901))
 
 ## [0.1.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.0.12...release/v0.1.0) - 2024-05-20
 

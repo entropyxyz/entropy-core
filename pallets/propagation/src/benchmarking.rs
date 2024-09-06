@@ -15,15 +15,28 @@
 
 // //! Benchmarking setup for pallet-propgation
 
-// use super::*;
+use super::*;
 
-// #[allow(unused)]
-// use crate::Pallet as Template;
-// use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-// use frame_system::RawOrigin;
+#[allow(unused)]
+use crate::Pallet as Propgation;
+use frame_benchmarking::benchmarks;
+use frame_support::traits::OnInitialize;
+use pallet_staking_extension::RefreshInfo;
+use scale_info::prelude::vec;
 
-// benchmarks! {
+benchmarks! {
+  on_initialize {
+    let block_number = 50u32;
 
-// }
+    <pallet_staking_extension::ProactiveRefresh<T>>::put(RefreshInfo {
+        validators_info: vec![],
+        proactive_refresh_keys: vec![vec![10]]
+    });
+  }: {
+    Propgation::<T>::on_initialize(block_number.into());
+    } verify {
+    assert_eq!(<pallet_staking_extension::ProactiveRefresh<T>>::get().proactive_refresh_keys.len(), 0);
+    }
 
-// impl_benchmark_test_suite!(Template, crate::mock::new_test_ext(), crate::mock::Test);
+  impl_benchmark_test_suite!(Propgation, crate::mock::new_test_ext(), crate::mock::Test);
+}

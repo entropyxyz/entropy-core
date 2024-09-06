@@ -14,14 +14,13 @@
 
 #![allow(dead_code)]
 use super::constants::VERIFICATION_KEY_LENGTH;
+use blake2::{Blake2b512, Digest};
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(any(feature = "std", feature = "wasm"))]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "wasm-no-std")]
-use sp_runtime::RuntimeDebug;
 #[cfg(feature = "std")]
 use strum_macros::EnumIter;
 
@@ -32,18 +31,6 @@ pub type X25519PublicKey = [u8; 32];
 /// This should match the type found in `entropy-runtime`. We define it ourselves manually here
 /// since we don't want to pull that whole crate it just for a `u32`.
 pub type BlockNumber = u32;
-
-/// Defines an application's accessibility
-/// Public -> User does not hold a keyshare
-/// Private -> User holds keyshare
-#[cfg_attr(not(feature = "wasm-no-std"), derive(Debug))]
-#[cfg_attr(feature = "wasm-no-std", derive(RuntimeDebug))]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
-pub enum KeyVisibility {
-    Public,
-    Private(X25519PublicKey),
-}
 
 /// Information from the validators in signing party
 #[cfg_attr(not(feature = "wasm"), derive(sp_runtime::Serialize, sp_runtime::Deserialize))]
@@ -62,6 +49,16 @@ pub struct OcwMessageDkg {
     pub block_number: BlockNumber,
     pub sig_request_accounts: Vec<Vec<u8>>,
     pub validators_info: Vec<ValidatorInfo>,
+}
+
+/// Offchain worker message for initiating a refresh
+#[cfg(not(feature = "wasm"))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OcwMessageReshare {
+    // Stash address of new signer
+    pub new_signer: Vec<u8>,
+    pub block_number: BlockNumber,
 }
 
 /// Offchain worker message for initiating a proactive refresh
@@ -85,19 +82,49 @@ pub struct OcwMessageProactiveRefresh {
     pub proactive_refresh_keys: Vec<Vec<u8>>,
 }
 
+/// Offchain worker message for requesting a TDX attestation
+#[cfg(not(feature = "wasm"))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+pub struct OcwMessageAttestationRequest {
+    /// The account ids of all TSS servers who must submit an attestation this block
+    pub tss_account_ids: Vec<[u8; 32]>,
+}
+
 /// 256-bit hashing algorithms for deriving the point to be signed.
 #[cfg_attr(any(feature = "wasm", feature = "std"), derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "std", derive(EnumIter))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", serde(rename = "hash"))]
 #[cfg_attr(feature = "std", serde(rename_all = "lowercase"))]
+#[non_exhaustive]
 pub enum HashingAlgorithm {
     Sha1,
     Sha2,
     Sha3,
     Keccak,
+    Blake2_256,
     Custom(usize),
 }
 
 /// A compressed, serialized [synedrion::ecdsa::VerifyingKey<k256::Secp256k1>]
 pub type EncodedVerifyingKey = [u8; VERIFICATION_KEY_LENGTH as usize];
+
+/// Input data to be included in a TDX attestation
+pub struct QuoteInputData(pub [u8; 64]);
+
+impl QuoteInputData {
+    pub fn new<T: Encode>(
+        tss_account_id: T,
+        x25519_public_key: X25519PublicKey,
+        nonce: [u8; 32],
+        block_number: u32,
+    ) -> Self {
+        let mut hasher = Blake2b512::new();
+        hasher.update(tss_account_id.encode());
+        hasher.update(x25519_public_key);
+        hasher.update(nonce);
+        hasher.update(block_number.to_be_bytes());
+        Self(hasher.finalize().into())
+    }
+}

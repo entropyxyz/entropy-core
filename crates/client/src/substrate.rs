@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //! For interacting with the substrate chain node
+use crate::chain_api::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec;
+use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
 use crate::chain_api::{entropy, EntropyConfig};
+
 use entropy_shared::MORTALITY_BLOCKS;
 use sp_core::{sr25519, Pair};
 use subxt::{
@@ -105,6 +108,24 @@ where
     let result = api.storage().at(block_hash).fetch(&storage_call).await?;
 
     Ok(result)
+}
+
+/// Returns a registered user's key visibility
+#[tracing::instrument(skip_all, fields(verifying_key))]
+pub async fn get_registered_details(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    verifying_key: Vec<u8>,
+) -> Result<RegisteredInfo, SubstrateError> {
+    tracing::info!("Querying chain for registration info.");
+
+    let registered_info_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
+
+    let registration_info = query_chain(api, rpc, registered_info_query, None)
+        .await?
+        .ok_or_else(|| SubstrateError::NotRegistered)?;
+
+    Ok(registration_info)
 }
 
 /// A wrapper around [sr25519::Pair] which implements [Signer]

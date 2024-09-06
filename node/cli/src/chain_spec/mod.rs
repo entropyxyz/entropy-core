@@ -75,10 +75,15 @@ pub mod tss_account_id {
     pub static ref CHARLIE: sp_runtime::AccountId32  =
             super::hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into();
 
-    /// Not sure what mnemonic is used to derive the following `AccountId`.
-    /// Mnemonic: "????"
+    /// The `DEFAULT_DAVE_MNEMONIC` is used to derive the following `AccountId`.
+    /// Mnemonic: "beef dutch panic monkey black glad audit twice humor gossip wealth drive"
     pub static ref DAVE: sp_runtime::AccountId32  =
-            super::hex!["5212c5f562f4a43b89caadfeb9f5896dd4084700afa72aa55ca306d689523f3a"].into();
+            super::hex!["0a9054ef6b6b8ad0dd2c89895b2515583f2fbf1edced68e7328ae456d86b9402"].into();
+
+    /// The `DEFAULT_EVE_MNEMONIC` is used to derive the following `AccountId`.
+    /// Mnemonic: "impact federal dish number fun crisp various wedding radio immense whisper glue"
+    pub static ref EVE: sp_runtime::AccountId32  =
+            super::hex!["ac0d9030598f1722ff7c6a2a3043fa65903448dcc7a23011ec06c1c31cdad120"].into();
 
     }
 }
@@ -92,7 +97,6 @@ pub mod tss_x25519_public_key {
         8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
         222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
     ];
-
     /// The `DEFAULT_BOB_MNEMONIC` is used to derive the public key.
     /// Mnemonic: "where sight patient orphan general short empower hope party hurt month voice"
     pub const BOB: [u8; 32] = [
@@ -107,11 +111,18 @@ pub mod tss_x25519_public_key {
         4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
     ];
 
-    /// Eve is not a TSS node but a pre-registered user. Her corresponding secret key is in
-    /// `entropy_testing_utils::constants`
-    pub const EVE: [u8; 32] = [
-        142, 113, 91, 59, 177, 104, 208, 23, 219, 170, 47, 145, 200, 139, 188, 28, 14, 199, 116,
-        86, 193, 144, 10, 18, 74, 157, 138, 202, 115, 99, 229, 55,
+    // The `DEFAULT_DAVE_MNEMONIC` is used to derive the public key.
+    /// Mnemonic: "beef dutch panic monkey black glad audit twice humor gossip wealth drive"
+    pub const DAVE: [u8; 32] = [
+        165, 202, 97, 104, 222, 190, 168, 183, 231, 63, 209, 233, 19, 185, 187, 200, 10, 29, 102,
+        240, 39, 50, 140, 15, 124, 112, 94, 121, 44, 182, 40, 71,
+    ];
+
+    // The `DEFAULT_EVE_MNEMONIC` is used to derive the public key for the tss version of eve
+    /// Mnemonic: "impact federal dish number fun crisp various wedding radio immense whisper glue"
+    pub const EVE_TSS: [u8; 32] = [
+        66, 106, 241, 196, 65, 224, 212, 85, 99, 184, 198, 249, 172, 237, 47, 2, 151, 182, 0, 74,
+        210, 39, 102, 193, 107, 13, 12, 153, 27, 83, 146, 63,
     ];
 }
 

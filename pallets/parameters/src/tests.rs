@@ -17,16 +17,17 @@
 
 #![cfg(test)]
 
+use super::*;
+use crate::SignersInfo;
+use entropy_shared::MAX_SIGNERS;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use sp_runtime::traits::BadOrigin;
 
-use super::*;
-
 #[test]
 fn request_limit_changed() {
-    ExtBuilder.build().execute_with(|| {
-        assert_eq!(Parameters::request_limit(), 0, "Inital request limit set");
+    new_test_ext().execute_with(|| {
+        assert_eq!(Parameters::request_limit(), 5, "Inital request limit set");
 
         assert_ok!(Parameters::change_request_limit(RuntimeOrigin::root(), 10));
 
@@ -39,10 +40,10 @@ fn request_limit_changed() {
 
 #[test]
 fn max_instructions_per_programs_changed() {
-    ExtBuilder.build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Parameters::max_instructions_per_programs(),
-            0,
+            5,
             "Inital max instructions per program set"
         );
 
@@ -58,6 +59,73 @@ fn max_instructions_per_programs_changed() {
         assert_noop!(
             Parameters::change_max_instructions_per_programs(RuntimeOrigin::signed(2), 15),
             BadOrigin,
+        );
+    });
+}
+
+#[test]
+fn signer_info_changed() {
+    new_test_ext().execute_with(|| {
+        pallet_session::CurrentIndex::<Runtime>::put(1);
+        let signer_info = SignersSize { total_signers: 5, threshold: 3, last_session_change: 0 };
+        let new_signer_info =
+            SignersSize { total_signers: 6, threshold: 4, last_session_change: 1 };
+
+        assert_eq!(Parameters::signers_info(), signer_info, "Inital signer info set");
+
+        assert_ok!(Parameters::change_signers_info(
+            RuntimeOrigin::root(),
+            new_signer_info.total_signers,
+            new_signer_info.threshold
+        ));
+
+        assert_eq!(Parameters::signers_info(), new_signer_info, "Inital signer info changed");
+
+        // Fails not root
+        assert_noop!(
+            Parameters::change_signers_info(
+                RuntimeOrigin::signed(2),
+                signer_info.total_signers,
+                signer_info.threshold
+            ),
+            BadOrigin,
+        );
+
+        // Fails threhsold greater then signers
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), 2, 3),
+            Error::<Runtime>::ThresholdGreaterThenSigners,
+        );
+
+        // Fails threhsold is 0
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), 0, 0),
+            Error::<Runtime>::ThrehsoldTooLow,
+        );
+
+        // Fails too many signers
+        assert_noop!(
+            Parameters::change_signers_info(RuntimeOrigin::root(), MAX_SIGNERS + 1, 1),
+            Error::<Runtime>::TooManySigners,
+        );
+
+        assert_noop!(
+            Parameters::change_signers_info(
+                RuntimeOrigin::root(),
+                new_signer_info.total_signers + 2,
+                signer_info.threshold
+            ),
+            Error::<Runtime>::SignerDiffTooLarge,
+        );
+        SignersInfo::<Runtime>::put(new_signer_info);
+
+        assert_noop!(
+            Parameters::change_signers_info(
+                RuntimeOrigin::root(),
+                signer_info.total_signers,
+                signer_info.threshold
+            ),
+            Error::<Runtime>::OneChangePerSession,
         );
     });
 }

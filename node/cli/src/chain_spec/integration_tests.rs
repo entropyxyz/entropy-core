@@ -17,16 +17,16 @@ use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
-    constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-    BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig, MaxNominations,
-    ParametersConfig, ProgramsConfig, RegistryConfig, SessionConfig, StakerStatus, StakingConfig,
+    constants::currency::*, wasm_binary_unwrap, AttestationConfig, AuthorityDiscoveryConfig,
+    BabeConfig, BalancesConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
+    MaxNominations, ParametersConfig, ProgramsConfig, SessionConfig, StakerStatus, StakingConfig,
     StakingExtensionConfig, SudoConfig, TechnicalCommitteeConfig,
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
-    DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
-    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+    DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
+    TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -34,8 +34,8 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::sr25519;
-use sp_runtime::{BoundedVec, Perbill};
+use sp_core::{sr25519, ByteArray};
+use sp_runtime::Perbill;
 
 /// The configuration used for the Threshold Signature Scheme server integration tests.
 ///
@@ -52,9 +52,15 @@ pub fn integration_tests_config() -> ChainSpec {
             vec![
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
+                crate::chain_spec::authority_keys_from_seed("Dave"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
+            vec![
+                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+            ],
         ))
         .build()
 }
@@ -71,6 +77,7 @@ pub fn integration_tests_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
+    mock_signer_rotate_data: Vec<AccountId>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -166,29 +173,17 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        "127.0.0.1:3003".as_bytes().to_vec(),
                     ),
                 ),
                 (
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     (
                         crate::chain_spec::tss_account_id::DAVE.clone(),
-                        // This should be a `Dave` account, but we use `Bob` since Dave's mnemonic
-                        // is unavailable right now.
-                        crate::chain_spec::tss_x25519_public_key::BOB,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        crate::chain_spec::tss_x25519_public_key::DAVE,
+                        "127.0.0.1:3004".as_bytes().to_vec(),
                     ),
                 ),
-            ],
-            signing_groups: vec![
-                (
-                    0,
-                    vec![
-                        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    ],
-                ),
-                (1, vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash")]),
             ],
             proactive_refresh_data: (
                 vec![
@@ -208,9 +203,18 @@ pub fn integration_tests_genesis_config(
                         ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::BOB,
                     },
+                    entropy_shared::ValidatorInfo {
+                        tss_account: <sp_runtime::AccountId32 as AsRef<[u8; 32]>>::as_ref(
+                            &crate::chain_spec::tss_account_id::CHARLIE.clone(),
+                        )
+                        .into(),
+                        ip_address: "127.0.0.1:3003".as_bytes().to_vec(),
+                        x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
+                    },
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")],),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
@@ -237,31 +241,15 @@ pub fn integration_tests_genesis_config(
         "imOnline": ImOnlineConfig { keys: vec![] },
         "authorityDiscovery": AuthorityDiscoveryConfig { keys: vec![], ..Default::default() },
         "grandpa": GrandpaConfig { authorities: vec![], ..Default::default() },
-        "registry": RegistryConfig {
-            registered_accounts: vec![
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    0,
-                    None,
-                    BoundedVec::try_from(DAVE_VERIFYING_KEY.to_vec()).unwrap(),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    1,
-                    Some(crate::chain_spec::tss_x25519_public_key::EVE),
-                    BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap(),
-                ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    2,
-                    None,
-                    BoundedVec::try_from(FERDIE_VERIFYING_KEY.to_vec()).unwrap(),
-                ),
-            ],
-        },
         "parameters": ParametersConfig {
             request_limit: 20,
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
+            total_signers: TOTAL_SIGNERS,
+            threshold: SIGNER_THRESHOLD,
+            accepted_mrtd_values: vec![
+                BoundedVec::try_from([0; 48].to_vec()).unwrap(),
+                BoundedVec::try_from([1; 48].to_vec()).unwrap(),
+            ],
             ..Default::default()
         },
         "programs": ProgramsConfig {
@@ -273,6 +261,10 @@ pub fn integration_tests_genesis_config(
                 root_key,
                 10,
             )],
+        },
+        "attestation": AttestationConfig {
+            initial_attestation_requests: vec![(3, vec![crate::chain_spec::tss_account_id::ALICE.to_raw_vec()])],
+            initial_pending_attestations: vec![(crate::chain_spec::tss_account_id::ALICE.clone(), [0; 32])],
         },
     })
 }

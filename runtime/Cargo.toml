@@ -1,7 +1,7 @@
 [package]
 name       ='entropy-runtime'
 description="The substrate runtime for the Entropy chain node"
-version    ='0.1.0'
+version    ='0.2.0'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
@@ -21,7 +21,7 @@ codec={ package="parity-scale-codec", version="3.6.3", default-features=false, f
   "max-encoded-len",
 ] }
 hex-literal={ version="0.4.1", optional=true }
-log={ version="0.4.21", default-features=false }
+log={ version="0.4.22", default-features=false }
 scale-info={ version="2.11", default-features=false, features=["derive"] }
 static_assertions="1.1.0"
 
@@ -95,15 +95,17 @@ pallet-utility                               ={ version="29.0.0", default-featur
 pallet-vesting                               ={ version="29.0.0", default-features=false }
 
 # Entropy Pallets
-pallet-programs         ={ version='0.1.0', path='../pallets/programs', default-features=false }
-pallet-propagation      ={ version='0.1.0', path='../pallets/propagation', default-features=false }
-pallet-registry         ={ version='0.1.0', path='../pallets/registry', default-features=false }
-pallet-slashing         ={ version='0.1.0', path='../pallets/slashing', default-features=false }
-pallet-staking-extension={ version='0.1.0', path='../pallets/staking', default-features=false }
-pallet-transaction-pause={ version='0.1.0', path='../pallets/transaction-pause', default-features=false }
-pallet-parameters       ={ version='0.1.0', path='../pallets/parameters', default-features=false }
+pallet-programs         ={ version='0.2.0', path='../pallets/programs', default-features=false }
+pallet-propagation      ={ version='0.2.0', path='../pallets/propagation', default-features=false }
+pallet-registry         ={ version='0.2.0', path='../pallets/registry', default-features=false }
+pallet-slashing         ={ version='0.2.0', path='../pallets/slashing', default-features=false }
+pallet-staking-extension={ version='0.2.0', path='../pallets/staking', default-features=false }
+pallet-transaction-pause={ version='0.2.0', path='../pallets/transaction-pause', default-features=false }
+pallet-parameters       ={ version='0.2.0', path='../pallets/parameters', default-features=false }
+pallet-attestation      ={ version='0.2.0', path='../pallets/attestation', default-features=false }
+pallet-oracle           ={ version='0.2.0-rc.1', path='../pallets/oracle', default-features=false }
 
-entropy-shared={ version="0.1.0", path="../crates/shared", default-features=false, features=[
+entropy-shared={ version="0.2.0", path="../crates/shared", default-features=false, features=[
   "wasm-no-std",
 ] }
 
@@ -122,6 +124,7 @@ std=[
   "frame-system/std",
   "frame-try-runtime/std",
   "log/std",
+  "pallet-attestation/std",
   "pallet-authority-discovery/std",
   "pallet-authorship/std",
   "pallet-babe/std",
@@ -141,6 +144,7 @@ std=[
   "pallet-nomination-pools-benchmarking?/std",
   "pallet-nomination-pools/std",
   "pallet-offences/std",
+  "pallet-oracle/std",
   "pallet-preimage/std",
   "pallet-parameters/std",
   "pallet-programs/std",
@@ -189,6 +193,7 @@ runtime-benchmarks=[
   "frame-system-benchmarking/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
   "hex-literal",
+  "pallet-attestation/runtime-benchmarks",
   "pallet-babe/runtime-benchmarks",
   "pallet-bags-list/runtime-benchmarks",
   "pallet-balances/runtime-benchmarks",
@@ -207,7 +212,9 @@ runtime-benchmarks=[
   "pallet-multisig/runtime-benchmarks",
   "pallet-nomination-pools-benchmarking/runtime-benchmarks",
   "pallet-offences-benchmarking/runtime-benchmarks",
+  "pallet-oracle/runtime-benchmarks",
   "pallet-parameters/runtime-benchmarks",
+  "pallet-propagation/runtime-benchmarks",
   "pallet-preimage/runtime-benchmarks",
   "pallet-programs/runtime-benchmarks",
   "pallet-proxy/runtime-benchmarks",
@@ -249,6 +256,7 @@ try-runtime=[
   "pallet-multisig/try-runtime",
   "pallet-nomination-pools/try-runtime",
   "pallet-offences/try-runtime",
+  "pallet-oracle/try-runtime",
   "pallet-preimage/try-runtime",
   "pallet-propagation/try-runtime",
   "pallet-proxy/try-runtime",

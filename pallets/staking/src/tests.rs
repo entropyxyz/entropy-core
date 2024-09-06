@@ -13,11 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, ServerInfo, ThresholdToStash};
+use crate::{
+    mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, NextSignerInfo, NextSigners,
+    ServerInfo, Signers, ThresholdToStash,
+};
+use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
+use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
-
 const NULL_ARR: [u8; 32] = [0; 32];
 
 #[test]
@@ -33,10 +37,8 @@ fn basic_setup_works() {
         );
         assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
-        assert_eq!(Staking::signing_groups(0).unwrap(), vec![1]);
-        assert_eq!(Staking::signing_groups(1).unwrap(), vec![2]);
-        assert!(Staking::is_validator_synced(1));
-        assert!(Staking::is_validator_synced(2));
+        assert!(Staking::is_validator_synced(5));
+        assert!(Staking::is_validator_synced(6));
     });
 }
 
@@ -240,6 +242,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
 #[test]
 fn it_deletes_when_no_bond_left() {
     new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![5, 6]);
         start_active_era(1);
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(2),
@@ -321,122 +324,138 @@ fn it_declares_synced() {
 
         ThresholdToStash::<Test>::insert(5, 5);
 
-        assert!(!Staking::is_validator_synced(5));
         assert_ok!(Staking::declare_synced(RuntimeOrigin::signed(5), true));
         assert!(Staking::is_validator_synced(5));
     });
 }
 
 #[test]
-fn tests_new_session_handler() {
+fn it_tests_new_session_handler() {
     new_test_ext().execute_with(|| {
-        let first_signing_group = || Staking::signing_groups(0).unwrap();
-        let second_signing_group = || Staking::signing_groups(1).unwrap();
+        // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
+        Signers::<Test>::put(vec![5, 6]);
+        // no next signers at start
+        assert_eq!(Staking::next_signers(), None);
+        assert_eq!(Staking::reshare_data().block_number, 0, "Check reshare block start at zero");
+        assert_eq!(
+            Staking::jump_start_progress().parent_key_threshold,
+            0,
+            "parent key threhsold start at zero"
+        );
 
-        // In our mock genesis we have Validator 1 and 2 in two different signing groups
-        assert_eq!(first_signing_group(), vec![1]);
-        assert_eq!(second_signing_group(), vec![2]);
+        System::set_block_number(100);
 
-        // If we set validators 1 and 2 in a new session, we expect them to be assigned to two
-        // different signing groups
-        assert_ok!(Staking::new_session_handler(&[1, 2]));
-        assert_eq!(first_signing_group(), vec![1]);
-        assert_eq!(second_signing_group(), vec![2]);
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
 
-        // If we set validators 1 and 2 in a new session, in a different order as before, we expect
-        // them to be assigned to the same signing group
-        assert_ok!(Staking::new_session_handler(&[2, 1]));
-        assert_eq!(first_signing_group(), vec![1]);
-        assert_eq!(second_signing_group(), vec![2]);
-
-        // If we have a session with a single validator, we expect to have an empty signing group
-        assert_ok!(Staking::new_session_handler(&[1]));
-        assert_eq!(first_signing_group(), vec![1]);
-        assert_eq!(Staking::signing_groups(1), Some(vec![]));
-
-        // If we have a session with more validators than signing groups, we expect that they will
-        // be assigned across the different signing groups
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
-        assert_eq!(first_signing_group(), vec![1, 2]);
-        assert_eq!(second_signing_group(), vec![3]);
+        // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
 
-        // If we have a session with more validators than signing groups, we expect that they will
-        // be assigned across the different signing groups
-        assert_ok!(Staking::new_session_handler(&[1, 2, 3, 4, 5]));
-        assert_eq!(first_signing_group(), vec![1, 2, 4]);
-        assert_eq!(second_signing_group(), vec![3, 5]);
+        assert_eq!(
+            Staking::reshare_data().block_number,
+            101,
+            "Check reshare block start at 100 + 1"
+        );
+        assert_eq!(
+            Staking::reshare_data().new_signer,
+            1u64.encode(),
+            "Check reshare next signer up is 1"
+        );
+        assert_eq!(
+            Staking::jump_start_progress().parent_key_threshold,
+            2,
+            "parent key threhsold updated"
+        );
+
+        assert_eq!(
+            Staking::reshare_data().block_number,
+            101,
+            "Check reshare block start at 100 + 1"
+        );
+        assert_eq!(
+            Staking::reshare_data().new_signer,
+            1u64.encode(),
+            "Check reshare next signer up is 1"
+        );
+
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
+        // takes 3 and leaves 5 and 6 since already in signer group
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+
+        assert_ok!(Staking::new_session_handler(&[1]));
+        // does nothing as not enough validators
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
     });
 }
 
 #[test]
-fn validator_to_subgroup_is_populated_correctly() {
+fn it_tests_new_session_handler_signer_size_changes() {
     new_test_ext().execute_with(|| {
-        let (alice, bob, charlie) = (1, 2, 3);
+        // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
+        Signers::<Test>::put(vec![5, 6]);
 
-        // At genesis, we have Alice and Bob in subgroups 1 and 2, respectively, so we expect them
-        // to each be assigned into a different subgroup
-        let subgroup = Staking::validator_to_subgroup(alice);
-        assert!(subgroup == Some(0));
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
+        // Signer size increased is reflected as 5 is not removed from vec
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 6, 3]);
 
-        let subgroup = Staking::validator_to_subgroup(bob);
-        assert!(subgroup == Some(1));
-
-        // We're going to add a new authority in our next session, we expect that our new validator
-        // will also be in the expected subgroup
-        assert_ok!(Staking::new_session_handler(&[alice, bob, charlie]));
-        let subgroup = Staking::validator_to_subgroup(alice);
-        assert!(subgroup == Some(0));
-
-        let subgroup = Staking::validator_to_subgroup(bob);
-        assert!(subgroup == Some(1));
-
-        let subgroup = Staking::validator_to_subgroup(charlie);
-        assert!(subgroup == Some(0));
-
-        // If we remove an existing validator on a session change, we expect their subgroup info to
-        // be cleared.
-        //
-        // Note that Charlie doesn't get moved from their subgroup to rebalance since they were
-        // previously in the validator set.
-        assert_ok!(Staking::new_session_handler(&[alice, charlie]));
-        let subgroup = Staking::validator_to_subgroup(alice);
-        assert!(subgroup == Some(0));
-
-        let subgroup = Staking::validator_to_subgroup(bob);
-        assert!(subgroup == None);
-
-        let subgroup = Staking::validator_to_subgroup(charlie);
-        assert!(subgroup == Some(0));
-    })
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+        assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
+        // Signer size decrease is reflected as 5 is removed and 4 is not added
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+    });
 }
 
 #[test]
-fn validator_to_subgroup_does_not_populate_candidates() {
+fn it_confirms_keyshare() {
     new_test_ext().execute_with(|| {
-        let (alice, _bob, charlie) = (1, 2, 3);
+        Signers::<Test>::put(vec![5, 6]);
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(10)),
+            Error::<Test>::NoThresholdKey
+        );
 
-        let endpoint = vec![0];
-        let tss_account = alice;
-        let x25519_public_key = NULL_ARR;
-        let server_info = ServerInfo { tss_account, x25519_public_key, endpoint };
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(7)),
+            Error::<Test>::ReshareNotInProgress
+        );
 
-        // We use `charlie` here since they are not a validator at genesis
-        assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(charlie),
-            100,
-            pallet_staking::RewardDestination::Account(charlie),
-        ));
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![7, 5],
+            confirmations: vec![5],
+        });
 
-        assert_ok!(Staking::validate(
-            RuntimeOrigin::signed(charlie),
-            pallet_staking::ValidatorPrefs::default(),
-            server_info,
-        ));
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(8)),
+            Error::<Test>::NotNextSigner
+        );
 
-        // We expect that validator candidates will be included in the list of threshold servers
-        assert!(matches!(Staking::threshold_server(charlie), Some(_)));
+        assert_noop!(
+            Staking::confirm_key_reshare(RuntimeOrigin::signed(7)),
+            Error::<Test>::AlreadyConfirmed
+        );
 
-        // We don't expect candidates to be assigned a subgroup
-        assert!(matches!(Staking::validator_to_subgroup(charlie), None));
-    })
+        NextSigners::<Test>::put(NextSignerInfo {
+            next_signers: vec![6, 5],
+            confirmations: vec![],
+        });
+
+        let mock_next_signer_info =
+            NextSignerInfo { next_signers: vec![6, 5], confirmations: vec![5] };
+
+        assert_ok!(Staking::confirm_key_reshare(RuntimeOrigin::signed(7)));
+        assert_eq!(Staking::next_signers().unwrap(), mock_next_signer_info, "Confirmation added");
+        assert_eq!(Staking::signers(), [5, 6], "check current signers so we can see it changed");
+
+        assert_ok!(Staking::confirm_key_reshare(RuntimeOrigin::signed(8)));
+        assert_eq!(Staking::next_signers(), None, "Next Signers cleared");
+        assert_eq!(Staking::signers(), [6, 5], "next signers rotated into current signers");
+    });
 }

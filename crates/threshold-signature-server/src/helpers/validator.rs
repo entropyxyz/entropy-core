@@ -68,7 +68,7 @@ fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
 }
 
 /// Derive signing keypair
-fn get_signer_from_hkdf(
+pub fn get_signer_from_hkdf(
     hkdf: &Hkdf<Sha256>,
 ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
     let mut sr25519_seed = [0u8; 32];
@@ -89,7 +89,7 @@ fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, User
 }
 
 /// For testing where we sometimes don't have access to the kvdb, derive directly from the mnemnic
-#[cfg(test)]
+#[cfg(any(test, feature = "test_helpers"))]
 pub fn get_signer_and_x25519_secret_from_mnemonic(
     mnemonic: &str,
 ) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {

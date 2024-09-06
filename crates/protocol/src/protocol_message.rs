@@ -17,20 +17,31 @@ use std::str;
 
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
-use synedrion::sessions::SignedMessage;
+use synedrion::sessions::MessageBundle;
 
 use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
-/// A Message send during the signing or DKG protocol.
+/// A Message send during one of the synedrion protocols
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct ProtocolMessage {
     /// Identifier of the author of this message
     pub from: PartyId,
     /// Identifier of the destination of this message
     pub to: PartyId,
+    /// Either a Synedrion protocol message or a verifying key.
+    ///
+    /// We need to send verifying keys during DKG to parties who were not present for the key init
+    /// session.
+    pub payload: ProtocolMessagePayload,
+}
+
+/// The payload of a message sent during one of the synedrion protocols
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProtocolMessagePayload {
     /// The signed protocol message
-    pub payload: SignedMessage<sr25519::Signature>,
+    MessageBundle(Box<MessageBundle<sr25519::Signature>>),
+    /// A verifying key for parties who were not present in the key init session
+    VerifyingKey(Vec<u8>),
 }
 
 impl TryFrom<&[u8]> for ProtocolMessage {
@@ -46,8 +57,12 @@ impl ProtocolMessage {
     pub(crate) fn new(
         from: &PartyId,
         to: &PartyId,
-        payload: SignedMessage<sr25519::Signature>,
+        payload: MessageBundle<sr25519::Signature>,
     ) -> Self {
-        Self { from: from.clone(), to: to.clone(), payload }
+        Self {
+            from: from.clone(),
+            to: to.clone(),
+            payload: ProtocolMessagePayload::MessageBundle(Box::new(payload)),
+        }
     }
 }

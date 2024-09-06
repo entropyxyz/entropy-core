@@ -19,8 +19,7 @@ use crate::{
         entropy::{
             self,
             runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec,
-                pallet_registry::pallet::RegisteredInfo,
+                bounded_collections::bounded_vec::BoundedVec, pallet_programs::pallet::ProgramInfo,
             },
         },
         EntropyConfig,
@@ -28,25 +27,8 @@ use crate::{
     user::UserErr,
 };
 pub use entropy_client::substrate::{query_chain, submit_transaction};
+use entropy_shared::user::ValidatorInfo;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, Config, OnlineClient};
-
-/// Return the subgroup that a particular threshold server belongs to.
-pub async fn get_subgroup(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    threshold_account_id: &AccountId32,
-) -> Result<u8, UserErr> {
-    let block_hash = rpc.chain_get_block_hash(None).await?;
-    let stash_address = get_stash_address(api, rpc, threshold_account_id).await?;
-
-    let subgroup_query =
-        entropy::storage().staking_extension().validator_to_subgroup(&stash_address);
-    let subgroup = query_chain(api, rpc, subgroup_query, block_hash)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Subgroup Error"))?;
-
-    Ok(subgroup)
-}
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
 pub async fn get_stash_address(
@@ -64,43 +46,65 @@ pub async fn get_stash_address(
     Ok(stash_address)
 }
 
-/// Returns all the addresses of a specific subgroup
-pub async fn return_all_addresses_of_subgroup(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    subgroup: u8,
-) -> Result<Vec<AccountId32>, UserErr> {
-    let subgroup_addresses_query = entropy::storage().staking_extension().signing_groups(subgroup);
-    let subgroup_addresses = query_chain(api, rpc, subgroup_addresses_query, None)
-        .await?
-        .ok_or_else(|| UserErr::SubgroupError("Subgroup Error"))?;
-
-    Ok(subgroup_addresses)
-}
-
 /// Queries the user's program from the chain
 pub async fn get_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     program_pointer: &<EntropyConfig as Config>::Hash,
-) -> Result<Vec<u8>, UserErr> {
+) -> Result<ProgramInfo<AccountId32>, UserErr> {
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
-
-    Ok(query_chain(api, rpc, bytecode_address, None)
+    let program_info = query_chain(api, rpc, bytecode_address, None)
         .await?
-        .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?
-        .bytecode)
+        .ok_or(UserErr::NoProgramDefined(program_pointer.to_string()))?;
+    Ok(program_info)
 }
 
-/// Returns a registered user's key visibility
-pub async fn get_registered_details(
+/// Queries the oracle data needed for the program
+pub async fn get_oracle_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    verifying_key: Vec<u8>,
-) -> Result<RegisteredInfo, UserErr> {
-    let registered_info_query = entropy::storage().registry().registered(BoundedVec(verifying_key));
-    let result = query_chain(api, rpc, registered_info_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Not Registering error: Register Onchain first"))?;
-    Ok(result)
+    program_oracle_data: Vec<u8>,
+) -> Result<Vec<u8>, UserErr> {
+    let oracle_data_call = entropy::storage().oracle().oracle_data(BoundedVec(program_oracle_data));
+    let oracle_info =
+        query_chain(api, rpc, oracle_data_call, None).await?.unwrap_or(BoundedVec(vec![]));
+    Ok(oracle_info.0)
+}
+
+/// Takes Stash keys and returns validator info from chain
+pub async fn get_validators_info(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validators: Vec<AccountId32>,
+) -> Result<Vec<ValidatorInfo>, UserErr> {
+    let mut handles = Vec::new();
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+    for validator in validators {
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, UserErr>> = tokio::task::spawn({
+            let api = api.clone();
+            let rpc = rpc.clone();
+
+            async move {
+                let threshold_address_query =
+                    entropy::storage().staking_extension().threshold_servers(validator);
+                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+                    .await?
+                    .ok_or_else(|| {
+                        UserErr::OptionUnwrapError("Failed to unwrap validator info".to_string())
+                    })?;
+
+                Ok(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+                    tss_account: server_info.tss_account,
+                })
+            }
+        });
+        handles.push(handle);
+    }
+    let mut all_signers: Vec<ValidatorInfo> = vec![];
+    for handle in handles {
+        all_signers.push(handle.await.unwrap().unwrap());
+    }
+    Ok(all_signers)
 }

@@ -108,6 +108,8 @@ pub enum ProtocolErr {
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),
+    #[error("Failed to derive BIP-32 account: {0}")]
+    Bip32DerivationError(#[from] bip32::Error),
 }
 
 impl IntoResponse for ProtocolErr {

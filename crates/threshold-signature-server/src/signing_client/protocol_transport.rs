@@ -50,6 +50,8 @@ pub async fn open_protocol_connections(
     state: &ListenerState,
     x25519_secret_key: &x25519_dalek::StaticSecret,
 ) -> Result<(), ProtocolErr> {
+    tracing::debug!("Opening protocol connections");
+
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
@@ -168,8 +170,7 @@ async fn handle_initial_incoming_ws_message(
     };
 
     {
-        // Check that the given public key matches the public key we got in the
-        // UserTransactionRequest or register transaction
+        // Check that the given public key is of the ones we are expecting for this protocol session
         let mut listeners = app_state
             .listener_state
             .listeners
@@ -184,8 +185,7 @@ async fn handle_initial_incoming_ws_message(
             // Make the signing process fail, since one of the commitee has misbehaved
             listeners.remove(&msg.session_id);
             return Err(SubscribeErr::Decryption(
-                "Public key does not match that given in UserTransactionRequest or register \
-                 transaction"
+                "Public key does not match any of those expected for this protocol session"
                     .to_string(),
             ));
         }

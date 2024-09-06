@@ -23,32 +23,52 @@ lazy_static! {
         hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash;
     pub static ref BOB_STASH_ADDRESS: AccountId32 =
         hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
+
+    // See entropy_tss::helpers::validator::get_signer_and_x25519_secret for how these are derived
     pub static ref TSS_ACCOUNTS: Vec<AccountId32> = vec![
+        // Alice - from DEFAULT_ALICE_MNEMONIC in entropy_tss::helpers::launch
         hex!["306bdb49cbbe7104e3621abab3c9d31698b159f48dafe567abb7ea5d872ed329"].into(),
-        hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into()
+        // Bob - from DEFAULT_BOB_MNEMONIC in entropy_tss::helpers::launch
+        hex!["2cbc68e8bf0fbc1c28c282d1263fc9d29267dc12a1044fb730e8b65abc37524c"].into(),
+        // Charlie - from DEFAULT_CHARLIE_MNEMONIC in entropy_tss::helpers::launch
+        hex!["946140d3d5ddb980c74ffa1bb64353b5523d2d77cdf3dc617fd63de9d3b66338"].into(),
+        // Dave - from DEFAULT_DAVE_MNEMONIC in entropy_tss::helpers::launch
+        hex!["0a9054ef6b6b8ad0dd2c89895b2515583f2fbf1edced68e7328ae456d86b9402"].into(),
     ];
+
+    // See entropy_tss::helpers::validator::get_signer_and_x25519_secret for how these are derived
     pub static ref X25519_PUBLIC_KEYS: Vec<[u8; 32]> = vec![
+        // Alice - from DEFAULT_ALICE_MNEMONIC in entropy_tss::helpers::launch
         vec![
             8, 22, 19, 230, 107, 217, 249, 190, 14, 142, 155, 252, 156, 229, 120, 11, 180, 35, 83, 245,
             222, 11, 153, 201, 162, 29, 153, 13, 123, 126, 128, 32,
         ]
         .try_into()
         .unwrap(),
+        // Bob - from DEFAULT_BOB_MNEMONIC in entropy_tss::helpers::launch
         vec![
             196, 53, 98, 10, 160, 169, 139, 48, 194, 230, 69, 64, 165, 48, 133, 110, 38, 64, 184, 113,
             255, 201, 253, 212, 217, 21, 252, 57, 253, 78, 0, 56,
         ]
         .try_into()
         .unwrap(),
+        // Charlie - from DEFAULT_CHARLIE_MNEMONIC in entropy_tss::helpers::launch
+        vec![
+            131, 8, 162, 77, 237, 245, 226, 179, 250, 79, 121, 250, 174, 181, 227, 122, 205, 181, 188,
+            4, 37, 87, 150, 250, 210, 151, 203, 137, 188, 134, 124, 108,
+        ]
+        .try_into()
+        .unwrap(),
+        // Dave - from DEFAULT_DAVE_MNEMONIC in entropy_tss::helpers::launch
+        vec![
+            165, 202, 97, 104, 222, 190, 168, 183, 231, 63, 209, 233, 19, 185, 187, 200, 10, 29, 102,
+            240, 39, 50, 140, 15, 124, 112, 94, 121, 44, 182, 40, 71
+        ]
+        .try_into()
+        .unwrap()
     ];
 }
 
-/// This is a random secret key for Eve. The corresponding public key is in the development
-/// chainspec as Eve is a pre-registered private user
-pub const EVE_X25519_SECRET_KEY: [u8; 32] = [
-    58, 47, 10, 154, 181, 71, 222, 205, 42, 186, 181, 1, 55, 107, 46, 200, 226, 62, 42, 137, 142,
-    3, 101, 208, 129, 168, 22, 236, 116, 159, 8, 55,
-];
 /// This is a random secret key for Ferdie used in some negative tests
 pub const FERDIE_X25519_SECRET_KEY: [u8; 32] = [
     5, 221, 127, 62, 254, 131, 37, 194, 88, 126, 130, 15, 97, 249, 170, 40, 201, 135, 77, 213, 55,
@@ -59,6 +79,8 @@ pub const FERDIE_X25519_SECRET_KEY: [u8; 32] = [
 /// `example_barebones_with_auxilary.wasm` from the `programs` repo.
 pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
     include_bytes!("../example_barebones_with_auxilary.wasm");
+/// `faucet_program.wasm` from the `programs` repo.
+pub const FAUCET_PROGRAM: &[u8] = include_bytes!("../faucet_program.wasm");
 /// `infinite_loop.wasm` from the `programs` repo.
 pub const TEST_INFINITE_LOOP_BYTECODE: &[u8] = include_bytes!("../infinite_loop.wasm");
 /// `template_basic_transaction.wasm` from the `programs` repo.

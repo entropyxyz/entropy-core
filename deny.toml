@@ -1,7 +1,6 @@
 [licenses]
 # The lint level for crates which do not have a detectable license
-unlicensed="deny"
-
+version=2
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
@@ -17,9 +16,6 @@ allow=[
   "MIT-0",
   "MPL-2.0",
 ]
-
-# Lint level for licenses considered copyleft
-copyleft="deny"
 
 # If true, ignores workspace crates that aren't published, or are only
 # published to private registries.
@@ -37,11 +33,13 @@ exceptions=[
   { allow=["AGPL-3.0"], name="entropy-client" },
   { allow=["AGPL-3.0"], name="entropy-testing-utils" },
   { allow=["AGPL-3.0"], name="entropy-test-cli" },
+  { allow=["AGPL-3.0"], name="entropy-create-test-keyshares" },
 
   # Other Entropy crates
   { allow=["AGPL-3.0"], name="entropy-programs-core" },
   { allow=["AGPL-3.0"], name="entropy-programs-runtime" },
   { allow=["AGPL-3.0"], name="synedrion" },
+  { allow=["AGPL-3.0"], name="tdx-quote" },
 
   # These are the only crates using these licenses, put them here instead of globally allowing
   # them

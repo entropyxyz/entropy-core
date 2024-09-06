@@ -18,19 +18,22 @@
 mod context;
 
 use entropy_kvdb::kv_manager::KvManager;
+use entropy_protocol::PartyId;
 pub use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
     KeyParams, ProtocolMessage, RecoverableSignature, SessionId,
 };
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
-use synedrion::KeyShare;
+use synedrion::{AuxInfo, ThresholdKeyShare};
 
 pub use self::context::SignContext;
 use crate::{
     sign_init::SignInit,
     signing_client::{ListenerState, ProtocolErr},
 };
+
+use std::collections::BTreeSet;
 
 /// Thin wrapper around [ListenerState], manages execution of a signing party.
 #[derive(Clone)]
@@ -60,17 +63,35 @@ impl<'a> ThresholdSigningService<'a> {
         fields(sign_init),
         level = tracing::Level::DEBUG
     )]
-    pub async fn get_sign_context(&self, sign_init: SignInit) -> Result<SignContext, ProtocolErr> {
+    pub async fn get_sign_context(
+        &self,
+        sign_init: SignInit,
+        derivation_path: Option<bip32::DerivationPath>,
+    ) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
-        let key_share_vec = self
-            .kv_manager
-            .kv()
-            .get(&hex::encode(sign_init.signing_session_info.signature_verifying_key.clone()))
-            .await?;
-        let key_share: KeyShare<KeyParams> =
-            entropy_kvdb::kv_manager::helpers::deserialize(&key_share_vec)
-                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
-        Ok(SignContext::new(sign_init, key_share))
+
+        let verifying_key = if derivation_path.is_some() {
+            entropy_shared::NETWORK_PARENT_KEY.as_bytes().to_vec()
+        } else {
+            sign_init.signing_session_info.signature_verifying_key.clone()
+        };
+
+        let key_share_and_aux_info_vec =
+            self.kv_manager.kv().get(&hex::encode(verifying_key)).await?;
+
+        let (key_share, aux_info): (
+            ThresholdKeyShare<KeyParams, PartyId>,
+            AuxInfo<KeyParams, PartyId>,
+        ) = entropy_kvdb::kv_manager::helpers::deserialize(&key_share_and_aux_info_vec)
+            .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+
+        let key_share = if let Some(path) = derivation_path {
+            key_share.derive_bip32(&path)?
+        } else {
+            key_share
+        };
+
+        Ok(SignContext::new(sign_init, key_share, aux_info))
     }
 
     /// handle signing protocol execution.
@@ -81,11 +102,13 @@ impl<'a> ThresholdSigningService<'a> {
     pub async fn execute_sign(
         &self,
         session_id: SessionId,
-        key_share: &KeyShare<KeyParams>,
+        key_share: &ThresholdKeyShare<KeyParams, PartyId>,
+        aux_info: &AuxInfo<KeyParams, PartyId>,
         channels: Channels,
         threshold_signer: &sr25519::Pair,
         threshold_accounts: Vec<AccountId32>,
     ) -> Result<RecoverableSignature, ProtocolErr> {
+        tracing::debug!("Executing signing session");
         tracing::trace!("Signing info {session_id:?}");
 
         let message_hash = if let SessionId::Sign(session_info) = &session_id {
@@ -94,10 +117,14 @@ impl<'a> ThresholdSigningService<'a> {
             return Err(ProtocolErr::BadSessionId);
         };
 
+        let parties: BTreeSet<PartyId> =
+            threshold_accounts.iter().map(|t| PartyId::new(t.clone())).collect();
+
         let rsig = execute_signing_protocol(
             session_id,
             channels,
-            key_share,
+            &key_share.to_key_share(&parties),
+            aux_info,
             &message_hash,
             threshold_signer,
             threshold_accounts,

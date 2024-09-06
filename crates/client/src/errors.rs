@@ -26,6 +26,8 @@ pub enum SubstrateError {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("Could not sumbit transaction {0}")]
     BadEvent(String),
+    #[error("User is not registered on-chain")]
+    NotRegistered,
 }
 
 /// An error on getting the current subgroup signers
@@ -43,6 +45,8 @@ pub enum SubgroupGetError {
     ChainFetch(&'static str),
     #[error("Substrate client: {0}")]
     SubstrateClient(#[from] crate::substrate::SubstrateError),
+    #[error("Error Joining threads: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
 }
 
 #[cfg(feature = "full-client")]
@@ -60,12 +64,12 @@ pub enum ClientError {
     StashFetch,
     #[error("UTF8: {0}")]
     Utf8(#[from] std::str::Utf8Error),
-    #[error("User running protocol: {0}")]
-    UserRunningProtocol(#[from] entropy_protocol::errors::UserRunningProtocolErr),
     #[error("Subxt: {0}")]
     Subxt(#[from] subxt::Error),
     #[error("Timed out waiting for register confirmation")]
     RegistrationTimeout,
+    #[error("Timed out waiting for jumpstart confirmation")]
+    JumpstartTimeout,
     #[error("Cannot get subgroup: {0}")]
     SubgroupGet(#[from] SubgroupGetError),
     #[error("JSON: {0}")]
@@ -90,12 +94,14 @@ pub enum ClientError {
     BadRecoveryId,
     #[error("Cannot parse chain query response: {0}")]
     TryFromSlice(#[from] std::array::TryFromSliceError),
-    #[error("User not registered")]
+    #[error("User is not registered on-chain")]
     NotRegistered,
     #[error("No synced validators")]
     NoSyncedValidators,
     #[error("Cannot confirm program was created")]
     CannotConfirmProgramCreated,
+    #[error("Cannot confirm program was removed")]
+    CannotConfirmProgramRemoved,
     #[error("Subgroup fetch error")]
     SubgroupFetch,
     #[error("Cannot query whether validator is synced")]

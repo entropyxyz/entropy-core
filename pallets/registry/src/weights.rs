@@ -51,53 +51,85 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for pallet_registry.
 pub trait WeightInfo {
-	fn register(p: u32) -> Weight;
-	fn prune_registration(p: u32) -> Weight;
+	fn register(_p: u32) -> Weight;
+	fn jump_start_network() -> Weight;
+	fn confirm_jump_start_done(c: u32, ) -> Weight;
+	fn confirm_jump_start_confirm(c: u32, ) -> Weight;
 	fn change_program_instance(n: u32, o:u32) -> Weight;
 	fn change_program_modification_account(n: u32) -> Weight;
-	fn confirm_register_registering(c: u32, ) -> Weight;
-	fn confirm_register_failed_registering(c: u32, ) -> Weight;
-	fn confirm_register_registered(c: u32, ) -> Weight;
 }
 
 /// Weights for pallet_registry using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	/// Storage: `Registry::Registered` (r:1 w:0)
-	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Registry::Dkg` (r:1 w:1)
 	/// Proof: `Registry::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn register(p: u32, ) -> Weight {
+	fn jump_start_network() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `401`
-		//  Estimated: `3866`
-		// Minimum execution time: 21_000_000 picoseconds.
-		Weight::from_parts(19_100_000, 0)
-			.saturating_add(Weight::from_parts(0, 3866))
-			// Standard Error: 134_629
-			.saturating_add(Weight::from_parts(2_000_000, 0).saturating_mul(p.into()))
-			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn prune_registration(_p: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `468`
-		//  Estimated: `3933`
-		// Minimum execution time: 15_000_000 picoseconds.
-		Weight::from_parts(16_500_000, 0)
-			.saturating_add(Weight::from_parts(0, 3933))
+		//  Measured:  `80`
+		//  Estimated: `3545`
+		// Minimum execution time: 9_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3545))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ValidatorToSubgroup` (r:1 w:0)
+	/// Proof: `StakingExtension::ValidatorToSubgroup` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 2]`.
+	fn confirm_jump_start_done(_c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1314`
+		//  Estimated: `4779`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(17_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 4779))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ValidatorToSubgroup` (r:1 w:0)
+	/// Proof: `StakingExtension::ValidatorToSubgroup` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 2]`.
+	fn confirm_jump_start_confirm(_c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1313`
+		//  Estimated: `4778`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(16_916_666, 0)
+			.saturating_add(Weight::from_parts(0, 4778))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:0)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::CounterForRegistered` (r:1 w:1)
+	/// Proof: `Registry::CounterForRegistered` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Registry::Registered` (r:1 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
+	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 5]`.
+	fn register(_p: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `563`
+		//  Estimated: `4028`
+		// Minimum execution time: 525_000_000 picoseconds.
+		Weight::from_parts(540_700_000, 0)
+			.saturating_add(Weight::from_parts(0, 4028))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -132,101 +164,79 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(n.into()))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
-	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_registering(_c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16535`
-		//  Estimated: `20000`
-		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(25_583_333, 0)
-			.saturating_add(Weight::from_parts(0, 20000))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
-	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_failed_registering(c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16537`
-		//  Estimated: `20002`
-		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(24_083_333, 0)
-			.saturating_add(Weight::from_parts(0, 20002))
-			// Standard Error: 954_703
-			.saturating_add(Weight::from_parts(1_750_000, 0).saturating_mul(c.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
-	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registered` (r:0 w:1)
-	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_registered(_c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16536`
-		//  Estimated: `20001`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(26_833_333, 0)
-			.saturating_add(Weight::from_parts(0, 20001))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	/// Storage: `Registry::Registered` (r:1 w:0)
-	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Registry::Dkg` (r:1 w:1)
 	/// Proof: `Registry::Dkg` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn register(p: u32, ) -> Weight {
+	fn jump_start_network() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `401`
-		//  Estimated: `3866`
-		// Minimum execution time: 21_000_000 picoseconds.
-		Weight::from_parts(19_100_000, 0)
-			.saturating_add(Weight::from_parts(0, 3866))
-			// Standard Error: 134_629
-			.saturating_add(Weight::from_parts(2_000_000, 0).saturating_mul(p.into()))
-			.saturating_add(RocksDbWeight::get().reads(4))
-			.saturating_add(RocksDbWeight::get().writes(3))
-	}
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Programs::Programs` (r:1 w:1)
-	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[1, 5]`.
-	fn prune_registration(_p: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `468`
-		//  Estimated: `3933`
-		// Minimum execution time: 15_000_000 picoseconds.
-		Weight::from_parts(16_500_000, 0)
-			.saturating_add(Weight::from_parts(0, 3933))
+		//  Measured:  `80`
+		//  Estimated: `3545`
+		// Minimum execution time: 9_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3545))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ValidatorToSubgroup` (r:1 w:0)
+	/// Proof: `StakingExtension::ValidatorToSubgroup` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 2]`.
+	fn confirm_jump_start_done(_c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1314`
+		//  Estimated: `4779`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(17_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 4779))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ValidatorToSubgroup` (r:1 w:0)
+	/// Proof: `StakingExtension::ValidatorToSubgroup` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:1)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `c` is `[0, 2]`.
+	fn confirm_jump_start_confirm(_c: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1313`
+		//  Estimated: `4778`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(16_916_666, 0)
+			.saturating_add(Weight::from_parts(0, 4778))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::JumpStartProgress` (r:1 w:0)
+	/// Proof: `Registry::JumpStartProgress` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::CounterForRegistered` (r:1 w:1)
+	/// Proof: `Registry::CounterForRegistered` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Registry::Registered` (r:1 w:1)
+	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Registry::ModifiableKeys` (r:1 w:1)
+	/// Proof: `Registry::ModifiableKeys` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 5]`.
+	fn register(_p: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `563`
+		//  Estimated: `4028`
+		// Minimum execution time: 525_000_000 picoseconds.
+		Weight::from_parts(540_700_000, 0)
+			.saturating_add(Weight::from_parts(0, 4028))
+			.saturating_add(RocksDbWeight::get().reads(5))
+			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	/// Storage: `Programs::Programs` (r:2 w:2)
 	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -261,60 +271,5 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(n.into()))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
-	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_registering(_c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16535`
-		//  Estimated: `20000`
-		// Minimum execution time: 25_000_000 picoseconds.
-		Weight::from_parts(25_583_333, 0)
-			.saturating_add(Weight::from_parts(0, 20000))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(1))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
-	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_failed_registering(c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16537`
-		//  Estimated: `20002`
-		// Minimum execution time: 24_000_000 picoseconds.
-		Weight::from_parts(24_083_333, 0)
-			.saturating_add(Weight::from_parts(0, 20002))
-			// Standard Error: 954_703
-			.saturating_add(Weight::from_parts(1_750_000, 0).saturating_mul(c.into()))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(1))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registering` (r:1 w:1)
-	/// Proof: `Registry::Registering` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::SigningGroups` (r:1 w:0)
-	/// Proof: `StakingExtension::SigningGroups` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Registry::Registered` (r:0 w:1)
-	/// Proof: `Registry::Registered` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 2]`.
-	fn confirm_register_registered(_c: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `16536`
-		//  Estimated: `20001`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(26_833_333, 0)
-			.saturating_add(Weight::from_parts(0, 20001))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 }

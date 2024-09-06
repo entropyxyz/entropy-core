@@ -19,18 +19,21 @@ use frame_election_provider_support::{
 };
 use frame_support::{
     derive_impl, parameter_types,
-    traits::{ConstU32, FindAuthor, OneSessionHandler},
+    traits::{ConstU32, FindAuthor, OneSessionHandler, Randomness},
 };
-use frame_system as system;
+use frame_system::{self as system, EnsureRoot};
+
 use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-    BuildStorage, Perbill,
+    BoundedVec, BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
+use sp_std::vec;
+use std::cell::RefCell;
 
 use crate as pallet_registry;
 
@@ -55,6 +58,7 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Programs: pallet_programs,
+    Parameters: pallet_parameters,
   }
 );
 
@@ -126,16 +130,16 @@ pub struct OtherSessionHandler;
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
     type Key = UintAuthorityId;
 
-    fn on_genesis_session<'a, I: 'a>(_: I)
+    fn on_genesis_session<'a, I>(_: I)
     where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        I: Iterator<Item = (&'a AccountId, Self::Key)> + 'a,
         AccountId: 'a,
     {
     }
 
-    fn on_new_session<'a, I: 'a>(_: bool, _: I, _: I)
+    fn on_new_session<'a, I>(_: bool, _: I, _: I)
     where
-        I: Iterator<Item = (&'a AccountId, Self::Key)>,
+        I: Iterator<Item = (&'a AccountId, Self::Key)> + 'a,
         AccountId: 'a,
     {
     }
@@ -277,12 +281,29 @@ impl pallet_session::historical::Config for Test {
     type FullIdentificationOf = pallet_staking::ExposureOf<Test>;
 }
 
+thread_local! {
+  pub static LAST_RANDOM: RefCell<Option<(H256, u64)>> = RefCell::new(None);
+}
+
+pub struct TestPastRandomness;
+impl Randomness<H256, BlockNumber> for TestPastRandomness {
+    fn random(_subject: &[u8]) -> (H256, u64) {
+        LAST_RANDOM.with(|p| {
+            if let Some((output, known_since)) = &*p.borrow() {
+                (*output, *known_since)
+            } else {
+                (H256::zero(), frame_system::Pallet::<Test>::block_number())
+            }
+        })
+    }
+}
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
 }
 impl pallet_staking_extension::Config for Test {
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
@@ -308,14 +329,12 @@ impl pallet_authorship::Config for Test {
 }
 
 parameter_types! {
-  pub const SigningPartySize: usize = 2;
   pub const MaxProgramHashes: u32 = 5u32;
   pub const KeyVersionNumber: u8 = 1;
 }
 
 impl pallet_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type SigningPartySize = SigningPartySize;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
     type WeightInfo = ();
@@ -336,6 +355,12 @@ impl pallet_programs::Config for Test {
     type WeightInfo = ();
 }
 
+impl pallet_parameters::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<Self::AccountId>;
+    type WeightInfo = ();
+}
+
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
@@ -348,12 +373,26 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (2, (4, NULL_ARR, vec![11])),
             (7, (4, NULL_ARR, vec![50])),
         ],
-        // Alice, Bob are represented by 1, 2 in the following tuples, respectively.
-        signing_groups: vec![(0, vec![1, 5]), (1, vec![2, 6, 7])],
         proactive_refresh_data: (vec![], vec![]),
+        mock_signer_rotate: (false, vec![], vec![]),
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
+
+    let stakers = vec![1, 2, 5];
+    let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
+
+    pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();
+    pallet_parameters::GenesisConfig::<Test> {
+        request_limit: 5u32,
+        max_instructions_per_programs: 5u64,
+        total_signers: 3u8,
+        threshold: 2u8,
+        accepted_mrtd_values: vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()],
+        _config: Default::default(),
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
     t.into()
 }
