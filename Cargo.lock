@@ -1399,6 +1399,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "configfs-tsm"
+version = "0.1.0"
+source = "git+https://github.com/entropyxyz/configfs-tsm#11fb34ce920b6a2f667e62f41e9311d428969577"
+
+[[package]]
 name = "console"
 version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2765,6 +2770,7 @@ dependencies = [
  "blake3",
  "bytes",
  "clap",
+ "configfs-tsm",
  "entropy-client",
  "entropy-kvdb",
  "entropy-programs-runtime",
