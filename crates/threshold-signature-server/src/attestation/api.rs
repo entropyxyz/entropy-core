@@ -115,6 +115,4 @@ pub async fn create_quote(
     );
 
     Ok(configfs_tsm::create_quote(input_data.0)?)
-    // // Non-mock attestation (the real thing) will go here
-    // Err(AttestationErr::NotImplemented)
 }
