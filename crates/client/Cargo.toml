@@ -29,7 +29,7 @@ reqwest         ={ version="0.12.7", features=["json", "stream"], optional=true 
 base64          ={ version="0.22.0", optional=true }
 synedrion       ={ git="https://github.com/entropyxyz/synedrion", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa", optional=true }
 hex             ={ version="0.4.3", optional=true }
-anyhow          ="1.0.86"
+anyhow          ="1.0.87"
 
 # Only for the browser
 js-sys={ version="0.3.70", optional=true }
