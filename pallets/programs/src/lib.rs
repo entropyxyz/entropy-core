@@ -110,6 +110,7 @@ pub mod pallet {
                         deployer: program_info.4.clone(),
                         oracle_data_pointer: vec![],
                         ref_counter: program_info.5,
+                        version_number: 0,
                     },
                 );
             }
@@ -143,6 +144,9 @@ pub mod pallet {
         pub deployer: AccountId,
         /// Accounts that use this program
         pub ref_counter: u128,
+        /// The user submitted version number of the program
+        /// It tells the TSS what runtime to use
+        pub version_number: u8,
     }
 
     /// Stores the program info for a given program hash.
@@ -182,6 +186,9 @@ pub mod pallet {
 
             /// The oracle data location needed for the program
             oracle_data_pointer: Vec<u8>,
+
+            /// The version number of the program created
+            version_number: u8,
         },
         /// The bytecode of a program was removed.
         ProgramRemoved {
@@ -224,6 +231,7 @@ pub mod pallet {
             configuration_schema: Vec<u8>,
             auxiliary_data_schema: Vec<u8>,
             oracle_data_pointer: Vec<u8>,
+            version_number: u8,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
@@ -231,6 +239,7 @@ pub mod pallet {
             hash_input.extend(&configuration_schema);
             hash_input.extend(&auxiliary_data_schema);
             hash_input.extend(&oracle_data_pointer);
+            hash_input.extend(&vec![version_number]);
             let program_hash = T::Hashing::hash(&hash_input);
             let new_program_length = new_program
                 .len()
@@ -257,6 +266,7 @@ pub mod pallet {
                     oracle_data_pointer: oracle_data_pointer.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
+                    version_number,
                 },
             );
             OwnedPrograms::<T>::try_mutate(
@@ -274,6 +284,7 @@ pub mod pallet {
                 configuration_schema,
                 auxiliary_data_schema,
                 oracle_data_pointer,
+                version_number,
             });
             Ok(())
         }
