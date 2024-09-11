@@ -126,7 +126,7 @@ enum CliCommand {
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
         /// The version number of the program you compiled with
-        version_number: u8,
+        version_number: Option<u8>,
         /// The mnemonic to use for the call
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -176,6 +176,7 @@ pub async fn run_command(
     program_file_option: Option<PathBuf>,
     config_interface_file_option: Option<PathBuf>,
     aux_data_interface_file_option: Option<PathBuf>,
+    program_version_number_option: Option<u8>,
 ) -> anyhow::Result<String> {
     let cli = Cli::parse();
 
@@ -294,6 +295,11 @@ pub async fn run_command(
                 None => fs::read(
                     aux_data_interface_file_option.expect("No aux data interface file passed"),
                 )?,
+            };
+
+            let version_number = match program_version_number_option {
+                Some(version_number) => version_number,
+                None => version_number.expect("No Version number passed"),
             };
 
             let hash = store_program(

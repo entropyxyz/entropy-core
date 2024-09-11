@@ -34,7 +34,7 @@ At the moment this project **does not** adhere to
 - Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
 - Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
-- Programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
+- Add a programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
