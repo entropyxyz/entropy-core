@@ -75,7 +75,7 @@ enum CliCommand {
         /// interface.
         programs: Vec<String>,
         /// Option of version numbers to go with the programs, will default to 0 if None
-        version_numbers: Option<Vec<u8>>,
+        program_version_numbers: Option<Vec<u8>>,
         /// A name or mnemonic from which to derive a program modification keypair.
         /// This is used to send the register extrinsic so it must be funded
         /// If giving a name it must be preceded with "//", eg: "--mnemonic-option //Alice"
@@ -112,7 +112,7 @@ enum CliCommand {
         /// interface.
         programs: Vec<String>,
         /// Option of version numbers to go with the programs, will default to 0 if None
-        version_numbers: Option<Vec<u8>>,
+        program_version_numbers: Option<Vec<u8>>,
         /// The mnemonic to use for the call
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -126,7 +126,7 @@ enum CliCommand {
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
         /// The version number of the program you compiled with
-        version_number: Option<u8>,
+        program_version_number: Option<u8>,
         /// The mnemonic to use for the call
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -190,7 +190,7 @@ pub async fn run_command(
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command {
-        CliCommand::Register { mnemonic_option, programs, version_numbers } => {
+        CliCommand::Register { mnemonic_option, programs, program_version_numbers } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
@@ -204,18 +204,19 @@ pub async fn run_command(
             let mut programs_info = vec![];
 
             for (i, program) in programs.into_iter().enumerate() {
-                let version_number = if let Some(ref version_numbers) = version_numbers {
-                    version_numbers[i]
-                } else {
-                    0u8
-                };
+                let program_version_number =
+                    if let Some(ref program_version_numbers) = program_version_numbers {
+                        program_version_numbers[i]
+                    } else {
+                        0u8
+                    };
                 programs_info.push(
                     Program::from_hash_or_filename(
                         &api,
                         &rpc,
                         &program_keypair,
                         program,
-                        version_number,
+                        program_version_number,
                     )
                     .await?
                     .0,
@@ -268,7 +269,7 @@ pub async fn run_command(
             program_file,
             config_interface_file,
             aux_data_interface_file,
-            version_number,
+            program_version_number,
         } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
@@ -297,9 +298,9 @@ pub async fn run_command(
                 )?,
             };
 
-            let version_number = match program_version_number_option {
-                Some(version_number) => version_number,
-                None => version_number.expect("No Version number passed"),
+            let program_version_number = match program_version_number_option {
+                Some(program_version_number) => program_version_number,
+                None => program_version_number.expect("No Version number passed"),
             };
 
             let hash = store_program(
@@ -310,7 +311,7 @@ pub async fn run_command(
                 config_interface,
                 aux_data_interface,
                 vec![],
-                version_number,
+                program_version_number,
             )
             .await?;
             Ok(format!("Program stored {hash}"))
@@ -336,7 +337,7 @@ pub async fn run_command(
             signature_verifying_key,
             mnemonic_option,
             programs,
-            version_numbers,
+            program_version_numbers,
         } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
@@ -349,18 +350,19 @@ pub async fn run_command(
             let mut programs_info = Vec::new();
 
             for (i, program) in programs.into_iter().enumerate() {
-                let version_number = if let Some(ref version_numbers) = version_numbers {
-                    version_numbers[i]
-                } else {
-                    0u8
-                };
+                let program_version_number =
+                    if let Some(ref program_version_numbers) = program_version_numbers {
+                        program_version_numbers[i]
+                    } else {
+                        0u8
+                    };
                 programs_info.push(
                     Program::from_hash_or_filename(
                         &api,
                         &rpc,
                         &program_keypair,
                         program,
-                        version_number,
+                        program_version_number,
                     )
                     .await?
                     .0,
@@ -505,7 +507,7 @@ impl Program {
         rpc: &LegacyRpcMethods<EntropyConfig>,
         keypair: &sr25519::Pair,
         hash_or_filename: String,
-        version_number: u8,
+        program_version_number: u8,
     ) -> anyhow::Result<Self> {
         match hex::decode(hash_or_filename.clone()) {
             Ok(hash) => {
@@ -522,11 +524,14 @@ impl Program {
                         Ok(Self::new(H256(hash_32), configuration))
                     },
                     Err(_) => {
-                        Self::from_file(api, rpc, keypair, hash_or_filename, version_number).await
+                        Self::from_file(api, rpc, keypair, hash_or_filename, program_version_number)
+                            .await
                     },
                 }
             },
-            Err(_) => Self::from_file(api, rpc, keypair, hash_or_filename, version_number).await,
+            Err(_) => {
+                Self::from_file(api, rpc, keypair, hash_or_filename, program_version_number).await
+            },
         }
     }
 
@@ -537,7 +542,7 @@ impl Program {
         rpc: &LegacyRpcMethods<EntropyConfig>,
         keypair: &sr25519::Pair,
         filename: String,
-        version_number: u8,
+        program_version_number: u8,
     ) -> anyhow::Result<Self> {
         let program_bytecode = fs::read(&filename)?;
 
@@ -576,7 +581,7 @@ impl Program {
             config_description,
             auxiliary_data_schema,
             vec![],
-            version_number,
+            program_version_number,
         )
         .await
         {
