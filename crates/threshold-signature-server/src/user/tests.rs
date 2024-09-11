@@ -192,6 +192,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -350,6 +351,7 @@ async fn signature_request_with_derived_account_works() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -492,6 +494,7 @@ async fn test_request_limit_are_updated_during_signing() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -615,6 +618,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -727,6 +731,7 @@ async fn test_program_with_config() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -936,6 +941,7 @@ async fn test_compute_hash() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1028,6 +1034,7 @@ async fn test_fail_infinite_program() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1116,6 +1123,7 @@ async fn test_device_key_proxy() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1270,6 +1278,7 @@ async fn test_faucet() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1434,6 +1443,7 @@ async fn test_new_registration_flow() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();

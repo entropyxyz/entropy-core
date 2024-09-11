@@ -64,6 +64,7 @@ async fn integration_test_register_and_sign() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
