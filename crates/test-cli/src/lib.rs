@@ -38,6 +38,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
     OnlineClient,
 };
+pub use entropy_shared::PROGRAM_VERSION_NUMBER;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
