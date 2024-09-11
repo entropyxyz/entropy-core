@@ -30,6 +30,7 @@ use entropy_client::{
         VERIFYING_KEY_LENGTH,
     },
 };
+pub use entropy_shared::PROGRAM_VERSION_NUMBER;
 use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::traits::BlakeTwo256;
 use std::{fs, path::PathBuf};
@@ -38,7 +39,6 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
     OnlineClient,
 };
-pub use entropy_shared::PROGRAM_VERSION_NUMBER;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
