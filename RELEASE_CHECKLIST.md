@@ -14,6 +14,7 @@ tagged as the final release.
 - [ ] If an existing call/extrinsic has changed (new pallet index, new call index, parameter changes,
   etc.), bump `transaction_version` and bump `spec_version`
 - [ ] If you're confused about what to bump, read [this](https://paritytech.github.io/polkadot-sdk/master/sp_version/struct.RuntimeVersion.html)
+- [ ] If the programs runtime has been updated increment ```PROGRAM_VERSION_NUMBER``` in ```shared``` crate
 - [ ] Update runtime benchmarks
     - `cargo build -p entropy --release --features runtime-benchmarks && ./scripts/benchmarks.sh`
     - Note: These should ideally be run on [reference hardware](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware) (i.e `c6i.4xlarge` on AWS)
