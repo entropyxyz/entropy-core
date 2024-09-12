@@ -18,6 +18,7 @@ use crate::{
     substrate::query_chain,
 };
 use entropy_shared::{user::ValidatorInfo, BlockNumber, HashingAlgorithm};
+use rand::prelude::SliceRandom;
 use serde::{Deserialize, Serialize};
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 
@@ -45,27 +46,31 @@ pub async fn get_signers_from_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<Vec<ValidatorInfo>, SubgroupGetError> {
     let signer_query = entropy::storage().staking_extension().signers();
-    let mut validators = query_chain(api, rpc, signer_query, None)
+    let signers = query_chain(api, rpc, signer_query, None)
         .await?
         .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
 
     // TODO #898 For now we use a fix proportion of the number of validators as the threshold
-    let threshold = (validators.len() as f32 * 0.75) as usize;
+    let threshold = (signers.len() as f32 * 0.75) as usize;
 
-    // TODO #899 For now we just take the first t validators as the ones to perform signing
-    validators.truncate(threshold);
+    let selected_signers: Vec<_> = {
+        let cloned_signers = signers.clone();
+        cloned_signers.choose_multiple(&mut rand::thread_rng(), threshold).cloned().collect()
+    };
+
+    dbg!(&selected_signers);
 
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let mut handles = Vec::new();
 
-    for validator in validators {
+    for signer in selected_signers {
         let handle: tokio::task::JoinHandle<Result<ValidatorInfo, SubgroupGetError>> =
             tokio::task::spawn({
                 let api = api.clone();
                 let rpc = rpc.clone();
                 async move {
                     let threshold_address_query =
-                        entropy::storage().staking_extension().threshold_servers(validator);
+                        entropy::storage().staking_extension().threshold_servers(signer);
                     let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
                         .await?
                         .ok_or_else(|| {

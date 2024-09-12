@@ -329,19 +329,34 @@ async fn signature_request_with_derived_account_works() {
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
-    let signature_request_responses = submit_transaction_requests(
-        validator_ips_and_keys.clone(),
-        signature_request.clone(),
-        alice,
+    // let signature_request_responses = submit_transaction_requests(
+    //     validator_ips_and_keys.clone(),
+    //     signature_request.clone(),
+    //     alice,
+    // )
+    // .await;
+    let mock_client = reqwest::Client::new();
+    let signed_message = EncryptedSignedMessage::new(
+        &alice.pair(),
+        serde_json::to_vec(&signature_request.clone()).unwrap(),
+        &validator_ips_and_keys[0].1,
+        &[],
     )
-    .await;
-
+    .unwrap();
+    let url = format!("http://{}/user/relay_tx", validator_ips_and_keys[0].0);
+    dbg!(url.clone());
+    let signature_request_responses = mock_client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message).unwrap())
+        .send()
+        .await;
     // We expect that the signature we get back is valid
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let verifying_key =
         SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
             .unwrap();
-    verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
+    verify_signature(vec![signature_request_responses], message_hash, &verifying_key, &validators_info)
         .await;
 
     clean_tests();
@@ -894,6 +909,7 @@ pub async fn verify_signature(
         let mut res = res.unwrap();
         assert_eq!(res.status(), 200);
         let chunk = res.chunk().await.unwrap().unwrap();
+        dbg!(&chunk);
         let signing_result: Result<(String, Signature), String> =
             serde_json::from_slice(&chunk).unwrap();
         assert_eq!(signing_result.clone().unwrap().0.len(), 88);

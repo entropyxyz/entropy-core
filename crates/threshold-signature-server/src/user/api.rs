@@ -19,7 +19,7 @@ use axum::{
     body::{Body, Bytes},
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -101,6 +101,71 @@ pub struct RequestLimitStorage {
     pub request_amount: u32,
 }
 
+#[tracing::instrument(skip_all, fields(request_author))]
+pub async fn relay_tx(
+    State(app_state): State<AppState>,
+    Json(encrypted_msg): Json<EncryptedSignedMessage>,
+) -> Result<(StatusCode, Body), UserErr> {
+    dbg!("inside test");
+    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+    let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
+
+    let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
+    tracing::Span::current().record("request_author", signed_message.account_id().to_string());
+    // make sure Im a validator not a signer
+    // pick signers (random OS is fine)
+    let signers = get_signers_from_chain(&api, &rpc).await?;
+    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
+
+    // do programs and other check
+
+    // relay message
+    let (mut response_tx, response_rx) = mpsc::channel(1);
+
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        let results = join_all(
+            signers
+                .iter()
+                .map(|signer_info| async {
+                    dbg!(signer_info.clone());
+                    let signed_message = EncryptedSignedMessage::new(
+                        &signer.signer(),
+                        serde_json::to_vec(&user_sig_req.clone()).unwrap(),
+                        &signer_info.x25519_public_key,
+                        &[],
+                    )
+                    .unwrap();
+                    dbg!(&signed_message);
+                    let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
+                    client
+                        .post(url)
+                        .header("Content-Type", "application/json")
+                        .body(serde_json::to_string(&signed_message).unwrap())
+                        .send()
+                        .await
+                })
+                .collect::<Vec<_>>(),
+        )
+        .await;
+
+        let mut send_back = vec![];
+        for result in results {
+            let chunk = result.unwrap().chunk().await.unwrap().unwrap();
+            send_back.push(chunk)
+        }
+        if response_tx.try_send(serde_json::to_string(&send_back)).is_err() {
+            tracing::warn!("Cannot send signing protocol output - connection is closed")
+        };
+    });
+    // send back response
+
+    //TODO: remove validators_info from user sig request
+    Ok((StatusCode::OK, Body::from_stream(response_rx)))
+}
+
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
@@ -109,6 +174,7 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
+    // TODO: Block anything from not validators
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -188,11 +254,11 @@ pub async fn sign_tx(
         )?;
     }
 
-    let signers = get_signers_from_chain(&api, &rpc).await?;
+    // let signers = get_signers_from_chain(&api, &rpc).await?;
 
     // Use the validator info from chain as we can be sure it is in the correct order and the
     // details are correct
-    user_sig_req.validators_info = signers;
+    // user_sig_req.validators_info = signers;
 
     let message_hash = compute_hash(
         &api,
