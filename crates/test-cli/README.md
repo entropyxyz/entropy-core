@@ -138,34 +138,7 @@ Register with Entropy and create keyshares
 
 Usage: entropy-test-cli register <MNEMONIC> [KEY_VISIBILITY] [PROGRAMS]...
 
-Arguments:
-  <MNEMONIC>
-          A name from which to generate a program modification keypair, eg: "Bob" This is used to send the register extrinsic and so it must be funded
-
-          Optionally may be preceeded with "//" eg: "//Bob"
-
-  [KEY_VISIBILITY]
-          The access mode of the Entropy account
-
-          [default: public]
-
-          Possible values:
-          - private: User holds keyshare
-          - public:  User does not hold a keyshare
-
-  [PROGRAMS]...
-          Either hex-encoded hashes of existing programs, or paths to wasm files to store.
-
-          Specifying program configurations
-
-          If there exists a file in the current directory of the same name or hex hash and a '.json' extension, it will be read and used as the configuration for that program.
-
-          If the path to a wasm file is given, and there is a file with the same name with a '.interface-description' extension, it will be stored as that program's configuration interface. If no such file exists, it is assumed the program has no configuration interface.
-
-Options:
-  -h, --help
-
-          Print help (see a summary with '-h')
+...
 ```
 
 ### Status
@@ -205,10 +178,10 @@ That took 808.977979ms
 
 To register an entropy account, you need three things:
 
-- An Entropy chain account name, which we will call the 'program modification account'. This must be funded in order to submit the register transaction. On the local `docker compose` setup, you can use one of the [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/master/node/cli/src/endowed_accounts.rs), for example, `Alice`.
+- An Entropy chain account name, which we will call the 'program modification account'. This must be funded in order to submit the register transaction. On the local `docker compose` setup, you can use one of the [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/766e9b9beb041ec0a687ec82bf47ff2c71c31425/node/cli/src/endowed_accounts.rs), for example, `Alice`.
 - One or more programs, which define the conditions under which a given message will be signed by the Entropy network. The test-cli `register` command takes programs as either the hex-encoded hash of an existing program on-chain or the local path to a `.wasm` file containing the compiled program.
-  - The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/master/examples/device-key-proxy/src/lib.rs) program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
-  - The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/master/crates/testing-utils) crate contains some ready-to-use compiled programs, the simplest of which is [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/master/crates/testing-utils/template_barebones.wasm) which allow you to sign any message which is more than 10 bytes long.
+  - The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/f14d88bd684001107b0fc085ffe187f1e3892a86/examples/device-key-proxy/src/lib.rs) program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
+  - The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/766e9b9beb041ec0a687ec82bf47ff2c71c31425/crates/testing-utils) crate contains some ready-to-use compiled programs, the simplest of which is [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/766e9b9beb041ec0a687ec82bf47ff2c71c31425/crates/testing-utils/template_barebones.wasm) which allow you to sign any message which is more than 10 bytes long.
   - See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as well as instructions on how to write and build your own programs.
 
 For example, to register with `//Alice` as the signature request account in public access mode, using the `template_barebones` program:
