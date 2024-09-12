@@ -51,9 +51,9 @@ pub async fn get_signers_from_chain(
 
     let key_info_query = entropy::storage().parameters().signers_info();
     let threshold = query_chain(&api, &rpc, key_info_query, None)
-            .await?
-            .ok_or_else(|| SubgroupGetError::ChainFetch("Failed to get signers info"))?
-            .threshold;
+        .await?
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Failed to get signers info"))?
+        .threshold;
 
     // TODO #899 For now we just take the first t validators as the ones to perform signing
     validators.truncate(threshold as usize);
