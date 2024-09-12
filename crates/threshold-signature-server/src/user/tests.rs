@@ -122,7 +122,8 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
-            run_to_block, setup_client, spawn_testing_validators, unsafe_get, ChainSpecType,
+            run_to_block, setup_client, spawn_testing_validators, store_program_and_register,
+            unsafe_get, ChainSpecType,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -183,37 +184,16 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // for later
     jump_start_network(&entropy_api, &rpc).await;
 
-    // We need to store a program in order to be able to register succesfully
-    let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
-        &two.pair(), // This is our program deployer
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
-        one.clone().into(), // This is our program modification account
-        subxtAccountId32(two.public().0), // This is our signature request account
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
+    // Register the user with a test program
+    let (verifying_key, program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
     // Test: We check that an account with a program succeeds in submiting a signature request
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
     // The account we registered does have a program pointer, so this should succeed
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    signature_request.signature_verifying_key = verifying_key.to_vec();
-
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
             .await;
@@ -341,35 +321,13 @@ async fn signature_request_with_derived_account_works() {
     // for later
     jump_start_network(&entropy_api, &rpc).await;
 
-    // We need to store a program in order to be able to register succesfully
-    let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
-        &bob.pair(), // This is our program deployer
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair()).await;
 
-    let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
-        charlie.clone().into(), // This is our program modification account
-        subxtAccountId32(alice.public().0), // This is our signature request account
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
-
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
-
-    // We'll use the actual verifying key we registered for the signature request
-    signature_request.signature_verifying_key = verifying_key.to_vec();
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let (validators_info, signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
     let signature_request_responses = submit_transaction_requests(
         validator_ips_and_keys.clone(),
@@ -411,8 +369,13 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let mock_client = reqwest::Client::new();
 
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &entropy_api,
+        &rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        DAVE_VERIFYING_KEY,
+    )
+    .await;
 
     // fails verification tests
     // wrong key for wrong validator
@@ -484,36 +447,16 @@ async fn test_request_limit_are_updated_during_signing() {
 
     jump_start_network(&entropy_api, &rpc).await;
 
-    let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
-        &two.pair(), // This is our program deployer
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
-
-    let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
-        one.clone().into(), // This is our program modification account
-        subxtAccountId32(two.public().0), // This is our signature request account
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
     // Test: We check that the rate limiter changes as expected when signature requests are sent
 
     // First we need to get a signature request to populate the KVDB for our verifying key
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
-
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    signature_request.signature_verifying_key = verifying_key.to_vec();
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
     let test_user_res =
         submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
@@ -607,30 +550,13 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
     jump_start_network(&entropy_api, &rpc).await;
 
-    let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
-        &two.pair(), // This is our program deployer
-        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-    )
-    .await
-    .unwrap();
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
-    let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
-        one.clone().into(), // This is our program modification account
-        subxtAccountId32(two.public().0), // This is our signature request account
-        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
-    )
-    .await
-    .unwrap();
-
-    let (_validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+    let (_validators_info, signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let signature_request_account = subxtAccountId32(one.pair().public().0);
@@ -676,12 +602,9 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         encrypted_connection.recv().await.is_err()
     });
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    signature_request.signature_verifying_key = verifying_key.to_vec();
-
     let test_user_bad_connection_res = submit_transaction_requests(
         vec![validator_ips_and_keys[0].clone()],
-        signature_request.clone(),
+        signature_request,
         one,
     )
     .await;
@@ -767,12 +690,8 @@ async fn test_program_with_config() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message)).await;
-
-    // We'll use the actual verifying key we registered for the signature request
-    signature_request.signature_verifying_key = verifying_key.to_vec();
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let (validators_info, signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), verifying_key).await;
 
     // Here we check that the signature request was indeed completed successfully
     let signature_request_responses =
@@ -1043,12 +962,8 @@ async fn test_fail_infinite_program() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (_validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
-
-    // We'll use the actual verifying key we registered for the signature request
-    signature_request.signature_verifying_key = verifying_key.to_vec();
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let (_validators_info, signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key).await;
 
     let test_infinite_loop =
         submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
@@ -1186,11 +1101,9 @@ async fn test_device_key_proxy() {
 
     // Now we'll send off a signature request using the new program with auxilary data
     let (validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
-    // We'll use the actual verifying key we registered for the signature request
-    signature_request.signature_verifying_key = verifying_key.to_vec();
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.auxilary_data = auxilary_data;
 
     let test_user_res =
@@ -1396,7 +1309,7 @@ async fn test_faucet() {
 
 #[tokio::test]
 #[serial]
-async fn test_new_registration_flow() {
+async fn test_registration_flow() {
     initialize_test_logger().await;
     clean_tests();
 
@@ -1594,6 +1507,7 @@ pub async fn get_sign_tx_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     message: String,
+    signature_verifying_key: [u8; 33],
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
     let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
 
@@ -1604,9 +1518,9 @@ pub async fn get_sign_tx_data(
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
         validators_info: validators_info.clone(),
-        block_number: 0,
+        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
-        signature_verifying_key: DAVE_VERIFYING_KEY.to_vec(),
+        signature_verifying_key: signature_verifying_key.to_vec(),
     };
 
     let validator_ips_and_keys =
