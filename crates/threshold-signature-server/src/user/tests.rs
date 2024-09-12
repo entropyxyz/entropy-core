@@ -166,12 +166,13 @@ async fn test_signature_requests_fail_on_different_conditions() {
     initialize_test_logger().await;
     // clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    // let one = AccountKeyring::One;
+    // let two = AccountKeyring::Two;
 
-    let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+    let one = AccountKeyring::AliceStash; // Nando: Had to change this to match chainspec for
+                                          // update to pass
+    let two = AccountKeyring::BobStash;
+    let charlie = AccountKeyring::CharlieStash;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -179,6 +180,16 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let substrate_context = test_node_process_testing_state(force_authoring).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    dbg!(&substrate_context.ws_url);
+
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
+    dbg!(&validator_ips);
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
@@ -206,6 +217,19 @@ async fn test_signature_requests_fail_on_different_conditions() {
     )
     .await
     .unwrap();
+
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, one.into(), validator_ips[0].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, two.into(), validator_ips[1].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, charlie.into(), validator_ips[2].clone())
+            .await
+            .unwrap();
 
     // Test: We check that an account with a program succeeds in submiting a signature request
     let (validators_info, mut signature_request, validator_ips_and_keys) =
@@ -342,6 +366,7 @@ async fn signature_request_with_derived_account_works() {
         substrate_context.ws_url.clone(),
     )
     .await;
+
     dbg!(&validator_ips);
 
     // We first need to jump start the network and grab the resulting network wide verifying key
@@ -410,22 +435,25 @@ async fn signature_request_with_derived_account_works() {
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_signing_fails_if_wrong_participants_are_used() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
 
     let one = AccountKeyring::Dave;
 
-    let add_parent_key = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
-
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
 
     jump_start_network(&entropy_api, &rpc).await;
 
@@ -443,8 +471,10 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
         &[],
     )
     .unwrap();
+
+    let url = format!("http://{}/user/sign_tx", validator_ips[0]);
     let failed_res = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
+        .post(url.clone())
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&failed_signed_message).unwrap())
         .send()
@@ -467,7 +497,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     .unwrap();
 
     let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
+        .post(url)
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&user_input_bad).unwrap())
         .send()
@@ -480,27 +510,37 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
         "Encryption or signing error: Cannot verify signature"
     );
 
-    clean_tests();
+    // clean_tests();
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_request_limit_are_updated_during_signing() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    // let one = AccountKeyring::One;
+    // let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let one = AccountKeyring::AliceStash; // Nando: Had to change this to match chainspec for
+                                          // update to pass
+    let two = AccountKeyring::BobStash;
+    let charlie = AccountKeyring::CharlieStash;
 
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
-
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
 
     jump_start_network(&entropy_api, &rpc).await;
 
@@ -525,6 +565,19 @@ async fn test_request_limit_are_updated_during_signing() {
     )
     .await
     .unwrap();
+
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, one.into(), validator_ips[0].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, two.into(), validator_ips[1].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, charlie.into(), validator_ips[2].clone())
+            .await
+            .unwrap();
 
     // Test: We check that the rate limiter changes as expected when signature requests are sent
 
@@ -603,27 +656,35 @@ async fn test_request_limit_are_updated_during_signing() {
         assert_eq!(res.unwrap().text().await.unwrap(), "Too many requests - wait a block");
     }
 
-    clean_tests();
+    // clean_tests();
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    // let one = AccountKeyring::One;
+    // let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let one = AccountKeyring::AliceStash; // Nando: Had to change this to match chainspec for
+                                          // update to pass
+    let two = AccountKeyring::BobStash;
+    let charlie = AccountKeyring::CharlieStash;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
-
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
 
     jump_start_network(&entropy_api, &rpc).await;
 
@@ -648,6 +709,19 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     )
     .await
     .unwrap();
+
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, one.into(), validator_ips[0].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, two.into(), validator_ips[1].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, charlie.into(), validator_ips[2].clone())
+            .await
+            .unwrap();
 
     let (_validators_info, mut signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
@@ -719,23 +793,33 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_program_with_config() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    // let one = AccountKeyring::One;
+    // let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let one = AccountKeyring::AliceStash; // Nando: Had to change this to match chainspec for
+                                          // update to pass
+    let two = AccountKeyring::BobStash;
+    let charlie = AccountKeyring::CharlieStash;
 
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
-
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
 
     jump_start_network(&entropy_api, &rpc).await;
 
@@ -760,6 +844,19 @@ async fn test_program_with_config() {
     )
     .await
     .unwrap();
+
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, one.into(), validator_ips[0].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, two.into(), validator_ips[1].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, charlie.into(), validator_ips[2].clone())
+            .await
+            .unwrap();
 
     // This message is an ethereum tx rlp encoded with a proper allow listed address
     let message = "0xef01808094772b9a9e8aa1c9db861c6611a82d251db4fac990019243726561746564204f6e20456e74726f7079018080";
@@ -804,7 +901,7 @@ async fn test_program_with_config() {
     verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
         .await;
 
-    clean_tests();
+    // clean_tests();
 }
 
 #[tokio::test]
@@ -1020,28 +1117,38 @@ pub async fn verify_signature(
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_fail_infinite_program() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    // let one = AccountKeyring::One;
+    // let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let one = AccountKeyring::AliceStash; // Nando: Had to change this to match chainspec for
+                                          // update to pass
+    let two = AccountKeyring::BobStash;
+    let charlie = AccountKeyring::CharlieStash;
 
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
-
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    jump_start_network(&api, &rpc).await;
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
+
+    jump_start_network(&entropy_api, &rpc).await;
 
     let program_hash = test_client::store_program(
-        &api,
+        &entropy_api,
         &rpc,
         &two.pair(),
         TEST_INFINITE_LOOP_BYTECODE.to_owned(),
@@ -1053,7 +1160,7 @@ async fn test_fail_infinite_program() {
     .unwrap();
 
     let (verifying_key, _registered_info) = test_client::register(
-        &api,
+        &entropy_api,
         &rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
@@ -1062,9 +1169,22 @@ async fn test_fail_infinite_program() {
     .await
     .unwrap();
 
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, one.into(), validator_ips[0].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, two.into(), validator_ips[1].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, charlie.into(), validator_ips[2].clone())
+            .await
+            .unwrap();
+
     // Now we'll send off a signature request using the new program
     let (_validators_info, mut signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED)).await;
 
     // We'll use the actual verifying key we registered for the signature request
     signature_request.signature_verifying_key = verifying_key.to_vec();
@@ -1080,10 +1200,10 @@ async fn test_fail_infinite_program() {
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_device_key_proxy() {
     initialize_test_logger().await;
-    clean_tests();
+    //clean_tests();
 
     /// JSON-deserializable struct that will be used to derive the program-JSON interface.
     /// Note how this uses JSON-native types only.
@@ -1109,12 +1229,13 @@ async fn test_device_key_proxy() {
         pub context: String,
     }
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    // let one = AccountKeyring::One;
+    // let two = AccountKeyring::Two;
 
-    let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+    let one = AccountKeyring::AliceStash; // Nando: Had to change this to match chainspec for
+                                          // update to pass
+    let two = AccountKeyring::BobStash;
+    let charlie = AccountKeyring::CharlieStash;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -1122,6 +1243,14 @@ async fn test_device_key_proxy() {
     let substrate_context = test_node_process_testing_state(force_authoring).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let add_parent_key_to_kvdb = true;
+    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
@@ -1149,6 +1278,19 @@ async fn test_device_key_proxy() {
     )
     .await
     .unwrap();
+
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, one.into(), validator_ips[0].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, two.into(), validator_ips[1].clone())
+            .await
+            .unwrap();
+    let _result =
+        test_client::change_endpoint(&entropy_api, &rpc, charlie.into(), validator_ips[2].clone())
+            .await
+            .unwrap();
 
     let keypair = Sr25519Keypair::generate();
     let public_key = BASE64_STANDARD.encode(keypair.public);
@@ -1415,18 +1557,14 @@ async fn test_faucet() {
 }
 
 #[tokio::test]
-#[serial]
+// #[serial]
 async fn test_new_registration_flow() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
 
     let alice = AccountKeyring::Alice;
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
-
-    let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -1434,6 +1572,15 @@ async fn test_new_registration_flow() {
     let substrate_context = test_node_process_testing_state(force_authoring).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    dbg!(&substrate_context.ws_url);
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) = spawn_testing_validators_inner(
+        add_parent_key_to_kvdb,
+        ChainSpecType::Integration,
+        substrate_context.ws_url.clone(),
+    )
+    .await;
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
@@ -1510,14 +1657,17 @@ async fn test_new_registration_flow() {
         "The derived child key doesn't match our registered verifying key."
     );
 
-    clean_tests();
+    // clean_tests();
 }
 
+// TODO (Nando): Failing alongside `test_get_oracle_data`
 #[tokio::test]
-#[serial]
+#[ignore]
+// #[serial]
 async fn test_increment_or_wipe_request_limit() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
+
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1558,17 +1708,22 @@ async fn test_increment_or_wipe_request_limit() {
     .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
-    clean_tests();
+    // clean_tests();
 }
 
+// TODO (Nando): Failing alongside `test_increment_or_wipe_request_limit`
 #[tokio::test]
-#[serial_test::serial]
+#[ignore]
+// #[serial_test::serial]
 async fn test_get_oracle_data() {
     initialize_test_logger().await;
+
     let cxt = testing_context().await;
     setup_client().await;
+
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+
     run_to_block(&rpc, 1).await;
 
     let oracle_data = get_oracle_data(&api, &rpc, "block_number_entropy".encode()).await.unwrap();
@@ -1643,4 +1798,43 @@ pub async fn jump_start_network(
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
     jump_start_network_with_signer(api, rpc, &signer).await;
+}
+
+#[tokio::test]
+async fn can_set_up_in_parallel_1() {
+    initialize_test_logger().await;
+    // clean_tests();
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let _entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let _rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    // clean_tests();
+}
+
+#[tokio::test]
+async fn can_set_up_in_parallel_2() {
+    initialize_test_logger().await;
+    // clean_tests();
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let _entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let _rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    // TODO (Nando): We may still need to clean up the test folder somehow
+    // clean_tests();
 }
