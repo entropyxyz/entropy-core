@@ -215,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.87"
+version = "1.0.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10f00e1f6e58a40e807377c75c6a7f97bf9044fab57816f2414e6f5f4499d7b8"
+checksum = "4e1496f8fb1fbf272686b8d37f523dab3e4a7443300055e74cdaa449f3114356"
 
 [[package]]
 name = "approx"
@@ -14131,10 +14131,11 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 [[package]]
 name = "tdx-quote"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote#785cd6680e857cc527037befba185fb5f84ab806"
+source = "git+https://github.com/entropyxyz/tdx-quote?rev=f7968ff#f7968ff35ff744ff8c007cffe6ec8d709d7f18d9"
 dependencies = [
  "nom",
  "p256",
+ "sha2 0.10.8",
 ]
 
 [[package]]

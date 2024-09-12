@@ -12,7 +12,7 @@ edition    ='2021'
 # Common
 serde              ={ version="1.0", default-features=false, features=["derive"] }
 serde_json         ="1.0"
-anyhow             ="1.0.87"
+anyhow             ="1.0.88"
 thiserror          ="1.0.63"
 blake2             ="0.10.4"
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
@@ -57,21 +57,23 @@ uuid                    ={ version="1.10.0", features=["v4"] }
 
 # Misc
 tokio-tungstenite="0.23.1"
-bincode          ="1.3.3"
-bip32            ={ version="0.5.2" }
-bip39            ={ version="2.0.0", features=["zeroize"] }
-bytes            ={ version="1.7", default-features=false, features=["serde"] }
-base64           ="0.22.1"
-clap             ={ version="4.5.17", features=["derive"] }
-num              ="0.4.3"
-snow             ="0.9.6"
-sha3             ="0.10.8"
-hostname         ="0.4"
-sha1             ="0.10.6"
-sha2             ="0.10.8"
-hkdf             ="0.12.4"
-project-root     ={ version="0.2.2", optional=true }
-tdx-quote        ={ git="https://github.com/entropyxyz/tdx-quote", optional=true, features=["mock"] }
+bincode="1.3.3"
+bip32={ version="0.5.2" }
+bip39={ version="2.0.0", features=["zeroize"] }
+bytes={ version="1.7", default-features=false, features=["serde"] }
+base64="0.22.1"
+clap={ version="4.5.17", features=["derive"] }
+num="0.4.3"
+snow="0.9.6"
+sha3="0.10.8"
+hostname="0.4"
+sha1="0.10.6"
+sha2="0.10.8"
+hkdf="0.12.4"
+project-root={ version="0.2.2", optional=true }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote", rev="f7968ff", optional=true, features=[
+  "mock",
+] }
 
 [dev-dependencies]
 serial_test ="3.1.1"
@@ -85,7 +87,7 @@ ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
 schemars    ={ version="0.8.21" }
 subxt-signer="0.35.3"
-tdx-quote   ={ git="https://github.com/entropyxyz/tdx-quote", features=["mock"] }
+tdx-quote   ={ git="https://github.com/entropyxyz/tdx-quote", rev="f7968ff", features=["mock"] }
 
 # Note: We don't specify versions here because otherwise we run into a cyclical dependency between
 # `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.
