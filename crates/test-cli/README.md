@@ -62,7 +62,7 @@ cargo install entropy-test-cli
 
 ### Specify network
 
-The majority of the commands available in the CLI require a connection to an Entropy network. You can pass in a network variable using the `--chain-endpoint` argument:
+The majority of the commands available in the CLI require a connection to an Entropy network. You can pass in a network variable using the `--chain-endpoint` argument. If you do not specify an endpoint, the CLI will default to using `testnet.entropy.xyz`:
 
 ```shell
 entropy-test-cli --chain-endpoint "ws://testnet.entropy.xyz:9944" status
