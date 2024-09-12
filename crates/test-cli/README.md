@@ -65,7 +65,7 @@ cargo install entropy-test-cli
 The majority of the commands available in the CLI require a connection to an Entropy network. You can pass in a network variable using the `--chain-endpoint` argument. If you do not specify an endpoint, the CLI will default to using `testnet.entropy.xyz`:
 
 ```shell
-entropy-test-cli --chain-endpoint "ws://testnet.entropy.xyz:9944" status
+entropy-test-cli --chain-endpoint "wss://testnet.entropy.xyz" status
 ```
 
 Output:
@@ -81,7 +81,7 @@ Verifying key:                                                   Visibility:  Pr
 You can also set the environment variable `ENTROPY_DEVNET` to the network you want to connect to:
 
 ```shell
-export ENTROPY_DEVNET="ws://testnet.entropy.xyz:9944"
+export ENTROPY_DEVNET="wss://testnet.entropy.xyz"
 entropy-test-cli status
 ```
 
