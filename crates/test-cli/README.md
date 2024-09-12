@@ -50,32 +50,6 @@ You'll also need the following dependencies:
    sudo pacman -S pkgconf
    ```
 
-You'll also need the following packages:
-
-1. OpenSSL:
-
-    ```shell
-    # Debian/Ubuntu
-    sudo apt install libssl-dev
-    ```
-
-    ```shell
-    # MacOS
-    brew install openssl
-    ```
-
-2. `pkg-config`:
-
-    ```shell
-    # Debian/Ubuntu
-    sudo apt install pkg-config
-    ```
-
-    ```shell
-    # MacOS
-    brew install pkg-config
-    ```
-
 ## Installation
 
 To install this Rust Test CLI, run:
