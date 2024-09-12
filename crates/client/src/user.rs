@@ -49,11 +49,14 @@ pub async fn get_signers_from_chain(
         .await?
         .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
 
-    // TODO #898 For now we use a fix proportion of the number of validators as the threshold
-    let threshold = (validators.len() as f32 * 0.75) as usize;
+    let key_info_query = entropy::storage().parameters().signers_info();
+    let threshold = query_chain(api, rpc, key_info_query, None)
+        .await?
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Failed to get signers info"))?
+        .threshold;
 
     // TODO #899 For now we just take the first t validators as the ones to perform signing
-    validators.truncate(threshold);
+    validators.truncate(threshold as usize);
 
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let mut handles = Vec::new();
