@@ -40,6 +40,8 @@ use crate::{
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
+#[cfg(test)]
+use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
 use std::time::Duration;
 use subxt::{
@@ -299,7 +301,7 @@ pub async fn store_program_and_register(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user: &sr25519::Pair,
     deployer: &sr25519::Pair,
-) -> ([u8; 33], sp_core::H256) {
+) -> (EncodedVerifyingKey, sp_core::H256) {
     use entropy_client::{
         self as test_client,
         chain_api::entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
@@ -308,8 +310,8 @@ pub async fn store_program_and_register(
     use sp_core::Pair;
 
     let program_hash = test_client::store_program(
-        &api,
-        &rpc,
+        api,
+        rpc,
         deployer,
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -320,8 +322,8 @@ pub async fn store_program_and_register(
     .unwrap();
 
     let (verifying_key, _registered_info) = test_client::register(
-        &api,
-        &rpc,
+        api,
+        rpc,
         user.clone(),
         SubxtAccountId32(deployer.public().0), // Program modification account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
