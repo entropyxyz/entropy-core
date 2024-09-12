@@ -84,6 +84,7 @@ pub async fn test_node(
 
     let proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring)
         .with_authority(key)
+        .scan_for_open_ports()
         .spawn::<EntropyConfig>()
         .await;
     proc.unwrap()

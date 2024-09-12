@@ -91,11 +91,13 @@ pub async fn create_clients(
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
     validator_name: &Option<ValidatorName>,
+    websocket_endpoint: String,
 ) -> (IntoMakeService<Router>, KvManager) {
     let listener_state = ListenerState::default();
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    dbg!(&websocket_endpoint);
+    let configuration = Configuration::new(websocket_endpoint);
 
-    let path = format!(".entropy/testing/test_db_{key_number}");
+    let path = dbg!(format!(".entropy/testing/test_db_{key_number}"));
     let _ = std::fs::remove_dir_all(path.clone());
 
     let kv_store =
@@ -127,36 +129,55 @@ pub enum ChainSpecType {
     Integration,
 }
 
-/// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
-/// desired
 pub async fn spawn_testing_validators(
     add_parent_key: bool,
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
+    spawn_testing_validators_inner(add_parent_key, chain_spec_type, DEFAULT_ENDPOINT.to_string())
+        .await
+}
+
+/// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
+/// desired
+pub async fn spawn_testing_validators_inner(
+    add_parent_key: bool,
+    chain_spec_type: ChainSpecType,
+    substrate_websocket_endpoint: String,
+) -> (Vec<String>, Vec<PartyId>) {
     let add_fourth_server = chain_spec_type == ChainSpecType::Integration;
 
-    // spawn threshold servers
-    let mut ports = vec![3001i64, 3002, 3003];
-
-    if add_fourth_server {
-        ports.push(3004);
-    }
-
-    let (alice_axum, alice_kv) =
-        create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
+    let (alice_axum, alice_kv) = create_clients(
+        format!("validator_{}", rand::random::<u16>()),
+        vec![],
+        vec![],
+        &Some(ValidatorName::Alice),
+        substrate_websocket_endpoint.clone(), // TODO (Nando): Use reference here
+    )
+    .await;
     let alice_id = PartyId::new(SubxtAccountId32(
         *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
-    let (bob_axum, bob_kv) =
-        create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
+    let (bob_axum, bob_kv) = create_clients(
+        format!("validator_{}", rand::random::<u16>()),
+        vec![],
+        vec![],
+        &Some(ValidatorName::Bob),
+        substrate_websocket_endpoint.clone(), // TODO (Nando): Use reference here
+    )
+    .await;
     let bob_id = PartyId::new(SubxtAccountId32(
         *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
-    let (charlie_axum, charlie_kv) =
-        create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
-            .await;
+    let (charlie_axum, charlie_kv) = create_clients(
+        format!("validator_{}", rand::random::<u16>()),
+        vec![],
+        vec![],
+        &Some(ValidatorName::Charlie),
+        substrate_websocket_endpoint.clone(), // TODO (Nando): Use reference here
+    )
+    .await;
     let charlie_id = PartyId::new(SubxtAccountId32(
         *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
     ));
@@ -166,37 +187,51 @@ pub async fn spawn_testing_validators(
     put_keyshares_in_db("alice", alice_kv, add_parent_key).await;
     put_keyshares_in_db("bob", bob_kv, add_parent_key).await;
     put_keyshares_in_db("charlie", charlie_kv, add_parent_key).await;
-    // Don't give dave keyshares as dave is not initially in the signing committee
 
-    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
+    let mut ports = vec![];
+
+    let listener_alice = tokio::net::TcpListener::bind("0.0.0.0:0".to_string())
         .await
         .expect("Unable to bind to given server address.");
+    ports.push(listener_alice.local_addr().unwrap().port());
+
     tokio::spawn(async move {
         axum::serve(listener_alice, alice_axum).await.unwrap();
     });
 
-    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+    let listener_bob = tokio::net::TcpListener::bind("0.0.0.0:0".to_string())
         .await
         .expect("Unable to bind to given server address.");
+    ports.push(listener_bob.local_addr().unwrap().port());
+
     tokio::spawn(async move {
         axum::serve(listener_bob, bob_axum).await.unwrap();
     });
 
-    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
+    let listener_charlie = tokio::net::TcpListener::bind("0.0.0.0:0".to_string())
         .await
         .expect("Unable to bind to given server address.");
+    ports.push(listener_charlie.local_addr().unwrap().port());
+
     tokio::spawn(async move {
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
     if add_fourth_server {
-        let (dave_axum, dave_kv) =
-            create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave))
-                .await;
+        let (dave_axum, dave_kv) = create_clients(
+            format!("validator_{}", rand::random::<u16>()),
+            vec![],
+            vec![],
+            &Some(ValidatorName::Dave),
+            substrate_websocket_endpoint.clone(), // TODO (Nando): Use reference here
+        )
+        .await;
 
-        let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
+        let listener_dave = tokio::net::TcpListener::bind("0.0.0.0:0".to_string())
             .await
             .expect("Unable to bind to given server address.");
+        ports.push(listener_dave.local_addr().unwrap().port());
+
         tokio::spawn(async move {
             axum::serve(listener_dave, dave_axum).await.unwrap();
         });
@@ -206,6 +241,7 @@ pub async fn spawn_testing_validators(
         ids.push(dave_id);
     }
 
+    // TODO (Nando): Remove this?
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();

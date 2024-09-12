@@ -73,6 +73,9 @@ hkdf             ="0.12.4"
 project-root     ={ version="0.2.2", optional=true }
 tdx-quote        ={ git="https://github.com/entropyxyz/tdx-quote", optional=true, features=["mock"] }
 
+# Using this in the `helpers` right now
+rand              ="0.8.5"
+
 [dev-dependencies]
 serial_test ="3.1.1"
 hex-literal ="0.4.1"
