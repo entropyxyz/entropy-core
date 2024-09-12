@@ -144,7 +144,7 @@ pub mod pallet {
         pub deployer: AccountId,
         /// Accounts that use this program
         pub ref_counter: u128,
-        /// The user submitted version number of the program
+        /// The user submitted version number of the program's runtime
         /// It tells the TSS what runtime to use
         pub version_number: u8,
     }

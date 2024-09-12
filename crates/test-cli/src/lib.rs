@@ -126,7 +126,7 @@ enum CliCommand {
         config_interface_file: Option<PathBuf>,
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
-        /// The version number of the program you compiled with
+        /// The version number of the program's runtime you compiled with
         program_version_number: Option<u8>,
         /// The mnemonic to use for the call
         #[arg(short, long)]
