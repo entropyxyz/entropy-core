@@ -129,7 +129,7 @@ impl TestNodeProcessBuilder {
             cmd.arg(format!("--port={p2p_port}"));
             cmd.arg(format!("--rpc-port={ws_port}"));
             tracing::info!("ws port: {ws_port}");
-            ws_port
+            dbg!(ws_port)
         } else {
             // the default Websockets port
             9944
@@ -140,8 +140,11 @@ impl TestNodeProcessBuilder {
         let mut proc = cmd.spawn().map_err(|e| {
             format!("Error spawning substrate node '{}': {e}", self.node_path.to_string_lossy())
         })?;
+
+        // TODO (Nando): Maybe do this like we do in the TSS startup
+        //
         // wait for rpc to be initialized
-        const MAX_ATTEMPTS: u32 = 6;
+        const MAX_ATTEMPTS: u32 = 6; // 10;
         let mut attempts = 1;
         let mut wait_secs = 1;
         let client = loop {
@@ -157,7 +160,10 @@ impl TestNodeProcessBuilder {
                 Err(err) => {
                     if attempts < MAX_ATTEMPTS {
                         attempts += 1;
+
+                        // TODO (Nando): Try making constant
                         wait_secs *= 2; // backoff
+
                         continue;
                     }
                     break Err(err);
