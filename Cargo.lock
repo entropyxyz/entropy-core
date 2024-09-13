@@ -1401,7 +1401,7 @@ dependencies = [
 [[package]]
 name = "configfs-tsm"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/configfs-tsm#f32c166e21251eaed072659460a7d3766aaa61ff"
+source = "git+https://github.com/entropyxyz/configfs-tsm?rev=f32c166#f32c166e21251eaed072659460a7d3766aaa61ff"
 
 [[package]]
 name = "console"
