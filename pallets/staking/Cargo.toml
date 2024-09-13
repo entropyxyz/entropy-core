@@ -17,6 +17,7 @@ scale-info ={ version="2.11", default-features=false, features=["derive"] }
 log        ={ version="0.4.22", default-features=false }
 serde      ={ version="1.0.210", default-features=false }
 rand_chacha={ version="0.3", default-features=false }
+p256       ={ version="0.13.2", default-features=false, features=["ecdsa", "alloc"] }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 frame-support     ={ version="29.0.0", default-features=false }

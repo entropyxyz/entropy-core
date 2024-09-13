@@ -115,6 +115,7 @@ pub mod pallet {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
+        pub provisioning_certification_key: VerifyingKey,
     }
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
@@ -238,7 +239,7 @@ pub mod pallet {
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
         <T as pallet_session::Config>::ValidatorId,
-        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL),
+        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL, VerifyingKey),
     );
 
     #[pallet::genesis_config]
@@ -265,6 +266,7 @@ pub mod pallet {
                     tss_account: server_info_tuple.0.clone(),
                     x25519_public_key: server_info_tuple.1,
                     endpoint: server_info_tuple.2.clone(),
+                    provisioning_certification_key: server_info_tuple.3.clone(),
                 };
 
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
