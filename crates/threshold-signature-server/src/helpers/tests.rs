@@ -205,6 +205,8 @@ pub async fn spawn_testing_validators(
         let dave_id = PartyId::new(SubxtAccountId32(
             *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
         ));
+        // TODO: fix
+        put_keyshares_in_db("alice", dave_kv, add_parent_key).await;
         ids.push(dave_id);
     }
 

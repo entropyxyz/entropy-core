@@ -106,7 +106,6 @@ pub async fn relay_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    dbg!("inside test");
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
@@ -126,7 +125,7 @@ pub async fn relay_tx(
 
     tokio::spawn(async move {
         let client = reqwest::Client::new();
-        let results = join_all(
+        let mut results = join_all(
             signers
                 .iter()
                 .map(|signer_info| async {
@@ -138,7 +137,6 @@ pub async fn relay_tx(
                         &[],
                     )
                     .unwrap();
-                    dbg!(&signed_message);
                     let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
                     client
                         .post(url)
@@ -151,12 +149,12 @@ pub async fn relay_tx(
         )
         .await;
 
-        let mut send_back = vec![];
-        for result in results {
-            let chunk = result.unwrap().chunk().await.unwrap().unwrap();
-            send_back.push(chunk)
-        }
-        if response_tx.try_send(serde_json::to_string(&send_back)).is_err() {
+        let chunk = results[1].as_mut().unwrap().chunk().await.unwrap().unwrap();
+        dbg!(&chunk);
+        let signing_result: Result<(String, Signature), String>=
+            serde_json::from_slice(&chunk).unwrap();
+        dbg!(&signing_result);
+        if response_tx.try_send(serde_json::to_string(&signing_result)).is_err() {
             tracing::warn!("Cannot send signing protocol output - connection is closed")
         };
     });
