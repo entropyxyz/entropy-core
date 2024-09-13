@@ -903,39 +903,38 @@ pub async fn verify_signature(
     validators_info: &Vec<ValidatorInfo>,
 ) {
     let mut i = 0;
-        let mut test_user_res = test_user_res.unwrap();
-        assert_eq!(test_user_res.status(), 200);
-        let chunk = test_user_res.chunk().await.unwrap().unwrap();
-        dbg!(&chunk);
-        let signing_results: Vec<Result<(String, Signature), String>> =
-            serde_json::from_slice(&chunk).unwrap();
-        for signing_result in signing_results {
-
-            assert_eq!(signing_result.clone().unwrap().0.len(), 88);
-            let mut decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
-            let recovery_digit = decoded_sig.pop().unwrap();
-            let signature = k256Signature::from_slice(&decoded_sig).unwrap();
-            let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
-            let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-                &message_should_succeed_hash,
-                &signature,
-                recover_id,
-            )
-            .unwrap();
-            assert_eq!(verifying_key, &recovery_key_from_sig);
-            let mut sig_recovery_results = vec![];
-            // do not know which validator created which message, run through them all
-            for validator_info in validators_info {
-                let sig_recovery = <sr25519::Pair as Pair>::verify(
-                    &signing_result.clone().unwrap().1,
-                    BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
-                    &sr25519::Public(validator_info.tss_account.0),
-                );
-                dbg!(sig_recovery);
-                sig_recovery_results.push(sig_recovery)
-            }
-            assert!(sig_recovery_results.contains(&true));
-            i += 1;
+    let mut test_user_res = test_user_res.unwrap();
+    assert_eq!(test_user_res.status(), 200);
+    let chunk = test_user_res.chunk().await.unwrap().unwrap();
+    dbg!(&chunk);
+    let signing_results: Vec<Result<(String, Signature), String>> =
+        serde_json::from_slice(&chunk).unwrap();
+    for signing_result in signing_results {
+        assert_eq!(signing_result.clone().unwrap().0.len(), 88);
+        let mut decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
+        let recovery_digit = decoded_sig.pop().unwrap();
+        let signature = k256Signature::from_slice(&decoded_sig).unwrap();
+        let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
+        let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+            &message_should_succeed_hash,
+            &signature,
+            recover_id,
+        )
+        .unwrap();
+        assert_eq!(verifying_key, &recovery_key_from_sig);
+        let mut sig_recovery_results = vec![];
+        // do not know which validator created which message, run through them all
+        for validator_info in validators_info {
+            let sig_recovery = <sr25519::Pair as Pair>::verify(
+                &signing_result.clone().unwrap().1,
+                BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
+                &sr25519::Public(validator_info.tss_account.0),
+            );
+            dbg!(sig_recovery);
+            sig_recovery_results.push(sig_recovery)
+        }
+        assert!(sig_recovery_results.contains(&true));
+        i += 1;
     }
 }
 

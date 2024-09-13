@@ -60,6 +60,7 @@ use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
+use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
@@ -118,7 +119,17 @@ pub async fn relay_tx(
     let signers = get_signers_from_chain(&api, &rpc).await?;
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
 
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
+        .number;
+
+    let string_verifying_key = hex::encode(user_sig_req.signature_verifying_key.clone());
+
     // do programs and other check
+    let _ = pre_sign_checks(&api, &rpc, user_sig_req.clone(), block_number, string_verifying_key)
+        .await?;
 
     // relay message
     let (mut response_tx, response_rx) = mpsc::channel(1);
@@ -153,7 +164,7 @@ pub async fn relay_tx(
         for result in results {
             let chunk = result.unwrap().chunk().await.unwrap().unwrap();
             dbg!(&chunk);
-            let signing_result: Result<(String, Signature), String>=
+            let signing_result: Result<(String, Signature), String> =
                 serde_json::from_slice(&chunk).unwrap();
             dbg!(&signing_result);
             send_back.push(signing_result)
@@ -204,63 +215,9 @@ pub async fn sign_tx(
         .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
         .number;
 
-    check_stale(user_sig_req.block_number, block_number).await?;
-
-    // Probably impossible but block signing from parent key anyways
-    if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
-        return Err(UserErr::NoSigningFromParentKey);
-    }
-
-    let user_details =
-        get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
-    check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
-
-    let message = hex::decode(&user_sig_req.message)?;
-
-    if user_details.programs_data.0.is_empty() {
-        return Err(UserErr::NoProgramPointerDefined());
-    }
-
-    // Handle aux data padding, if it is not explicit by client for ease send through None, error
-    // if incorrect length
-    let auxilary_data_vec;
-    if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
-        if auxilary_data.len() < user_details.programs_data.0.len() {
-            return Err(UserErr::MismatchAuxData);
-        } else {
-            auxilary_data_vec = auxilary_data;
-        }
-    } else {
-        auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
-    }
-
-    // gets fuel from chain
-    let max_instructions_per_programs_query =
-        entropy::storage().parameters().max_instructions_per_programs();
-    let fuel = query_chain(&api, &rpc, max_instructions_per_programs_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
-
-    let mut runtime = Runtime::new(ProgramConfig { fuel });
-
-    for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
-        let program_info = get_program(&api, &rpc, &program_data.program_pointer).await?;
-        let oracle_data = get_oracle_data(&api, &rpc, program_info.oracle_data_pointer).await?;
-        let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
-        let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
-        runtime.evaluate(
-            &program_info.bytecode,
-            &signature_request,
-            Some(&program_data.program_config),
-            Some(&oracle_data),
-        )?;
-    }
-
-    // let signers = get_signers_from_chain(&api, &rpc).await?;
-
-    // Use the validator info from chain as we can be sure it is in the correct order and the
-    // details are correct
-    // user_sig_req.validators_info = signers;
+    let (mut runtime, user_details, message) =
+        pre_sign_checks(&api, &rpc, user_sig_req.clone(), block_number, string_verifying_key)
+            .await?;
 
     let message_hash = compute_hash(
         &api,
@@ -617,4 +574,66 @@ pub fn check_hash_pointer_out_of_bounds(
         },
         _ => Ok(()),
     }
+}
+
+pub async fn pre_sign_checks(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user_sig_req: UserSignatureRequest,
+    block_number: u32,
+    string_verifying_key: String,
+) -> Result<(Runtime, RegisteredInfo, Vec<u8>), UserErr> {
+    check_stale(user_sig_req.block_number, block_number).await?;
+
+    // Probably impossible but block signing from parent key anyways
+    if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
+        return Err(UserErr::NoSigningFromParentKey);
+    }
+
+    let user_details =
+        get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
+    check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
+
+    let message = hex::decode(&user_sig_req.message)?;
+
+    if user_details.programs_data.0.is_empty() {
+        return Err(UserErr::NoProgramPointerDefined());
+    }
+
+    // Handle aux data padding, if it is not explicit by client for ease send through None, error
+    // if incorrect length
+    let auxilary_data_vec;
+    if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
+        if auxilary_data.len() < user_details.programs_data.0.len() {
+            return Err(UserErr::MismatchAuxData);
+        } else {
+            auxilary_data_vec = auxilary_data;
+        }
+    } else {
+        auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
+    }
+
+    // gets fuel from chain
+    let max_instructions_per_programs_query =
+        entropy::storage().parameters().max_instructions_per_programs();
+    let fuel = query_chain(&api, &rpc, max_instructions_per_programs_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
+
+    let mut runtime = Runtime::new(ProgramConfig { fuel });
+
+    for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
+        let program_info = get_program(&api, &rpc, &program_data.program_pointer).await?;
+        let oracle_data = get_oracle_data(&api, &rpc, program_info.oracle_data_pointer).await?;
+        let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
+        let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
+        runtime.evaluate(
+            &program_info.bytecode,
+            &signature_request,
+            Some(&program_data.program_config),
+            Some(&oracle_data),
+        )?;
+    }
+
+    Ok((runtime, user_details, message))
 }
