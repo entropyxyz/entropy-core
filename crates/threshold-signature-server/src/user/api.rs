@@ -306,19 +306,25 @@ pub async fn generate_network_key(
     Ok(StatusCode::OK)
 }
 
+/// Deterministically select n initial signers from validator set using block number
 async fn get_jumpstart_validators(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     block_number: u32,
 ) -> Result<Vec<entropy_shared::ValidatorInfo>, UserErr> {
     let total_signers_query = entropy::storage().parameters().signers_info();
-    let signers_info = query_chain(api, rpc, total_signers_query, None).await?.unwrap();
+    let signers_info =
+        query_chain(api, rpc, total_signers_query, None).await?.ok_or_else(|| {
+            UserErr::OptionUnwrapError("Cannot get signer info from parameters pallet".to_string())
+        })?;
     let n = signers_info.total_signers;
 
     let mut validators_info: Vec<_> = vec![];
 
     let validators_query = entropy::storage().session().validators();
-    let validators = query_chain(api, rpc, validators_query, None).await?.unwrap();
+    let validators = query_chain(api, rpc, validators_query, None).await?.ok_or_else(|| {
+        UserErr::OptionUnwrapError("Cannot get validators info from session pallet".to_string())
+    })?;
 
     let block_number_bytes = block_number.to_le_bytes();
     let mut seed = [0; 32];
@@ -330,10 +336,9 @@ async fn get_jumpstart_validators(
     for validator_address in selected_validators {
         let validator_query =
             entropy::storage().staking_extension().threshold_servers(validator_address);
-        let server_info = query_chain(api, rpc, validator_query, None).await?.unwrap();
-        // .ok_or_else(|| {
-        //     SubgroupGetError::ChainFetch("threshold_servers query error")
-        // })?;
+        let server_info = query_chain(api, rpc, validator_query, None).await?.ok_or_else(|| {
+            UserErr::OptionUnwrapError("Cannot get server info for selected TS server".to_string())
+        })?;
         validators_info.push(entropy_shared::ValidatorInfo {
             x25519_public_key: server_info.x25519_public_key,
             ip_address: server_info.endpoint,
