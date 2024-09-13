@@ -50,7 +50,7 @@ use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
     substrate_context::{
         development_node_with_default_config, integration_test_node_with_default_port,
-        test_node_process_testing_state, testing_context, integration_test_node_with_unique_ports,
+        integration_test_node_with_unique_ports, test_node_process_testing_state, testing_context,
     },
     test_context_stationary,
 };

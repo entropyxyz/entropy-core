@@ -51,8 +51,9 @@ use entropy_testing_utils::{
         TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
+        development_node_with_default_config, integration_test_node_with_unique_ports,
         test_context_stationary, test_node_process_testing_state, testing_context,
-        SubstrateTestingContext, development_node_with_default_config, integration_test_node_with_unique_ports
+        SubstrateTestingContext,
     },
 };
 use futures::{
@@ -122,8 +123,8 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
-            run_to_block, setup_client, spawn_testing_validators, spawn_testing_validators_parallel,
-            unsafe_get, ChainSpecType,
+            run_to_block, setup_client, spawn_testing_validators,
+            spawn_testing_validators_parallel, unsafe_get, ChainSpecType,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,

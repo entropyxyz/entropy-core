@@ -171,7 +171,6 @@ pub async fn integration_test_node_with_default_port() -> SubstrateTestingContex
     SubstrateTestingContext { node_proc, api }
 }
 
-
 /// Construct a new testing context for when we only need one Substrate node.
 pub async fn integration_test_node_with_unique_ports() -> SubstrateTestingContext {
     let key = AccountKeyring::Alice;
