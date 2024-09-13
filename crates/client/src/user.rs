@@ -50,16 +50,18 @@ pub async fn get_signers_from_chain(
         .await?
         .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
 
-    // TODO #898 For now we use a fix proportion of the number of validators as the threshold
-    let threshold = (signers.len() as f32 * 0.75) as usize;
+    let key_info_query = entropy::storage().parameters().signers_info();
+    let threshold = query_chain(api, rpc, key_info_query, None)
+        .await?
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Failed to get signers info"))?
+        .threshold;
 
     let selected_signers: Vec<_> = {
-        let cloned_signers = signers.clone();
-        cloned_signers.choose_multiple(&mut rand::thread_rng(), threshold).cloned().collect()
+            let cloned_signers = signers.clone();
+            cloned_signers.choose_multiple(&mut rand::thread_rng(), threshold).cloned().collect()
     };
-
+    
     dbg!(&selected_signers);
-
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let mut handles = Vec::new();
 
