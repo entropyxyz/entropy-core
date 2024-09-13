@@ -48,7 +48,10 @@ use entropy_testing_utils::constants::{
 };
 use entropy_testing_utils::{
     constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
-    substrate_context::{test_node_process_testing_state, testing_context},
+    substrate_context::{
+        development_node_with_default_config, integration_test_node_with_default_port,
+        test_node_process_testing_state, testing_context, integration_test_node_with_unique_ports,
+    },
     test_context_stationary,
 };
 use futures::future::join_all;
@@ -67,15 +70,16 @@ async fn test_reshare() {
 
     let dave = AccountKeyring::DaveStash;
 
-    let cxt = test_node_process_testing_state(true).await;
+    // let cxt = test_node_process_testing_state(true).await;
+    let cxt = integration_test_node_with_default_port().await;
 
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
 
     let validator_ports = vec![3001, 3002, 3003, 3004];
-    let api = get_api(&cxt.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
     let mut key_shares_before = vec![];
@@ -246,7 +250,8 @@ async fn test_reshare_none_called() {
     initialize_test_logger().await;
     clean_tests();
 
-    let _cxt = test_node_process_testing_state(true).await;
+    // let _cxt = test_node_process_testing_state(true).await;
+    let _cxt = integration_test_node_with_default_port().await;
 
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
@@ -265,6 +270,8 @@ async fn test_reshare_none_called() {
 
         assert_eq!(response.text().await.unwrap(), "Chain Fetch: Rotate Keyshare not in progress");
     }
+
+    clean_tests();
 }
 
 #[tokio::test]
@@ -274,9 +281,11 @@ async fn test_reshare_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
-    let cxt = test_node_process_testing_state(true).await;
-    let api = get_api(&cxt.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    // let cxt = test_node_process_testing_state(true).await;
+    let cxt = integration_test_node_with_default_port().await;
+
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     let kv = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
@@ -312,7 +321,9 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     clean_tests();
 
     let alice = AccountKeyring::Alice;
-    let cxt = test_context_stationary().await;
+    // let cxt = test_context_stationary().await;
+    let cxt = development_node_with_default_config().await;
+
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     let kv = setup_client().await;
@@ -335,7 +346,9 @@ async fn test_empty_next_signer() {
     initialize_test_logger().await;
     clean_tests();
 
-    let cxt = test_context_stationary().await;
+    // let cxt = test_context_stationary().await;
+    let cxt = development_node_with_default_config().await;
+
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
@@ -348,7 +361,9 @@ async fn test_empty_next_signer() {
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     initialize_test_logger().await;
-    let cxt = testing_context().await;
+    // let cxt = testing_context().await;
+    let cxt = integration_test_node_with_unique_ports().await;
+
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
