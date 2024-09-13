@@ -2782,6 +2782,7 @@ dependencies = [
  "num",
  "parity-scale-codec",
  "project-root",
+ "rand",
  "rand_core 0.6.4",
  "reqwest",
  "reqwest-eventsource",

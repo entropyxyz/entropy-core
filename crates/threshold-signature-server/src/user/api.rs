@@ -45,6 +45,8 @@ use futures::{
 };
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
+use rand::{seq::SliceRandom, SeedableRng};
+use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, H256};
 use subxt::{
@@ -55,6 +57,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::ThresholdKeyShare;
+use tokio::select;
 use tracing::instrument;
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
@@ -262,7 +265,7 @@ pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    let mut data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
     if data.sig_request_accounts.is_empty() {
@@ -273,8 +276,10 @@ pub async fn generate_network_key(
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
+    let selected_validators = get_jumpstart_validators(&api, &rpc, data.block_number).await?;
+    println!("selected_validators {:?}", selected_validators);
     let in_registration_group =
-        check_in_registration_group(&data.validators_info, signer.account_id());
+        check_in_registration_group(&selected_validators, signer.account_id());
 
     if in_registration_group.is_err() {
         tracing::warn!(
@@ -286,6 +291,7 @@ pub async fn generate_network_key(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
+    data.validators_info = selected_validators;
     validate_jump_start(&data, &api, &rpc, &app_state.kv_store).await?;
 
     // Do the DKG protocol in another task, so we can already respond
@@ -298,6 +304,44 @@ pub async fn generate_network_key(
     });
 
     Ok(StatusCode::OK)
+}
+
+async fn get_jumpstart_validators(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    block_number: u32,
+) -> Result<Vec<entropy_shared::ValidatorInfo>, UserErr> {
+    let total_signers_query = entropy::storage().parameters().signers_info();
+    let signers_info = query_chain(api, rpc, total_signers_query, None).await?.unwrap();
+    let n = signers_info.total_signers;
+
+    let mut validators_info: Vec<_> = vec![];
+
+    let validators_query = entropy::storage().session().validators();
+    let validators = query_chain(api, rpc, validators_query, None).await?.unwrap();
+
+    let block_number_bytes = block_number.to_le_bytes();
+    let mut seed = [0; 32];
+    seed[..4].copy_from_slice(&block_number_bytes);
+    let mut rng = rand::rngs::StdRng::from_seed(seed);
+
+    let selected_validators: Vec<_> =
+        validators.choose_multiple(&mut rng, n.into()).cloned().collect();
+    for validator_address in selected_validators {
+        let validator_query =
+            entropy::storage().staking_extension().threshold_servers(validator_address);
+        let server_info = query_chain(api, rpc, validator_query, None).await?.unwrap();
+        // .ok_or_else(|| {
+        //     SubgroupGetError::ChainFetch("threshold_servers query error")
+        // })?;
+        validators_info.push(entropy_shared::ValidatorInfo {
+            x25519_public_key: server_info.x25519_public_key,
+            ip_address: server_info.endpoint,
+            tss_account: server_info.tss_account.0.to_vec(),
+        });
+    }
+
+    Ok(validators_info)
 }
 
 /// Setup and execute DKG.

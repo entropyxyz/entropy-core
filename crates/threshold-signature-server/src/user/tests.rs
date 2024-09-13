@@ -714,11 +714,15 @@ async fn test_jumpstart_network() {
 
     let alice = AccountKeyring::Alice;
 
-    let cxt = test_context_stationary().await;
+    let add_parent_key = false;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(false, ChainSpecType::Development).await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+
+    let api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
 
@@ -753,7 +757,7 @@ async fn test_jumpstart_network() {
 
     // succeeds
     let response_results = join_all(
-        vec![3002, 3003]
+        vec![3002, 3003, 3004]
             .iter()
             .map(|port| {
                 client
