@@ -312,27 +312,33 @@ async fn get_jumpstart_validators(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     block_number: u32,
 ) -> Result<Vec<entropy_shared::ValidatorInfo>, UserErr> {
-    let total_signers_query = entropy::storage().parameters().signers_info();
-    let signers_info =
-        query_chain(api, rpc, total_signers_query, None).await?.ok_or_else(|| {
-            UserErr::OptionUnwrapError("Cannot get signer info from parameters pallet".to_string())
-        })?;
-    let n = signers_info.total_signers;
+    // Get n from parameters
+    let n = {
+        let total_signers_query = entropy::storage().parameters().signers_info();
+        let signers_info =
+            query_chain(api, rpc, total_signers_query, None).await?.ok_or_else(|| {
+                UserErr::OptionUnwrapError(
+                    "Cannot get signer info from parameters pallet".to_string(),
+                )
+            })?;
+        signers_info.total_signers
+    };
 
-    let mut validators_info: Vec<_> = vec![];
+    // Get all validators
+    let all_validators = {
+        let validators_query = entropy::storage().session().validators();
+        query_chain(api, rpc, validators_query, None).await?.ok_or_else(|| {
+            UserErr::OptionUnwrapError("Cannot get validators info from session pallet".to_string())
+        })?
+    };
 
-    let validators_query = entropy::storage().session().validators();
-    let validators = query_chain(api, rpc, validators_query, None).await?.ok_or_else(|| {
-        UserErr::OptionUnwrapError("Cannot get validators info from session pallet".to_string())
-    })?;
-
-    let block_number_bytes = block_number.to_le_bytes();
-    let mut seed = [0; 32];
-    seed[..4].copy_from_slice(&block_number_bytes);
-    let mut rng = rand::rngs::StdRng::from_seed(seed);
-
+    // Select n validators
+    let mut rng = rand::rngs::StdRng::seed_from_u64(block_number.into());
     let selected_validators: Vec<_> =
-        validators.choose_multiple(&mut rng, n.into()).cloned().collect();
+        all_validators.choose_multiple(&mut rng, n.into()).cloned().collect();
+
+    // Get validator info for selected validators
+    let mut validators_info: Vec<_> = vec![];
     for validator_address in selected_validators {
         let validator_query =
             entropy::storage().staking_extension().threshold_servers(validator_address);
