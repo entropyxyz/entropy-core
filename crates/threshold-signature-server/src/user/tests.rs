@@ -923,13 +923,18 @@ pub async fn verify_signature(
             )
             .unwrap();
             assert_eq!(verifying_key, &recovery_key_from_sig);
-            let sig_recovery = <sr25519::Pair as Pair>::verify(
-                &signing_result.clone().unwrap().1,
-                BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
-                &sr25519::Public(validators_info[i].tss_account.0),
-            );
-            // TODO: add back in when can figure out validator info issue
-            // assert!(sig_recovery);
+            let mut sig_recovery_results = vec![];
+            // do not know which validator created which message, run through them all
+            for validator_info in validators_info {
+                let sig_recovery = <sr25519::Pair as Pair>::verify(
+                    &signing_result.clone().unwrap().1,
+                    BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
+                    &sr25519::Public(validator_info.tss_account.0),
+                );
+                dbg!(sig_recovery);
+                sig_recovery_results.push(sig_recovery)
+            }
+            assert!(sig_recovery_results.contains(&true));
             i += 1;
     }
 }
