@@ -149,12 +149,16 @@ pub async fn relay_tx(
         )
         .await;
 
-        let chunk = results[1].as_mut().unwrap().chunk().await.unwrap().unwrap();
-        dbg!(&chunk);
-        let signing_result: Result<(String, Signature), String>=
-            serde_json::from_slice(&chunk).unwrap();
-        dbg!(&signing_result);
-        if response_tx.try_send(serde_json::to_string(&signing_result)).is_err() {
+        let mut send_back = vec![];
+        for result in results {
+            let chunk = result.unwrap().chunk().await.unwrap().unwrap();
+            dbg!(&chunk);
+            let signing_result: Result<(String, Signature), String>=
+                serde_json::from_slice(&chunk).unwrap();
+            dbg!(&signing_result);
+            send_back.push(signing_result)
+        }
+        if response_tx.try_send(serde_json::to_string(&send_back)).is_err() {
             tracing::warn!("Cannot send signing protocol output - connection is closed")
         };
     });
