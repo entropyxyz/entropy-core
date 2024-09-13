@@ -67,7 +67,8 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_oracle_data, get_program, get_stash_address, query_chain, submit_transaction,
+            get_oracle_data, get_program, get_stash_address, get_validators_info, query_chain,
+            submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
         validator::{get_signer, get_signer_and_x25519_secret},
@@ -115,7 +116,6 @@ pub async fn relay_tx(
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
     // make sure Im a validator not a signer
-    // pick signers (random OS is fine)
     let signers = get_signers_from_chain(&api, &rpc).await?;
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
 
@@ -173,7 +173,6 @@ pub async fn relay_tx(
             tracing::warn!("Cannot send signing protocol output - connection is closed")
         };
     });
-    // send back response
 
     //TODO: remove validators_info from user sig request
     Ok((StatusCode::OK, Body::from_stream(response_rx)))
@@ -197,6 +196,18 @@ pub async fn sign_tx(
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
+    let validators_query = entropy::storage().session().validators();
+
+    let validators = query_chain(&api, &rpc, validators_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Error getting signers"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, validators).await?;
+
+    validators_info
+        .iter()
+        .find(|validator| validator.tss_account == request_author)
+        .ok_or_else(|| UserErr::NotRelayedFromValidator)?;
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None)

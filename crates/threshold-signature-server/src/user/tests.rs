@@ -357,6 +357,16 @@ async fn signature_request_with_derived_account_works() {
     verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
         .await;
 
+    let signature_request_responses_fail_not_relayer = mock_client
+        .post("http://127.0.0.1:3001/user/sign_tx")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message).unwrap())
+        .send()
+        .await;
+    assert_eq!(
+        signature_request_responses_fail_not_relayer.unwrap().text().await.unwrap(),
+        "Message sent directly to signer"
+    );
     clean_tests();
 }
 

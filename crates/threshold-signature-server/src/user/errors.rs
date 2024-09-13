@@ -173,6 +173,8 @@ pub enum UserErr {
     UnknownHashingAlgorithm,
     #[error("Failed to derive BIP-32 account: {0}")]
     Bip32DerivationError(#[from] bip32::Error),
+    #[error("Message sent directly to signer")]
+    NotRelayedFromValidator,
 }
 
 impl From<hkdf::InvalidLength> for UserErr {
