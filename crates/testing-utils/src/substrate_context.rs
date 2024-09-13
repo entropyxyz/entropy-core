@@ -56,6 +56,7 @@ fn get_path() -> Box<std::path::Path> {
     }
 }
 
+// TODO (Nando): Remove this
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<EntropyConfig>;
 
 pub async fn test_node_process_with(
@@ -130,6 +131,62 @@ pub async fn testing_context() -> SubstrateTestingContext {
 /// Construct a new testing context for when we only need one Substrate node.
 pub async fn test_context_stationary() -> SubstrateTestingContext {
     let node_proc: TestNodeProcess<EntropyConfig> = test_node_process_stationary().await;
+    let api = node_proc.client().clone();
+    SubstrateTestingContext { node_proc, api }
+}
+
+/// Construct a new testing context for when we only need one Substrate node.
+pub async fn development_node_with_default_config() -> SubstrateTestingContext {
+    let key = AccountKeyring::Alice;
+    let path = get_path();
+    let path = path.to_str().expect("Path should've been checked to be valid earlier.");
+    let chain_type = "--dev".to_string();
+    let force_authoring = false;
+
+    let node_proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring)
+        .with_authority(key)
+        .spawn::<EntropyConfig>()
+        .await
+        .unwrap();
+
+    let api = node_proc.client().clone();
+    SubstrateTestingContext { node_proc, api }
+}
+
+/// Construct a new testing context for when we only need one Substrate node.
+pub async fn integration_test_node_with_default_port() -> SubstrateTestingContext {
+    let key = AccountKeyring::Alice;
+    let path = get_path();
+    let path = path.to_str().expect("Path should've been checked to be valid earlier.");
+    let chain_type = "--chain=integration-tests".to_string();
+    let force_authoring = true;
+
+    let node_proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring)
+        .with_authority(key)
+        .spawn::<EntropyConfig>()
+        .await
+        .unwrap();
+
+    let api = node_proc.client().clone();
+    SubstrateTestingContext { node_proc, api }
+}
+
+
+/// Construct a new testing context for when we only need one Substrate node.
+pub async fn integration_test_node_with_unique_ports() -> SubstrateTestingContext {
+    let key = AccountKeyring::Alice;
+    let path = get_path();
+    let path = path.to_str().expect("Path should've been checked to be valid earlier.");
+    let chain_type = "--chain=integration-tests".to_string();
+    let force_authoring = true;
+
+    let node_proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring)
+        .with_authority(key)
+        .scan_for_open_ports()
+        .spawn::<EntropyConfig>()
+        .await
+        .unwrap();
+
     let api = node_proc.client().clone();
     SubstrateTestingContext { node_proc, api }
 }
