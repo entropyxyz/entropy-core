@@ -277,7 +277,7 @@ pub async fn generate_network_key(
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
     let selected_validators = get_jumpstart_validators(&api, &rpc, data.block_number).await?;
-    println!("selected_validators {:?}", selected_validators);
+
     let in_registration_group =
         check_in_registration_group(&selected_validators, signer.account_id());
 
@@ -291,6 +291,7 @@ pub async fn generate_network_key(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
+    // Use selected validators rather than the validators from the HTTP request
     data.validators_info = selected_validators;
     validate_jump_start(&data, &api, &rpc, &app_state.kv_store).await?;
 
