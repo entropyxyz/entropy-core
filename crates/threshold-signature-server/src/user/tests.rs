@@ -52,7 +52,7 @@ use entropy_testing_utils::{
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
-        SubstrateTestingContext,
+        SubstrateTestingContext, development_node_with_default_config, integration_test_node_with_unique_ports
     },
 };
 use futures::{
@@ -122,7 +122,7 @@ use crate::{
         substrate::{get_oracle_data, query_chain, submit_transaction},
         tests::{
             create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
-            run_to_block, setup_client, spawn_testing_validators, spawn_testing_validators_inner,
+            run_to_block, setup_client, spawn_testing_validators, spawn_testing_validators_parallel,
             unsafe_get, ChainSpecType,
         },
         user::compute_hash,
@@ -183,7 +183,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     dbg!(&substrate_context.ws_url);
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -360,7 +360,7 @@ async fn signature_request_with_derived_account_works() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -448,7 +448,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -535,7 +535,7 @@ async fn test_request_limit_are_updated_during_signing() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -663,7 +663,7 @@ async fn test_request_limit_are_updated_during_signing() {
 // #[serial]
 async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     initialize_test_logger().await;
-    clean_tests();
+    // clean_tests();
 
     // let one = AccountKeyring::One;
     // let two = AccountKeyring::Two;
@@ -679,7 +679,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -789,7 +789,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
     assert!(connection_attempt_handle.await.unwrap());
 
-    clean_tests();
+    // clean_tests();
 }
 
 #[tokio::test]
@@ -814,7 +814,7 @@ async fn test_program_with_config() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -912,11 +912,13 @@ async fn test_jumpstart_network() {
 
     let alice = AccountKeyring::Alice;
 
-    let cxt = test_context_stationary().await;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(false, ChainSpecType::Development).await;
+    // let cxt = test_context_stationary().await;
+    let cxt = development_node_with_default_config().await;
+
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Development).await;
 
     let client = reqwest::Client::new();
 
@@ -1138,7 +1140,7 @@ async fn test_fail_infinite_program() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -1245,7 +1247,7 @@ async fn test_device_key_proxy() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
-    let (validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -1575,7 +1577,7 @@ async fn test_new_registration_flow() {
     dbg!(&substrate_context.ws_url);
 
     let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators_inner(
+    let (_validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
         substrate_context.ws_url.clone(),
@@ -1662,13 +1664,14 @@ async fn test_new_registration_flow() {
 
 // TODO (Nando): Failing alongside `test_get_oracle_data`
 #[tokio::test]
-#[ignore]
-// #[serial]
+#[serial]
 async fn test_increment_or_wipe_request_limit() {
     initialize_test_logger().await;
-    // clean_tests();
+    clean_tests();
 
-    let substrate_context = test_context_stationary().await;
+    // let substrate_context = test_context_stationary().await;
+    let substrate_context = development_node_with_default_config().await;
+
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
     let kv_store = load_kv_store(&None, None).await;
@@ -1708,17 +1711,18 @@ async fn test_increment_or_wipe_request_limit() {
     .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
-    // clean_tests();
+    clean_tests();
 }
 
 // TODO (Nando): Failing alongside `test_increment_or_wipe_request_limit`
 #[tokio::test]
-#[ignore]
-// #[serial_test::serial]
+#[serial]
 async fn test_get_oracle_data() {
     initialize_test_logger().await;
 
-    let cxt = testing_context().await;
+    // let cxt = testing_context().await;
+    let cxt = development_node_with_default_config().await;
+
     setup_client().await;
 
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
@@ -1798,43 +1802,4 @@ pub async fn jump_start_network(
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
     jump_start_network_with_signer(api, rpc, &signer).await;
-}
-
-#[tokio::test]
-async fn can_set_up_in_parallel_1() {
-    initialize_test_logger().await;
-    // clean_tests();
-
-    let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
-
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let _entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let _rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // clean_tests();
-}
-
-#[tokio::test]
-async fn can_set_up_in_parallel_2() {
-    initialize_test_logger().await;
-    // clean_tests();
-
-    let add_parent_key_to_kvdb = true;
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
-
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let _entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let _rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // TODO (Nando): We may still need to clean up the test folder somehow
-    // clean_tests();
 }
