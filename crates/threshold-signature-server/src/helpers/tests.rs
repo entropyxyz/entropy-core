@@ -129,17 +129,124 @@ pub enum ChainSpecType {
     Integration,
 }
 
+// pub async fn spawn_testing_validators(
+//     add_parent_key: bool,
+//     chain_spec_type: ChainSpecType,
+// ) -> (Vec<String>, Vec<PartyId>) {
+//     spawn_testing_validators_inner(add_parent_key, chain_spec_type, DEFAULT_ENDPOINT.to_string())
+//         .await
+// }
+
+/// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
+/// desired
 pub async fn spawn_testing_validators(
     add_parent_key: bool,
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
-    spawn_testing_validators_inner(add_parent_key, chain_spec_type, DEFAULT_ENDPOINT.to_string())
+    let add_fourth_server = chain_spec_type == ChainSpecType::Integration;
+
+    // spawn threshold servers
+    let mut ports = vec![3001i64, 3002, 3003];
+
+    if add_fourth_server {
+        ports.push(3004);
+    }
+
+    let (alice_axum, alice_kv) = create_clients(
+        "validator1".to_string(),
+        vec![],
+        vec![],
+        &Some(ValidatorName::Alice),
+        DEFAULT_ENDPOINT.to_string(),
+    )
+    .await;
+    let alice_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let (bob_axum, bob_kv) = create_clients(
+        "validator2".to_string(),
+        vec![],
+        vec![],
+        &Some(ValidatorName::Bob),
+        DEFAULT_ENDPOINT.to_string(),
+    )
+    .await;
+    let bob_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let (charlie_axum, charlie_kv) = create_clients(
+        "validator3".to_string(),
+        vec![],
+        vec![],
+        &Some(ValidatorName::Charlie),
+        DEFAULT_ENDPOINT.to_string(),
+    )
+    .await;
+    let charlie_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+
+    let mut ids = vec![alice_id, bob_id, charlie_id];
+
+    put_keyshares_in_db("alice", alice_kv, add_parent_key).await;
+    put_keyshares_in_db("bob", bob_kv, add_parent_key).await;
+    put_keyshares_in_db("charlie", charlie_kv, add_parent_key).await;
+    // Don't give dave keyshares as dave is not initially in the signing committee
+
+    let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_alice, alice_axum).await.unwrap();
+    });
+
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_bob, bob_axum).await.unwrap();
+    });
+
+    let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_charlie, charlie_axum).await.unwrap();
+    });
+
+    if add_fourth_server {
+        let (dave_axum, dave_kv) = create_clients(
+            "validator4".to_string(),
+            vec![],
+            vec![],
+            &Some(ValidatorName::Dave),
+            DEFAULT_ENDPOINT.to_string(),
+        )
+        .await;
+
+        let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
+            .await
+            .expect("Unable to bind to given server address.");
+        tokio::spawn(async move {
+            axum::serve(listener_dave, dave_axum).await.unwrap();
+        });
+        let dave_id = PartyId::new(SubxtAccountId32(
+            *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
+        ));
+        ids.push(dave_id);
+    }
+
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
+    (ips, ids)
 }
 
 /// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
 /// desired
-pub async fn spawn_testing_validators_inner(
+pub async fn spawn_testing_validators_parallel(
     add_parent_key: bool,
     chain_spec_type: ChainSpecType,
     substrate_websocket_endpoint: String,
