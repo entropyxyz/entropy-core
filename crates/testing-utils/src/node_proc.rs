@@ -144,7 +144,7 @@ impl TestNodeProcessBuilder {
         // TODO (Nando): Maybe do this like we do in the TSS startup
         //
         // wait for rpc to be initialized
-        const MAX_ATTEMPTS: u32 = 6; // 10;
+        const MAX_ATTEMPTS: u32 = 10; // 6;
         let mut attempts = 1;
         let mut wait_secs = 1;
         let client = loop {

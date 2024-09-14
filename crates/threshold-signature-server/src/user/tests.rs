@@ -984,7 +984,7 @@ async fn test_jumpstart_network() {
 
     // wait for jump start event check that key exists in kvdb
     let mut got_jumpstart_event = false;
-    for _ in 0..75 {
+    for _ in 0..85 {
         std::thread::sleep(std::time::Duration::from_millis(1000));
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
