@@ -33,7 +33,7 @@ jobs:
       - name: Run `cargo build && cargo test`
         run: |
           pushd node
-          cargo build -p entropy-tss --all-targets --release -j $(nproc)
-          cargo test -p entropy-tss --all-targets --release -j 4 -- user::tests validator::tests
+          cargo build --all-targets --release -j $(nproc)
+          cargo test -p entropy-tss --all-targets --release -- user::tests validator::tests --test-threads 4
           yarn --cwd ../crates/protocol/nodejs-test test
           cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm -j 4
