@@ -177,17 +177,19 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-    dbg!(&substrate_context.ws_url);
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    dbg!(&substrate_context.node_proc.ws_url);
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
     dbg!(&validator_ips);
@@ -355,16 +357,19 @@ async fn signature_request_with_derived_account_works() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -443,16 +448,19 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let one = AccountKeyring::Dave;
 
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -530,16 +538,18 @@ async fn test_request_limit_are_updated_during_signing() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -674,16 +684,18 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let two = AccountKeyring::BobStash;
     let charlie = AccountKeyring::CharlieStash;
 
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -809,16 +821,18 @@ async fn test_program_with_config() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -913,8 +927,8 @@ async fn test_jumpstart_network() {
 
     let alice = AccountKeyring::Alice;
 
-    // let cxt = test_context_stationary().await;
-    let cxt = development_node_with_default_config().await;
+    let cxt = test_context_stationary().await;
+    // let cxt = development_node_with_default_config().await;
 
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -1073,6 +1087,8 @@ async fn test_compute_hash() {
     // custom hash program uses blake 3 to hash
     let expected_hash = blake3::hash(PREIMAGE_SHOULD_SUCCEED).as_bytes().to_vec();
     assert_eq!(message_hash.to_vec(), expected_hash);
+
+    clean_tests();
 }
 
 #[tokio::test]
@@ -1135,16 +1151,18 @@ async fn test_fail_infinite_program() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -1242,16 +1260,18 @@ async fn test_device_key_proxy() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let add_parent_key_to_kvdb = true;
     let (validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -1571,17 +1591,19 @@ async fn test_new_registration_flow() {
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-    dbg!(&substrate_context.ws_url);
+    // let force_authoring = true;
+    // let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = integration_test_node_with_unique_ports().await;
+
+    let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    dbg!(&substrate_context.node_proc.ws_url);
 
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) = spawn_testing_validators_parallel(
         add_parent_key_to_kvdb,
         ChainSpecType::Integration,
-        substrate_context.ws_url.clone(),
+        substrate_context.node_proc.ws_url.clone(),
     )
     .await;
 
@@ -1670,8 +1692,8 @@ async fn test_increment_or_wipe_request_limit() {
     initialize_test_logger().await;
     clean_tests();
 
-    // let substrate_context = test_context_stationary().await;
-    let substrate_context = development_node_with_default_config().await;
+    let substrate_context = test_context_stationary().await;
+    // let substrate_context = development_node_with_default_config().await;
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1721,8 +1743,8 @@ async fn test_increment_or_wipe_request_limit() {
 async fn test_get_oracle_data() {
     initialize_test_logger().await;
 
-    // let cxt = testing_context().await;
-    let cxt = development_node_with_default_config().await;
+    let cxt = testing_context().await;
+    // let cxt = development_node_with_default_config().await;
 
     setup_client().await;
 
