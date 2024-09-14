@@ -361,7 +361,6 @@ async fn signature_request_with_derived_account_works() {
     // let substrate_context = test_node_process_testing_state(force_authoring).await;
     let substrate_context = integration_test_node_with_unique_ports().await;
 
-
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
@@ -451,7 +450,6 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     // let force_authoring = true;
     // let substrate_context = test_node_process_testing_state(force_authoring).await;
     let substrate_context = integration_test_node_with_unique_ports().await;
-
 
     let entropy_api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
