@@ -325,14 +325,14 @@ fn it_deletes_when_no_bond_left() {
 
         // test nominating flow
         assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(101),
+            RuntimeOrigin::signed(9),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
-        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![7]));
         assert_noop!(
-            Staking::withdraw_unbonded(RuntimeOrigin::signed(101), 0),
-            Error::<Test>::NoUnbondingWhenSigner
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(9), 0),
+            Error::<Test>::NoUnnominatingWhenSigner
         );
 
         assert_ok!(FrameStaking::bond(
@@ -349,10 +349,10 @@ fn it_deletes_when_no_bond_left() {
         );
 
         // test nominating flow
-        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![8]));
         assert_noop!(
-            Staking::withdraw_unbonded(RuntimeOrigin::signed(101), 0),
-            Error::<Test>::NoUnbondingWhenNextSigner
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(9), 0),
+            Error::<Test>::NoUnnominatingWhenNextSigner
         );
     });
 }
@@ -511,14 +511,14 @@ fn it_stops_unbonded_when_signer_or_next_signer() {
 
         // test nominating flow
         assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(101),
+            RuntimeOrigin::signed(9),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
-        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![7]));
         assert_noop!(
-            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
-            Error::<Test>::NoUnbondingWhenSigner
+            Staking::unbond(RuntimeOrigin::signed(9), 100u64),
+            Error::<Test>::NoUnnominatingWhenSigner
         );
 
         assert_ok!(FrameStaking::bond(
@@ -545,10 +545,10 @@ fn it_stops_unbonded_when_signer_or_next_signer() {
         );
 
         // test nominating flow
-        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![8]));
         assert_noop!(
-            Staking::unbond(RuntimeOrigin::signed(101), 100u64),
-            Error::<Test>::NoUnbondingWhenNextSigner
+            Staking::unbond(RuntimeOrigin::signed(9), 100u64),
+            Error::<Test>::NoUnnominatingWhenNextSigner
         );
     });
 }
@@ -561,14 +561,14 @@ fn it_stops_chill_when_signer_or_next_signer() {
 
         // test nominating flow
         assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(101),
+            RuntimeOrigin::signed(9),
             100u64,
             pallet_staking::RewardDestination::Account(1),
         ));
-        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![7]));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![7]));
         assert_noop!(
-            Staking::chill(RuntimeOrigin::signed(101)),
-            Error::<Test>::NoUnbondingWhenSigner
+            Staking::chill(RuntimeOrigin::signed(9)),
+            Error::<Test>::NoUnnominatingWhenSigner
         );
 
         assert_ok!(FrameStaking::bond(
@@ -595,10 +595,10 @@ fn it_stops_chill_when_signer_or_next_signer() {
             Error::<Test>::NoUnbondingWhenNextSigner
         );
         // test nominating flow
-        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(101), vec![8]));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![8]));
         assert_noop!(
-            Staking::chill(RuntimeOrigin::signed(101)),
-            Error::<Test>::NoUnbondingWhenNextSigner
+            Staking::chill(RuntimeOrigin::signed(9)),
+            Error::<Test>::NoUnnominatingWhenNextSigner
         );
     });
 }

@@ -311,6 +311,8 @@ pub mod pallet {
         AlreadyConfirmed,
         NoUnbondingWhenSigner,
         NoUnbondingWhenNextSigner,
+        NoUnnominatingWhenSigner,
+        NoUnnominatingWhenNextSigner,
     }
 
     #[pallet::event]
@@ -416,7 +418,8 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let signers_length = Self::ensure_not_signer_or_next_signer(&ledger.stash)?;
+            let signers_length =
+                Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::unbond(origin, value)?;
 
@@ -432,7 +435,8 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let signers_length = Self::ensure_not_signer_or_next_signer(&ledger.stash)?;
+            let signers_length =
+                Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::chill(origin)?;
 
@@ -455,7 +459,8 @@ pub mod pallet {
                 <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash.clone())
                     .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            let signers_length = Self::ensure_not_signer_or_next_signer(&ledger.stash)?;
+            let signers_length =
+                Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
@@ -574,7 +579,7 @@ pub mod pallet {
         }
 
         /// Ensures that the current validator is not a signer or a next signer
-        pub fn ensure_not_signer_or_next_signer(
+        pub fn ensure_not_signer_or_next_signer_or_nominating(
             stash: &T::AccountId,
         ) -> Result<u32, DispatchError> {
             let nominations = pallet_staking::Nominators::<T>::get(stash)
@@ -592,7 +597,7 @@ pub mod pallet {
             };
 
             ensure!(!in_signers(stash), Error::<T>::NoUnbondingWhenSigner);
-            ensure!(!nominations.iter().any(in_signers), Error::<T>::NoUnbondingWhenSigner);
+            ensure!(!nominations.iter().any(in_signers), Error::<T>::NoUnnominatingWhenSigner);
 
             if let Some(next_signers) = Self::next_signers() {
                 let next_signers_contains = |id: &T::AccountId| {
@@ -607,7 +612,7 @@ pub mod pallet {
                 ensure!(!next_signers_contains(stash), Error::<T>::NoUnbondingWhenNextSigner);
                 ensure!(
                     !nominations.iter().any(next_signers_contains),
-                    Error::<T>::NoUnbondingWhenNextSigner
+                    Error::<T>::NoUnnominatingWhenNextSigner
                 );
             }
 
