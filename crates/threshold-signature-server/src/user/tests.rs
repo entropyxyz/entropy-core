@@ -745,11 +745,7 @@ async fn test_jumpstart_network() {
             tss_account: TSS_ACCOUNTS[2].clone().encode(),
         },
     ];
-    let onchain_user_request = OcwMessageDkg {
-        sig_request_accounts: vec![NETWORK_PARENT_KEY.encode()],
-        block_number,
-        validators_info,
-    };
+    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
 
     put_jumpstart_request_on_chain(&api, &rpc, &alice).await;
 

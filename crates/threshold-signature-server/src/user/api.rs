@@ -265,10 +265,10 @@ pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    let mut data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
+    let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
-    if data.sig_request_accounts.is_empty() {
+    if data.validators_info.is_empty() {
         return Ok(StatusCode::NO_CONTENT);
     }
 
@@ -276,10 +276,8 @@ pub async fn generate_network_key(
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
-    let selected_validators = get_jumpstart_validators(&api, &rpc, data.block_number).await?;
-
     let in_registration_group =
-        check_in_registration_group(&selected_validators, signer.account_id());
+        check_in_registration_group(&data.validators_info, signer.account_id());
 
     if in_registration_group.is_err() {
         tracing::warn!(
@@ -291,8 +289,6 @@ pub async fn generate_network_key(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
-    // Use selected validators rather than the validators from the HTTP request
-    data.validators_info = selected_validators;
     validate_jump_start(&data, &api, &rpc, &app_state.kv_store).await?;
 
     // Do the DKG protocol in another task, so we can already respond
@@ -305,55 +301,6 @@ pub async fn generate_network_key(
     });
 
     Ok(StatusCode::OK)
-}
-
-/// Deterministically select n initial signers from validator set using block number
-async fn get_jumpstart_validators(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    block_number: u32,
-) -> Result<Vec<entropy_shared::ValidatorInfo>, UserErr> {
-    // Get n from parameters
-    let n = {
-        let total_signers_query = entropy::storage().parameters().signers_info();
-        let signers_info =
-            query_chain(api, rpc, total_signers_query, None).await?.ok_or_else(|| {
-                UserErr::OptionUnwrapError(
-                    "Cannot get signer info from parameters pallet".to_string(),
-                )
-            })?;
-        signers_info.total_signers
-    };
-
-    // Get all validators
-    let all_validators = {
-        let validators_query = entropy::storage().session().validators();
-        query_chain(api, rpc, validators_query, None).await?.ok_or_else(|| {
-            UserErr::OptionUnwrapError("Cannot get validators info from session pallet".to_string())
-        })?
-    };
-
-    // Select n validators
-    let mut rng = rand::rngs::StdRng::seed_from_u64(block_number.into());
-    let selected_validators: Vec<_> =
-        all_validators.choose_multiple(&mut rng, n.into()).cloned().collect();
-
-    // Get validator info for selected validators
-    let mut validators_info: Vec<_> = vec![];
-    for validator_address in selected_validators {
-        let validator_query =
-            entropy::storage().staking_extension().threshold_servers(validator_address);
-        let server_info = query_chain(api, rpc, validator_query, None).await?.ok_or_else(|| {
-            UserErr::OptionUnwrapError("Cannot get server info for selected TS server".to_string())
-        })?;
-        validators_info.push(entropy_shared::ValidatorInfo {
-            x25519_public_key: server_info.x25519_public_key,
-            ip_address: server_info.endpoint,
-            tss_account: server_info.tss_account.0.to_vec(),
-        });
-    }
-
-    Ok(validators_info)
 }
 
 /// Setup and execute DKG.
@@ -373,49 +320,33 @@ async fn setup_dkg(
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
-    for sig_request_account in data.sig_request_accounts.into_iter() {
-        let address_slice: &[u8; 32] = &sig_request_account
-            .clone()
-            .try_into()
-            .map_err(|_| UserErr::AddressConversionError("Invalid Length".to_string()))?;
-        let sig_request_address = SubxtAccountId32(*address_slice);
+    let (key_share, aux_info) = do_dkg(
+        &data.validators_info,
+        &signer,
+        x25519_secret_key,
+        &app_state.listener_state,
+        data.block_number,
+    )
+    .await?;
 
-        let (key_share, aux_info) = do_dkg(
-            &data.validators_info,
-            &signer,
-            x25519_secret_key,
-            &app_state.listener_state,
-            sig_request_address.clone(),
-            data.block_number,
-        )
-        .await?;
+    let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
-        let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
-        let string_verifying_key = if sig_request_account == NETWORK_PARENT_KEY.encode() {
-            hex::encode(NETWORK_PARENT_KEY)
-        } else {
-            hex::encode(verifying_key.clone())
-        }
-        .to_string();
+    let serialized_key_share = key_serialize(&(key_share, aux_info))
+        .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
 
-        let serialized_key_share = key_serialize(&(key_share, aux_info))
-            .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
+    let reservation = app_state.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await?;
+    app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
-        let reservation = app_state.kv_store.kv().reserve_key(string_verifying_key.clone()).await?;
-        app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
-        let block_hash = rpc
-            .chain_get_block_hash(None)
-            .await?
-            .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
+    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+    let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
-        let nonce_call =
-            entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
-        let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
-
-        // TODO: Error handling really complex needs to be thought about.
-        confirm_jump_start(&api, rpc, sig_request_address, &signer, verifying_key, nonce).await?;
-    }
+    // TODO: Error handling really complex needs to be thought about.
+    confirm_jump_start(&api, rpc, &signer, verifying_key, nonce).await?;
     Ok(())
 }
 
@@ -423,7 +354,6 @@ async fn setup_dkg(
 pub async fn confirm_jump_start(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    who: SubxtAccountId32,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     verifying_key: Vec<u8>,
     nonce: u32,
@@ -432,10 +362,6 @@ pub async fn confirm_jump_start(
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
     // or other method under sign_and_*
-
-    if who.encode() != NETWORK_PARENT_KEY.encode() {
-        return Err(UserErr::UnableToConfirmJumpStart);
-    }
 
     let jump_start_request = entropy::tx().registry().confirm_jump_start(
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec(verifying_key),
@@ -475,18 +401,18 @@ async fn validate_jump_start(
         return Err(UserErr::StaleData);
     }
 
-    let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(Some(chain_data.sig_request_accounts.clone()).encode());
-    let chain_data_hash = hasher_chain_data.finalize();
-    let mut hasher_verifying_data = Blake2s256::new();
+    // let mut hasher_chain_data = Blake2s256::new();
+    // hasher_chain_data.update(Some(chain_data.sig_request_accounts.clone()).encode());
+    // let chain_data_hash = hasher_chain_data.finalize();
+    // let mut hasher_verifying_data = Blake2s256::new();
 
     let verifying_data_query = entropy::storage().registry().jumpstart_dkg(chain_data.block_number);
+    let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?.unwrap();
 
-    let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?;
-    hasher_verifying_data.update(verifying_data.encode());
-
-    let verifying_data_hash = hasher_verifying_data.finalize();
-    if verifying_data_hash != chain_data_hash {
+    // hasher_verifying_data.update(verifying_data.encode());
+    // let verifying_data_hash = hasher_verifying_data.finalize();
+    let verifying_data: Vec<_> = verifying_data.into_iter().map(|v| v.0).collect();
+    if verifying_data != chain_data.validators_info {
         return Err(UserErr::InvalidData);
     }
 
