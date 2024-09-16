@@ -60,7 +60,14 @@ benchmarks! {
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
 
-  }: _(RawOrigin::Signed(deployer.clone()), program.clone(), configuration_schema.clone(), auxiliary_data_schema.clone(), oracle_data_pointer.clone(), version_number)
+  }: _(
+      RawOrigin::Signed(deployer.clone()),
+      program.clone(),
+      configuration_schema.clone(),
+      auxiliary_data_schema.clone(),
+      oracle_data_pointer.clone(),
+      version_number,
+  )
   verify {
     assert_last_event::<T>(
         Event::<T>::ProgramCreated {
