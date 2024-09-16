@@ -372,8 +372,6 @@ async fn signature_request_with_derived_account_works() {
     )
     .await;
 
-    dbg!(&validator_ips);
-
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
     jump_start_network(&entropy_api, &rpc).await;

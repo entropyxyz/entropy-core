@@ -352,6 +352,7 @@ pub async fn spawn_testing_validators_parallel(
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
+    dbg!(&ips);
     (ips, ids)
 }
 
