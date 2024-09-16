@@ -95,6 +95,7 @@ use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     AuxInfo, ThresholdKeyShare,
 };
+use tokio::select;
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
     task::JoinHandle,
@@ -728,28 +729,15 @@ async fn test_jumpstart_network() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-    let validators_info = vec![
-        entropy_shared::ValidatorInfo {
-            ip_address: b"127.0.0.1:3001".to_vec(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone().encode(),
-        },
-        entropy_shared::ValidatorInfo {
-            ip_address: b"127.0.0.1:3002".to_vec(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone().encode(),
-        },
-        entropy_shared::ValidatorInfo {
-            ip_address: b"127.0.0.1:3003".to_vec(),
-            x25519_public_key: X25519_PUBLIC_KEYS[2],
-            tss_account: TSS_ACCOUNTS[2].clone().encode(),
-        },
-    ];
-    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
-
     put_jumpstart_request_on_chain(&api, &rpc, &alice).await;
 
     run_to_block(&rpc, block_number + 1).await;
+
+    let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
+    let validators_info =
+        query_chain(&api, &rpc, selected_validators_query, None).await.unwrap().unwrap();
+    let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
+    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
 
     // succeeds
     let response_results = join_all(
