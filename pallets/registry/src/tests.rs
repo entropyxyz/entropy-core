@@ -375,39 +375,39 @@ fn it_tests_jump_start_result() {
         );
 
         assert_ok!(Registry::confirm_jump_start(
-            RuntimeOrigin::signed(1),
+            RuntimeOrigin::signed(7),
             expected_verifying_key.clone()
         ));
         assert_eq!(
             Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
-                confirmations: vec![1],
+                confirmations: vec![7],
                 verifying_key: Some(expected_verifying_key.clone()),
                 parent_key_threshold: 2,
             },
             "Jump start recieves a confirmation"
         );
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7), expected_verifying_key.clone()),
             Error::<Test>::AlreadyConfirmed
         );
 
         let bad_verifying_key =
             BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), bad_verifying_key.clone()),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7), bad_verifying_key.clone()),
             Error::<Test>::MismatchedVerifyingKey
         );
 
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(5, 5);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(3, 3);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(4, 4);
         assert_ok!(Registry::confirm_jump_start(
-            RuntimeOrigin::signed(2),
+            RuntimeOrigin::signed(3),
             expected_verifying_key.clone()
         ));
         assert_ok!(Registry::confirm_jump_start(
-            RuntimeOrigin::signed(5),
+            RuntimeOrigin::signed(4),
             expected_verifying_key.clone()
         ));
         assert_eq!(
@@ -422,7 +422,7 @@ fn it_tests_jump_start_result() {
         );
         assert_eq!(
             pallet_staking_extension::Signers::<Test>::get(),
-            vec![1, 2, 5],
+            vec![7, 3, 4],
             "Jumpstart sets inital signers"
         );
     });
