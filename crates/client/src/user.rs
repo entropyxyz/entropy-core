@@ -31,14 +31,29 @@ pub struct UserSignatureRequest {
     pub message: String,
     /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
     pub auxilary_data: Option<Vec<Option<String>>>,
-    /// Information from the validators in signing party
-    pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
     pub block_number: BlockNumber,
     /// Hashing algorithm to be used for signing
     pub hash: HashingAlgorithm,
     /// The verifying key for the signature requested
     pub signature_verifying_key: Vec<u8>,
+}
+
+/// Represents an unparsed, transaction request coming from the relayer to a signer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RelayerSignatureRequest {
+    /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)
+    pub message: String,
+    /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
+    pub auxilary_data: Option<Vec<Option<String>>>,
+    /// When the message was created and signed
+    pub block_number: BlockNumber,
+    /// Hashing algorithm to be used for signing
+    pub hash: HashingAlgorithm,
+    /// The verifying key for the signature requested
+    pub signature_verifying_key: Vec<u8>,
+    /// Information for the validators in the signing party
+    pub validators_info: Vec<ValidatorInfo>
 }
 
 pub async fn get_signers_from_chain(

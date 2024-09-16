@@ -120,7 +120,6 @@ pub async fn sign(
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
         auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
-        validators_info: validators_info.clone(),
         block_number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),

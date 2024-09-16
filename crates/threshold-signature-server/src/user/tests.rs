@@ -1272,7 +1272,6 @@ async fn test_faucet() {
         auxilary_data: Some(vec![Some(hex::encode(
             &serde_json::to_string(&aux_data.clone()).unwrap(),
         ))]),
-        validators_info,
         block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Blake2_256,
         signature_verifying_key: verifying_key.clone().to_vec(),
@@ -1547,7 +1546,6 @@ pub async fn get_sign_tx_data(
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
             Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED)),
         ]),
-        validators_info: validators_info.clone(),
         block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),
