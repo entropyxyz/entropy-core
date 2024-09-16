@@ -404,7 +404,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Wraps's substrate unbond but checks to make sure targeted validator is not a signer or next signer
+        /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
         #[pallet::call_index(2)]
         #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32))]
         pub fn unbond(
@@ -423,7 +423,7 @@ pub mod pallet {
             Ok(Some(<T as Config>::WeightInfo::unbond(signers_length)).into())
         }
 
-        /// Wraps's substrate chill but checks to make targeted validator sure not signer or next signer
+        /// Wraps's Substrate's `chill` extrinsic but checks to make sure the targeted account is not a signer or next signer
         #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32))]
         pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -439,7 +439,7 @@ pub mod pallet {
             Ok(Some(<T as Config>::WeightInfo::chill(signers_length)).into())
         }
 
-        /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
+        /// Wraps's Substrate's `withdraw_unbonded` extrinsic but clears extra state if fully unbonded
         #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
         pub fn withdraw_unbonded(
