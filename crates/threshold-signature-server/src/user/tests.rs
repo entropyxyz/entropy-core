@@ -613,7 +613,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     for res in test_user_bad_connection_res {
         assert_eq!(
             res.unwrap().text().await.unwrap(),
-            "{\"Err\":\"Oneshot timeout error: channel closed\"}"
+            "{\"Err\":\"Subscribe message rejected: NoListener(\\\"no listener\\\")\"}"
         );
     }
 
