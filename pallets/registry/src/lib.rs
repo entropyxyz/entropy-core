@@ -268,8 +268,12 @@ pub mod pallet {
             origin: OriginFor<T>,
             verifying_key: VerifyingKey,
         ) -> DispatchResultWithPostInfo {
-            // Chack that the confirmation is coming from one of the selected validators
             let ts_server_account = ensure_signed(origin)?;
+            let validator_stash =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
+
+            // Check that the confirmation is coming from one of the selected validators
             let (_block_number, selected_validators) =
                 JumpstartDkg::<T>::iter().last().ok_or(Error::<T>::JumpStartNotInProgress)?;
             let selected_validators: Vec<_> =
@@ -294,10 +298,6 @@ pub mod pallet {
                 matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
                 Error::<T>::JumpStartNotInProgress
             );
-
-            let validator_stash =
-                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
-                    .ok_or(Error::<T>::NoThresholdKey)?;
 
             ensure!(
                 !jump_start_info.confirmations.contains(&validator_stash),

@@ -16,8 +16,7 @@
 #[allow(unused)]
 use pallet_registry::Call as RegistryCall;
 
-use codec::Encode;
-use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{ValidatorInfo, VERIFICATION_KEY_LENGTH};
 use frame_support::{assert_noop, assert_ok, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
@@ -300,7 +299,23 @@ fn it_jumps_the_network() {
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(
             Registry::jumpstart_dkg(0),
-            vec![NETWORK_PARENT_KEY.encode()],
+            vec![
+                ValidatorInfo {
+                    x25519_public_key: [0; 32],
+                    ip_address: vec![20],
+                    tss_account: vec![7, 0, 0, 0, 0, 0, 0, 0]
+                },
+                ValidatorInfo {
+                    x25519_public_key: [0; 32],
+                    ip_address: vec![10],
+                    tss_account: vec![3, 0, 0, 0, 0, 0, 0, 0]
+                },
+                ValidatorInfo {
+                    x25519_public_key: [0; 32],
+                    ip_address: vec![11],
+                    tss_account: vec![4, 0, 0, 0, 0, 0, 0, 0]
+                },
+            ],
             "ensures a dkg message for the jump start network is prepped"
         );
         assert_eq!(
@@ -344,20 +359,20 @@ fn it_tests_jump_start_result() {
             Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::NoThresholdKey
         );
+
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-
         pallet_staking_extension::ThresholdToStash::<Test>::insert(7, 7);
-        assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(7), expected_verifying_key.clone()),
-            Error::<Test>::NotValidator
-        );
-
         assert_noop!(
             Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::JumpStartNotInProgress
         );
+
         // trigger jump start
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Error::<Test>::NotValidator
+        );
 
         assert_ok!(Registry::confirm_jump_start(
             RuntimeOrigin::signed(1),

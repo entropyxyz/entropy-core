@@ -2782,7 +2782,6 @@ dependencies = [
  "num",
  "parity-scale-codec",
  "project-root",
- "rand",
  "rand_core 0.6.4",
  "reqwest",
  "reqwest-eventsource",
@@ -14042,7 +14041,7 @@ dependencies = [
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion/?rev=1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa#1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa"
+source = "git+https://github.com/entropyxyz/synedrion?rev=1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa#1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa"
 dependencies = [
  "base64 0.21.7",
  "bincode 2.0.0-rc.3",
