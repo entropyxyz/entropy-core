@@ -187,7 +187,7 @@ pub mod pallet {
             /// The oracle data location needed for the program
             oracle_data_pointer: Vec<u8>,
 
-            /// The version number of the program created
+            /// The version number of runtime for which the program was written
             version_number: u8,
         },
         /// The bytecode of a program was removed.
