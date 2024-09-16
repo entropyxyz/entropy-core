@@ -18,6 +18,7 @@ At the moment this project **does not** adhere to
   cleaned up. A lot of storage entries, events, and extrinsics were removed from the `Registry`
   pallet. The genesis build config was also removed. Additionally, the `new/user/` HTTP endpoint in
   the TSS was removed since it was no longer necessary.
+- In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes `version_number` to maintain backwards compatibility if programs runtime is updated 
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -33,6 +34,7 @@ At the moment this project **does not** adhere to
 - Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
 - Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
+- Add a programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
