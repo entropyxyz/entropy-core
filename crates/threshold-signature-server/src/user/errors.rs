@@ -175,6 +175,10 @@ pub enum UserErr {
     Bip32DerivationError(#[from] bip32::Error),
     #[error("Message sent directly to signer")]
     NotRelayedFromValidator,
+    #[error("Message not sent to a validator")]
+    NotValidator,
+    #[error("Relay message can not be sent to a signer")]
+    RelayMessageSigner,
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

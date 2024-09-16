@@ -111,11 +111,37 @@ pub async fn relay_tx(
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
+    // make sure is a validator and not a signer
+    let validators_query = entropy::storage().session().validators();
+    let validators = query_chain(&api, &rpc, validators_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Error getting validators"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, validators).await?;
+
+    validators_info
+        .iter()
+        .find(|validator| validator.tss_account == *signer.account_id())
+        .ok_or_else(|| UserErr::NotValidator)?;
+
+    let signers_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signers_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Error getting signers"))?;
+
+    let signers_info = get_validators_info(&api, &rpc, signers).await?;
+
+    signers_info
+        .iter()
+        .find(|signer_info| signer_info.tss_account == *signer.account_id())
+        .map_or(Ok(()), |_| Err(UserErr::RelayMessageSigner))?;
+
     let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
-    // make sure Im a validator not a signer
+
     let signers = get_signers_from_chain(&api, &rpc).await?;
     let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
 
