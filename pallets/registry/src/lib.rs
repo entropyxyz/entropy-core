@@ -52,7 +52,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{MAX_SIGNERS, NETWORK_PARENT_KEY};
+    use entropy_shared::{ValidatorInfo, MAX_SIGNERS, NETWORK_PARENT_KEY};
     use frame_support::{
         dispatch::DispatchResultWithPostInfo, pallet_prelude::*, traits::ConstU32,
     };
@@ -60,6 +60,7 @@ pub mod pallet {
     use pallet_staking_extension::{
         JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo, VerifyingKey,
     };
+    use rand::seq::SliceRandom;
     use scale_info::TypeInfo;
     use sp_std::vec;
     use sp_std::vec::Vec;
@@ -125,11 +126,11 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     /// Used for triggering a network wide distributed key generation request via an offchain
-    /// worker.
+    /// workerg. Maps block number to the selected validators for jumpstart DKG.
     #[pallet::storage]
     #[pallet::getter(fn jumpstart_dkg)]
     pub type JumpstartDkg<T: Config> =
-        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<ValidatorInfo>, ValueQuery>;
 
     /// An item tracking all the users registered on the Entropy network.
     ///
@@ -189,6 +190,8 @@ pub mod pallet {
         NoRegisteringFromParentKey,
         InvalidBip32DerivationPath,
         Bip32AccountDerivationFailed,
+        NotEnoughValidatorsForJumpStart,
+        CannotFindValidatorInfo,
     }
 
     /// Allows anyone to create a parent key for the network if the network is read and a parent key
@@ -218,14 +221,33 @@ pub mod pallet {
                 _ => return Err(Error::<T>::JumpStartProgressNotReady.into()),
             };
 
-            // TODO (#923): Add checks for network state.
-            JumpstartDkg::<T>::try_mutate(
-                current_block_number,
-                |messages| -> Result<_, DispatchError> {
-                    messages.push(NETWORK_PARENT_KEY.encode());
-                    Ok(())
-                },
-            )?;
+            // Ensure we have at least n validators
+            // TODO (#923): Add other checks for network state.
+            let total_signers = pallet_parameters::Pallet::<T>::signers_info().total_signers;
+            let validators = pallet_session::Pallet::<T>::validators();
+            ensure!(
+                validators.len() >= total_signers.into(),
+                Error::<T>::NotEnoughValidatorsForJumpStart
+            );
+
+            // Select validators for jump start
+            let mut rng = pallet_staking_extension::Pallet::<T>::get_randomness();
+            let selected_validators: Vec<_> =
+                validators.choose_multiple(&mut rng, total_signers.into()).cloned().collect();
+
+            // Get validator info for each selected validator
+            let mut validators_info = Vec::new();
+            for validator_address in selected_validators {
+                let server_info =
+                    pallet_staking_extension::Pallet::<T>::threshold_server(&validator_address)
+                        .ok_or(Error::<T>::CannotFindValidatorInfo)?;
+                validators_info.push(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: server_info.endpoint.clone(),
+                    tss_account: server_info.tss_account.encode(),
+                });
+            }
+            JumpstartDkg::<T>::set(current_block_number, validators_info);
             JumpStartProgress::<T>::put(JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(converted_block_number),
                 confirmations: vec![],
@@ -246,14 +268,16 @@ pub mod pallet {
             origin: OriginFor<T>,
             verifying_key: VerifyingKey,
         ) -> DispatchResultWithPostInfo {
-            // check is validator
+            // Chack that the confirmation is coming from one of the selected validators
             let ts_server_account = ensure_signed(origin)?;
-
-            let validator_stash =
-                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
-                    .ok_or(Error::<T>::NoThresholdKey)?;
-            let validators = pallet_session::Pallet::<T>::validators();
-            ensure!(validators.contains(&validator_stash), Error::<T>::NotValidator);
+            let (_block_number, selected_validators) =
+                JumpstartDkg::<T>::iter().last().ok_or(Error::<T>::JumpStartNotInProgress)?;
+            let selected_validators: Vec<_> =
+                selected_validators.into_iter().map(|v| v.tss_account).collect();
+            ensure!(
+                selected_validators.contains(&ts_server_account.encode()),
+                Error::<T>::NotValidator
+            );
 
             let mut jump_start_info = JumpStartProgress::<T>::get();
             match jump_start_info.verifying_key {
@@ -270,6 +294,10 @@ pub mod pallet {
                 matches!(jump_start_info.jump_start_status, JumpStartStatus::InProgress(_)),
                 Error::<T>::JumpStartNotInProgress
             );
+
+            let validator_stash =
+                pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
+                    .ok_or(Error::<T>::NoThresholdKey)?;
 
             ensure!(
                 !jump_start_info.confirmations.contains(&validator_stash),

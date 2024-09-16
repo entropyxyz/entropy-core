@@ -7273,6 +7273,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
+ "rand",
  "scale-info",
  "sp-core 29.0.0",
  "sp-io 31.0.0",
