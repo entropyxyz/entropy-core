@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::MAX_SIGNERS;
+use codec::Encode;
+use entropy_shared::{ValidatorInfo, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -102,6 +103,15 @@ benchmarks! {
       parent_key_threshold: 2
       });
 
+    // Add the jump start record
+    let block_number = <frame_system::Pallet<T>>::block_number();
+    <JumpstartDkg<T>>::set(block_number, vec![
+        ValidatorInfo {
+            x25519_public_key: [0; 32],
+            ip_address: vec![20],
+            tss_account: accounts[1].encode(),
+        }
+    ]);
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
@@ -116,6 +126,16 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let expected_verifying_key = BoundedVec::default();
+                                                                       //
+    // Add the jump start record
+    let block_number = <frame_system::Pallet<T>>::block_number();
+    <JumpstartDkg<T>>::set(block_number, vec![
+        ValidatorInfo {
+            x25519_public_key: [0; 32],
+            ip_address: vec![20],
+            tss_account: threshold_account.encode(),
+        }
+    ]);
 
     // add validators and a registering user
     for i in 0..MAX_SIGNERS {
