@@ -126,7 +126,7 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     /// Used for triggering a network wide distributed key generation request via an offchain
-    /// workerg. Maps block number to the selected validators for jumpstart DKG.
+    /// worker. Maps block number to the selected validators for jumpstart DKG.
     #[pallet::storage]
     #[pallet::getter(fn jumpstart_dkg)]
     pub type JumpstartDkg<T: Config> =

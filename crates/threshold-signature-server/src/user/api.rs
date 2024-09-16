@@ -45,7 +45,6 @@ use futures::{
 };
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
-use rand::{seq::SliceRandom, SeedableRng};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, H256};
