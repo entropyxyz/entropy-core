@@ -401,16 +401,9 @@ async fn validate_jump_start(
         return Err(UserErr::StaleData);
     }
 
-    // let mut hasher_chain_data = Blake2s256::new();
-    // hasher_chain_data.update(Some(chain_data.sig_request_accounts.clone()).encode());
-    // let chain_data_hash = hasher_chain_data.finalize();
-    // let mut hasher_verifying_data = Blake2s256::new();
-
+    // Check that the on-chain selected validators match those from the HTTP request
     let verifying_data_query = entropy::storage().registry().jumpstart_dkg(chain_data.block_number);
     let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?.unwrap();
-
-    // hasher_verifying_data.update(verifying_data.encode());
-    // let verifying_data_hash = hasher_verifying_data.finalize();
     let verifying_data: Vec<_> = verifying_data.into_iter().map(|v| v.0).collect();
     if verifying_data != chain_data.validators_info {
         return Err(UserErr::InvalidData);
