@@ -66,7 +66,7 @@ benchmarks! {
       configuration_schema.clone(),
       auxiliary_data_schema.clone(),
       oracle_data_pointer.clone(),
-      version_number,
+      version_number
   )
   verify {
     assert_last_event::<T>(
