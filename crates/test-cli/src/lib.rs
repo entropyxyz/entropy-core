@@ -206,11 +206,7 @@ pub async fn run_command(
 
             for (i, program) in programs.into_iter().enumerate() {
                 let program_version_number =
-                    if let Some(ref program_version_numbers) = program_version_numbers {
-                        program_version_numbers[i]
-                    } else {
-                        0u8
-                    };
+                    program_version_numbers.as_ref().map_or(0u8, |versions| versions[i]);
                 programs_info.push(
                     Program::from_hash_or_filename(
                         &api,
@@ -301,7 +297,7 @@ pub async fn run_command(
 
             let program_version_number = match program_version_number_option {
                 Some(program_version_number) => program_version_number,
-                None => program_version_number.expect("No Version number passed"),
+                None => program_version_number.unwrap_or(0u8),
             };
 
             let hash = store_program(
@@ -352,11 +348,7 @@ pub async fn run_command(
 
             for (i, program) in programs.into_iter().enumerate() {
                 let program_version_number =
-                    if let Some(ref program_version_numbers) = program_version_numbers {
-                        program_version_numbers[i]
-                    } else {
-                        0u8
-                    };
+                    program_version_numbers.as_ref().map_or(0u8, |versions| versions[i]);
                 programs_info.push(
                     Program::from_hash_or_filename(
                         &api,
