@@ -24,9 +24,9 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
-    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
-    TOTAL_SIGNERS,
+    BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE,
+    DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
+    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -177,19 +177,20 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
         .build()
 }
 
-pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+pub fn testnet_local_initial_tss_servers(
+) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, BoundedVecEncodedVerifyingKey)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_x25519_public_key::ALICE,
         "alice-tss-server:3001".to_string(),
-        provisioning_certification_key::ALICE,
+        provisioning_certification_key::ALICE.clone(),
     );
 
     let bob = (
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_x25519_public_key::BOB,
         "bob-tss-server:3002".to_string(),
-        provisioning_certification_key::BOB,
+        provisioning_certification_key::BOB.clone(),
     );
 
     vec![alice, bob]
@@ -209,7 +210,8 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
 ///
 /// Note that if the KVDB of the TSS is deleted at any point during this process you will end up
 /// with different `AccountID`s and `PublicKey`s.
-pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)> {
+pub fn testnet_initial_tss_servers(
+) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, BoundedVecEncodedVerifyingKey)> {
     use std::str::FromStr;
 
     let node_1a = (
@@ -220,6 +222,7 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
             198, 84, 61, 178, 36, 191, 56, 41, 39, 173, 70, 9, 67,
         ],
         "100.26.207.49:3001".to_string(),
+        provisioning_certification_key::ALICE.clone(),
     );
 
     let node_1b = (
@@ -230,6 +233,7 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
             10, 107, 31, 67, 10, 98, 215, 34, 26, 10, 188, 59, 71, 100,
         ],
         "34.200.237.166:3001".to_string(),
+        provisioning_certification_key::BOB.clone(),
     );
 
     let node_1c = (
@@ -240,6 +244,7 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
             36, 157, 25, 170, 72, 247, 152, 130, 139, 244, 4, 67, 162, 0,
         ],
         "184.72.189.154:3001".to_string(),
+        provisioning_certification_key::CHARLIE.clone(),
     );
 
     let node_2a = (
@@ -250,6 +255,7 @@ pub fn testnet_initial_tss_servers() -> Vec<(TssAccountId, TssX25519PublicKey, T
             196, 3, 154, 37, 23, 133, 28, 168, 221, 37, 204, 186, 61,
         ],
         "184.73.19.95:3001".to_string(),
+        provisioning_certification_key::DAVE.clone(),
     );
 
     vec![node_1a, node_1b, node_1c, node_2a]
@@ -295,7 +301,12 @@ pub fn testnet_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    initial_tss_servers: Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint)>,
+    initial_tss_servers: Vec<(
+        TssAccountId,
+        TssX25519PublicKey,
+        TssEndpoint,
+        BoundedVecEncodedVerifyingKey,
+    )>,
 ) -> serde_json::Value {
     assert!(
         initial_authorities.len() == initial_tss_servers.len(),
@@ -412,7 +423,7 @@ pub fn testnet_genesis_config(
                 .iter()
                 .zip(initial_tss_servers.iter())
                 .map(|(auth, tss)| {
-                    (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec(), tss.3))
+                    (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec(), tss.3.clone()))
                 })
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),

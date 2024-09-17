@@ -131,11 +131,11 @@ pub mod provisioning_certification_key {
     use sp_runtime::BoundedVec;
 
     lazy_static::lazy_static! {
-    pub const ALICE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
-    pub const BOB: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
-    pub const CHARLIE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
-    pub const DAVE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
-    pub const EVE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub static ref ALICE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub static ref BOB: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub static ref CHARLIE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub static ref DAVE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub static ref EVE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
     }
 }
 
