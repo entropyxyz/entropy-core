@@ -173,7 +173,8 @@ pub async fn relay_tx(
     tokio::spawn(async move {
         let client = reqwest::Client::new();
         let mut results = join_all(
-            relayer_sig_req.validators_info
+            relayer_sig_req
+                .validators_info
                 .iter()
                 .map(|signer_info| async {
                     dbg!(signer_info.clone());
