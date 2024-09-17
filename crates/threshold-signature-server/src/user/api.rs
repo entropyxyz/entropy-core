@@ -13,7 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{str::FromStr, sync::Arc, time::SystemTime};
+use std::{
+    str::{from_utf8, FromStr},
+    sync::Arc,
+    time::SystemTime,
+};
 
 use axum::{
     body::{Body, Bytes},
@@ -198,13 +202,15 @@ pub async fn relay_tx(
         .await;
 
         let mut send_back = vec![];
-        for result in results {
-            let chunk = result.unwrap().chunk().await.unwrap().unwrap();
-            dbg!(&chunk);
-            let signing_result: Result<(String, Signature), String> =
-                serde_json::from_slice(&chunk).unwrap();
-            dbg!(&signing_result);
-            send_back.push(signing_result)
+        for mut result in results {
+            let mut chunk = result.as_mut().unwrap().chunk().await.unwrap().unwrap();
+            if result.unwrap().status() == 200 {
+                let signing_result: Result<(String, Signature), String> =
+                    serde_json::from_slice(&chunk).unwrap();
+                send_back.push(signing_result)
+            } else {
+                send_back.push(Err(from_utf8(&chunk).unwrap().to_string()))
+            }
         }
         if response_tx.try_send(serde_json::to_string(&send_back)).is_err() {
             tracing::warn!("Cannot send signing protocol output - connection is closed")

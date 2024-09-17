@@ -72,6 +72,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     env, fs,
     path::PathBuf,
+    str,
     str::FromStr,
     sync::Arc,
     time::{Duration, SystemTime},
@@ -471,108 +472,109 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     clean_tests();
 }
 
-// #[tokio::test]
-// #[serial]
-// async fn test_request_limit_are_updated_during_signing() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_request_limit_are_updated_during_signing() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let one = AccountKeyring::One;
-//     let two = AccountKeyring::Two;
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
 
-//     let add_parent_key = true;
-//     let (_validator_ips, _validator_ids) =
-//         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let add_parent_key = true;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
-//     let force_authoring = true;
-//     let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
 
-//     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-//     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-//     jump_start_network(&entropy_api, &rpc).await;
+    jump_start_network(&entropy_api, &rpc).await;
 
-//     // Register the user with a test program
-//     let (verifying_key, _program_hash) =
-//         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
-//     // Test: We check that the rate limiter changes as expected when signature requests are sent
+    // Test: We check that the rate limiter changes as expected when signature requests are sent
 
-//     // First we need to get a signature request to populate the KVDB for our verifying key
-//     let (validators_info, mut signature_request, validator_ips_and_keys) =
-//         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-//             .await;
+    // First we need to get a signature request to populate the KVDB for our verifying key
+    let (validators_info, mut signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
-//     let test_user_res =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
-//             .await;
+    let test_user_res =
+        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+            .await;
 
-//     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-//     let decoded_verifying_key =
-//         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-//     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let decoded_verifying_key =
+        decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
 
-//     // Next we check request limiter increases
-//     let mock_client = reqwest::Client::new();
+    // Next we check request limiter increases
+    let mock_client = reqwest::Client::new();
 
-//     let unsafe_get =
-//         UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
-//             .to_json();
+    let unsafe_get =
+        UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
+            .to_json();
 
-//     let get_response = mock_client
-//         .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
-//         .header("Content-Type", "application/json")
-//         .body(unsafe_get.clone())
-//         .send()
-//         .await
-//         .unwrap();
-//     let serialized_request_amount = get_response.text().await.unwrap();
+    let get_response = mock_client
+        .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
+        .header("Content-Type", "application/json")
+        .body(unsafe_get.clone())
+        .send()
+        .await
+        .unwrap();
+    let serialized_request_amount = get_response.text().await.unwrap();
 
-//     let request_info: RequestLimitStorage =
-//         RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
-//     assert_eq!(request_info.request_amount, 1);
+    let request_info: RequestLimitStorage =
+        RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
+    assert_eq!(request_info.request_amount, 1);
 
-//     // Test: If we send too many requests though, we'll be blocked from signing
+    // Test: If we send too many requests though, we'll be blocked from signing
 
-//     let request_limit_query = entropy::storage().parameters().request_limit();
-//     let request_limit =
-//         query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit =
+        query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
 
-//     // Gets current block number, potential race condition run to block + 1
-//     // to reset block and give us 6 seconds to hit rate limit
-//     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-//     run_to_block(&rpc, block_number + 1).await;
+    // Gets current block number, potential race condition run to block + 1
+    // to reset block and give us 6 seconds to hit rate limit
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 1).await;
 
-//     let unsafe_put = UnsafeQuery::new(
-//         request_limit_key(hex::encode(verifying_key.to_vec())),
-//         RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
-//             .encode(),
-//     )
-//     .to_json();
+    let unsafe_put = UnsafeQuery::new(
+        request_limit_key(hex::encode(verifying_key.to_vec())),
+        RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
+            .encode(),
+    )
+    .to_json();
 
-//     for validator_info in validators_info {
-//         mock_client
-//             .post(format!("http://{}/unsafe/put", validator_info.ip_address))
-//             .header("Content-Type", "application/json")
-//             .body(unsafe_put.clone())
-//             .send()
-//             .await
-//             .unwrap();
-//     }
+    for validator_info in validators_info {
+        mock_client
+            .post(format!("http://{}/unsafe/put", validator_info.ip_address))
+            .header("Content-Type", "application/json")
+            .body(unsafe_put.clone())
+            .send()
+            .await
+            .unwrap();
+    }
 
-//     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-//     signature_request.signature_verifying_key = verifying_key.to_vec();
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.signature_verifying_key = verifying_key.to_vec();
 
-//     let test_user_failed_request_limit =
-//         submit_transaction_requests(validator_ips_and_keys.clone(), signature_request.clone(), one)
-//             .await;
+    let test_user_failed_request_limit =
+        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+            .await;
 
-//     for res in test_user_failed_request_limit {
-//         assert_eq!(res.unwrap().text().await.unwrap(), "Too many requests - wait a block");
-//     }
+    let chunk = test_user_failed_request_limit.unwrap().text().await.unwrap();
 
-//     clean_tests();
-// }
+    assert_eq!(chunk, "[{\"Err\":\"Too many requests - wait a block\"},{\"Err\":\"Too many requests - wait a block\"}]");
+
+    clean_tests();
+}
 
 // #[tokio::test]
 // #[serial]
@@ -1545,28 +1547,13 @@ pub async fn submit_transaction_requests(
         .body(serde_json::to_string(&signed_message).unwrap())
         .send()
         .await
-    // join_all(
-    //     validator_urls_and_keys
-    //         .iter()
-    //         .map(|validator_tuple| async {
-    //             let signed_message = EncryptedSignedMessage::new(
-    //                 &keyring.pair(),
-    //                 serde_json::to_vec(&signature_request.clone()).unwrap(),
-    //                 &validator_tuple.1,
-    //                 &[],
-    //             )
-    //             .unwrap();
-    //             let url = format!("http://{}/user/sign_tx", validator_tuple.0.clone());
-    //             mock_client
-    //                 .post(url)
-    //                 .header("Content-Type", "application/json")
-    //                 .body(serde_json::to_string(&signed_message).unwrap())
-    //                 .send()
-    //                 .await
-    //         })
-    //         .collect::<Vec<_>>(),
-    // )
-    // .await
+}
+
+pub async fn format_relay_result(
+    mut results: reqwest::Response,
+) -> Result<Vec<Result<(String, Signature), String>>, ()> {
+    let chunks = results.chunk().await.unwrap().unwrap();
+    serde_json::from_slice(&chunks).unwrap()
 }
 
 pub async fn get_sign_tx_data(
