@@ -57,12 +57,24 @@ fn setup_programs(
 fn it_tests_get_validators_info() {
     new_test_ext().execute_with(|| {
         let result_1 = Registry::get_validators_info().unwrap();
-        let server_info_1 =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![10] };
-        let server_info_2 =
-            ServerInfo { tss_account: 4, x25519_public_key: NULL_ARR, endpoint: vec![11] };
-        let server_info_3 =
-            ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info_1 = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![10],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
+        let server_info_2 = ServerInfo {
+            tss_account: 4,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![11],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
+        let server_info_3 = ServerInfo {
+            tss_account: 7,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
 
         assert_eq!(result_1, vec![server_info_1, server_info_2, server_info_3]);
     });
