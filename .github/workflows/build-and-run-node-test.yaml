@@ -1,6 +1,7 @@
 ---
 name: "Build and test"
 on: ["push"]
+
 # on:
   # push:
       # paths:
