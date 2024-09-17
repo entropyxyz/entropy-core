@@ -320,6 +320,7 @@ pub async fn store_program_and_register(
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
