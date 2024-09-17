@@ -68,7 +68,7 @@ cargo install entropy-test-cli
 The majority of the commands available in the CLI require a connection to an Entropy
 network. You can pass in a network variable using the `--chain-endpoint` argument.
 If you do not specify an endpoint, the CLI will default to using
-`testnet.entropy.xyz`:
+`ws://localhost:9944`:
 
 ```shell
 entropy-test-cli --chain-endpoint "wss://testnet.entropy.xyz" status
@@ -185,21 +185,24 @@ That took 808.977979ms
 
 To register an entropy account, you need three things:
 
-- An Entropy chain account name, which we will call the
-'program modification account'. This must be funded in order to submit the register
-transaction. On the local `docker compose` setup, you can use one of the
-[pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/766e9b9beb041ec0a687ec82bf47ff2c71c31425/node/cli/src/endowed_accounts.rs)
-, for example, `Alice`.
-- One or more programs, which define the conditions under which a given message
-will be signed by the Entropy network. The test-cli `register` command takes
-programs as either the hex-encoded hash of an existing program on-chain or the
-local path to a `.wasm` file containing the compiled program.
-  - The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/f14d88bd684001107b0fc085ffe187f1e3892a86/examples/device-key-proxy/src/lib.rs) program is always available with the zero hash: `0000000000000000000000000000000000000000000000000000000000000000`.
-  - The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/766e9b9beb041ec0a687ec82bf47ff2c71c31425/crates/testing-utils) crate contains some ready-to-use compiled programs, the simplest of which is [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/766e9b9beb041ec0a687ec82bf47ff2c71c31425/crates/testing-utils/template_barebones.wasm)
+- An Entropy chain account name, which we will call the 'program modification account'. This must be
+  funded in order to submit the register transaction. On the local `docker compose` setup, you can
+  use one of the
+  [pre-endowed accounts](https://github.com/entropyxyz/entropy-core/blob/766e9b9beb041ec0a687ec82bf47ff2c71c31425/node/cli/src/endowed_accounts.rs),
+  for example, `Alice`.
+- One or more programs, which define the conditions under which a given message will be signed by
+  the Entropy network. The test-cli `register` command takes programs as either the hex-encoded hash
+  of an existing program on-chain or the local path to a `.wasm` file containing the compiled
+  program.
+- The [`device-key-proxy`](https://github.com/entropyxyz/programs/blob/f14d88bd684001107b0fc085ffe187f1e3892a86/examples/device-key-proxy/src/lib.rs)
+  program is always available with the zero hash:
+  `0000000000000000000000000000000000000000000000000000000000000000`.
+- The [`testing-utils`](https://github.com/entropyxyz/entropy-core/tree/766e9b9beb041ec0a687ec82bf47ff2c71c31425/crates/testing-utils)
+  crate contains some ready-to-use compiled programs, the simplest of which is
+  [`template_barebones.wasm`](https://github.com/entropyxyz/entropy-core/blob/766e9b9beb041ec0a687ec82bf47ff2c71c31425/crates/testing-utils/template_barebones.wasm)
   which allow you to sign any message which is more than 10 bytes long.
-  - See the [`programs` crate](https://github.com/entropyxyz/programs) for more
-  example programs as well as instructions on how to write and build your own
-  programs.
+- See the [`programs` crate](https://github.com/entropyxyz/programs) for more example programs as
+  well as instructions on how to write and build your own programs.
 
 For example, to register with `//Alice` as the signature request account in public
 access mode, using the `template_barebones` program:
