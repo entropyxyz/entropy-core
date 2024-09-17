@@ -33,6 +33,7 @@ At the moment this project **does not** adhere to
 - Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
 - Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
+- Select validators for jumpstart DKG [#1053](https://github.com/entropyxyz/entropy-core/pull/1053))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
