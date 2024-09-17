@@ -111,7 +111,7 @@ pub enum HashingAlgorithm {
 pub type EncodedVerifyingKey = [u8; VERIFICATION_KEY_LENGTH as usize];
 
 pub type BoundedVecEncodedVerifyingKey =
-    sp_runtime::BoundedVec<u8, sp_runtime::traits::ConstU32<VERIFICATION_KEY_LENGTH>>;
+    sp_core::bounded_vec::BoundedVec<u8, sp_core::ConstU32<VERIFICATION_KEY_LENGTH>>;
 
 /// Input data to be included in a TDX attestation
 pub struct QuoteInputData(pub [u8; 64]);
