@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
+use crate::chain_spec::{get_account_id_from_seed, provisioning_certification_key, ChainSpec};
 use crate::endowed_accounts::endowed_testnet_accounts;
 
 use entropy_runtime::{
@@ -182,12 +182,14 @@ pub fn testnet_local_initial_tss_servers() -> Vec<(TssAccountId, TssX25519Public
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_x25519_public_key::ALICE,
         "alice-tss-server:3001".to_string(),
+        provisioning_certification_key::ALICE,
     );
 
     let bob = (
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_x25519_public_key::BOB,
         "bob-tss-server:3002".to_string(),
+        provisioning_certification_key::BOB,
     );
 
     vec![alice, bob]
@@ -410,7 +412,7 @@ pub fn testnet_genesis_config(
                 .iter()
                 .zip(initial_tss_servers.iter())
                 .map(|(auth, tss)| {
-                    (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec()))
+                    (auth.0.clone(), (tss.0.clone(), tss.1, tss.2.as_bytes().to_vec(), tss.3))
                 })
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),

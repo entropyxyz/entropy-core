@@ -126,6 +126,19 @@ pub mod tss_x25519_public_key {
     ];
 }
 
+pub mod provisioning_certification_key {
+    use entropy_shared::BoundedVecEncodedVerifyingKey;
+    use sp_runtime::BoundedVec;
+
+    lazy_static::lazy_static! {
+    pub const ALICE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub const BOB: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub const CHARLIE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub const DAVE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    pub const EVE: BoundedVecEncodedVerifyingKey = BoundedVec::with_max_capacity();
+    }
+}
+
 fn entropy_properties() -> Properties {
     json!({"tokenDecimals": 10, "tokenSymbol": "BITS" }).as_object().unwrap().clone()
 }
