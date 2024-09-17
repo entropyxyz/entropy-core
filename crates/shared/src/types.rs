@@ -110,8 +110,9 @@ pub enum HashingAlgorithm {
 /// A compressed, serialized [synedrion::ecdsa::VerifyingKey<k256::Secp256k1>]
 pub type EncodedVerifyingKey = [u8; VERIFICATION_KEY_LENGTH as usize];
 
+#[cfg(not(feature = "wasm"))]
 pub type BoundedVecEncodedVerifyingKey =
-    sp_core::bounded_vec::BoundedVec<u8, sp_core::ConstU32<VERIFICATION_KEY_LENGTH>>;
+    sp_runtime::BoundedVec<u8, sp_runtime::traits::ConstU32<VERIFICATION_KEY_LENGTH>>;
 
 /// Input data to be included in a TDX attestation
 pub struct QuoteInputData(pub [u8; 64]);
