@@ -128,7 +128,6 @@ pub mod tss_x25519_public_key {
 
 pub mod provisioning_certification_key {
     use entropy_shared::BoundedVecEncodedVerifyingKey;
-    use sp_runtime::BoundedVec;
 
     lazy_static::lazy_static! {
         pub static ref ALICE: BoundedVecEncodedVerifyingKey = vec![2, 137, 55, 65, 52, 103, 166, 204, 247, 160, 46, 220, 5, 113, 151, 217, 157, 196, 11, 240, 175, 82, 148, 230, 31, 245, 207, 194, 3, 74, 121, 184, 20].try_into().unwrap();
