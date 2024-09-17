@@ -2782,6 +2782,7 @@ dependencies = [
  "num",
  "parity-scale-codec",
  "project-root",
+ "rand",
  "rand_core 0.6.4",
  "reqwest",
  "reqwest-eventsource",
@@ -14131,7 +14132,7 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 [[package]]
 name = "tdx-quote"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote?rev=0dca6b3#0dca6b353f6a119cd333530b2c85d1ea0eadc287"
+source = "git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2#cb167f2aef1c7539c91082ee21c764eac60f6bef"
 dependencies = [
  "nom",
  "p256",
