@@ -51,8 +51,12 @@ pub fn add_non_syncing_validators<T: Config>(
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let validators = create_validators::<T>(validator_amount, SEED);
     let account = account::<T::AccountId>("ts_account", 1, SEED);
-    let server_info =
-        ServerInfo { tss_account: account, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+    let server_info = ServerInfo {
+        tss_account: account,
+        x25519_public_key: NULL_ARR,
+        endpoint: vec![20],
+        provisioning_certification_key: BoundedVec::with_max_capacity(),
+    };
     for (c, validator) in validators.iter().enumerate() {
         <ThresholdServers<T>>::insert(validator, server_info.clone());
         if c >= syncing_validators.try_into().unwrap() {

@@ -15,6 +15,7 @@
 
 use entropy_shared::QuoteInputData;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::BoundedVec;
 use frame_system::{EventRecord, RawOrigin};
 use pallet_staking_extension::{ServerInfo, ThresholdServers, ThresholdToStash};
 
@@ -63,6 +64,7 @@ benchmarks! {
         tss_account: attestee.clone(),
         x25519_public_key: [0; 32],
         endpoint: b"http://localhost:3001".to_vec(),
+        provisioning_certification_key: BoundedVec::with_max_capacity(),
     });
 
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
