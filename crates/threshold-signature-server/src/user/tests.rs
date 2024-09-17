@@ -936,7 +936,7 @@ pub async fn verify_signature(
     let mut test_user_res = test_user_res.unwrap();
     assert_eq!(test_user_res.status(), 200);
     let chunk = test_user_res.chunk().await.unwrap().unwrap();
-    dbg!(&chunk);
+
     let signing_results: Vec<Result<(String, Signature), String>> =
         serde_json::from_slice(&chunk).unwrap();
     for signing_result in signing_results {
@@ -960,7 +960,6 @@ pub async fn verify_signature(
                 BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
                 &sr25519::Public(validator_info.tss_account.0),
             );
-            dbg!(sig_recovery);
             sig_recovery_results.push(sig_recovery)
         }
         assert!(sig_recovery_results.contains(&true));
@@ -1309,12 +1308,12 @@ async fn test_faucet() {
         submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
     let mut decoded_sig: Vec<u8> = vec![];
-    for res in test_user_res {
-        let chunk = res.unwrap().chunk().await.unwrap().unwrap();
-        let signing_result: Result<(String, Signature), String> =
-            serde_json::from_slice(&chunk).unwrap();
-        decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
-    }
+    let chunk = test_user_res.unwrap().chunk().await.unwrap().unwrap();
+    let signing_result: Vec<Result<(String, Signature), String>> =
+        serde_json::from_slice(&chunk).unwrap();
+    let mut decoded_sig =
+        BASE64_STANDARD.decode(signing_result.clone()[0].clone().unwrap().0).unwrap();
+
     // take signed tx and repack it into a submitable tx
     let submittable_extrinsic = partial.sign_with_address_and_signature(
         &MultiAddress::Id(verfiying_key_account.clone().into()),
