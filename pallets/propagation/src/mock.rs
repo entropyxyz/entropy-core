@@ -28,7 +28,7 @@ use sp_runtime::{
     curve::PiecewiseLinear,
     testing::{TestXt, UintAuthorityId},
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
-    BuildStorage, Perbill,
+    BoundedVec, BuildStorage, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use std::cell::RefCell;
@@ -380,10 +380,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         threshold_servers: vec![
             // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
-            (5, (7, NULL_ARR, vec![20])),
-            (6, (8, NULL_ARR, vec![40])),
-            (1, (3, NULL_ARR, vec![10])),
-            (2, (4, NULL_ARR, vec![11])),
+            (5, (7, NULL_ARR, vec![20], BoundedVec::with_max_capacity())),
+            (6, (8, NULL_ARR, vec![40], BoundedVec::with_max_capacity())),
+            (1, (3, NULL_ARR, vec![10], BoundedVec::with_max_capacity())),
+            (2, (4, NULL_ARR, vec![11], BoundedVec::with_max_capacity())),
         ],
         proactive_refresh_data: (vec![], vec![]),
         mock_signer_rotate: (false, vec![], vec![]),
