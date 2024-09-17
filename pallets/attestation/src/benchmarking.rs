@@ -24,7 +24,11 @@ use super::*;
 use crate::Pallet as AttestationPallet;
 
 // This is a randomly generated secret p256 ECDSA key
-const ENCLAVE_SIGNING_KEY: [u8; 32] = [
+const ATTESTATION_KEY: [u8; 32] = [
+    167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
+    27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+];
+const PCK: [u8; 32] = [
     167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
     27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
 ];
@@ -42,7 +46,9 @@ benchmarks! {
     let attestee: T::AccountId = whitelisted_caller();
     let nonce = [0; 32];
 
-    let signing_key = tdx_quote::SigningKey::from_bytes(&ENCLAVE_SIGNING_KEY.into()).unwrap();
+    let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx::quote::encode_verifying_key(pck).unwrap();
 
     let input_data = QuoteInputData::new(
         &attestee, // TSS Account ID
@@ -50,7 +56,7 @@ benchmarks! {
         nonce,
         1, // Block number
     );
-    let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
+    let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec();
 
     // Insert a pending attestation so that this quote is expected
     <PendingAttestations<T>>::insert(attestee.clone(), nonce);
@@ -64,7 +70,7 @@ benchmarks! {
         tss_account: attestee.clone(),
         x25519_public_key: [0; 32],
         endpoint: b"http://localhost:3001".to_vec(),
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        provisioning_certification_key: BoundedVec::from(pck_encoded.to_vec()),
     });
 
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
