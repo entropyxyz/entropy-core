@@ -105,13 +105,12 @@ benchmarks! {
 
     // Add the jump start record
     let block_number = <frame_system::Pallet<T>>::block_number();
-    <JumpstartDkg<T>>::set(block_number, vec![
-        ValidatorInfo {
-            x25519_public_key: [0; 32],
-            ip_address: vec![20],
-            tss_account: accounts[1].encode(),
-        }
-    ]);
+    let initial_signers = accounts.iter().map(|account_id| ValidatorInfo {
+        x25519_public_key: [0; 32],
+        ip_address: vec![20],
+        tss_account: account_id.encode(),
+    }).collect();
+    <JumpstartDkg<T>>::set(block_number, initial_signers);
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
@@ -126,23 +125,23 @@ benchmarks! {
     let validator_account: T::AccountId = whitelisted_caller();
     let threshold_account: T::AccountId = whitelisted_caller();
     let expected_verifying_key = BoundedVec::default();
-                                                                       //
-    // Add the jump start record
-    let block_number = <frame_system::Pallet<T>>::block_number();
-    <JumpstartDkg<T>>::set(block_number, vec![
-        ValidatorInfo {
-            x25519_public_key: [0; 32],
-            ip_address: vec![20],
-            tss_account: threshold_account.encode(),
-        }
-    ]);
 
-    // add validators and a registering user
+    // add validators
     for i in 0..MAX_SIGNERS {
         let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
         <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
     }
+
+    // Add the jump start record
+    let block_number = <frame_system::Pallet<T>>::block_number();
+    let initial_signers = (0..MAX_SIGNERS).map(|i| ValidatorInfo {
+        x25519_public_key: [0; 32],
+        ip_address: vec![20],
+        tss_account: threshold_account.encode(),//account::<T::AccountId>("ts_account", i as u32, SEED).encode(),
+    }).collect();
+    <JumpstartDkg<T>>::set(block_number, initial_signers);
+
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![],
