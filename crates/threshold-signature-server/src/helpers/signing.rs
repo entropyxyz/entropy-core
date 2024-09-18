@@ -17,7 +17,7 @@
 pub use entropy_client::Hasher;
 use std::time::Duration;
 
-use entropy_client::user::{RelayerSignatureRequest, UserSignatureRequest};
+use entropy_client::user::{RelayerSignatureRequest};
 use entropy_protocol::{Listener, RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use sp_core::Pair;

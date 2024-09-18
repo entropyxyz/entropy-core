@@ -191,7 +191,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
     // Test: We check that an account with a program succeeds in submiting a signature request
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
@@ -322,10 +322,9 @@ async fn signature_request_with_derived_account_works() {
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair()).await;
 
-    let (validators_info, signature_request, validator_ips_and_keys) =
+    let (validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
-    dbg!(validator_ips_and_keys);
     let signature_request_responses = submit_transaction_requests(
         ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]),
         signature_request.clone(),
@@ -498,7 +497,7 @@ async fn test_request_limit_are_updated_during_signing() {
     // Test: We check that the rate limiter changes as expected when signature requests are sent
 
     // First we need to get a signature request to populate the KVDB for our verifying key
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
@@ -571,96 +570,96 @@ async fn test_request_limit_are_updated_during_signing() {
     clean_tests();
 }
 
-// #[tokio::test]
-// #[serial]
-// async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let one = AccountKeyring::One;
-//     let two = AccountKeyring::Two;
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
 
-//     let add_parent_key = true;
-//     let (_validator_ips, validator_ids) =
-//         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-//     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+    let add_parent_key = true;
+    let (_validator_ips, validator_ids) =
+        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
-//     let force_authoring = true;
-//     let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
 
-//     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-//     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-//     jump_start_network(&entropy_api, &rpc).await;
+    jump_start_network(&entropy_api, &rpc).await;
 
-//     // Register the user with a test program
-//     let (verifying_key, _program_hash) =
-//         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
-//     let (validators_info, signature_request, validator_ips_and_keys) =
-//         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-//             .await;
+    let (validators_info, signature_request, validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
 
-//     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-//     let signature_request_account = subxtAccountId32(one.pair().public().0);
-//     let expected_account_id = subxtAccountId32(TSS_ACCOUNTS[0].0);
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let signature_request_account = subxtAccountId32(one.pair().public().0);
+    let expected_account_id = subxtAccountId32(TSS_ACCOUNTS[0].0);
 
-//     let session_id = SessionId::Sign(SigningSessionInfo {
-//         signature_verifying_key: verifying_key.to_vec(),
-//         message_hash,
-//         request_author: expected_account_id,
-//     });
+    let session_id = SessionId::Sign(SigningSessionInfo {
+        signature_verifying_key: verifying_key.to_vec(),
+        message_hash,
+        request_author: expected_account_id,
+    });
+    dbg!(&session_id);
+    // Test attempting to connect over ws by someone who is not in the signing group
+    let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    let connection_attempt_handle = tokio::spawn(async move {
+        // Wait for the "user" to submit the signing request
+        tokio::time::sleep(Duration::from_millis(1300)).await;
+        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+        let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-//     // Test attempting to connect over ws by someone who is not in the signing group
-//     let validator_ip_and_key = validator_ips_and_keys[0].clone();
-//     let connection_attempt_handle = tokio::spawn(async move {
-//         // Wait for the "user" to submit the signing request
-//         tokio::time::sleep(Duration::from_millis(500)).await;
-//         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
-//         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
+        let ferdie_pair = AccountKeyring::Ferdie.pair();
 
-//         let ferdie_pair = AccountKeyring::Ferdie.pair();
+        // create a SubscribeMessage from a party who is not in the signing commitee
+        let subscribe_message_vec =
+            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
 
-//         // create a SubscribeMessage from a party who is not in the signing commitee
-//         let subscribe_message_vec =
-//             bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
+        // Attempt a noise handshake including the subscribe message in the payload
+        let mut encrypted_connection = noise_handshake_initiator(
+            ws_stream,
+            &FERDIE_X25519_SECRET_KEY.into(),
+            validator_ip_and_key.1,
+            subscribe_message_vec,
+        )
+        .await
+        .unwrap();
 
-//         // Attempt a noise handshake including the subscribe message in the payload
-//         let mut encrypted_connection = noise_handshake_initiator(
-//             ws_stream,
-//             &FERDIE_X25519_SECRET_KEY.into(),
-//             validator_ip_and_key.1,
-//             subscribe_message_vec,
-//         )
-//         .await
-//         .unwrap();
+        // Check the response as to whether they accepted our SubscribeMessage
+        let response_message = encrypted_connection.recv().await.unwrap();
+        let subscribe_response: Result<(), String> =
+            bincode::deserialize(&response_message).unwrap();
 
-//         // Check the response as to whether they accepted our SubscribeMessage
-//         let response_message = encrypted_connection.recv().await.unwrap();
-//         let subscribe_response: Result<(), String> =
-//             bincode::deserialize(&response_message).unwrap();
+            assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
 
-//         assert_eq!(Err("Decryption(\"Public key does not match any of those expected for this protocol session\")".to_string()), subscribe_response);
+        // The stream should not continue to send messages
+        // returns true if this part of the test passes
+        encrypted_connection.recv().await.is_err()
+    });
 
-//         // The stream should not continue to send messages
-//         // returns true if this part of the test passes
-//         encrypted_connection.recv().await.is_err()
-//     });
+    let test_user_bad_connection_res = submit_transaction_requests(
+        relayer_ip_and_key,
+        signature_request,
+        one,
+    ).await;
 
-//     let test_user_bad_connection_res = submit_transaction_requests(
-//         relayer_ip_and_key,
-//         signature_request,
-//         one,
-//     ).await;
+    let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+    verify_signature(test_user_bad_connection_res, message_hash, &verifying_key, &validators_info)
+        .await;
 
-//     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-//     verify_signature(test_user_bad_connection_res, message_hash, &verifying_key, &validators_info)
-//         .await;
+    assert!(connection_attempt_handle.await.unwrap());
 
-//     assert!(connection_attempt_handle.await.unwrap());
-
-//     clean_tests();
-// }
+    clean_tests();
+}
 
 #[tokio::test]
 #[serial]
@@ -732,7 +731,7 @@ async fn test_program_with_config() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (validators_info, signature_request, validator_ips_and_keys) =
+    let (validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), verifying_key).await;
 
     // Here we check that the signature request was indeed completed successfully
@@ -931,7 +930,6 @@ pub async fn verify_signature(
     verifying_key: &VerifyingKey,
     validators_info: &Vec<ValidatorInfo>,
 ) {
-    let mut i = 0;
     let mut test_user_res = test_user_res.unwrap();
     assert_eq!(test_user_res.status(), 200);
     let chunk = test_user_res.chunk().await.unwrap().unwrap();
@@ -962,7 +960,6 @@ pub async fn verify_signature(
             sig_recovery_results.push(sig_recovery)
         }
         assert!(sig_recovery_results.contains(&true));
-        i += 1;
     }
 }
 
@@ -1148,7 +1145,7 @@ async fn test_device_key_proxy() {
     ))]);
 
     // Now we'll send off a signature request using the new program with auxilary data
-    let (validators_info, mut signature_request, validator_ips_and_keys) =
+    let (validators_info, mut signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 

@@ -145,11 +145,10 @@ pub async fn relay_tx(
 
     let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
 
-    let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
 
     let signers = get_signers_from_chain(&api, &rpc).await?;
-    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
+    let user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
     let relayer_sig_req: RelayerSignatureRequest = RelayerSignatureRequest {
         message: user_sig_req.message,
         auxilary_data: user_sig_req.auxilary_data,
@@ -277,7 +276,7 @@ pub async fn sign_tx(
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
 
-    let mut relayer_sig_request: RelayerSignatureRequest =
+    let relayer_sig_request: RelayerSignatureRequest =
         serde_json::from_slice(&signed_message.message.0)?;
 
     let string_verifying_key = hex::encode(relayer_sig_request.signature_verifying_key.clone());

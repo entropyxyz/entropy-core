@@ -17,7 +17,7 @@
 use entropy_protocol::{SigningSessionInfo, ValidatorInfo};
 use serde::{Deserialize, Serialize};
 
-use entropy_client::user::{RelayerSignatureRequest, UserSignatureRequest};
+use entropy_client::user::{RelayerSignatureRequest};
 
 /// Information passed to the Signing Client, to initiate the signing process.
 /// Most of this information comes from a `Message` struct which gets propagated when a user's
