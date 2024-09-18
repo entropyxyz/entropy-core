@@ -28,7 +28,7 @@ fn attest() {
         assert_eq!(nonce, [0; 32]);
 
         let attestation_key = tdx_quote::SigningKey::random(&mut OsRng);
-        let pck = tdx_quote::SigningKey::random(&mut OsRng);
+        let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
 
         let input_data = QuoteInputData::new(
             ATTESTEE, // TSS Account ID
