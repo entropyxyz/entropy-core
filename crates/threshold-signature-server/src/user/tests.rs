@@ -603,10 +603,8 @@ async fn test_request_limit_are_updated_during_signing() {
 
 //     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 //     let signature_request_account = subxtAccountId32(one.pair().public().0);
-//     let pair = mnemonic_to_pair(DEFAULT_MNEMONIC).unwrap();
-//     let expected_account_id = subxtAccountId32(pair.0.public().0);
-//     dbg!(expected_account_id.clone());
-//     dbg!(&validator_ids);
+//     let expected_account_id = subxtAccountId32(TSS_ACCOUNTS[0].0);
+
 //     let session_id = SessionId::Sign(SigningSessionInfo {
 //         signature_verifying_key: verifying_key.to_vec(),
 //         message_hash,
@@ -617,8 +615,7 @@ async fn test_request_limit_are_updated_during_signing() {
 //     let validator_ip_and_key = validator_ips_and_keys[0].clone();
 //     let connection_attempt_handle = tokio::spawn(async move {
 //         // Wait for the "user" to submit the signing request
-//         tokio::time::sleep(Duration::from_millis(5000)).await;
-//         dbg!(validator_ip_and_key.0.clone());
+//         tokio::time::sleep(Duration::from_millis(500)).await;
 //         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
 //         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
