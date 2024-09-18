@@ -162,7 +162,7 @@ pub async fn sign(
     let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
     // Verify the response signature from the TSS client
-    let signers = get_all_signers_from_chain(&api, &rpc).await?;
+    let signers = get_all_signers_from_chain(api, rpc).await?;
     let mut sig_recovery_results = vec![];
     for signer_info in signers {
         let sig_recovery = <sr25519::Pair as Pair>::verify(

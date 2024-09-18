@@ -183,7 +183,7 @@ pub async fn relay_tx(
                     .iter()
                     .map(|signer_info| async {
                         let signed_message = EncryptedSignedMessage::new(
-                            &signer.signer(),
+                            signer.signer(),
                             serde_json::to_vec(&relayer_sig_req.clone())?,
                             &signer_info.x25519_public_key,
                             &[],
@@ -235,7 +235,7 @@ pub async fn relay_tx(
         }
     });
 
-    let result_stream = response_rx.map(|msg| Ok::<_, UserErr>(msg)); // Wrap messages as `Ok`
+    let result_stream = response_rx.map(Ok::<_, UserErr>);
 
     Ok((StatusCode::OK, Body::from_stream(result_stream)))
 }
@@ -670,7 +670,7 @@ pub async fn pre_sign_checks(
     }
 
     let user_details =
-        get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
+        get_registered_details(api, rpc, user_sig_req.signature_verifying_key.clone()).await?;
     check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
 
     let message = hex::decode(&user_sig_req.message)?;
@@ -695,15 +695,15 @@ pub async fn pre_sign_checks(
     // gets fuel from chain
     let max_instructions_per_programs_query =
         entropy::storage().parameters().max_instructions_per_programs();
-    let fuel = query_chain(&api, &rpc, max_instructions_per_programs_query, None)
+    let fuel = query_chain(api, rpc, max_instructions_per_programs_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
 
     let mut runtime = Runtime::new(ProgramConfig { fuel });
 
     for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
-        let program_info = get_program(&api, &rpc, &program_data.program_pointer).await?;
-        let oracle_data = get_oracle_data(&api, &rpc, program_info.oracle_data_pointer).await?;
+        let program_info = get_program(api, rpc, &program_data.program_pointer).await?;
+        let oracle_data = get_oracle_data(api, rpc, program_info.oracle_data_pointer).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(

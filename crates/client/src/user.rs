@@ -128,7 +128,7 @@ pub async fn get_validators_not_signer_for_relay(
         .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
 
     let validators_query = entropy::storage().session().validators();
-    let mut validators = query_chain(&api, &rpc, validators_query, None)
+    let mut validators = query_chain(api, rpc, validators_query, None)
         .await?
         .ok_or_else(|| SubgroupGetError::ChainFetch("Error getting validators"))?;
 
