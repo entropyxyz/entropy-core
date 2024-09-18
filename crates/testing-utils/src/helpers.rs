@@ -22,6 +22,7 @@ use crate::{
 use entropy_protocol::PartyId;
 use rand::{rngs::StdRng, SeedableRng};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
+pub use tdx_quote::encode_verifying_key;
 
 /// A helper for setting up tests which starts both a set of TS servers and a chain node and returns
 /// the chain API as well as IP addresses and PartyId of the started validators
@@ -65,6 +66,6 @@ pub fn derive_mock_pck_verifying_key(tss_account_id: &AccountId32) -> tdx_quote:
 pub fn print_test_pck_verifying_keys() {
     for tss_account in crate::constants::TSS_ACCOUNTS.iter() {
         let pck = derive_mock_pck_verifying_key(tss_account);
-        println!("{:?}", tdx_quote::encode_verifying_key(&pck));
+        println!("{:?}", encode_verifying_key(&pck));
     }
 }

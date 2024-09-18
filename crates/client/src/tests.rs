@@ -16,8 +16,11 @@ use crate::{
     update_programs,
 };
 use entropy_testing_utils::{
-    constants::TEST_PROGRAM_WASM_BYTECODE, jump_start_network,
-    substrate_context::test_context_stationary, test_node_process_testing_state,
+    constants::TEST_PROGRAM_WASM_BYTECODE,
+    helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
+    jump_start_network,
+    substrate_context::test_context_stationary,
+    test_node_process_testing_state,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
@@ -64,6 +67,12 @@ async fn test_change_threshold_accounts() {
     )
     .await
     .unwrap();
+
+    let provisioning_certification_key = {
+        let key = derive_mock_pck_verifying_key(&AccountId32(one.pair().public().0));
+        BoundedVec(encode_verifying_key(&key).unwrap().to_vec())
+    };
+
     assert_eq!(
         format!("{:?}", result),
         format!(
@@ -74,7 +83,7 @@ async fn test_change_threshold_accounts() {
                     tss_account: AccountId32(one.pair().public().0),
                     x25519_public_key,
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
-                    provisioning_certification_key: BoundedVec([0u8, 33].to_vec()),
+                    provisioning_certification_key,
                 }
             )
         )
