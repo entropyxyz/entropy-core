@@ -580,7 +580,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let two = AccountKeyring::Two;
 
     let add_parent_key = true;
-    let (_validator_ips, validator_ids) =
+    let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
@@ -601,7 +601,6 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
             .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    let signature_request_account = subxtAccountId32(one.pair().public().0);
     let expected_account_id = subxtAccountId32(TSS_ACCOUNTS[0].0);
 
     let session_id = SessionId::Sign(SigningSessionInfo {
@@ -639,18 +638,15 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         let subscribe_response: Result<(), String> =
             bincode::deserialize(&response_message).unwrap();
 
-            assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
+        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
 
         // The stream should not continue to send messages
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
 
-    let test_user_bad_connection_res = submit_transaction_requests(
-        relayer_ip_and_key,
-        signature_request,
-        one,
-    ).await;
+    let test_user_bad_connection_res =
+        submit_transaction_requests(relayer_ip_and_key, signature_request, one).await;
 
     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
     verify_signature(test_user_bad_connection_res, message_hash, &verifying_key, &validators_info)
@@ -1008,7 +1004,7 @@ async fn test_fail_infinite_program() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (_validators_info, signature_request, validator_ips_and_keys) =
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key).await;
 
     let test_infinite_loop =
@@ -1190,7 +1186,7 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (validator_ips, _validator_ids) =
+    let (_validator_ips, _validator_ids) =
         spawn_testing_validators(false, ChainSpecType::Development).await;
     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
@@ -1255,18 +1251,6 @@ async fn test_faucet() {
     .await
     .unwrap();
 
-    let validators_info = vec![
-        ValidatorInfo {
-            ip_address: "localhost:3001".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone(),
-        },
-        ValidatorInfo {
-            ip_address: "127.0.0.1:3002".to_string(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone(),
-        },
-    ];
     // get tx data for aux data
     let spec_version = entropy_api.runtime_version().spec_version;
     let transaction_version = entropy_api.runtime_version().transaction_version;
@@ -1294,21 +1278,14 @@ async fn test_faucet() {
         signature_verifying_key: verifying_key.clone().to_vec(),
     };
 
-    let validator_ips_and_keys = vec![
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]),
-        (validator_ips[1].clone(), X25519_PUBLIC_KEYS[1]),
-    ];
-
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
-    let mut decoded_sig: Vec<u8> = vec![];
     let chunk = test_user_res.unwrap().chunk().await.unwrap().unwrap();
     let signing_result: Vec<Result<(String, Signature), String>> =
         serde_json::from_slice(&chunk).unwrap();
-    let mut decoded_sig =
-        BASE64_STANDARD.decode(signing_result.clone()[0].clone().unwrap().0).unwrap();
+    let decoded_sig = BASE64_STANDARD.decode(signing_result.clone()[0].clone().unwrap().0).unwrap();
 
     // take signed tx and repack it into a submitable tx
     let submittable_extrinsic = partial.sign_with_address_and_signature(

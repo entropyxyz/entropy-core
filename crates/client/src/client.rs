@@ -46,7 +46,7 @@ use crate::{
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
-use futures::{stream::StreamExt};
+use futures::stream::StreamExt;
 use sp_core::{sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
