@@ -126,6 +126,9 @@ pub mod tss_x25519_public_key {
     ];
 }
 
+/// Mock provisioning certification keys for attestation of the test TS servers.
+/// These are generated deterministically from their TSS account IDs using the helper function
+/// entropy_testing_utils::helpers::print_test_pck_verifying_keys
 pub mod provisioning_certification_key {
     use entropy_shared::BoundedVecEncodedVerifyingKey;
 

@@ -379,7 +379,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         threshold_servers: vec![
-            // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
+            // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL, PCK))
             (5, (7, NULL_ARR, vec![20], BoundedVec::with_max_capacity())),
             (6, (8, NULL_ARR, vec![40], BoundedVec::with_max_capacity())),
             (1, (3, NULL_ARR, vec![10], BoundedVec::with_max_capacity())),
