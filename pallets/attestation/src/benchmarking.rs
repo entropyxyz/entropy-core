@@ -51,7 +51,7 @@ benchmarks! {
 
     let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
     let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx_quote::encode_verifying_key(pck).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
 
     let input_data = QuoteInputData::new(
         &attestee, // TSS Account ID
