@@ -431,6 +431,26 @@ fn it_tests_jump_start_result() {
 }
 
 #[test]
+fn it_checks_ordering_of_block_numbers_in_a_storage_map() {
+    new_test_ext().execute_with(|| {
+        let validator = ValidatorInfo {
+            x25519_public_key: [0; 32],
+            ip_address: vec![20],
+            tss_account: vec![0, 0, 0, 0, 0, 0, 0, 0],
+        };
+        pallet_registry::JumpstartDkg::<Test>::set(0, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(1, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(2, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(3, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(4, vec![validator]);
+        let last_entry = pallet_registry::JumpstartDkg::<Test>::iter()
+            .max_by(|(k1, _v1), (k2, _v2)| k1.cmp(k2))
+            .unwrap();
+        assert_eq!(last_entry.0, 4);
+    })
+}
+
+#[test]
 fn it_changes_a_program_instance() {
     new_test_ext().execute_with(|| {
         let empty_program = vec![];

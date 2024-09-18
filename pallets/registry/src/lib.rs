@@ -274,8 +274,9 @@ pub mod pallet {
                     .ok_or(Error::<T>::NoThresholdKey)?;
 
             // Check that the confirmation is coming from one of the selected validators
-            let (_block_number, selected_validators) =
-                JumpstartDkg::<T>::iter().last().ok_or(Error::<T>::JumpStartNotInProgress)?;
+            let (_block_number, selected_validators) = JumpstartDkg::<T>::iter()
+                .max_by(|(k1, _v1), (k2, _v2)| k1.cmp(k2))
+                .ok_or(Error::<T>::JumpStartNotInProgress)?;
             let selected_validators: Vec<_> =
                 selected_validators.into_iter().map(|v| v.tss_account).collect();
             ensure!(
