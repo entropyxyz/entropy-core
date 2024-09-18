@@ -73,7 +73,7 @@ benchmarks! {
         tss_account: attestee.clone(),
         x25519_public_key: [0; 32],
         endpoint: b"http://localhost:3001".to_vec(),
-        provisioning_certification_key: BoundedVec::from(pck_encoded.to_vec()),
+        provisioning_certification_key: pck_encoded.to_vec().try_into().unwrap(),
     });
 
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
