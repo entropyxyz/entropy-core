@@ -23,14 +23,17 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as AttestationPallet;
 
-// This is a randomly generated secret p256 ECDSA key
+/// This is a randomly generated secret p256 ECDSA key - for mocking attestation
 const ATTESTATION_KEY: [u8; 32] = [
     167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
     27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
 ];
+
+/// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+/// key
 const PCK: [u8; 32] = [
-    167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
-    27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+    117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
+    168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
 ];
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
