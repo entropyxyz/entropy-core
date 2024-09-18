@@ -51,7 +51,7 @@ benchmarks! {
 
     let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
     let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx::quote::encode_verifying_key(pck).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck).unwrap();
 
     let input_data = QuoteInputData::new(
         &attestee, // TSS Account ID
@@ -59,7 +59,7 @@ benchmarks! {
         nonce,
         1, // Block number
     );
-    let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec();
+    let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec();
 
     // Insert a pending attestation so that this quote is expected
     <PendingAttestations<T>>::insert(attestee.clone(), nonce);
