@@ -73,7 +73,8 @@ async fn test_change_threshold_accounts() {
                 ServerInfo {
                     tss_account: AccountId32(one.pair().public().0),
                     x25519_public_key,
-                    endpoint: "127.0.0.1:3001".as_bytes().to_vec()
+                    endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
+                    provisioning_certification_key: BoundedVec([0u8, 33].to_vec()),
                 }
             )
         )
