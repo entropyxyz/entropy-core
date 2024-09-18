@@ -571,7 +571,6 @@ async fn test_request_limit_are_updated_during_signing() {
     clean_tests();
 }
 
-/// TODO think about this test, should still sign?
 // #[tokio::test]
 // #[serial]
 // async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
@@ -582,7 +581,7 @@ async fn test_request_limit_are_updated_during_signing() {
 //     let two = AccountKeyring::Two;
 
 //     let add_parent_key = true;
-//     let (_validator_ips, _validator_ids) =
+//     let (_validator_ips, validator_ids) =
 //         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
 //     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
@@ -598,23 +597,28 @@ async fn test_request_limit_are_updated_during_signing() {
 //     let (verifying_key, _program_hash) =
 //         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
-//     let (_validators_info, signature_request, validator_ips_and_keys) =
+//     let (validators_info, signature_request, validator_ips_and_keys) =
 //         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
 //             .await;
 
 //     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 //     let signature_request_account = subxtAccountId32(one.pair().public().0);
+//     let pair = mnemonic_to_pair(DEFAULT_MNEMONIC).unwrap();
+//     let expected_account_id = subxtAccountId32(pair.0.public().0);
+//     dbg!(expected_account_id.clone());
+//     dbg!(&validator_ids);
 //     let session_id = SessionId::Sign(SigningSessionInfo {
 //         signature_verifying_key: verifying_key.to_vec(),
 //         message_hash,
-//         request_author: signature_request_account.clone(),
+//         request_author: expected_account_id,
 //     });
 
 //     // Test attempting to connect over ws by someone who is not in the signing group
 //     let validator_ip_and_key = validator_ips_and_keys[0].clone();
 //     let connection_attempt_handle = tokio::spawn(async move {
 //         // Wait for the "user" to submit the signing request
-//         tokio::time::sleep(Duration::from_millis(500)).await;
+//         tokio::time::sleep(Duration::from_millis(5000)).await;
+//         dbg!(validator_ip_and_key.0.clone());
 //         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
 //         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
@@ -650,13 +654,11 @@ async fn test_request_limit_are_updated_during_signing() {
 //         relayer_ip_and_key,
 //         signature_request,
 //         one,
-//     )
-//     .await;
+//     ).await;
 
-//         assert_eq!(
-//             test_user_bad_connection_res.unwrap().text().await.unwrap(),
-//             "{\"Err\":\"Oneshot timeout error: channel closed\"}"
-//         );
+//     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+//     verify_signature(test_user_bad_connection_res, message_hash, &verifying_key, &validators_info)
+//         .await;
 
 //     assert!(connection_attempt_handle.await.unwrap());
 

@@ -240,165 +240,165 @@ async fn test_reshare() {
     clean_tests();
 }
 
-// #[tokio::test]
-// #[serial]
-// async fn test_reshare_none_called() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_reshare_none_called() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let _cxt = test_node_process_testing_state(true).await;
+    let _cxt = test_node_process_testing_state(true).await;
 
-//     let add_parent_key_to_kvdb = true;
-//     let (_validator_ips, _validator_ids) =
-//         spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
 
-//     let validator_ports = vec![3001, 3002, 3003, 3004];
+    let validator_ports = vec![3001, 3002, 3003, 3004];
 
-//     let client = reqwest::Client::new();
+    let client = reqwest::Client::new();
 
-//     for i in 0..validator_ports.len() {
-//         let response = client
-//             .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
-//             .send()
-//             .await
-//             .unwrap();
+    for i in 0..validator_ports.len() {
+        let response = client
+            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .send()
+            .await
+            .unwrap();
 
-//         assert_eq!(response.text().await.unwrap(), "Chain Fetch: Rotate Keyshare not in progress");
-//     }
-// }
+        assert_eq!(response.text().await.unwrap(), "Chain Fetch: Rotate Keyshare not in progress");
+    }
+}
 
-// #[tokio::test]
-// #[serial]
-// async fn test_reshare_validation_fail() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_reshare_validation_fail() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let dave = AccountKeyring::Dave;
-//     let cxt = test_node_process_testing_state(true).await;
-//     let api = get_api(&cxt.ws_url).await.unwrap();
-//     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
-//     let kv = setup_client().await;
+    let dave = AccountKeyring::Dave;
+    let cxt = test_node_process_testing_state(true).await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let kv = setup_client().await;
 
-//     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-//     let mut ocw_message = OcwMessageReshare { new_signer: dave.public().encode(), block_number };
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let mut ocw_message = OcwMessageReshare { new_signer: dave.public().encode(), block_number };
 
-//     let err_stale_data =
-//         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
-//     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
+    let err_stale_data =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
-//     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-//     ocw_message.block_number = block_number;
-//     run_to_block(&rpc, block_number + 1).await;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    ocw_message.block_number = block_number;
+    run_to_block(&rpc, block_number + 1).await;
 
-//     let err_incorrect_data =
-//         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
-//     assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
+    let err_incorrect_data =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
 
-//     // manipulates kvdb to get to repeated data error
-//     kv.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await.unwrap();
-//     let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await.unwrap();
-//     kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+    // manipulates kvdb to get to repeated data error
+    kv.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await.unwrap();
+    let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await.unwrap();
+    kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
 
-//     let err_stale_data =
-//         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
-//     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
-//     clean_tests();
-// }
+    let err_stale_data =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+    clean_tests();
+}
 
-// #[tokio::test]
-// #[serial]
-// async fn test_reshare_validation_fail_not_in_reshare() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_reshare_validation_fail_not_in_reshare() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let alice = AccountKeyring::Alice;
-//     let cxt = test_context_stationary().await;
-//     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-//     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-//     let kv = setup_client().await;
+    let alice = AccountKeyring::Alice;
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let kv = setup_client().await;
 
-//     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-//     let ocw_message = OcwMessageReshare { new_signer: alice.public().encode(), block_number };
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let ocw_message = OcwMessageReshare { new_signer: alice.public().encode(), block_number };
 
-//     run_to_block(&rpc, block_number + 1).await;
+    run_to_block(&rpc, block_number + 1).await;
 
-//     let err_not_in_reshare =
-//         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
-//     assert_eq!(err_not_in_reshare, Err("Chain Fetch: Not Currently in a reshare".to_string()));
+    let err_not_in_reshare =
+        validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    assert_eq!(err_not_in_reshare, Err("Chain Fetch: Not Currently in a reshare".to_string()));
 
-//     clean_tests();
-// }
+    clean_tests();
+}
 
-// #[tokio::test]
-// #[serial]
-// async fn test_empty_next_signer() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_empty_next_signer() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let cxt = test_context_stationary().await;
-//     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-//     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let cxt = test_context_stationary().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-//     assert!(prune_old_holders(&api, &rpc, vec![], vec![]).await.is_ok());
+    assert!(prune_old_holders(&api, &rpc, vec![], vec![]).await.is_ok());
 
-//     clean_tests();
-// }
+    clean_tests();
+}
 
-// #[tokio::test]
-// #[should_panic = "Account does not exist, add balance"]
-// async fn test_check_balance_for_fees() {
-//     initialize_test_logger().await;
-//     let cxt = testing_context().await;
-//     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-//     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+#[tokio::test]
+#[should_panic = "Account does not exist, add balance"]
+async fn test_check_balance_for_fees() {
+    initialize_test_logger().await;
+    let cxt = testing_context().await;
+    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
 
-//     let result = check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), MIN_BALANCE)
-//         .await
-//         .unwrap();
+    let result = check_balance_for_fees(&api, &rpc, ALICE_STASH_ADDRESS.to_string(), MIN_BALANCE)
+        .await
+        .unwrap();
 
-//     assert!(result);
+    assert!(result);
 
-//     let result_2 = check_balance_for_fees(
-//         &api,
-//         &rpc,
-//         ALICE_STASH_ADDRESS.to_string(),
-//         10000000000000000000000u128,
-//     )
-//     .await
-//     .unwrap();
-//     assert!(!result_2);
+    let result_2 = check_balance_for_fees(
+        &api,
+        &rpc,
+        ALICE_STASH_ADDRESS.to_string(),
+        10000000000000000000000u128,
+    )
+    .await
+    .unwrap();
+    assert!(!result_2);
 
-//     let _ = check_balance_for_fees(&api, &rpc, (&RANDOM_ACCOUNT).to_string(), MIN_BALANCE)
-//         .await
-//         .unwrap();
-// }
+    let _ = check_balance_for_fees(&api, &rpc, (&RANDOM_ACCOUNT).to_string(), MIN_BALANCE)
+        .await
+        .unwrap();
+}
 
-// #[tokio::test]
-// async fn test_forbidden_keys() {
-//     initialize_test_logger().await;
-//     let should_fail = check_forbidden_key(FORBIDDEN_KEYS[0]);
-//     assert_eq!(should_fail.unwrap_err().to_string(), ValidatorErr::ForbiddenKey.to_string());
+#[tokio::test]
+async fn test_forbidden_keys() {
+    initialize_test_logger().await;
+    let should_fail = check_forbidden_key(FORBIDDEN_KEYS[0]);
+    assert_eq!(should_fail.unwrap_err().to_string(), ValidatorErr::ForbiddenKey.to_string());
 
-//     let should_pass = check_forbidden_key("test");
-//     assert_eq!(should_pass.unwrap(), ());
-// }
+    let should_pass = check_forbidden_key("test");
+    assert_eq!(should_pass.unwrap(), ());
+}
 
-// #[tokio::test]
-// #[serial]
-// async fn test_deletes_key() {
-//     initialize_test_logger().await;
-//     clean_tests();
+#[tokio::test]
+#[serial]
+async fn test_deletes_key() {
+    initialize_test_logger().await;
+    clean_tests();
 
-//     let dave = AccountKeyring::Dave;
-//     let kv = setup_client().await;
-//     let reservation = kv.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
-//     kv.kv().put(reservation, vec![10]).await.unwrap();
+    let dave = AccountKeyring::Dave;
+    let kv = setup_client().await;
+    let reservation = kv.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+    kv.kv().put(reservation, vec![10]).await.unwrap();
 
-//     let is_proper_signer_result =
-//         is_signer_or_delete_parent_key(&dave.to_account_id().into(), vec![], &kv).await.unwrap();
-//     assert!(!is_proper_signer_result);
+    let is_proper_signer_result =
+        is_signer_or_delete_parent_key(&dave.to_account_id().into(), vec![], &kv).await.unwrap();
+    assert!(!is_proper_signer_result);
 
-//     let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
-//     assert!(!has_key);
-//     clean_tests();
-// }
+    let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+    assert!(!has_key);
+    clean_tests();
+}

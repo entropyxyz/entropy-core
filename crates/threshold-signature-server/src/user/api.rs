@@ -44,8 +44,8 @@ use entropy_shared::{
 };
 use futures::{
     channel::mpsc,
-    future::{join_all, FutureExt},
-    Stream,
+    future::{try_join_all, join_all, FutureExt},
+    Stream, stream::TryStreamExt, StreamExt
 };
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
@@ -175,50 +175,70 @@ pub async fn relay_tx(
     let (mut response_tx, response_rx) = mpsc::channel(1);
 
     tokio::spawn(async move {
-        let client = reqwest::Client::new();
-        let mut results = join_all(
-            relayer_sig_req
-                .validators_info
-                .iter()
-                .map(|signer_info| async {
-                    dbg!(signer_info.clone());
-                    let signed_message = EncryptedSignedMessage::new(
-                        &signer.signer(),
-                        serde_json::to_vec(&relayer_sig_req.clone()).unwrap(),
-                        &signer_info.x25519_public_key,
-                        &[],
-                    )
-                    .unwrap();
-                    let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
-                    client
-                        .post(url)
-                        .header("Content-Type", "application/json")
-                        .body(serde_json::to_string(&signed_message).unwrap())
-                        .send()
-                        .await
-                })
-                .collect::<Vec<_>>(),
-        )
-        .await;
-
-        let mut send_back = vec![];
-        for mut result in results {
-            let mut chunk = result.as_mut().unwrap().chunk().await.unwrap().unwrap();
-            if result.unwrap().status() == 200 {
-                let signing_result: Result<(String, Signature), String> =
-                    serde_json::from_slice(&chunk).unwrap();
-                send_back.push(signing_result)
-            } else {
-                send_back.push(Err(from_utf8(&chunk).unwrap().to_string()))
+        let result: Result<(), UserErr> = async {
+            let client = reqwest::Client::new();
+            let results = join_all(
+                relayer_sig_req
+                    .validators_info
+                    .iter()
+                    .map(|signer_info| async {    
+                        let signed_message = EncryptedSignedMessage::new(
+                            &signer.signer(),
+                            serde_json::to_vec(&relayer_sig_req.clone())?,
+                            &signer_info.x25519_public_key,
+                            &[],
+                        )?;
+    
+                        let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
+    
+                        let response = client
+                            .post(url)
+                            .header("Content-Type", "application/json")
+                            .body(serde_json::to_string(&signed_message)?)
+                            .send()
+                            .await?;
+    
+                        Ok::<_, UserErr>(response)
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await;
+    
+            let mut send_back = vec![];
+    
+            for result in results {
+                let mut resp = result?;
+                let chunk = resp.chunk().await?.ok_or(UserErr::OptionUnwrapError("No chunk data".to_string()))?;
+    
+                if resp.status() == 200 {
+                    let signing_result: Result<(String, Signature), String> =
+                    serde_json::from_slice(&chunk)?;
+                    send_back.push(signing_result);
+                } else {
+                    send_back.push(Err(String::from_utf8(chunk.to_vec())?));
+                }
             }
+    
+            if response_tx
+                .try_send(serde_json::to_string(&send_back)?)
+                .is_err()
+            {
+                tracing::warn!("Cannot send signing protocol output - connection is closed");
+            }
+    
+            Ok(())
         }
-        if response_tx.try_send(serde_json::to_string(&send_back)).is_err() {
-            tracing::warn!("Cannot send signing protocol output - connection is closed")
-        };
+        .await;
+    
+        if let Err(e) = result {
+            tracing::error!("Error in tokio::spawn task: {:?}", e);
+        }
     });
-
-    //TODO: remove validators_info from user sig request
-    Ok((StatusCode::OK, Body::from_stream(response_rx)))
+    
+    let result_stream = response_rx.map(|msg| Ok::<_, UserErr>(msg));  // Wrap messages as `Ok`
+    
+    Ok((StatusCode::OK, Body::from_stream(result_stream)))
+    
 }
 
 /// Called by a user to initiate the signing process for a message
