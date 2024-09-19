@@ -650,6 +650,7 @@ async fn test_program_with_config() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -855,6 +856,7 @@ async fn test_compute_hash() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -947,6 +949,7 @@ async fn test_fail_infinite_program() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1031,6 +1034,7 @@ async fn test_device_key_proxy() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1183,6 +1187,7 @@ async fn test_faucet() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -1347,6 +1352,7 @@ async fn test_registration_flow() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();

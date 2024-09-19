@@ -47,6 +47,7 @@ fn setup_programs(
             oracle_data_pointer: empty_program.clone(),
             deployer: alice,
             ref_counter: 0,
+            version_number: 0,
         },
     );
 
@@ -445,6 +446,7 @@ fn it_changes_a_program_instance() {
                 oracle_data_pointer: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 1,
+                version_number: 0,
             },
         );
 
@@ -465,6 +467,7 @@ fn it_changes_a_program_instance() {
                 oracle_data_pointer: empty_program.clone(),
                 deployer: 1,
                 ref_counter: 1,
+                version_number: 0,
             },
         );
 

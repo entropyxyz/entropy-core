@@ -108,6 +108,7 @@ async fn test_store_and_remove_program() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
@@ -152,6 +153,7 @@ async fn test_remove_program_reference_counter() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();
