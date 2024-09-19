@@ -138,7 +138,7 @@ benchmarks! {
     let initial_signers = (0..MAX_SIGNERS).map(|i| ValidatorInfo {
         x25519_public_key: [0; 32],
         ip_address: vec![20],
-        tss_account: threshold_account.encode(),//account::<T::AccountId>("ts_account", i as u32, SEED).encode(),
+        tss_account: threshold_account.encode(),
     }).collect();
     <JumpstartDkg<T>>::set(block_number, initial_signers);
 
