@@ -16,7 +16,7 @@ use crate::{
     update_programs,
 };
 use entropy_testing_utils::{
-    constants::TEST_PROGRAM_WASM_BYTECODE,
+    constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS},
     helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
     jump_start_network,
     substrate_context::test_context_stationary,
@@ -69,8 +69,7 @@ async fn test_change_threshold_accounts() {
     .unwrap();
 
     let provisioning_certification_key = {
-        let key =
-            derive_mock_pck_verifying_key(&AccountId32(AccountKeyring::Alice.pair().public().0));
+        let key = derive_mock_pck_verifying_key(&TSS_ACCOUNTS[0]);
         BoundedVec(encode_verifying_key(&key).unwrap().to_vec())
     };
 
