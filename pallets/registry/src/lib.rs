@@ -273,7 +273,9 @@ pub mod pallet {
                 pallet_staking_extension::Pallet::<T>::threshold_to_stash(&ts_server_account)
                     .ok_or(Error::<T>::NoThresholdKey)?;
 
-            // Check that the confirmation is coming from one of the selected validators
+            // Check that the confirmation is coming from one of the selected validators.
+            // In case there was more than one jumpstart attempt, get the latest one by selecting the
+            // entry with the highest block number.
             let (_block_number, selected_validators) = JumpstartDkg::<T>::iter()
                 .max_by(|(k1, _v1), (k2, _v2)| k1.cmp(k2))
                 .ok_or(Error::<T>::JumpStartNotInProgress)?;
