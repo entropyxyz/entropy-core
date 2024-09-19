@@ -56,6 +56,7 @@ pub struct RelayerSignatureRequest {
     pub validators_info: Vec<ValidatorInfo>,
 }
 
+/// Returns a threshold of signer's ValidatorInfo from the chain
 pub async fn get_signers_from_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,

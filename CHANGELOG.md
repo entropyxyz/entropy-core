@@ -18,6 +18,11 @@ At the moment this project **does not** adhere to
   cleaned up. A lot of storage entries, events, and extrinsics were removed from the `Registry`
   pallet. The genesis build config was also removed. Additionally, the `new/user/` HTTP endpoint in
   the TSS was removed since it was no longer necessary.
+- In [#1050](https://github.com/entropyxyz/entropy-core/pull/1050), the flow for signing has changed. 
+A user now sends their request to a validator that is not a signer. This will act as a realyer. 
+As such ```UserSignatureRequest``` no longer has ```validators_info``` as the realyer adds that in after. 
+The response received from the validator is now a ```Vec<Responses>``` from the signers 
+
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -36,6 +41,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+- Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))

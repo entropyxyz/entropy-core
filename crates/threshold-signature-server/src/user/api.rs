@@ -110,6 +110,11 @@ pub struct RequestLimitStorage {
     pub request_amount: u32,
 }
 
+/// Called by a user to initiate the signing process for a message
+///
+/// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
+///
+/// Chooses signers and realys transactions to them and then results back to user
 #[tracing::instrument(skip_all, fields(request_author))]
 pub async fn relay_tx(
     State(app_state): State<AppState>,
@@ -240,15 +245,14 @@ pub async fn relay_tx(
     Ok((StatusCode::OK, Body::from_stream(result_stream)))
 }
 
-/// Called by a user to initiate the signing process for a message
+/// Called by a relayer to initiate the signing process for a message
 ///
-/// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
+/// Takes an [EncryptedSignedMessage] containing a JSON serialized [RelayerSignatureRequest]
 #[tracing::instrument(skip_all, fields(request_author))]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    // TODO: Block anything from not validators
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
