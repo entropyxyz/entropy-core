@@ -17,7 +17,7 @@ use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use blake3::hash;
-use entropy_client::substrate::get_registered_details;
+use entropy_client::substrate::{get_registered_details, Sr25519Signer};
 use entropy_client::{
     client as test_client,
     client::{sign, update_programs},
@@ -134,7 +134,8 @@ use crate::{
     user::{
         api::{
             check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
-            request_limit_key, RequestLimitStorage, UserRegistrationInfo, UserSignatureRequest,
+            request_limit_key, RelayerSignatureRequest, RequestLimitStorage, UserRegistrationInfo,
+            UserSignatureRequest,
         },
         UserErr,
     },
@@ -174,6 +175,9 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -218,6 +222,20 @@ async fn test_signature_requests_fail_on_different_conditions() {
         "Substrate: User is not registered on-chain"
     );
 
+    let test_user_res_not_registered_sign_tx = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_res_not_registered_sign_tx.unwrap().text().await.unwrap(),
+        "Substrate: User is not registered on-chain"
+    );
+
     // Test: Signature requests fail if no auxiliary data is set
 
     // The test program is written to fail when `auxilary_data` is `None`
@@ -233,6 +251,20 @@ async fn test_signature_requests_fail_on_different_conditions() {
             test_user_failed_programs_res.unwrap().text().await.unwrap(),
             "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
         );
+
+    let test_user_failed_programs_res_sign_tx = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_failed_programs_res_sign_tx.unwrap().text().await.unwrap(),
+        "Runtime error: Runtime(Error::Evaluation(\"This program requires that `auxilary_data` be `Some`.\"))"
+    );
 
     // The test program is written to fail when `auxilary_data` is `None` but only on the second
     // program
@@ -262,6 +294,20 @@ async fn test_signature_requests_fail_on_different_conditions() {
         "Auxilary data is mismatched"
     );
 
+    let test_user_failed_aux_data_sign_tx = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_failed_aux_data_sign_tx.unwrap().text().await.unwrap(),
+        "Auxilary data is mismatched"
+    );
+
     // Test: Signature requests fails if a user provides an invalid hashing algorithm option
 
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -277,6 +323,20 @@ async fn test_signature_requests_fail_on_different_conditions() {
         "Custom hash choice out of bounds"
     );
 
+    let test_user_custom_hash_out_of_bounds_sign_tx = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_custom_hash_out_of_bounds_sign_tx.unwrap().text().await.unwrap(),
+        "Custom hash choice out of bounds"
+    );
+
     // Test: Signature requests fails if a the network parent key is used
 
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -288,6 +348,20 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     assert_eq!(
         test_user_sign_with_parent_key.unwrap().text().await.unwrap(),
+        "No signing from parent key"
+    );
+
+    let test_user_sign_with_parent_key_sign_tx = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_sign_with_parent_key_sign_tx.unwrap().text().await.unwrap(),
         "No signing from parent key"
     );
 
@@ -582,7 +656,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+    let relayer_ip_and_key = ("localhost:3002".to_string(), X25519_PUBLIC_KEYS[1]);
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -596,7 +670,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
-    let (validators_info, signature_request, validator_ips_and_keys) =
+    let (_validators_info, signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
@@ -608,12 +682,12 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         message_hash,
         request_author: expected_account_id,
     });
-    dbg!(&session_id);
+
     // Test attempting to connect over ws by someone who is not in the signing group
     let validator_ip_and_key = validator_ips_and_keys[0].clone();
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
-        tokio::time::sleep(Duration::from_millis(1300)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
         let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
@@ -638,19 +712,30 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         let subscribe_response: Result<(), String> =
             bincode::deserialize(&response_message).unwrap();
 
-        assert_eq!(Err("NoListener(\"no listener\")".to_string()), subscribe_response);
+        assert_eq!(Err("Decryption(\"Public key does not match any of those expected for this protocol session\")".to_string()), subscribe_response);
 
         // The stream should not continue to send messages
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
 
-    let test_user_bad_connection_res =
-        submit_transaction_requests(relayer_ip_and_key, signature_request, one).await;
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    verify_signature(test_user_bad_connection_res, message_hash, &verifying_key, &validators_info)
-        .await;
+    let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_bad_connection_res.unwrap().text().await.unwrap(),
+        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
+    );
 
     assert!(connection_attempt_handle.await.unwrap());
 
@@ -972,6 +1057,9 @@ async fn test_fail_infinite_program() {
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -1012,6 +1100,20 @@ async fn test_fail_infinite_program() {
             .await;
 
     assert_eq!(test_infinite_loop.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
+
+    let test_infinite_loop_sign_tx = submit_transaction_sign_tx_requests(
+        &api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+    )
+    .await;
+
+    assert_eq!(
+        test_infinite_loop_sign_tx.unwrap().text().await.unwrap(),
+        "Runtime error: OutOfFuel"
+    );
 }
 
 #[tokio::test]
@@ -1519,13 +1621,41 @@ pub async fn submit_transaction_requests(
         .await
 }
 
-pub async fn format_relay_result(
-    mut results: reqwest::Response,
-) -> Result<Vec<Result<(String, Signature), String>>, ()> {
-    let chunks = results.chunk().await.unwrap().unwrap();
-    serde_json::from_slice(&chunks).unwrap()
-}
+pub async fn submit_transaction_sign_tx_requests(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validator_urls_and_keys: (String, [u8; 32]),
+    signature_request: UserSignatureRequest,
+    signer: sr25519::Pair,
+) -> std::result::Result<reqwest::Response, reqwest::Error> {
+    let mock_client = reqwest::Client::new();
+    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
 
+    let relayer_sig_req: RelayerSignatureRequest = RelayerSignatureRequest {
+        message: signature_request.message,
+        auxilary_data: signature_request.auxilary_data,
+        block_number: signature_request.block_number,
+        hash: signature_request.hash,
+        signature_verifying_key: signature_request.signature_verifying_key,
+        validators_info,
+    };
+
+    let signed_message = EncryptedSignedMessage::new(
+        &signer,
+        serde_json::to_vec(&relayer_sig_req.clone()).unwrap(),
+        &validator_urls_and_keys.1,
+        &[],
+    )
+    .unwrap();
+
+    let url = format!("http://{}/user/sign_tx", validator_urls_and_keys.0.clone());
+    mock_client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message).unwrap())
+        .send()
+        .await
+}
 pub async fn get_sign_tx_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
