@@ -282,7 +282,8 @@ pub async fn jump_start_network_with_signer(
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
 
-    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    let validators_names =
+        vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
@@ -290,7 +291,9 @@ pub async fn jump_start_network_with_signer(
         let jump_start_confirm_request =
             entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
 
-        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
+        // Ignore the error as one confirmation will fail
+        let _result =
+            submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await;
     }
 }
 

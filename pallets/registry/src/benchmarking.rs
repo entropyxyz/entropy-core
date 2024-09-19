@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Benchmarking setup for pallet-propgation
-use entropy_shared::MAX_SIGNERS;
+use codec::Encode;
+use entropy_shared::{ValidatorInfo, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     traits::{Currency, Get},
@@ -102,6 +103,14 @@ benchmarks! {
       parent_key_threshold: 2
       });
 
+    // Add the jump start record
+    let block_number = <frame_system::Pallet<T>>::block_number();
+    let initial_signers = accounts.iter().map(|account_id| ValidatorInfo {
+        x25519_public_key: [0; 32],
+        ip_address: vec![20],
+        tss_account: account_id.encode(),
+    }).collect();
+    <JumpstartDkg<T>>::set(block_number, initial_signers);
 
     let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
     let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
@@ -117,12 +126,22 @@ benchmarks! {
     let threshold_account: T::AccountId = whitelisted_caller();
     let expected_verifying_key = BoundedVec::default();
 
-    // add validators and a registering user
+    // add validators
     for i in 0..MAX_SIGNERS {
         let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
         <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
     }
+
+    // Add the jump start record
+    let block_number = <frame_system::Pallet<T>>::block_number();
+    let initial_signers = (0..MAX_SIGNERS).map(|i| ValidatorInfo {
+        x25519_public_key: [0; 32],
+        ip_address: vec![20],
+        tss_account: threshold_account.encode(),
+    }).collect();
+    <JumpstartDkg<T>>::set(block_number, initial_signers);
+
     <JumpStartProgress<T>>::put(JumpStartDetails {
       jump_start_status: JumpStartStatus::InProgress(0),
       confirmations: vec![],

@@ -143,7 +143,7 @@ async fn test_dkg_with_parties(num_parties: usize) {
     let parties: Vec<_> =
         pairs.iter().map(|pair| ValidatorSecretInfo::pair_only(pair.clone())).collect();
     let threshold = parties.len();
-    let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
+    let session_id = SessionId::Dkg { block_number: 0 };
     let mut outputs = test_protocol_with_parties(parties, session_id, threshold).await;
     if let ProtocolOutput::Dkg(_keyshare) = outputs.pop().unwrap() {
     } else {
@@ -159,7 +159,7 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let dkg_parties =
         pairs.iter().map(|pair| ValidatorSecretInfo::pair_only(pair.clone())).collect();
-    let session_id = SessionId::Dkg { user: AccountId32([0; 32]), block_number: 0 };
+    let session_id = SessionId::Dkg { block_number: 0 };
     let outputs = test_protocol_with_parties(dkg_parties, session_id, threshold).await;
 
     let signing_committee = (0..threshold)
