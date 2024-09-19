@@ -133,11 +133,25 @@ pub mod provisioning_certification_key {
     use entropy_shared::BoundedVecEncodedVerifyingKey;
 
     lazy_static::lazy_static! {
-        pub static ref ALICE: BoundedVecEncodedVerifyingKey = vec![2, 137, 55, 65, 52, 103, 166, 204, 247, 160, 46, 220, 5, 113, 151, 217, 157, 196, 11, 240, 175, 82, 148, 230, 31, 245, 207, 194, 3, 74, 121, 184, 20].try_into().unwrap();
-        pub static ref BOB: BoundedVecEncodedVerifyingKey = vec![3, 83, 163, 234, 166, 114, 67, 146, 122, 122, 99, 236, 205, 116, 209, 45, 230, 107, 62, 55, 147, 38, 185, 203, 157, 147, 156, 173, 233, 58, 134, 162, 156].try_into().unwrap();
-        pub static ref CHARLIE: BoundedVecEncodedVerifyingKey = vec![2, 167, 50, 42, 76, 239, 190, 42, 72, 64, 110, 90, 172, 253, 252, 148, 115, 107, 34, 110, 2, 112, 184, 147, 87, 71, 63, 217, 238, 89, 253, 97, 176].try_into().unwrap();
-        pub static ref DAVE: BoundedVecEncodedVerifyingKey = vec![3, 68, 52, 130, 44, 84, 174, 32, 55, 213, 192, 7, 121, 188, 19, 231, 134, 47, 223, 166, 199, 118, 161, 203, 142, 75, 184, 108, 165, 70, 251, 249, 142].try_into().unwrap();
-        pub static ref EVE: BoundedVecEncodedVerifyingKey = vec![2, 60, 115, 185, 180, 118, 177, 23, 3, 49, 65, 92, 230, 60, 245, 1, 140, 149, 117, 238, 83, 69, 110, 30, 140, 31, 60, 69, 38, 34, 202, 242, 125].try_into().unwrap();
+        pub static ref ALICE: BoundedVecEncodedVerifyingKey = vec![
+            2, 137, 55, 65, 52, 103, 166, 204, 247, 160, 46, 220, 5, 113, 151, 217, 157, 196, 11,
+            240, 175, 82, 148, 230, 31, 245, 207, 194, 3, 74, 121, 184, 20
+        ].try_into().unwrap();
+        pub static ref BOB: BoundedVecEncodedVerifyingKey = vec![
+            3, 83, 163, 234, 166, 114, 67, 146, 122, 122, 99, 236, 205, 116, 209, 45, 230, 107, 62,
+            55, 147, 38, 185, 203, 157, 147, 156, 173, 233, 58, 134, 162, 156].try_into().unwrap();
+        pub static ref CHARLIE: BoundedVecEncodedVerifyingKey = vec![
+            2, 167, 50, 42, 76, 239, 190, 42, 72, 64, 110, 90, 172, 253, 252, 148, 115, 107, 34, 110,
+            2, 112, 184, 147, 87, 71, 63, 217, 238, 89, 253, 97, 176
+        ].try_into().unwrap();
+        pub static ref DAVE: BoundedVecEncodedVerifyingKey = vec![
+            3, 68, 52, 130, 44, 84, 174, 32, 55, 213, 192, 7, 121, 188, 19, 231, 134, 47, 223, 166,
+            199, 118, 161, 203, 142, 75, 184, 108, 165, 70, 251, 249, 142
+        ].try_into().unwrap();
+        pub static ref EVE: BoundedVecEncodedVerifyingKey = vec![
+            2, 60, 115, 185, 180, 118, 177, 23, 3, 49, 65, 92, 230, 60, 245, 1, 140, 149, 117, 238,
+            83, 69, 110, 30, 140, 31, 60, 69, 38, 34, 202, 242, 125
+        ].try_into().unwrap();
     }
 }
 
