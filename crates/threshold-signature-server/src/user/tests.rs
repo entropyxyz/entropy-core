@@ -17,7 +17,7 @@ use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bip39::{Language, Mnemonic};
 use blake3::hash;
-use entropy_client::substrate::{get_registered_details};
+use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client as test_client,
     client::{sign, update_programs},
