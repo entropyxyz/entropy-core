@@ -198,6 +198,7 @@ async fn test_reshare() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();

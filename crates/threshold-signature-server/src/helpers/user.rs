@@ -43,10 +43,9 @@ pub async fn do_dkg(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
-    sig_request_account: AccountId32,
     block_number: u32,
 ) -> Result<KeyShareWithAuxInfo, UserErr> {
-    let session_id = SessionId::Dkg { user: sig_request_account.clone(), block_number };
+    let session_id = SessionId::Dkg { block_number };
     let account_id = AccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
