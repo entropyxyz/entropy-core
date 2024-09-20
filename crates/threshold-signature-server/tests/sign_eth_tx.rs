@@ -74,6 +74,7 @@ async fn integration_test_sign_eth_tx() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();

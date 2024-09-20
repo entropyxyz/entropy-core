@@ -26,7 +26,7 @@ chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
 synedrion       ={ git="https://github.com/entropyxyz/synedrion", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa" }
 
 # Async
-tokio  ={ version="1.39", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }
+tokio  ={ version="1.40", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }
 tracing={ version="0.1", default-features=false }
 
 # Misc

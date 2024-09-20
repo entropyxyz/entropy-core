@@ -215,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.87"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10f00e1f6e58a40e807377c75c6a7f97bf9044fab57816f2414e6f5f4499d7b8"
+checksum = "86fdf8605db99b54d3cd748a44c6d04df638eb5dafb219b135d0149bd0db01f6"
 
 [[package]]
 name = "approx"
@@ -1078,9 +1078,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.7.1"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8318a53db07bb3f8dca91a600466bdb3f2eaadeedfdbcf02e1accbad9271ba50"
+checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
 dependencies = [
  "serde",
 ]
@@ -2600,7 +2600,7 @@ dependencies = [
  "synedrion",
  "thiserror",
  "tokio",
- "tokio-tungstenite 0.23.1",
+ "tokio-tungstenite 0.24.0",
  "tracing",
  "wasm-bindgen",
  "wasm-bindgen-derive",
@@ -2722,6 +2722,7 @@ dependencies = [
  "clap",
  "colored",
  "entropy-client",
+ "entropy-shared",
  "hex",
  "sp-core 31.0.0",
  "sp-runtime 32.0.0",
@@ -2810,7 +2811,7 @@ dependencies = [
  "tdx-quote",
  "thiserror",
  "tokio",
- "tokio-tungstenite 0.23.1",
+ "tokio-tungstenite 0.24.0",
  "tower-http 0.5.2",
  "tracing",
  "tracing-bunyan-formatter",
@@ -7278,6 +7279,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
+ "rand",
  "scale-info",
  "sp-core 29.0.0",
  "sp-io 31.0.0",
@@ -14046,7 +14048,7 @@ dependencies = [
 [[package]]
 name = "synedrion"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa#1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa"
+source = "git+https://github.com/entropyxyz/synedrion/?rev=1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa#1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa"
 dependencies = [
  "base64 0.21.7",
  "bincode 2.0.0-rc.3",
@@ -14136,10 +14138,11 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 [[package]]
 name = "tdx-quote"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote#785cd6680e857cc527037befba185fb5f84ab806"
+source = "git+https://github.com/entropyxyz/tdx-quote?rev=f7968ff#f7968ff35ff744ff8c007cffe6ec8d709d7f18d9"
 dependencies = [
  "nom",
  "p256",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -14294,9 +14297,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.39.3"
+version = "1.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9babc99b9923bfa4804bd74722ff02c0381021eafa4db9949217e3be8e84fff5"
+checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
 dependencies = [
  "backtrace",
  "bytes",
@@ -14400,14 +14403,14 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.23.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6989540ced10490aaf14e6bad2e3d33728a2813310a0c71d1574304c49631cd"
+checksum = "edc5f74e248dc973e0dbb7b74c7e0d6fcc301c694ff50049504004ef4d0cdcd9"
 dependencies = [
  "futures-util",
  "log",
  "tokio",
- "tungstenite 0.23.0",
+ "tungstenite 0.24.0",
 ]
 
 [[package]]
@@ -14849,9 +14852,9 @@ dependencies = [
 
 [[package]]
 name = "tungstenite"
-version = "0.23.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e2e2ce1e47ed2994fd43b04c8f618008d4cabdd5ee34027cf14f9d918edd9c8"
+checksum = "18e5b8366ee7a95b16d32197d0b2604b43a0be89dc5fac9f8e96ccafbaedda8a"
 dependencies = [
  "byteorder",
  "bytes",
