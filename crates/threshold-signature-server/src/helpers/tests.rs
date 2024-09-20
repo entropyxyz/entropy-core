@@ -280,23 +280,28 @@ pub async fn jump_start_network_with_signer(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) {
+) -> ValidatorName {
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
 
     let validators_names =
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    let mut non_signer = ValidatorName::Alice;
     for validator_name in validators_names {
-        let mnemonic = development_mnemonic(&Some(validator_name));
+        let mnemonic = development_mnemonic(&Some(validator_name.clone()));
         let (tss_signer, _static_secret) =
             get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
         let jump_start_confirm_request =
             entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
 
         // Ignore the error as one confirmation will fail
-        let _result =
+        let result =
             submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await;
+        if result.is_err() {
+            non_signer = validator_name
+        }
     }
+    non_signer
 }
 
 /// Helper to store a program and register a user. Returns the verify key and program hash.

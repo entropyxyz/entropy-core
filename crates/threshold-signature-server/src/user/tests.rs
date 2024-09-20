@@ -175,7 +175,6 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
@@ -189,7 +188,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
-    jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, program_hash) =
@@ -391,7 +391,8 @@ async fn signature_request_with_derived_account_works() {
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
-    jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -400,12 +401,8 @@ async fn signature_request_with_derived_account_works() {
     let (validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
-    let signature_request_responses = submit_transaction_requests(
-        ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]),
-        signature_request.clone(),
-        alice,
-    )
-    .await;
+    let signature_request_responses =
+        submit_transaction_requests(relayer_ip_and_key, signature_request.clone(), alice).await;
 
     // We expect that the signature we get back is valid
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
@@ -455,7 +452,9 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
 
     let mock_client = reqwest::Client::new();
 
@@ -490,7 +489,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     );
 
     let failed_res_relay = mock_client
-        .post("http://127.0.0.1:3001/user/relay_tx")
+        .post(relayer_url.clone())
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&failed_signed_message).unwrap())
         .send()
@@ -526,10 +525,19 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
         "Encryption or signing error: Cannot verify signature"
     );
 
+    let user_input_bad_relayer = EncryptedSignedMessage::new_with_given_signature(
+        &one.pair(),
+        serde_json::to_vec(&signature_request.clone()).unwrap(),
+        &relayer_ip_and_key.1,
+        &[],
+        sr25519::Signature::from_raw(sig),
+    )
+    .unwrap();
+
     let failed_sign_relay = mock_client
-        .post("http://127.0.0.1:3001/user/relay_tx")
+        .post(relayer_url)
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&user_input_bad).unwrap())
+        .body(serde_json::to_string(&user_input_bad_relayer).unwrap())
         .send()
         .await
         .unwrap();
@@ -555,7 +563,6 @@ async fn test_request_limit_are_updated_during_signing() {
     let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -563,8 +570,8 @@ async fn test_request_limit_are_updated_during_signing() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    jump_start_network(&entropy_api, &rpc).await;
-
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
@@ -657,7 +664,6 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3002".to_string(), X25519_PUBLIC_KEYS[1]);
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -665,8 +671,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    jump_start_network(&entropy_api, &rpc).await;
-
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
@@ -676,7 +681,12 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
             .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    let expected_account_id = subxtAccountId32(TSS_ACCOUNTS[0].0);
+
+    let mnemonic = development_mnemonic(&Some(non_signer));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    let expected_account_id = tss_signer.account_id().clone();
 
     let session_id = SessionId::Sign(SigningSessionInfo {
         signature_verifying_key: verifying_key.to_vec(),
@@ -689,7 +699,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0);
+        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0.clone());
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
@@ -720,14 +730,10 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         encrypted_connection.recv().await.is_err()
     });
 
-    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
-    let (tss_signer, _static_secret) =
-        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
-
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
         &entropy_api,
         &rpc,
-        relayer_ip_and_key.clone(),
+        validator_ips_and_keys[0].clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
     )
@@ -735,7 +741,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
     assert_eq!(
         test_user_bad_connection_res.unwrap().text().await.unwrap(),
-        "{\"Err\":\"Oneshot timeout error: channel closed\"}"
+        "{\"Err\":\"Subscribe message rejected: NoListener(\\\"no listener\\\")\"}"
     );
 
     assert!(connection_attempt_handle.await.unwrap());
@@ -755,7 +761,6 @@ async fn test_program_with_config() {
     let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -763,7 +768,8 @@ async fn test_program_with_config() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     let program_hash = test_client::store_program(
         &entropy_api,
@@ -1046,7 +1052,7 @@ async fn test_fail_infinite_program() {
     let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
@@ -1057,7 +1063,8 @@ async fn test_fail_infinite_program() {
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    jump_start_network(&api, &rpc).await;
+    let non_signer = jump_start_network(&api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
         &api,
@@ -1143,7 +1150,6 @@ async fn test_device_key_proxy() {
     let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -1154,7 +1160,8 @@ async fn test_device_key_proxy() {
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
-    jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // We need to store a program in order to be able to register succesfully
     let program_hash = test_client::store_program(
@@ -1679,8 +1686,30 @@ pub async fn get_sign_tx_data(
 pub async fn jump_start_network(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) {
+) -> ValidatorName {
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-    jump_start_network_with_signer(api, rpc, &signer).await;
+    jump_start_network_with_signer(api, rpc, &signer).await
+}
+
+/// Takes a validator name and returns relayer info needed for tests
+pub async fn validator_name_to_realyer_info(
+    validator_name: ValidatorName,
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> (String, [u8; 32]) {
+    let stash_address = match validator_name {
+        ValidatorName::Alice => AccountKeyring::AliceStash,
+        ValidatorName::Bob => AccountKeyring::BobStash,
+        ValidatorName::Charlie => AccountKeyring::CharlieStash,
+        ValidatorName::Dave => AccountKeyring::DaveStash,
+        ValidatorName::Eve => AccountKeyring::EveStash,
+    };
+    let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+    let threshold_address_query = entropy::storage()
+        .staking_extension()
+        .threshold_servers(subxtAccountId32(stash_address.public().0));
+    let server_info =
+        query_chain(&api, &rpc, threshold_address_query, block_hash).await.unwrap().unwrap();
+    (std::str::from_utf8(&server_info.endpoint).unwrap().to_string(), server_info.x25519_public_key)
 }
