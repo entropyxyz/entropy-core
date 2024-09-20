@@ -12,7 +12,7 @@ edition    ='2021'
 # Common
 serde              ={ version="1.0", default-features=false, features=["derive"] }
 serde_json         ="1.0"
-anyhow             ="1.0.86"
+anyhow             ="1.0.89"
 thiserror          ="1.0.63"
 blake2             ="0.10.4"
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
@@ -27,7 +27,7 @@ backoff            ={ version="0.4.0", features=["tokio"] }
 
 # Async
 futures="0.3"
-tokio  ={ version="1.39", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
+tokio  ={ version="1.40", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
 reqwest={ version="0.12.7", features=["json", "stream"] }
@@ -51,27 +51,30 @@ entropy-programs-runtime="0.10.0"
 tracing                 ="0.1.37"
 tracing-subscriber      ={ version="0.3.18", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
-tower-http              ={ version="0.5.2", features=["trace", "cors"] }
+tower-http              ={ version="0.6.0", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
 uuid                    ={ version="1.10.0", features=["v4"] }
 
 # Misc
-tokio-tungstenite="0.23.1"
-bincode          ="1.3.3"
-bip32            ={ version="0.5.2" }
-bip39            ={ version="2.0.0", features=["zeroize"] }
-bytes            ={ version="1.7", default-features=false, features=["serde"] }
-base64           ="0.22.1"
-clap             ={ version="4.5.16", features=["derive"] }
-num              ="0.4.3"
-snow             ="0.9.6"
-sha3             ="0.10.8"
-hostname         ="0.4"
-sha1             ="0.10.6"
-sha2             ="0.10.8"
-hkdf             ="0.12.4"
-project-root     ={ version="0.2.2", optional=true }
-tdx-quote        ={ git="https://github.com/entropyxyz/tdx-quote", optional=true, features=["mock"] }
+tokio-tungstenite="0.24.0"
+bincode="1.3.3"
+bip32={ version="0.5.2" }
+bip39={ version="2.0.0", features=["zeroize"] }
+bytes={ version="1.7", default-features=false, features=["serde"] }
+base64="0.22.1"
+clap={ version="4.5.17", features=["derive"] }
+num="0.4.3"
+snow="0.9.6"
+sha3="0.10.8"
+hostname="0.4"
+sha1="0.10.6"
+sha2="0.10.8"
+hkdf="0.12.4"
+project-root={ version="0.2.2", optional=true }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote", rev="f7968ff", optional=true, features=[
+  "mock",
+] }
+configfs-tsm={ git="https://github.com/entropyxyz/configfs-tsm", rev="f32c166", optional=true }
 
 [dev-dependencies]
 serial_test ="3.1.1"
@@ -85,7 +88,7 @@ ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
 schemars    ={ version="0.8.21" }
 subxt-signer="0.35.3"
-tdx-quote   ={ git="https://github.com/entropyxyz/tdx-quote", features=["mock"] }
+tdx-quote   ={ git="https://github.com/entropyxyz/tdx-quote", rev="f7968ff", features=["mock"] }
 
 # Note: We don't specify versions here because otherwise we run into a cyclical dependency between
 # `entropy-tss` and `entropy-testing-utils` when we try and publish the `entropy-tss` crate.
@@ -102,10 +105,11 @@ entropy-testing-utils={ path="../testing-utils" }
 vergen={ version="8.3.2", features=["build", "git", "gitcl"] }
 
 [features]
-default     =['std']
+default     =["std", "dep:tdx-quote"]
 std         =["sp-core/std"]
 test_helpers=["dep:project-root"]
-unsafe      =["dep:tdx-quote"]
+unsafe      =[]
+production  =["std", "dep:configfs-tsm"]
 alice       =[]
 bob         =[]
 # Enable this feature to run the integration tests for the wasm API of entropy-protocol

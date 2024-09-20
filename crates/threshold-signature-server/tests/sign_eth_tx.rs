@@ -25,7 +25,7 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{decode_verifying_key, RecoverableSignature};
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
-    jump_start_network, spawn_testing_validators, test_node_process_testing_state,
+    jump_start_network, spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
@@ -51,7 +51,8 @@ async fn integration_test_sign_eth_tx() {
     let signature_request_author = AccountKeyring::One;
 
     let add_parent_key = true;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(add_parent_key).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -73,6 +74,7 @@ async fn integration_test_sign_eth_tx() {
         vec![],
         vec![],
         vec![],
+        0u8,
     )
     .await
     .unwrap();

@@ -157,8 +157,8 @@ impl RecoverableSignature {
 /// An identifier to specify and particular protocol session
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum SessionId {
-    /// A distributed key generation protocol session for registering
-    Dkg { user: AccountId32, block_number: u32 },
+    /// A distributed key generation protocol session for initial network jumpstart
+    Dkg { block_number: u32 },
     /// A proactive refresh session
     Reshare { verifying_key: Vec<u8>, block_number: u32 },
     /// A signing session
@@ -181,8 +181,7 @@ pub struct SigningSessionInfo {
 impl Hash for SessionId {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            SessionId::Dkg { user, block_number } => {
-                user.0.hash(state);
+            SessionId::Dkg { block_number } => {
                 block_number.hash(state);
             },
             SessionId::Reshare { verifying_key, block_number } => {

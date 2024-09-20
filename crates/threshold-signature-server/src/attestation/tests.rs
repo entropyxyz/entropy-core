@@ -16,7 +16,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc},
     helpers::{
         substrate::query_chain,
-        tests::{initialize_test_logger, run_to_block, spawn_testing_validators},
+        tests::{initialize_test_logger, run_to_block, spawn_testing_validators, ChainSpecType},
     },
 };
 use entropy_kvdb::clean_tests;
@@ -32,7 +32,9 @@ async fn test_attest() {
     clean_tests();
 
     let cxt = test_node_process_stationary().await;
-    let (_validator_ips, _validator_ids) = spawn_testing_validators(false).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(false, ChainSpecType::Integration).await;
+
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 

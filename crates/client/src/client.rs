@@ -196,6 +196,7 @@ pub async fn sign(
 }
 
 /// Store a program on chain and return it's hash
+#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(
     skip_all,
     fields(
@@ -210,12 +211,14 @@ pub async fn store_program(
     configuration_interface: Vec<u8>,
     auxiliary_data_interface: Vec<u8>,
     oracle_data_pointer: Vec<u8>,
+    version_number: u8,
 ) -> Result<<EntropyConfig as Config>::Hash, ClientError> {
     let set_program_tx = entropy::tx().programs().set_program(
         program,
         configuration_interface,
         auxiliary_data_interface,
         oracle_data_pointer,
+        version_number,
     );
     let in_block =
         submit_transaction_with_pair(api, rpc, deployer_pair, &set_program_tx, None).await?;

@@ -40,9 +40,10 @@ use crate::{
 use axum::{routing::IntoMakeService, Router};
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
+#[cfg(test)]
+use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
 use std::time::Duration;
-
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -119,10 +120,29 @@ pub async fn create_clients(
     (app, kv_store)
 }
 
-/// Spawn 3 TSS nodes with pre-stored keyshares
-pub async fn spawn_testing_validators(add_parent_key: bool) -> (Vec<String>, Vec<PartyId>) {
+/// A way to specify which chainspec to use in testing
+#[derive(Clone, PartialEq)]
+pub enum ChainSpecType {
+    /// The development chainspec, which has 3 TSS nodes
+    Development,
+    /// The integration test chainspec, which has 4 TSS nodes
+    Integration,
+}
+
+/// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
+/// desired
+pub async fn spawn_testing_validators(
+    add_parent_key: bool,
+    chain_spec_type: ChainSpecType,
+) -> (Vec<String>, Vec<PartyId>) {
+    let add_fourth_server = chain_spec_type == ChainSpecType::Integration;
+
     // spawn threshold servers
-    let ports = [3001i64, 3002, 3003];
+    let mut ports = vec![3001i64, 3002, 3003];
+
+    if add_fourth_server {
+        ports.push(3004);
+    }
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
@@ -143,11 +163,12 @@ pub async fn spawn_testing_validators(add_parent_key: bool) -> (Vec<String>, Vec
         *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
     ));
 
-    let ids = vec![alice_id, bob_id, charlie_id];
+    let mut ids = vec![alice_id, bob_id, charlie_id];
 
     put_keyshares_in_db("alice", alice_kv, add_parent_key).await;
     put_keyshares_in_db("bob", bob_kv, add_parent_key).await;
     put_keyshares_in_db("charlie", charlie_kv, add_parent_key).await;
+    // Don't give dave keyshares as dave is not initially in the signing committee
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -169,6 +190,23 @@ pub async fn spawn_testing_validators(add_parent_key: bool) -> (Vec<String>, Vec
     tokio::spawn(async move {
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
+
+    if add_fourth_server {
+        let (dave_axum, dave_kv) =
+            create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave))
+                .await;
+
+        let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
+            .await
+            .expect("Unable to bind to given server address.");
+        tokio::spawn(async move {
+            axum::serve(listener_dave, dave_axum).await.unwrap();
+        });
+        let dave_id = PartyId::new(SubxtAccountId32(
+            *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
+        ));
+        ids.push(dave_id);
+    }
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
@@ -244,7 +282,8 @@ pub async fn jump_start_network_with_signer(
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
 
-    let validators_names = vec![ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    let validators_names =
+        vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
@@ -252,6 +291,49 @@ pub async fn jump_start_network_with_signer(
         let jump_start_confirm_request =
             entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
 
-        submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await.unwrap();
+        // Ignore the error as one confirmation will fail
+        let _result =
+            submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await;
     }
+}
+
+/// Helper to store a program and register a user. Returns the verify key and program hash.
+#[cfg(test)]
+pub async fn store_program_and_register(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user: &sr25519::Pair,
+    deployer: &sr25519::Pair,
+) -> (EncodedVerifyingKey, sp_core::H256) {
+    use entropy_client::{
+        self as test_client,
+        chain_api::entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
+    };
+    use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
+    use sp_core::Pair;
+
+    let program_hash = test_client::store_program(
+        api,
+        rpc,
+        deployer,
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+        0u8,
+    )
+    .await
+    .unwrap();
+
+    let (verifying_key, _registered_info) = test_client::register(
+        api,
+        rpc,
+        user.clone(),
+        SubxtAccountId32(deployer.public().0), // Program modification account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
+
+    (verifying_key, program_hash)
 }

@@ -22,6 +22,7 @@ At the moment this project **does not** adhere to
   to go through the `staking_extention` pallet. This makes sure no funds can be unbonded from a
   validator if they are currently in the signing comittee. This was applied to `unbond`, `chill`,
   and `withdraw_unbonded`
+- In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes `version_number` to maintain backwards compatibility if programs runtime is updated
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -37,6 +38,8 @@ At the moment this project **does not** adhere to
 - Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
 - Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
+- Select validators for jumpstart DKG [#1053](https://github.com/entropyxyz/entropy-core/pull/1053))
+- Add a programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
