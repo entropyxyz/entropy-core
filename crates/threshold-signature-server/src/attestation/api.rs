@@ -71,7 +71,7 @@ pub async fn attest(
 }
 
 /// Create a mock quote for testing on non-TDX hardware
-#[cfg(any(test, feature = "unsafe"))]
+#[cfg(not(feature = "production"))]
 pub async fn create_quote(
     block_number: u32,
     nonce: [u8; 32],
@@ -97,14 +97,22 @@ pub async fn create_quote(
     Ok(quote)
 }
 
-/// Once implemented, this will create a TDX quote in production
-#[cfg(not(any(test, feature = "unsafe")))]
+/// Create a TDX quote in production
+#[cfg(feature = "production")]
 pub async fn create_quote(
-    _block_number: u32,
-    _nonce: [u8; 32],
-    _signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
-    _x25519_secret: &StaticSecret,
+    block_number: u32,
+    nonce: [u8; 32],
+    signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
+    x25519_secret: &StaticSecret,
 ) -> Result<Vec<u8>, AttestationErr> {
-    // Non-mock attestation (the real thing) will go here
-    Err(AttestationErr::NotImplemented)
+    let public_key = x25519_dalek::PublicKey::from(x25519_secret);
+
+    let input_data = entropy_shared::QuoteInputData::new(
+        signer.signer().public(),
+        *public_key.as_bytes(),
+        nonce,
+        block_number,
+    );
+
+    Ok(configfs_tsm::create_quote(input_data.0)?)
 }

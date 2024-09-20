@@ -27,9 +27,6 @@ pub enum AttestationErr {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
-    #[cfg(not(any(test, feature = "unsafe")))]
-    #[error("Not yet implemented")]
-    NotImplemented,
     #[error("Input must be 32 bytes: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
     #[error("Could not get block number")]
@@ -40,6 +37,9 @@ pub enum AttestationErr {
     Unexpected,
     #[error("Could not decode message: {0}")]
     Codec(#[from] parity_scale_codec::Error),
+    #[cfg(feature = "production")]
+    #[error("Quote generation: {0}")]
+    QuoteGeneration(#[from] std::io::Error),
 }
 
 impl IntoResponse for AttestationErr {
