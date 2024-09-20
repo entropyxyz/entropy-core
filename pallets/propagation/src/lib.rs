@@ -38,7 +38,6 @@ pub mod pallet {
     use codec::Encode;
     use entropy_shared::{
         OcwMessageAttestationRequest, OcwMessageDkg, OcwMessageProactiveRefresh, OcwMessageReshare,
-        ValidatorInfo,
     };
     use frame_support::{pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
@@ -110,7 +109,7 @@ pub mod pallet {
         /// Submits a distributed key generation request to jumpstart the network to the threshold
         /// servers.
         pub fn post_dkg(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
-            let messages = pallet_registry::Pallet::<T>::jumpstart_dkg(
+            let validators_info = pallet_registry::Pallet::<T>::jumpstart_dkg(
                 block_number.saturating_sub(1u32.into()),
             );
 
@@ -121,24 +120,13 @@ pub mod pallet {
             let url =
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/generate_network_key");
 
-            log::warn!("propagation::post::messages: {:?}", &messages);
+            log::warn!("propagation::post::validators_info: {:?}", &validators_info);
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
-            let servers_info =
-                pallet_registry::Pallet::<T>::get_validators_info().unwrap_or_default();
-            let validators_info = servers_info
-                .iter()
-                .map(|server_info| ValidatorInfo {
-                    x25519_public_key: server_info.x25519_public_key,
-                    ip_address: server_info.endpoint.clone(),
-                    tss_account: server_info.tss_account.encode(),
-                })
-                .collect::<Vec<_>>();
             // the data is serialized / encoded to Vec<u8> by parity-scale-codec::encode()
             let req_body = OcwMessageDkg {
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
-                sig_request_accounts: messages,
                 validators_info,
             };
 

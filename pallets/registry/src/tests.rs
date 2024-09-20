@@ -16,8 +16,7 @@
 #[allow(unused)]
 use pallet_registry::Call as RegistryCall;
 
-use codec::Encode;
-use entropy_shared::{NETWORK_PARENT_KEY, VERIFICATION_KEY_LENGTH};
+use entropy_shared::{ValidatorInfo, VERIFICATION_KEY_LENGTH};
 use frame_support::{assert_noop, assert_ok, BoundedVec};
 use pallet_programs::ProgramInfo;
 use pallet_staking_extension::{JumpStartDetails, JumpStartProgress, JumpStartStatus, ServerInfo};
@@ -313,7 +312,24 @@ fn it_jumps_the_network() {
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
         assert_eq!(
             Registry::jumpstart_dkg(0),
-            vec![NETWORK_PARENT_KEY.encode()],
+            // From the mock genesis config
+            vec![
+                ValidatorInfo {
+                    x25519_public_key: [0; 32],
+                    ip_address: vec![20],
+                    tss_account: vec![7, 0, 0, 0, 0, 0, 0, 0]
+                },
+                ValidatorInfo {
+                    x25519_public_key: [0; 32],
+                    ip_address: vec![10],
+                    tss_account: vec![3, 0, 0, 0, 0, 0, 0, 0]
+                },
+                ValidatorInfo {
+                    x25519_public_key: [0; 32],
+                    ip_address: vec![11],
+                    tss_account: vec![4, 0, 0, 0, 0, 0, 0, 0]
+                },
+            ],
             "ensures a dkg message for the jump start network is prepped"
         );
         assert_eq!(
@@ -357,55 +373,55 @@ fn it_tests_jump_start_result() {
             Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::NoThresholdKey
         );
+
         pallet_staking_extension::ThresholdToStash::<Test>::insert(1, 1);
-
         pallet_staking_extension::ThresholdToStash::<Test>::insert(7, 7);
-        assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(7), expected_verifying_key.clone()),
-            Error::<Test>::NotValidator
-        );
-
         assert_noop!(
             Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
             Error::<Test>::JumpStartNotInProgress
         );
+
         // trigger jump start
         assert_ok!(Registry::jump_start_network(RuntimeOrigin::signed(1)));
+        assert_noop!(
+            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Error::<Test>::NotValidator
+        );
 
         assert_ok!(Registry::confirm_jump_start(
-            RuntimeOrigin::signed(1),
+            RuntimeOrigin::signed(7),
             expected_verifying_key.clone()
         ));
         assert_eq!(
             Staking::jump_start_progress(),
             JumpStartDetails {
                 jump_start_status: JumpStartStatus::InProgress(0),
-                confirmations: vec![1],
+                confirmations: vec![7],
                 verifying_key: Some(expected_verifying_key.clone()),
                 parent_key_threshold: 2,
             },
             "Jump start recieves a confirmation"
         );
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), expected_verifying_key.clone()),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7), expected_verifying_key.clone()),
             Error::<Test>::AlreadyConfirmed
         );
 
         let bad_verifying_key =
             BoundedVec::try_from(vec![0; VERIFICATION_KEY_LENGTH as usize]).unwrap();
         assert_noop!(
-            Registry::confirm_jump_start(RuntimeOrigin::signed(1), bad_verifying_key.clone()),
+            Registry::confirm_jump_start(RuntimeOrigin::signed(7), bad_verifying_key.clone()),
             Error::<Test>::MismatchedVerifyingKey
         );
 
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(2, 2);
-        pallet_staking_extension::ThresholdToStash::<Test>::insert(5, 5);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(3, 3);
+        pallet_staking_extension::ThresholdToStash::<Test>::insert(4, 4);
         assert_ok!(Registry::confirm_jump_start(
-            RuntimeOrigin::signed(2),
+            RuntimeOrigin::signed(3),
             expected_verifying_key.clone()
         ));
         assert_ok!(Registry::confirm_jump_start(
-            RuntimeOrigin::signed(5),
+            RuntimeOrigin::signed(4),
             expected_verifying_key.clone()
         ));
         assert_eq!(
@@ -420,10 +436,30 @@ fn it_tests_jump_start_result() {
         );
         assert_eq!(
             pallet_staking_extension::Signers::<Test>::get(),
-            vec![1, 2, 5],
+            vec![7, 3, 4],
             "Jumpstart sets inital signers"
         );
     });
+}
+
+#[test]
+fn it_checks_ordering_of_block_numbers_in_a_storage_map() {
+    new_test_ext().execute_with(|| {
+        let validator = ValidatorInfo {
+            x25519_public_key: [0; 32],
+            ip_address: vec![20],
+            tss_account: vec![0, 0, 0, 0, 0, 0, 0, 0],
+        };
+        pallet_registry::JumpstartDkg::<Test>::set(0, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(1, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(2, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(3, vec![validator.clone()]);
+        pallet_registry::JumpstartDkg::<Test>::set(4, vec![validator]);
+        let last_entry = pallet_registry::JumpstartDkg::<Test>::iter()
+            .max_by(|(k1, _v1), (k2, _v2)| k1.cmp(k2))
+            .unwrap();
+        assert_eq!(last_entry.0, 4);
+    })
 }
 
 #[test]
