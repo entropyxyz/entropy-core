@@ -71,7 +71,7 @@ pub async fn attest(
 }
 
 /// Create a mock quote for testing on non-TDX hardware
-#[cfg(any(test, feature = "unsafe"))]
+#[cfg(not(feature = "production"))]
 pub async fn create_quote(
     block_number: u32,
     nonce: [u8; 32],
@@ -98,7 +98,7 @@ pub async fn create_quote(
 }
 
 /// Create a TDX quote in production
-#[cfg(not(any(test, feature = "unsafe")))]
+#[cfg(feature = "production")]
 pub async fn create_quote(
     block_number: u32,
     nonce: [u8; 32],

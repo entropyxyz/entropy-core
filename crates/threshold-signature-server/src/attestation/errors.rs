@@ -37,7 +37,7 @@ pub enum AttestationErr {
     Unexpected,
     #[error("Could not decode message: {0}")]
     Codec(#[from] parity_scale_codec::Error),
-    #[cfg(not(any(test, feature = "unsafe")))]
+    #[cfg(feature = "production")]
     #[error("Quote generation: {0}")]
     QuoteGeneration(#[from] std::io::Error),
 }
