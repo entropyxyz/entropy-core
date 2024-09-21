@@ -54,9 +54,9 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn change_endpoint() -> Weight;
 	fn change_threshold_accounts() -> Weight;
-	fn chill(c: u32) -> Weight;
-	fn unbond(c: u32) -> Weight;
-	fn withdraw_unbonded(c: u32) -> Weight;
+	fn chill(c: u32, n: u32) -> Weight;
+	fn unbond(c: u32, n: u32) -> Weight;
+	fn withdraw_unbonded(c: u32, n: u32) -> Weight;
 	fn validate() -> Weight;
 	fn declare_synced() -> Weight;
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
@@ -96,63 +96,90 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
-	/// Storage: `Staking::Ledger` (r:1 w:0)
+	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:0)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
 	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 15]`.
-	fn unbond(c: u32, ) -> Weight {
+	/// Storage: `Staking::MinNominatorBond` (r:1 w:0)
+	/// Proof: `Staking::MinNominatorBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::CurrentEra` (r:1 w:0)
+	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Balances::Locks` (r:1 w:1)
+	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
+	/// Storage: `Balances::Freezes` (r:1 w:0)
+	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:1 w:1)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `BagsList::ListNodes` (r:1 w:1)
+	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// The range of component `s` is `[0, 15]`.
+	/// The range of component `n` is `[0, 16]`.
+	fn unbond(s: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1153 + c * (64 ±0)`
-		//  Estimated: `4556 + c * (64 ±0)`
-		// Minimum execution time: 30_000_000 picoseconds.
-		Weight::from_parts(31_919_889, 0)
-			.saturating_add(Weight::from_parts(0, 4556))
-			// Standard Error: 69_754
-			.saturating_add(Weight::from_parts(122_237, 0).saturating_mul(c.into()))
-			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+		//  Measured:  `1986 + n * (32 ±0) + s * (64 ±0)`
+		//  Estimated: `4764 + n * (32 ±0) + s * (64 ±0)`
+		// Minimum execution time: 72_000_000 picoseconds.
+		Weight::from_parts(71_588_925, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			// Standard Error: 254_432
+			.saturating_add(Weight::from_parts(266_286, 0).saturating_mul(s.into()))
+			// Standard Error: 244_899
+			.saturating_add(Weight::from_parts(241_693, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(11))
+			.saturating_add(T::DbWeight::get().writes(4))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
+			.saturating_add(Weight::from_parts(0, 64).saturating_mul(s.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:1)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
 	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Staking::Validators` (r:1 w:1)
+	/// Storage: `Staking::Validators` (r:1 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::CounterForValidators` (r:1 w:1)
-	/// Proof: `Staking::CounterForValidators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::CounterForNominators` (r:1 w:1)
+	/// Proof: `Staking::CounterForNominators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `BagsList::ListNodes` (r:2 w:2)
 	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
 	/// Storage: `BagsList::ListBags` (r:1 w:1)
 	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// Storage: `BagsList::CounterForListNodes` (r:1 w:1)
 	/// Proof: `BagsList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Nominators` (r:1 w:0)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// The range of component `c` is `[0, 15]`.
-	fn chill(c: u32, ) -> Weight {
+	/// The range of component `n` is `[0, 16]`.
+	fn chill(c: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2093 + c * (64 ±0)`
-		//  Estimated: `6248 + c * (64 ±0)`
-		// Minimum execution time: 56_000_000 picoseconds.
-		Weight::from_parts(60_113_259, 0)
+		//  Measured:  `1864 + c * (64 ±0) + n * (32 ±0)`
+		//  Estimated: `6248 + c * (64 ±0) + n * (32 ±0)`
+		// Minimum execution time: 59_000_000 picoseconds.
+		Weight::from_parts(57_194_136, 0)
 			.saturating_add(Weight::from_parts(0, 6248))
+			// Standard Error: 195_789
+			.saturating_add(Weight::from_parts(161_563, 0).saturating_mul(c.into()))
+			// Standard Error: 188_454
+			.saturating_add(Weight::from_parts(295_602, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(6))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:0)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
@@ -166,18 +193,22 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// The range of component `c` is `[0, 15]`.
-	fn withdraw_unbonded(c: u32, ) -> Weight {
+	/// The range of component `n` is `[0, 16]`.
+	fn withdraw_unbonded(c: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1460 + c * (64 ±0)`
-		//  Estimated: `4764 + c * (64 ±0)`
-		// Minimum execution time: 46_000_000 picoseconds.
-		Weight::from_parts(47_190_607, 0)
+		//  Measured:  `1534 + c * (64 ±0) + n * (32 ±0)`
+		//  Estimated: `4764 + c * (64 ±0) + n * (32 ±0)`
+		// Minimum execution time: 47_000_000 picoseconds.
+		Weight::from_parts(47_473_941, 0)
 			.saturating_add(Weight::from_parts(0, 4764))
-			// Standard Error: 140_766
-			.saturating_add(Weight::from_parts(140_193, 0).saturating_mul(c.into()))
-			.saturating_add(T::DbWeight::get().reads(8))
+			// Standard Error: 190_804
+			.saturating_add(Weight::from_parts(73_615, 0).saturating_mul(c.into()))
+			// Standard Error: 183_655
+			.saturating_add(Weight::from_parts(405_456, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
@@ -333,63 +364,90 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
 	}
-	/// Storage: `Staking::Ledger` (r:1 w:0)
+	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:0)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
 	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// The range of component `c` is `[0, 15]`.
-	fn unbond(c: u32, ) -> Weight {
+	/// Storage: `Staking::MinNominatorBond` (r:1 w:0)
+	/// Proof: `Staking::MinNominatorBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::CurrentEra` (r:1 w:0)
+	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Balances::Locks` (r:1 w:1)
+	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
+	/// Storage: `Balances::Freezes` (r:1 w:0)
+	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:1 w:1)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `BagsList::ListNodes` (r:1 w:1)
+	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// The range of component `s` is `[0, 15]`.
+	/// The range of component `n` is `[0, 16]`.
+	fn unbond(s: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1153 + c * (64 ±0)`
-		//  Estimated: `4556 + c * (64 ±0)`
-		// Minimum execution time: 30_000_000 picoseconds.
-		Weight::from_parts(31_919_889, 0)
-			.saturating_add(Weight::from_parts(0, 4556))
-			// Standard Error: 69_754
-			.saturating_add(Weight::from_parts(122_237, 0).saturating_mul(c.into()))
-			.saturating_add(RocksDbWeight::get().reads(4))
-			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+		//  Measured:  `1986 + n * (32 ±0) + s * (64 ±0)`
+		//  Estimated: `4764 + n * (32 ±0) + s * (64 ±0)`
+		// Minimum execution time: 72_000_000 picoseconds.
+		Weight::from_parts(71_588_925, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			// Standard Error: 254_432
+			.saturating_add(Weight::from_parts(266_286, 0).saturating_mul(s.into()))
+			// Standard Error: 244_899
+			.saturating_add(Weight::from_parts(241_693, 0).saturating_mul(n.into()))
+			.saturating_add(RocksDbWeight::get().reads(11))
+			.saturating_add(RocksDbWeight::get().writes(4))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
+			.saturating_add(Weight::from_parts(0, 64).saturating_mul(s.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:1)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
 	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Staking::Validators` (r:1 w:1)
+	/// Storage: `Staking::Validators` (r:1 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::CounterForValidators` (r:1 w:1)
-	/// Proof: `Staking::CounterForValidators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::CounterForNominators` (r:1 w:1)
+	/// Proof: `Staking::CounterForNominators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `BagsList::ListNodes` (r:2 w:2)
 	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
 	/// Storage: `BagsList::ListBags` (r:1 w:1)
 	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// Storage: `BagsList::CounterForListNodes` (r:1 w:1)
 	/// Proof: `BagsList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Nominators` (r:1 w:0)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// The range of component `c` is `[0, 15]`.
-	fn chill(c: u32, ) -> Weight {
+	/// The range of component `n` is `[0, 16]`.
+	fn chill(c: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2093 + c * (64 ±0)`
-		//  Estimated: `6248 + c * (64 ±0)`
-		// Minimum execution time: 56_000_000 picoseconds.
-		Weight::from_parts(60_113_259, 0)
+		//  Measured:  `1864 + c * (64 ±0) + n * (32 ±0)`
+		//  Estimated: `6248 + c * (64 ±0) + n * (32 ±0)`
+		// Minimum execution time: 59_000_000 picoseconds.
+		Weight::from_parts(57_194_136, 0)
 			.saturating_add(Weight::from_parts(0, 6248))
+			// Standard Error: 195_789
+			.saturating_add(Weight::from_parts(161_563, 0).saturating_mul(c.into()))
+			// Standard Error: 188_454
+			.saturating_add(Weight::from_parts(295_602, 0).saturating_mul(n.into()))
 			.saturating_add(RocksDbWeight::get().reads(11))
 			.saturating_add(RocksDbWeight::get().writes(6))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Nominators` (r:1 w:0)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:0)
@@ -403,18 +461,22 @@ impl WeightInfo for () {
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// The range of component `c` is `[0, 15]`.
-	fn withdraw_unbonded(c: u32, ) -> Weight {
+	/// The range of component `n` is `[0, 16]`.
+	fn withdraw_unbonded(c: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1460 + c * (64 ±0)`
-		//  Estimated: `4764 + c * (64 ±0)`
-		// Minimum execution time: 46_000_000 picoseconds.
-		Weight::from_parts(47_190_607, 0)
+		//  Measured:  `1534 + c * (64 ±0) + n * (32 ±0)`
+		//  Estimated: `4764 + c * (64 ±0) + n * (32 ±0)`
+		// Minimum execution time: 47_000_000 picoseconds.
+		Weight::from_parts(47_473_941, 0)
 			.saturating_add(Weight::from_parts(0, 4764))
-			// Standard Error: 140_766
-			.saturating_add(Weight::from_parts(140_193, 0).saturating_mul(c.into()))
-			.saturating_add(RocksDbWeight::get().reads(8))
+			// Standard Error: 190_804
+			.saturating_add(Weight::from_parts(73_615, 0).saturating_mul(c.into()))
+			// Standard Error: 183_655
+			.saturating_add(Weight::from_parts(405_456, 0).saturating_mul(n.into()))
+			.saturating_add(RocksDbWeight::get().reads(9))
 			.saturating_add(RocksDbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)

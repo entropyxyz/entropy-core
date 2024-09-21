@@ -35,7 +35,7 @@
 use core::convert::TryInto;
 
 pub use pallet::*;
-use pallet_staking::ValidatorPrefs;
+use pallet_staking::{MaxNominationsOf, ValidatorPrefs};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -404,7 +404,7 @@ pub mod pallet {
 
         /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
         #[pallet::call_index(2)]
-        #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32))]
+        #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get() as u32))]
         pub fn unbond(
             origin: OriginFor<T>,
             #[pallet::compact] value: BalanceOf<T>,
@@ -414,34 +414,34 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let signers_length =
+            let (signers_length, nominators_length) =
                 Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::unbond(origin, value)?;
 
-            Ok(Some(<T as Config>::WeightInfo::unbond(signers_length)).into())
+            Ok(Some(<T as Config>::WeightInfo::unbond(signers_length, nominators_length)).into())
         }
 
         /// Wraps's Substrate's `chill` extrinsic but checks to make sure the targeted account is not a signer or next signer
         #[pallet::call_index(3)]
-        #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32))]
+        #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get() as u32))]
         pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
             let ledger =
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let signers_length =
+            let (signers_length, nominators_length) =
                 Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::chill(origin)?;
 
-            Ok(Some(<T as Config>::WeightInfo::chill(signers_length)).into())
+            Ok(Some(<T as Config>::WeightInfo::chill(signers_length, nominators_length)).into())
         }
 
         /// Wraps's Substrate's `withdraw_unbonded` extrinsic but clears extra state if fully unbonded
         #[pallet::call_index(4)]
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32))]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get() as u32))]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
             num_slashing_spans: u32,
@@ -455,7 +455,7 @@ pub mod pallet {
                 <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash.clone())
                     .or(Err(Error::<T>::InvalidValidatorId))?;
 
-            let signers_length =
+            let (signers_length, nominators_length) =
                 Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
@@ -467,7 +467,11 @@ pub mod pallet {
                 IsValidatorSynced::<T>::remove(&validator_id);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
-            Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(signers_length)).into())
+            Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(
+                signers_length,
+                nominators_length,
+            ))
+            .into())
         }
 
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
@@ -577,7 +581,7 @@ pub mod pallet {
         /// Ensures that the current validator is not a signer or a next signer
         pub fn ensure_not_signer_or_next_signer_or_nominating(
             stash: &T::AccountId,
-        ) -> Result<u32, DispatchError> {
+        ) -> Result<(u32, u32), DispatchError> {
             let nominations = pallet_staking::Nominators::<T>::get(stash)
                 .map_or_else(Vec::new, |x| x.targets.into_inner());
 
@@ -612,7 +616,7 @@ pub mod pallet {
                 );
             }
 
-            Ok(signers.len() as u32)
+            Ok((signers.len() as u32, nominations.len() as u32))
         }
 
         pub fn get_randomness() -> ChaCha20Rng {
