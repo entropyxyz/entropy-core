@@ -360,6 +360,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
+            dbg!(&now);
             let confirmed_validators = ValidationQueue::<T>::drain_prefix(Status::Confirmed);
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
                 ThresholdServers::<T>::insert(&validator_id, server_info.clone());
@@ -700,6 +701,40 @@ pub mod pallet {
 
         fn start_session(start_index: SessionIndex) {
             I::start_session(start_index);
+        }
+    }
+
+    impl<T: Config> entropy_shared::X25519KeyProvider<T::AccountId> for Pallet<T> {
+        fn get_key(account_id: &T::AccountId) -> entropy_shared::X25519PublicKey {
+            let stash_account = Self::threshold_to_stash(account_id).expect("no stash"); // .ok_or(Error::<T>::NoStashAccount)?;
+            let server_info = Self::threshold_server(&stash_account).expect("no server"); // .ok_or(Error::<T>::NoServerInfo)?;
+            server_info.x25519_public_key
+        }
+    }
+
+    impl<T: Config> entropy_shared::AttestationQueue<T::AccountId> for Pallet<T> {
+        fn pending_attestations() -> Vec<T::AccountId> {
+            let pending_validators = ValidationQueue::<T>::drain_prefix(Status::Pending)
+                .into_iter()
+                .map(|(k, _v)| k)
+                .collect::<Vec<_>>();
+
+            pending_validators
+        }
+
+        fn confirm_attestation(account_id: &T::AccountId) {
+            if let Some((validator_id, server_info)) =
+                ValidationQueue::<T>::take(
+                    Status::Pending,
+                    account_id,
+                )
+            {
+                ValidationQueue::<T>::insert(
+                    Status::Confirmed,
+                    account_id,
+                    (validator_id, server_info),
+                );
+            }
         }
     }
 }

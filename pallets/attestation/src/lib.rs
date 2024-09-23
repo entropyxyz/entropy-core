@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::QuoteInputData;
+    use entropy_shared::{AttestationQueue, QuoteInputData, X25519KeyProvider};
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
@@ -63,11 +63,14 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_staking_extension::Config {
+    pub trait Config: frame_system::Config + pallet_parameters::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Describes the weights of the dispatchables exposed by this pallet.
         type WeightInfo: WeightInfo;
+
+        type KeyProvider: entropy_shared::X25519KeyProvider<Self::AccountId>;
+        type AttestationQueue: entropy_shared::AttestationQueue<Self::AccountId>;
     }
 
     #[pallet::genesis_config]
@@ -146,14 +149,7 @@ pub mod pallet {
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
             // Get associated x25519 public key from staking pallet
-            let x25519_public_key = {
-                let stash_account = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
-                    .ok_or(Error::<T>::NoStashAccount)?;
-                let server_info =
-                    pallet_staking_extension::Pallet::<T>::threshold_server(&stash_account)
-                        .ok_or(Error::<T>::NoServerInfo)?;
-                server_info.x25519_public_key
-            };
+            let x25519_public_key = T::KeyProvider::get_key(&who);
 
             // Get current block number
             let block_number: u32 = {
@@ -179,19 +175,7 @@ pub mod pallet {
             let _attestation_key = quote.attestation_key;
 
             PendingAttestations::<T>::remove(&who);
-
-            if let Some((validator_id, server_info)) =
-                pallet_staking_extension::ValidationQueue::<T>::take(
-                    pallet_staking_extension::Status::Pending,
-                    &who,
-                )
-            {
-                pallet_staking_extension::ValidationQueue::<T>::insert(
-                    pallet_staking_extension::Status::Confirmed,
-                    &who,
-                    (validator_id, server_info),
-                );
-            }
+            T::AttestationQueue::confirm_attestation(&who);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
@@ -204,12 +188,12 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            let pending_validators = pallet_staking_extension::ValidationQueue::<T>::drain_prefix(
-                pallet_staking_extension::Status::Pending,
-            );
-            let mut requests = AttestationRequests::<T>::get(now).expect("TODO");
+            dbg!(&now);
 
-            for (account_id, _) in pending_validators {
+            let pending_validators = T::AttestationQueue::pending_attestations();
+            let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
+
+            for account_id in pending_validators {
                 let nonce = [0; 32];
                 PendingAttestations::<T>::insert(&account_id, nonce);
                 requests.push(account_id.encode());

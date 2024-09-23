@@ -127,3 +127,12 @@ impl QuoteInputData {
         Self(hasher.finalize().into())
     }
 }
+
+pub trait X25519KeyProvider<T> {
+    fn get_key(account_id: &T) -> X25519PublicKey;
+}
+
+pub trait AttestationQueue<T> {
+    fn pending_attestations() -> Vec<T>;
+    fn confirm_attestation(account_id: &T);
+}
