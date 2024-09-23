@@ -39,7 +39,7 @@ pub struct UserSignatureRequest {
     pub signature_verifying_key: Vec<u8>,
 }
 
-/// Represents an unparsed, transaction request coming from the relayer to a signer.
+/// Represents an unparsed transaction request coming from a relayer to a signer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RelayerSignatureRequest {
     /// Hex-encoded raw data to be signed (eg. hex-encoded RLP-serialized Ethereum transaction)

@@ -134,7 +134,7 @@ pub async fn sign(
     let random_index = rng.gen_range(0..validators_info.len());
     let validator_info = &validators_info[random_index];
 
-    // Make http requests to TSS servers
+    // Make http request to TSS server
     let encrypted_message = EncryptedSignedMessage::new(
         &user_keypair,
         signature_request_vec.clone(),
