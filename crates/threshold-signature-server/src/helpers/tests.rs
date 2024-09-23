@@ -122,7 +122,7 @@ pub async fn create_clients(
 }
 
 /// A way to specify which chainspec to use in testing
-#[derive(Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum ChainSpecType {
     /// The development chainspec, which has 3 TSS nodes
     Development,
@@ -225,15 +225,7 @@ async fn put_keyshares_in_db(index: usize, validator_name: ValidatorName) {
     let unsafe_put = UnsafeQuery { key: hex::encode(NETWORK_PARENT_KEY), value: keyshare_bytes };
     let unsafe_put = serde_json::to_string(&unsafe_put).unwrap();
 
-    let port = match validator_name {
-        ValidatorName::Alice => 3001,
-        ValidatorName::Bob => 3002,
-        ValidatorName::Charlie => 3003,
-        ValidatorName::Dave => 3004,
-        _ => panic!("Unexpected validator name"),
-    };
-
-    // let port = 3001 + (validator_name as usize);
+    let port = 3001 + (validator_name as usize);
     let http_client = reqwest::Client::new();
     http_client
         .post(format!("http://127.0.0.1:{port}/unsafe/put"))
@@ -294,7 +286,7 @@ pub async fn jump_start_network_with_signer(
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
     let mut keyshare_index = 0;
     for validator_name in validators_names {
-        let mnemonic = development_mnemonic(&Some(validator_name.clone()));
+        let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
             get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
         let jump_start_confirm_request =

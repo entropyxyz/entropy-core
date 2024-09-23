@@ -27,7 +27,7 @@ use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 pub async fn spawn_tss_nodes_and_start_chain(
     chain_spec_type: ChainSpecType,
 ) -> (OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>, Vec<String>, Vec<PartyId>) {
-    let (validator_ips, validator_ids) = spawn_testing_validators(chain_spec_type.clone()).await;
+    let (validator_ips, validator_ids) = spawn_testing_validators(chain_spec_type).await;
 
     let (api, rpc) = match chain_spec_type {
         ChainSpecType::Development => {
