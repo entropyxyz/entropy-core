@@ -21,7 +21,6 @@ use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client as test_client,
     client::{sign, update_programs},
-    user::get_signers_from_chain,
 };
 use entropy_kvdb::{
     clean_tests,
@@ -121,7 +120,7 @@ use crate::{
             DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
         },
         signing::Hasher,
-        substrate::{get_oracle_data, query_chain, submit_transaction},
+        substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
             create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
             run_to_block, setup_client, spawn_testing_validators, store_program_and_register,

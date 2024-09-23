@@ -74,8 +74,8 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_oracle_data, get_program, get_stash_address, get_validators_info, query_chain,
-            submit_transaction,
+            get_oracle_data, get_program, get_signers_from_chain, get_stash_address,
+            get_validators_info, query_chain, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
         validator::{get_signer, get_signer_and_x25519_secret},
@@ -86,9 +86,7 @@ use crate::{
     AppState, Configuration,
 };
 
-pub use entropy_client::user::{
-    get_signers_from_chain, RelayerSignatureRequest, UserSignatureRequest,
-};
+pub use entropy_client::user::{RelayerSignatureRequest, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Type for validators to send user key's back and forth

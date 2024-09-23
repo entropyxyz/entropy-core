@@ -74,6 +74,7 @@ project-root={ version="0.2.2", optional=true }
 tdx-quote={ git="https://github.com/entropyxyz/tdx-quote", rev="f7968ff", optional=true, features=[
   "mock",
 ] }
+rand={ version="0.8", default-features=false }
 
 [dev-dependencies]
 serial_test ="3.1.1"
