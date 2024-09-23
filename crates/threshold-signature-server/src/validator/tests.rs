@@ -69,9 +69,8 @@ async fn test_reshare() {
 
     let cxt = test_node_process_testing_state(true).await;
 
-    let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let validator_ports = vec![3001, 3002, 3003, 3004];
     let api = get_api(&cxt.ws_url).await.unwrap();
@@ -249,9 +248,8 @@ async fn test_reshare_none_called() {
 
     let _cxt = test_node_process_testing_state(true).await;
 
-    let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let validator_ports = vec![3001, 3002, 3003, 3004];
 

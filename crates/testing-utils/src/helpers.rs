@@ -25,11 +25,9 @@ use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 /// A helper for setting up tests which starts both a set of TS servers and a chain node and returns
 /// the chain API as well as IP addresses and PartyId of the started validators
 pub async fn spawn_tss_nodes_and_start_chain(
-    add_parent_key: bool,
     chain_spec_type: ChainSpecType,
 ) -> (OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>, Vec<String>, Vec<PartyId>) {
-    let (validator_ips, validator_ids) =
-        spawn_testing_validators(add_parent_key, chain_spec_type.clone()).await;
+    let (validator_ips, validator_ids) = spawn_testing_validators(chain_spec_type.clone()).await;
 
     let (api, rpc) = match chain_spec_type {
         ChainSpecType::Development => {

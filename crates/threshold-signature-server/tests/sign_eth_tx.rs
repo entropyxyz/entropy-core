@@ -50,9 +50,8 @@ async fn integration_test_sign_eth_tx() {
     let account_owner = AccountKeyring::Ferdie.pair();
     let signature_request_author = AccountKeyring::One;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;

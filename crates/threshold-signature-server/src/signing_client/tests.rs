@@ -45,7 +45,7 @@ async fn test_proactive_refresh() {
     clean_tests();
     let _cxt = test_node_process_testing_state(false).await;
 
-    let (validator_ips, _ids) = spawn_testing_validators(false, ChainSpecType::Integration).await;
+    let (validator_ips, _ids) = spawn_testing_validators(ChainSpecType::Integration).await;
     let signing_committee_ips = &validator_ips[..3].to_vec();
 
     let client = reqwest::Client::new();

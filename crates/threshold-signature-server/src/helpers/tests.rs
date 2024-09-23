@@ -133,7 +133,6 @@ pub enum ChainSpecType {
 /// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
 /// desired
 pub async fn spawn_testing_validators(
-    _add_parent_key: bool,
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
     let add_fourth_server = chain_spec_type == ChainSpecType::Integration;

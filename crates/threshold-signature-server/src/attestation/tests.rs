@@ -33,7 +33,7 @@ async fn test_attest() {
 
     let cxt = test_node_process_stationary().await;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(false, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
