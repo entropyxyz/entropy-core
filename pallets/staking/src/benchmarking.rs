@@ -139,7 +139,7 @@ benchmarks! {
 
   unbond {
     let s in 0 .. MAX_SIGNERS as u32;
-    let n in 0 .. MaxNominationsOf::<T>::get() as u32;
+    let n in 0 .. MaxNominationsOf::<T>::get();
 
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
@@ -166,7 +166,7 @@ benchmarks! {
 
   chill {
     let c in 0 .. MAX_SIGNERS as u32;
-    let n in 0 .. MaxNominationsOf::<T>::get() as u32;
+    let n in 0 .. MaxNominationsOf::<T>::get();
 
     let caller: T::AccountId = whitelisted_caller();
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
@@ -204,7 +204,7 @@ benchmarks! {
 
   withdraw_unbonded {
     let c in 0 .. MAX_SIGNERS as u32;
-    let n in 0 .. MaxNominationsOf::<T>::get() as u32;
+    let n in 0 .. MaxNominationsOf::<T>::get();
 
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
