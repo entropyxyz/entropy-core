@@ -155,9 +155,11 @@ pub async fn sign(
     let mut bytes_stream = result.bytes_stream();
     let chunk = bytes_stream.next().await.ok_or(ClientError::NoResponse)??;
     let signing_results: Vec<Result<(String, Signature), String>> = serde_json::from_slice(&chunk)?;
-    // take only one of the responses
+    // take only one of the responses randomly
+    let mut rng = rand::thread_rng();
+    let random_index = rng.gen_range(0..signing_results.len());
     let (signature_base64, signature_of_signature) =
-        signing_results[0].clone().map_err(ClientError::SigningFailed)?;
+        signing_results[random_index].clone().map_err(ClientError::SigningFailed)?;
     tracing::debug!("Signature: {}", signature_base64);
     let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 

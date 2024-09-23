@@ -20,7 +20,7 @@ At the moment this project **does not** adhere to
   the TSS was removed since it was no longer necessary.
 - In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes `version_number` to maintain backwards compatibility if programs runtime is updated
 - In [#1050](https://github.com/entropyxyz/entropy-core/pull/1050), the flow for signing has changed. 
-A user now sends their request to a validator that is not a signer. This will act as a realyer. 
+A user now sends their request to any validator that is not a siger. This will act as a realyer. 
 As such ```UserSignatureRequest``` no longer has ```validators_info``` as the realyer adds that in after. 
 The response received from the validator is now a ```Vec<Responses>``` from the signers 
 
