@@ -188,7 +188,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, program_hash) =
@@ -398,7 +399,8 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, tss_account) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -428,7 +430,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     validators_info.push(ValidatorInfo {
         x25519_public_key: relayer_ip_and_key.clone().1,
         ip_address: relayer_ip_and_key.clone().0,
-        tss_account: relayer_ip_and_key.clone().2,
+        tss_account,
     });
 
     let test_user_res_wrong_validator = submit_transaction_sign_tx_requests(
@@ -472,7 +474,8 @@ async fn signature_request_with_derived_account_works() {
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -533,7 +536,8 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
     let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
 
     let mock_client = reqwest::Client::new();
@@ -651,7 +655,8 @@ async fn test_request_limit_are_updated_during_signing() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
@@ -813,11 +818,8 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
-    let validator_ip_and_key: (String, [u8; 32], subxtAccountId32) = (
-        validator_ips_and_keys[0].clone().0,
-        validator_ips_and_keys[0].clone().1,
-        one.to_account_id().into(),
-    );
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
 
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
         &entropy_api,
@@ -859,7 +861,8 @@ async fn test_program_with_config() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     let program_hash = test_client::store_program(
         &entropy_api,
@@ -1154,7 +1157,7 @@ async fn test_fail_infinite_program() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let non_signer = jump_start_network(&api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_realyer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
         &api,
@@ -1252,7 +1255,8 @@ async fn test_device_key_proxy() {
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
-    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) =
+        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // We need to store a program in order to be able to register succesfully
     let program_hash = test_client::store_program(
@@ -1380,8 +1384,7 @@ async fn test_faucet() {
 
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(false, ChainSpecType::Development).await;
-    let relayer_ip_and_key =
-        ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0], one.to_account_id().into());
+    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
 
     let substrate_context = test_node_process_testing_state(true).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
@@ -1692,7 +1695,7 @@ async fn test_get_oracle_data() {
 }
 
 pub async fn submit_transaction_requests(
-    validator_urls_and_keys: (String, [u8; 32], subxtAccountId32),
+    validator_urls_and_keys: (String, [u8; 32]),
     signature_request: UserSignatureRequest,
     keyring: Sr25519Keyring,
 ) -> std::result::Result<reqwest::Response, reqwest::Error> {
@@ -1717,7 +1720,7 @@ pub async fn submit_transaction_requests(
 pub async fn submit_transaction_sign_tx_requests(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    validator_urls_and_keys: (String, [u8; 32], subxtAccountId32),
+    validator_urls_and_keys: (String, [u8; 32]),
     signature_request: UserSignatureRequest,
     signer: sr25519::Pair,
     validators_info_option: Option<Vec<ValidatorInfo>>,
@@ -1794,7 +1797,7 @@ pub async fn validator_name_to_realyer_info(
     validator_name: ValidatorName,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> (String, [u8; 32], subxtAccountId32) {
+) -> ((String, [u8; 32]), subxtAccountId32) {
     let stash_address = match validator_name {
         ValidatorName::Alice => AccountKeyring::AliceStash,
         ValidatorName::Bob => AccountKeyring::BobStash,
@@ -1809,8 +1812,10 @@ pub async fn validator_name_to_realyer_info(
     let server_info =
         query_chain(&api, &rpc, threshold_address_query, block_hash).await.unwrap().unwrap();
     (
-        std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
-        server_info.x25519_public_key,
+        (
+            std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
+            server_info.x25519_public_key,
+        ),
         server_info.tss_account,
     )
 }
