@@ -280,13 +280,13 @@ pub async fn jump_start_network_with_signer(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> ValidatorName {
+) -> Option<ValidatorName> {
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
 
     let validators_names =
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
-    let mut non_signer = ValidatorName::Alice;
+    let mut non_signer = None;
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name.clone()));
         let (tss_signer, _static_secret) =
@@ -298,7 +298,7 @@ pub async fn jump_start_network_with_signer(
         let result =
             submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await;
         if result.is_err() {
-            non_signer = validator_name
+            non_signer = Some(validator_name);
         }
     }
     non_signer

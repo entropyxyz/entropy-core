@@ -187,7 +187,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
@@ -390,7 +390,7 @@ async fn signature_request_with_derived_account_works() {
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
@@ -451,7 +451,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
     let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
 
@@ -569,7 +569,7 @@ async fn test_request_limit_are_updated_during_signing() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -670,7 +670,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     // Register the user with a test program
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
@@ -767,7 +767,7 @@ async fn test_program_with_config() {
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     let program_hash = test_client::store_program(
@@ -1062,7 +1062,7 @@ async fn test_fail_infinite_program() {
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let non_signer = jump_start_network(&api, &rpc).await;
+    let non_signer = jump_start_network(&api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
@@ -1159,7 +1159,7 @@ async fn test_device_key_proxy() {
 
     // We first need to jump start the network and grab the resulting network wide verifying key
     // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
 
     // We need to store a program in order to be able to register succesfully
@@ -1685,7 +1685,7 @@ pub async fn get_sign_tx_data(
 pub async fn jump_start_network(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> ValidatorName {
+) -> Option<ValidatorName> {
     let alice = AccountKeyring::Alice;
     let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
     jump_start_network_with_signer(api, rpc, &signer).await
