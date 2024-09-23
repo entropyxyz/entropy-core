@@ -714,20 +714,12 @@ pub mod pallet {
 
     impl<T: Config> entropy_shared::AttestationQueue<T::AccountId> for Pallet<T> {
         fn pending_attestations() -> Vec<T::AccountId> {
-            let pending_validators = ValidationQueue::<T>::drain_prefix(Status::Pending)
-                .into_iter()
-                .map(|(k, _v)| k)
-                .collect::<Vec<_>>();
-
-            pending_validators
+            ValidationQueue::<T>::drain_prefix(Status::Pending).map(|(k, _v)| k).collect::<Vec<_>>()
         }
 
         fn confirm_attestation(account_id: &T::AccountId) {
             if let Some((validator_id, server_info)) =
-                ValidationQueue::<T>::take(
-                    Status::Pending,
-                    account_id,
-                )
+                ValidationQueue::<T>::take(Status::Pending, account_id)
             {
                 ValidationQueue::<T>::insert(
                     Status::Confirmed,
