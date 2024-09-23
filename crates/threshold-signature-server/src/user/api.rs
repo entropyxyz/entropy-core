@@ -116,7 +116,7 @@ pub struct RequestLimitStorage {
 ///
 /// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
 ///
-/// Chooses signers and realys transactions to them and then results back to user
+/// Chooses signers and relays transactions to them and then results back to user
 #[tracing::instrument(skip_all, fields(request_author))]
 pub async fn relay_tx(
     State(app_state): State<AppState>,
