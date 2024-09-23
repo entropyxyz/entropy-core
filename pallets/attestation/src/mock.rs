@@ -63,6 +63,8 @@ frame_support::construct_runtime!(
 impl pallet_attestation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
+    type KeyProvider = Staking;
+    type AttestationQueue = Staking;
 }
 
 parameter_types! {
