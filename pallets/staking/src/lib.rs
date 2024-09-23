@@ -164,6 +164,29 @@ pub mod pallet {
     pub type ThresholdToStash<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
+    #[derive(
+        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+    )]
+    pub enum Status {
+        #[default]
+        Pending,
+        Confirmed,
+    }
+
+    /// That way we can query based off status in the hook, so only go through entires that are
+    /// confirmed and update those
+    #[pallet::storage]
+    #[pallet::getter(fn validation_queue)]
+    pub type ValidationQueue<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        Status,
+        Blake2_128Concat,
+        T::AccountId,
+        (T::ValidatorId, ServerInfo<T::AccountId>),
+        OptionQuery,
+    >;
+
     /// Tracks wether the validator's kvdb is synced using a stash key as an identifier
     #[pallet::storage]
     #[pallet::getter(fn is_validator_synced)]
@@ -334,6 +357,19 @@ pub mod pallet {
         SignersRotation(Vec<<T as pallet_session::Config>::ValidatorId>),
     }
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
+            let confirmed_validators = ValidationQueue::<T>::drain_prefix(Status::Confirmed);
+            for (_account_id, (validator_id, server_info)) in confirmed_validators {
+                ThresholdServers::<T>::insert(&validator_id, server_info.clone());
+                ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
+            }
+
+            0.into()
+        }
+    }
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Allows a validator to change their endpoint so signers can find them when they are coms
@@ -455,14 +491,30 @@ pub mod pallet {
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ThresholdServers::<T>::insert(&validator_id, server_info.clone());
-            ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
+            // TODO (Nando): So here is where we'll want to trigger the attestation request
+            // We don't want to write into storage until after this is confirmed
 
-            Self::deposit_event(Event::NodeInfoChanged(
-                who,
-                server_info.endpoint,
-                server_info.tss_account,
-            ));
+            // let v = BoundedVec::try_from(vec![server_info.tss_account]).expect("TODO");
+            // PendingValidation::<T>::put(v);
+
+            // Here we don't add the caller as a staking candidate yet. We need to first wait for
+            // them to pass an attestation check.
+            ValidationQueue::<T>::insert(
+                Status::Pending,
+                server_info.tss_account.clone(),
+                (validator_id, server_info),
+            );
+
+            // TODO (Nando): Will need a different event for this
+
+            // ThresholdServers::<T>::insert(&validator_id, server_info.clone());
+            // ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
+
+            // Self::deposit_event(Event::NodeInfoChanged(
+            //     who,
+            //     server_info.endpoint,
+            //     server_info.tss_account,
+            // ));
 
             Ok(())
         }

@@ -89,7 +89,7 @@ pub mod pallet {
         }
     }
 
-    /// A map of TSS account id to quote nonce for pending attestations
+    /// A map of TSS Account ID to quote nonce for pending attestations
     #[pallet::storage]
     #[pallet::getter(fn pending_attestations)]
     pub type PendingAttestations<T: Config> =
@@ -178,14 +178,46 @@ pub mod pallet {
             // TODO #982 Check that the attestation public key matches that from PCK certificate
             let _attestation_key = quote.attestation_key;
 
-            // Remove the entry from PendingAttestations
             PendingAttestations::<T>::remove(&who);
+
+            if let Some((validator_id, server_info)) =
+                pallet_staking_extension::ValidationQueue::<T>::take(
+                    pallet_staking_extension::Status::Pending,
+                    &who,
+                )
+            {
+                pallet_staking_extension::ValidationQueue::<T>::insert(
+                    pallet_staking_extension::Status::Confirmed,
+                    &who,
+                    (validator_id, server_info),
+                );
+            }
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
             Self::deposit_event(Event::AttestationMade);
 
             Ok(())
+        }
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
+            let pending_validators = pallet_staking_extension::ValidationQueue::<T>::drain_prefix(
+                pallet_staking_extension::Status::Pending,
+            );
+            let mut requests = AttestationRequests::<T>::get(now).expect("TODO");
+
+            for (account_id, _) in pending_validators {
+                let nonce = [0; 32];
+                PendingAttestations::<T>::insert(&account_id, nonce);
+                requests.push(account_id.encode());
+            }
+
+            AttestationRequests::<T>::insert(now, requests);
+
+            0.into()
         }
     }
 }
