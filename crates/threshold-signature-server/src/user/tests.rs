@@ -228,6 +228,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
@@ -258,6 +259,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
@@ -300,6 +302,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
@@ -329,6 +332,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
@@ -357,12 +361,89 @@ async fn test_signature_requests_fail_on_different_conditions() {
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
     assert_eq!(
         test_user_sign_with_parent_key_sign_tx.unwrap().text().await.unwrap(),
         "No signing from parent key"
+    );
+
+    clean_tests();
+}
+#[tokio::test]
+#[serial]
+async fn test_signature_requests_fail_validator_info_wrong() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
+
+    let add_parent_key_to_kvdb = true;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
+    // able to get our chain in the right state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    // We first need to jump start the network and grab the resulting network wide verifying key
+    // for later
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let relayer_ip_and_key = validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+
+    // Test: We check that an account with a program succeeds in submiting a signature request
+    let (mut validators_info, signature_request, _validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
+
+    validators_info.pop();
+
+    let test_user_res_not_registered_sign_tx = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+        Some(validators_info.clone()),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_res_not_registered_sign_tx.unwrap().text().await.unwrap(),
+        "Too few signers selected"
+    );
+    validators_info.push(ValidatorInfo {
+        x25519_public_key: relayer_ip_and_key.clone().1,
+        ip_address: relayer_ip_and_key.clone().0,
+        tss_account: relayer_ip_and_key.clone().2,
+    });
+
+    let test_user_res_wrong_validator = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        relayer_ip_and_key.clone(),
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+        Some(validators_info),
+    )
+    .await;
+
+    assert_eq!(
+        test_user_res_wrong_validator.unwrap().text().await.unwrap(),
+        "Non signer sent from relayer"
     );
 
     clean_tests();
@@ -694,11 +775,15 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     });
 
     // Test attempting to connect over ws by someone who is not in the signing group
-    let validator_ip_and_key = validator_ips_and_keys[0].clone();
+    let validator_ip_and_key: (String, [u8; 32], subxtAccountId32) = (
+        validator_ips_and_keys[0].clone().0,
+        validator_ips_and_keys[0].clone().1,
+        one.to_account_id().into(),
+    );
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", validator_ip_and_key.0.clone());
+        let ws_endpoint = format!("ws://{}/ws", &validator_ip_and_key.0.clone());
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
@@ -728,13 +813,19 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
+    let validator_ip_and_key: (String, [u8; 32], subxtAccountId32) = (
+        validator_ips_and_keys[0].clone().0,
+        validator_ips_and_keys[0].clone().1,
+        one.to_account_id().into(),
+    );
 
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
         &entropy_api,
         &rpc,
-        validator_ips_and_keys[0].clone(),
+        validator_ip_and_key,
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
@@ -1104,6 +1195,7 @@ async fn test_fail_infinite_program() {
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
+        None,
     )
     .await;
 
@@ -1288,7 +1380,8 @@ async fn test_faucet() {
 
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(false, ChainSpecType::Development).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+    let relayer_ip_and_key =
+        ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0], one.to_account_id().into());
 
     let substrate_context = test_node_process_testing_state(true).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
@@ -1599,7 +1692,7 @@ async fn test_get_oracle_data() {
 }
 
 pub async fn submit_transaction_requests(
-    validator_urls_and_keys: (String, [u8; 32]),
+    validator_urls_and_keys: (String, [u8; 32], subxtAccountId32),
     signature_request: UserSignatureRequest,
     keyring: Sr25519Keyring,
 ) -> std::result::Result<reqwest::Response, reqwest::Error> {
@@ -1624,12 +1717,17 @@ pub async fn submit_transaction_requests(
 pub async fn submit_transaction_sign_tx_requests(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    validator_urls_and_keys: (String, [u8; 32]),
+    validator_urls_and_keys: (String, [u8; 32], subxtAccountId32),
     signature_request: UserSignatureRequest,
     signer: sr25519::Pair,
+    validators_info_option: Option<Vec<ValidatorInfo>>,
 ) -> std::result::Result<reqwest::Response, reqwest::Error> {
     let mock_client = reqwest::Client::new();
-    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
+    let validators_info = if let Some(validators_info) = validators_info_option {
+        validators_info
+    } else {
+        get_signers_from_chain(api, rpc).await.unwrap()
+    };
 
     let relayer_sig_req: RelayerSignatureRequest = RelayerSignatureRequest {
         message: signature_request.message,
@@ -1696,7 +1794,7 @@ pub async fn validator_name_to_realyer_info(
     validator_name: ValidatorName,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> (String, [u8; 32]) {
+) -> (String, [u8; 32], subxtAccountId32) {
     let stash_address = match validator_name {
         ValidatorName::Alice => AccountKeyring::AliceStash,
         ValidatorName::Bob => AccountKeyring::BobStash,
@@ -1710,5 +1808,9 @@ pub async fn validator_name_to_realyer_info(
         .threshold_servers(subxtAccountId32(stash_address.public().0));
     let server_info =
         query_chain(&api, &rpc, threshold_address_query, block_hash).await.unwrap().unwrap();
-    (std::str::from_utf8(&server_info.endpoint).unwrap().to_string(), server_info.x25519_public_key)
+    (
+        std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
+        server_info.x25519_public_key,
+        server_info.tss_account,
+    )
 }

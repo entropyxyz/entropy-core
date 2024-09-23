@@ -283,6 +283,47 @@ pub async fn sign_tx(
     let relayer_sig_request: RelayerSignatureRequest =
         serde_json::from_slice(&signed_message.message.0)?;
 
+    // check validator info > threshold
+    let key_info_query = entropy::storage().parameters().signers_info();
+    let threshold = query_chain(&api, &rpc, key_info_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Failed to get signers info"))?
+        .threshold;
+
+    if relayer_sig_request.validators_info.len() < threshold as usize {
+        return Err(UserErr::TooFewSigners);
+    }
+    // validators are signers
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signer_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Get all validators error"))?;
+
+    let validator_exists = {
+        let mut found = true;
+
+        for validator_info in &relayer_sig_request.validators_info {
+            let stash_address_query = entropy::storage()
+                .staking_extension()
+                .threshold_to_stash(validator_info.tss_account.clone());
+
+            let stash_address = query_chain(&api, &rpc, stash_address_query, None)
+                .await?
+                .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
+
+            // If the stash_address is found in signers, we can stop further checking
+            if !signers.contains(&stash_address) {
+                found = false;
+                break;
+            }
+        }
+        found
+    };
+
+    if !validator_exists {
+        return Err(UserErr::IncorrectSigner);
+    }
+
     let string_verifying_key = hex::encode(relayer_sig_request.signature_verifying_key.clone());
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;

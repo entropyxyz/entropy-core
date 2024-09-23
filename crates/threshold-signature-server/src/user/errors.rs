@@ -179,6 +179,10 @@ pub enum UserErr {
     NotValidator,
     #[error("Relay message can not be sent to a signer")]
     RelayMessageSigner,
+    #[error("Too few signers selected")]
+    TooFewSigners,
+    #[error("Non signer sent from relayer")]
+    IncorrectSigner,
 }
 
 impl From<hkdf::InvalidLength> for UserErr {
