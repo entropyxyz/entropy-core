@@ -129,7 +129,7 @@ impl QuoteInputData {
 }
 
 pub trait X25519KeyProvider<T> {
-    fn get_key(account_id: &T) -> X25519PublicKey;
+    fn x25519_public_key(account_id: &T) -> Option<X25519PublicKey>;
 }
 
 pub trait AttestationQueue<T> {
