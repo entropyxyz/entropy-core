@@ -120,10 +120,8 @@ pub mod pallet {
         UnexpectedAttestation,
         /// Hashed input data does not match what was expected
         IncorrectInputData,
-        /// Cannot lookup associated stash account
-        NoStashAccount,
-        /// Cannot lookup associated TS server info
-        NoServerInfo,
+        /// The given account doesn't have a registered X25519 public key.
+        NoX25519KeyForAccount,
         /// Unacceptable VM image running
         BadMrtdValue,
     }
@@ -149,7 +147,8 @@ pub mod pallet {
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
             // Get associated x25519 public key from staking pallet
-            let x25519_public_key = T::KeyProvider::get_key(&who);
+            let x25519_public_key =
+                T::KeyProvider::x25519_public_key(&who).ok_or(Error::<T>::NoX25519KeyForAccount)?;
 
             // Get current block number
             let block_number: u32 = {
@@ -194,7 +193,7 @@ pub mod pallet {
             let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
 
             for account_id in pending_validators {
-                let nonce = [0; 32];
+                let nonce = [0; 32]; // TODO (Nando): Fill this out properly
                 PendingAttestations::<T>::insert(&account_id, nonce);
                 requests.push(account_id.encode());
             }
