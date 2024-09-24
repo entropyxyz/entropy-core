@@ -198,7 +198,7 @@ pub mod pallet {
 
             AttestationRequests::<T>::insert(now, requests);
 
-            0.into()
+            Weight::zero()
         }
     }
 }

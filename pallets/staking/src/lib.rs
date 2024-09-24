@@ -359,14 +359,14 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
+        fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
             let confirmed_validators = ValidationQueue::<T>::drain_prefix(Status::Confirmed);
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
                 ThresholdServers::<T>::insert(&validator_id, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
             }
 
-            0.into()
+            Weight::zero()
         }
     }
 
