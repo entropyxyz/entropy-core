@@ -117,11 +117,11 @@ async fn test_reshare_foo() {
         OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
 
     println!("running to block ocws");
-    run_to_block(&rpc, block_number).await;
+    run_to_block(&rpc, block_number + 1).await;
     println!("Sending ocws");
     // Send the OCW message to all TS servers who don't have a chain node
     let response_results = join_all(
-        validator_ports[1..]
+        validator_ports
             .iter()
             .map(|port| {
                 client
