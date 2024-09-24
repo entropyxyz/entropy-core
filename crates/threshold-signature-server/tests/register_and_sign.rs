@@ -21,6 +21,7 @@ use entropy_client::{
     },
     client as test_client, Hasher,
 };
+use entropy_tss::helpers::tests::initialize_test_logger;
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
     constants::{
@@ -37,6 +38,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 #[tokio::test]
 #[serial]
 async fn integration_test_register_and_sign() {
+    initialize_test_logger().await;
     clean_tests();
     let account_owner = AccountKeyring::Ferdie.pair();
     let signature_request_author = AccountKeyring::One;
