@@ -116,9 +116,7 @@ async fn test_reshare_foo() {
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
 
-    println!("running to block ocws");
     run_to_block(&rpc, block_number + 1).await;
-    println!("Sending ocws");
     // Send the OCW message to all TS servers who don't have a chain node
     let response_results = join_all(
         validator_ports
@@ -135,7 +133,7 @@ async fn test_reshare_foo() {
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
-    println!("GOT HERE");
+
     for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
         let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
             deserialize(key_share_and_aux_before).unwrap();
