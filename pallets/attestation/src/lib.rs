@@ -187,8 +187,6 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            dbg!(&now);
-
             let pending_validators = T::AttestationQueue::pending_attestations();
             let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
 

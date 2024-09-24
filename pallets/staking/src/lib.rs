@@ -360,7 +360,6 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            dbg!(&now);
             let confirmed_validators = ValidationQueue::<T>::drain_prefix(Status::Confirmed);
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
                 ThresholdServers::<T>::insert(&validator_id, server_info.clone());
