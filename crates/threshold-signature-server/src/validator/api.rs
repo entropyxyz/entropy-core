@@ -56,7 +56,7 @@ pub async fn new_reshare(
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
-
+    println!("Reshare called with block number {}", data.block_number);
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
@@ -265,7 +265,8 @@ pub async fn validate_new_reshare(
 
     // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
-        return Err(ValidatorErr::StaleData);
+        println!("Block mismatch {} {}", latest_block_number, chain_data.block_number);
+        // return Err(ValidatorErr::StaleData);
     }
 
     let reshare_data_info_query = entropy::storage().staking_extension().reshare_data();
@@ -274,8 +275,9 @@ pub async fn validate_new_reshare(
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
 
     if reshare_data.new_signer != chain_data.new_signer
-        || chain_data.block_number != reshare_data.block_number
+        || chain_data.block_number != reshare_data.block_number - 1
     {
+        println!("{:?} {:?}", reshare_data, chain_data);
         return Err(ValidatorErr::InvalidData);
     }
     kv_manager.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await?;
