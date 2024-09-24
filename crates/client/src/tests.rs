@@ -16,8 +16,8 @@ use crate::{
     update_programs,
 };
 use entropy_testing_utils::{
-    constants::TEST_PROGRAM_WASM_BYTECODE, jump_start_network,
-    substrate_context::test_context_stationary, test_node_process_testing_state,
+    constants::TEST_PROGRAM_WASM_BYTECODE, jump_start_network, spawn_testing_validators,
+    substrate_context::test_context_stationary, test_node_process_testing_state, ChainSpecType,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
@@ -123,6 +123,9 @@ async fn test_store_and_remove_program() {
 #[serial]
 async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
+
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
