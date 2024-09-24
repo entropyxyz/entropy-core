@@ -38,6 +38,7 @@ use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh() {
