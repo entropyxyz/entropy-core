@@ -39,6 +39,8 @@ pub mod benchmarking;
 
 pub mod weights;
 
+mod pck;
+
 #[cfg(test)]
 mod mock;
 
