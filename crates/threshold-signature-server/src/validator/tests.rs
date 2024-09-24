@@ -112,12 +112,12 @@ async fn test_reshare_foo() {
     // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses
     let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
 
-    let block_number = TEST_RESHARE_BLOCK_NUMBER - 1;
+    let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request =
         OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
 
     println!("running to block ocws");
-    run_to_block(&rpc, block_number + 1).await;
+    run_to_block(&rpc, block_number).await;
     println!("Sending ocws");
     // Send the OCW message to all TS servers who don't have a chain node
     let response_results = join_all(

@@ -59,7 +59,7 @@ pub fn integration_tests_config() -> ChainSpec {
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             vec![
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
             ],
         ))
         .build()

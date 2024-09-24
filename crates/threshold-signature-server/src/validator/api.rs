@@ -60,7 +60,7 @@ pub async fn new_reshare(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
-
+    println!("Reshare validated");
     let next_signers_query = entropy::storage().staking_extension().next_signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
         .await?
@@ -96,7 +96,7 @@ pub async fn new_reshare(
     let is_proper_signer = validators_info
         .iter()
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
-
+    dbg!(is_proper_signer);
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
@@ -157,7 +157,7 @@ pub async fn new_reshare(
         converted_validator_info.push(validator_info.clone());
         tss_accounts.push(validator_info.tss_account.clone());
     }
-
+    println!("getting chans");
     let channels = get_channels(
         &app_state.listener_state,
         converted_validator_info,
@@ -167,7 +167,7 @@ pub async fn new_reshare(
         &x25519_secret_key,
     )
     .await?;
-
+    println!("starting protocol");
     let (new_key_share, aux_info) =
         execute_reshare(session_id.clone(), channels, signer.signer(), inputs, None).await?;
 
@@ -265,8 +265,7 @@ pub async fn validate_new_reshare(
 
     // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
-        println!("Block mismatch {} {}", latest_block_number, chain_data.block_number);
-        // return Err(ValidatorErr::StaleData);
+        return Err(ValidatorErr::StaleData);
     }
 
     let reshare_data_info_query = entropy::storage().staking_extension().reshare_data();
@@ -275,7 +274,7 @@ pub async fn validate_new_reshare(
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
 
     if reshare_data.new_signer != chain_data.new_signer
-        || chain_data.block_number != reshare_data.block_number - 1
+        || chain_data.block_number != reshare_data.block_number
     {
         println!("{:?} {:?}", reshare_data, chain_data);
         return Err(ValidatorErr::InvalidData);
