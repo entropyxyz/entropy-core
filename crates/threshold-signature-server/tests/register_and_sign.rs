@@ -21,7 +21,6 @@ use entropy_client::{
     },
     client as test_client, Hasher,
 };
-use entropy_tss::helpers::tests::initialize_test_logger;
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
     constants::{
@@ -29,6 +28,7 @@ use entropy_testing_utils::{
     },
     jump_start_network, spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
+use entropy_tss::helpers::tests::initialize_test_logger;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use sp_keyring::AccountKeyring;
