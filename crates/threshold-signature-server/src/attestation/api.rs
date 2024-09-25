@@ -78,10 +78,11 @@ pub async fn create_quote(
     signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
     x25519_secret: &StaticSecret,
 ) -> Result<Vec<u8>, AttestationErr> {
+    use rand::{rngs::StdRng, SeedableRng};
     use rand_core::OsRng;
     use sp_core::Pair;
 
-    // In the real thing this is the hardware key used in the quoting enclave
+    // In the real thing this is the key used in the quoting enclave
     let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
 
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
@@ -93,7 +94,11 @@ pub async fn create_quote(
         block_number,
     );
 
-    let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
+    // This is generated deterministically from TSS account id
+    let mut pck_seeder = StdRng::from_seed(signer.signer().public().0);
+    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+
+    let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec();
     Ok(quote)
 }
 

@@ -594,9 +594,9 @@ checksum = "fbb36e985947064623dbd357f727af08ffd077f93d696782f3c56365fa2e2799"
 
 [[package]]
 name = "async-trait"
-version = "0.1.82"
+version = "0.1.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a27b8a3a6e1a44fa4c8baf1f653e4172e81486d4941f2237e20dc2d0cf4ddff1"
+checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2751,6 +2751,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
+ "tdx-quote",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2789,6 +2790,7 @@ dependencies = [
  "num",
  "parity-scale-codec",
  "project-root",
+ "rand",
  "rand_core 0.6.4",
  "reqwest",
  "reqwest-eventsource",
@@ -14138,7 +14140,7 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 [[package]]
 name = "tdx-quote"
 version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote?rev=f7968ff#f7968ff35ff744ff8c007cffe6ec8d709d7f18d9"
+source = "git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2#cb167f2aef1c7539c91082ee21c764eac60f6bef"
 dependencies = [
  "nom",
  "p256",

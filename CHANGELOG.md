@@ -36,6 +36,7 @@ At the moment this project **does not** adhere to
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
 - Select validators for jumpstart DKG [#1053](https://github.com/entropyxyz/entropy-core/pull/1053))
 - Add a programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
+- Handle Provisioning Certification Keys (PCKs) ([#1051](https://github.com/entropyxyz/entropy-core/pull/1051))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
