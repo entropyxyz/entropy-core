@@ -1707,7 +1707,7 @@ pub async fn submit_transaction_sign_tx_requests(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     validator_urls_and_keys: (String, [u8; 32]),
-    signature_request: UserSignatureRequest,
+    user_signature_request: UserSignatureRequest,
     signer: sr25519::Pair,
     validators_info_option: Option<Vec<ValidatorInfo>>,
 ) -> std::result::Result<reqwest::Response, reqwest::Error> {
@@ -1719,11 +1719,7 @@ pub async fn submit_transaction_sign_tx_requests(
     };
 
     let relayer_sig_req: RelayerSignatureRequest = RelayerSignatureRequest {
-        message: signature_request.message,
-        auxilary_data: signature_request.auxilary_data,
-        block_number: signature_request.block_number,
-        hash: signature_request.hash,
-        signature_verifying_key: signature_request.signature_verifying_key,
+        user_signature_request,
         validators_info,
     };
 

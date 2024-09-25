@@ -154,27 +154,28 @@ pub async fn relay_tx(
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
 
     let signers = get_signers_from_chain(&api, &rpc).await?;
-    let user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
-    let relayer_sig_req: RelayerSignatureRequest = RelayerSignatureRequest {
-        message: user_sig_req.message,
-        auxilary_data: user_sig_req.auxilary_data,
-        block_number: user_sig_req.block_number,
-        hash: user_sig_req.hash,
-        signature_verifying_key: user_sig_req.signature_verifying_key,
-        validators_info: signers,
-    };
+    let user_signature_request: UserSignatureRequest =
+        serde_json::from_slice(&signed_message.message.0)?;
+    let relayer_sig_req: RelayerSignatureRequest =
+        RelayerSignatureRequest { user_signature_request, validators_info: signers };
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
         .number;
 
-    let string_verifying_key = hex::encode(relayer_sig_req.signature_verifying_key.clone());
+    let string_verifying_key =
+        hex::encode(relayer_sig_req.user_signature_request.signature_verifying_key.clone());
 
     // do programs and other check
-    let _ =
-        pre_sign_checks(&api, &rpc, relayer_sig_req.clone(), block_number, string_verifying_key)
-            .await?;
+    let _ = pre_sign_checks(
+        &api,
+        &rpc,
+        relayer_sig_req.user_signature_request.clone(),
+        block_number,
+        string_verifying_key,
+    )
+    .await?;
 
     // relay message
     let (mut response_tx, response_rx) = mpsc::channel(1);
@@ -324,7 +325,8 @@ pub async fn sign_tx(
         return Err(UserErr::IncorrectSigner);
     }
 
-    let string_verifying_key = hex::encode(relayer_sig_request.signature_verifying_key.clone());
+    let string_verifying_key =
+        hex::encode(relayer_sig_request.user_signature_request.signature_verifying_key.clone());
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
 
@@ -337,7 +339,7 @@ pub async fn sign_tx(
     let (mut runtime, user_details, message) = pre_sign_checks(
         &api,
         &rpc,
-        relayer_sig_request.clone(),
+        relayer_sig_request.user_signature_request.clone(),
         block_number,
         string_verifying_key,
     )
@@ -346,7 +348,7 @@ pub async fn sign_tx(
     let message_hash = compute_hash(
         &api,
         &rpc,
-        &relayer_sig_request.hash,
+        &relayer_sig_request.user_signature_request.hash,
         &mut runtime,
         &user_details.programs_data.0,
         message.as_slice(),
@@ -354,7 +356,10 @@ pub async fn sign_tx(
     .await?;
 
     let signing_session_id = SigningSessionInfo {
-        signature_verifying_key: relayer_sig_request.signature_verifying_key.clone(),
+        signature_verifying_key: relayer_sig_request
+            .user_signature_request
+            .signature_verifying_key
+            .clone(),
         message_hash,
         request_author,
     };
@@ -675,7 +680,7 @@ pub fn check_hash_pointer_out_of_bounds(
 pub async fn pre_sign_checks(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    user_sig_req: RelayerSignatureRequest,
+    user_sig_req: UserSignatureRequest,
     block_number: u32,
     string_verifying_key: String,
 ) -> Result<(Runtime, RegisteredInfo, Vec<u8>), UserErr> {
