@@ -201,7 +201,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // The account we registered does have a program pointer, so this should succeed
     let test_user_res =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
@@ -237,7 +237,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), two)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), two)
             .await;
 
     assert_eq!(
@@ -268,7 +268,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     signature_request.auxilary_data = None;
 
     let test_user_failed_programs_res =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     assert_eq!(
@@ -311,7 +311,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     signature_request.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
 
     let test_user_failed_aux_data =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     assert_eq!(
@@ -341,7 +341,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     signature_request.hash = HashingAlgorithm::Custom(3);
 
     let test_user_custom_hash_out_of_bounds =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), two)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), two)
             .await;
 
     assert_eq!(
@@ -370,7 +370,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     signature_request.signature_verifying_key = NETWORK_PARENT_KEY.as_bytes().to_vec();
 
     let test_user_sign_with_parent_key =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     assert_eq!(
@@ -509,7 +509,7 @@ async fn signature_request_with_derived_account_works() {
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
     let signature_request_responses =
-        submit_transaction_requests(relayer_ip_and_key, signature_request.clone(), alice).await;
+        submit_transaction_request(relayer_ip_and_key, signature_request.clone(), alice).await;
 
     // We expect that the signature we get back is valid
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
@@ -672,7 +672,7 @@ async fn test_request_limit_are_updated_during_signing() {
             .await;
 
     let test_user_res =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
@@ -732,7 +732,7 @@ async fn test_request_limit_are_updated_during_signing() {
     signature_request.signature_verifying_key = verifying_key.to_vec();
 
     let test_user_failed_request_limit =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     assert_eq!(test_user_failed_request_limit.unwrap().text().await.unwrap(), "[{\"Err\":\"Too many requests - wait a block\"},{\"Err\":\"Too many requests - wait a block\"}]");
@@ -916,7 +916,7 @@ async fn test_program_with_config() {
 
     // Here we check that the signature request was indeed completed successfully
     let signature_request_responses =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     let message_hash = Hasher::keccak(message.as_bytes());
@@ -1183,7 +1183,7 @@ async fn test_fail_infinite_program() {
         get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key).await;
 
     let test_infinite_loop =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     assert_eq!(test_infinite_loop.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
@@ -1339,7 +1339,7 @@ async fn test_device_key_proxy() {
     signature_request.auxilary_data = auxilary_data;
 
     let test_user_res =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
@@ -1471,7 +1471,7 @@ async fn test_faucet() {
 
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
-        submit_transaction_requests(relayer_ip_and_key.clone(), signature_request.clone(), one)
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
     let chunk = test_user_res.unwrap().chunk().await.unwrap().unwrap();
     let signing_result: Vec<Result<(String, Signature), String>> =
