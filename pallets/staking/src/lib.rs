@@ -64,6 +64,7 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         pallet_prelude::*,
+        storage::types::CountedStorageNMap,
         traits::{Currency, Randomness},
         DefaultNoBound,
     };
@@ -183,14 +184,10 @@ pub mod pallet {
     /// about the validator who is in the process of submitting an attestation.
     #[pallet::storage]
     #[pallet::getter(fn validation_queue)]
-    pub type ValidationQueue<T: Config> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        Status,
-        Blake2_128Concat,
-        T::AccountId,
-        (T::ValidatorId, ServerInfo<T::AccountId>),
-        OptionQuery,
+    pub type ValidationQueue<T: Config> = CountedStorageNMap<
+        Key = (NMapKey<Blake2_128Concat, Status>, NMapKey<Blake2_128Concat, T::AccountId>),
+        Value = (T::ValidatorId, ServerInfo<T::AccountId>),
+        QueryKind = OptionQuery,
     >;
 
     /// Tracks wether the validator's kvdb is synced using a stash key as an identifier
@@ -368,7 +365,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
-            let confirmed_validators = ValidationQueue::<T>::drain_prefix(Status::Confirmed);
+            let confirmed_validators = ValidationQueue::<T>::drain_prefix((Status::Confirmed,));
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
                 ThresholdServers::<T>::insert(&validator_id, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
@@ -502,8 +499,7 @@ pub mod pallet {
             // Here we don't add the caller as a staking candidate yet. We need to first wait for
             // them to pass an attestation check.
             ValidationQueue::<T>::insert(
-                Status::Pending,
-                server_info.tss_account.clone(),
+                (Status::Pending, server_info.tss_account.clone()),
                 (validator_id, server_info),
             );
 
@@ -702,8 +698,8 @@ pub mod pallet {
             // - if any potential validators have a key (`ValidationQueue`)
             // - if any accepted validator candidates (but not necessarily validators) have a key
             // - if any validators have a key
-            ValidationQueue::<T>::get(Status::Pending, account_id)
-                .or_else(|| ValidationQueue::<T>::get(Status::Confirmed, account_id))
+            ValidationQueue::<T>::get((Status::Pending, account_id))
+                .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
                 .map(|(_v, s)| s.x25519_public_key)
                 .or_else(|| {
                     let stash_account = Self::threshold_to_stash(account_id)?;
@@ -715,16 +711,17 @@ pub mod pallet {
 
     impl<T: Config> entropy_shared::AttestationQueue<T::AccountId> for Pallet<T> {
         fn pending_attestations() -> Vec<T::AccountId> {
-            ValidationQueue::<T>::iter_prefix(Status::Pending).map(|(k, _v)| k).collect::<Vec<_>>()
+            ValidationQueue::<T>::iter_prefix((Status::Pending,))
+                .map(|(k, _v)| k)
+                .collect::<Vec<_>>()
         }
 
         fn confirm_attestation(account_id: &T::AccountId) {
             if let Some((validator_id, server_info)) =
-                ValidationQueue::<T>::take(Status::Pending, account_id)
+                ValidationQueue::<T>::take((Status::Pending, account_id))
             {
                 ValidationQueue::<T>::insert(
-                    Status::Confirmed,
-                    account_id,
+                    (Status::Confirmed, account_id),
                     (validator_id, server_info),
                 );
             }
