@@ -94,6 +94,8 @@ pub mod pallet {
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
+        /// The maximum number of pending attestations that can be held in the validation queue.
+        type MaxPendingAttestations: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -331,6 +333,7 @@ pub mod pallet {
         NotNextSigner,
         ReshareNotInProgress,
         AlreadyConfirmed,
+        TooManyPendingAttestations,
     }
 
     #[pallet::event]
@@ -495,6 +498,11 @@ pub mod pallet {
             let stash = Self::get_stash(&who)?;
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
+
+            ensure!(
+                ValidationQueue::<T>::count() < T::MaxPendingAttestations::get(),
+                Error::<T>::TooManyPendingAttestations
+            );
 
             // Here we don't add the caller as a staking candidate yet. We need to first wait for
             // them to pass an attestation check.

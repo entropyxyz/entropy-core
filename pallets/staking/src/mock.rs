@@ -387,6 +387,7 @@ impl pallet_parameters::Config for Test {
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
+  pub const MaxPendingAttestations: u32 = 4;
 }
 
 impl pallet_staking_extension::Config for Test {
@@ -394,6 +395,7 @@ impl pallet_staking_extension::Config for Test {
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
+    type MaxPendingAttestations = MaxPendingAttestations;
     type WeightInfo = ();
 }
 
