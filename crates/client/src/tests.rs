@@ -18,7 +18,7 @@ use crate::{
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS},
     helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
-    jump_start_network,
+    jump_start_network, spawn_testing_validators,
     substrate_context::test_context_stationary,
     test_node_process_testing_state, ChainSpecType,
 };
