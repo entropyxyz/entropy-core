@@ -355,6 +355,8 @@ pub mod pallet {
         SignerConfirmed(<T as pallet_session::Config>::ValidatorId),
         /// Validators subgroups rotated [old, new]
         SignersRotation(Vec<<T as pallet_session::Config>::ValidatorId>),
+        /// A TSS account has been queued up for an attestation check.
+        AttestationCheckQueued(T::AccountId),
     }
 
     #[pallet::hooks]
@@ -491,12 +493,6 @@ pub mod pallet {
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
-            // TODO (Nando): So here is where we'll want to trigger the attestation request
-            // We don't want to write into storage until after this is confirmed
-
-            // let v = BoundedVec::try_from(vec![server_info.tss_account]).expect("TODO");
-            // PendingValidation::<T>::put(v);
-
             // Here we don't add the caller as a staking candidate yet. We need to first wait for
             // them to pass an attestation check.
             ValidationQueue::<T>::insert(
@@ -505,16 +501,7 @@ pub mod pallet {
                 (validator_id, server_info),
             );
 
-            // TODO (Nando): Will need a different event for this
-
-            // ThresholdServers::<T>::insert(&validator_id, server_info.clone());
-            // ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
-
-            // Self::deposit_event(Event::NodeInfoChanged(
-            //     who,
-            //     server_info.endpoint,
-            //     server_info.tss_account,
-            // ));
+            Self::deposit_event(Event::AttestationCheckQueued(who));
 
             Ok(())
         }
