@@ -27,9 +27,8 @@ fn attest() {
         let nonce = Attestation::pending_attestations(ATTESTEE).unwrap();
         assert_eq!(nonce, [0; 32]);
 
-        // For now it doesn't matter what this is, but once we handle PCK certificates this will
-        // need to correspond to the public key in the certificate
-        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
+        let attestation_key = tdx_quote::SigningKey::random(&mut OsRng);
+        let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
 
         let input_data = QuoteInputData::new(
             ATTESTEE, // TSS Account ID
@@ -37,7 +36,7 @@ fn attest() {
             nonce, 0, // Block number
         );
 
-        let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0);
+        let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0);
         assert_ok!(
             Attestation::attest(RuntimeOrigin::signed(ATTESTEE), quote.as_bytes().to_vec(),)
         );

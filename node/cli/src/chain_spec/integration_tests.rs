@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
+use crate::chain_spec::{get_account_id_from_seed, provisioning_certification_key, ChainSpec};
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
@@ -158,6 +158,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
                         "127.0.0.1:3001".as_bytes().to_vec(),
+                        provisioning_certification_key::ALICE.clone(),
                     ),
                 ),
                 (
@@ -166,6 +167,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
                         "127.0.0.1:3002".as_bytes().to_vec(),
+                        provisioning_certification_key::BOB.clone(),
                     ),
                 ),
                 (
@@ -174,6 +176,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
                         "127.0.0.1:3003".as_bytes().to_vec(),
+                        provisioning_certification_key::CHARLIE.clone(),
                     ),
                 ),
                 (
@@ -182,6 +185,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::DAVE,
                         "127.0.0.1:3004".as_bytes().to_vec(),
+                        provisioning_certification_key::DAVE.clone(),
                     ),
                 ),
             ],
