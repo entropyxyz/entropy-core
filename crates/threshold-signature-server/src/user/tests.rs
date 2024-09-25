@@ -372,6 +372,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     clean_tests();
 }
+
 #[tokio::test]
 #[serial]
 async fn test_signature_requests_fail_validator_info_wrong() {
@@ -404,7 +405,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
-    // Test: We check that an account with a program succeeds in submiting a signature request
+    // Test: We check that a relayed signature request with less than t validators selected fails
     let (mut validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
@@ -1718,7 +1719,7 @@ pub async fn submit_transaction_sign_tx_requests(
         get_signers_from_chain(api, rpc).await.unwrap()
     };
 
-    let relayer_sig_req: RelayerSignatureRequest = RelayerSignatureRequest {
+    let relayer_sig_req = RelayerSignatureRequest {
         user_signature_request,
         validators_info,
     };
@@ -1775,11 +1776,11 @@ pub async fn jump_start_network(
 }
 
 /// Takes a validator name and returns relayer info needed for tests
-pub async fn validator_name_to_realyer_info(
+pub async fn validator_name_to_relayer_info(
     validator_name: ValidatorName,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> ((String, [u8; 32]), subxtAccountId32) {
+) -> ((String, entropy_shared::X25519PublicKey), subxtAccountId32) {
     let stash_address = match validator_name {
         ValidatorName::Alice => AccountKeyring::AliceStash,
         ValidatorName::Bob => AccountKeyring::BobStash,

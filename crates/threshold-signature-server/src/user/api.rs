@@ -703,16 +703,14 @@ pub async fn pre_sign_checks(
 
     // Handle aux data padding, if it is not explicit by client for ease send through None, error
     // if incorrect length
-    let auxilary_data_vec;
-    if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
+    let auxilary_data_vec = if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
         if auxilary_data.len() < user_details.programs_data.0.len() {
             return Err(UserErr::MismatchAuxData);
-        } else {
-            auxilary_data_vec = auxilary_data;
         }
+        auxilary_data
     } else {
-        auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
-    }
+        vec![None; user_details.programs_data.0.len()]
+    };
 
     // gets fuel from chain
     let max_instructions_per_programs_query =
