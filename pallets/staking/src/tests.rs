@@ -502,7 +502,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
 
         // Our call to `validate` should succeed, adding Bob into the validation queue. Bob should
         // not be considered a candidate yet though.
-        assert!(Staking::validation_queue(crate::Status::Pending, bob).is_none());
+        assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_none());
 
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(alice),
@@ -510,7 +510,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
             server_info.clone(),
         ));
 
-        assert!(Staking::validation_queue(crate::Status::Pending, bob).is_some());
+        assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_some());
         assert_eq!(Staking::threshold_server(bob), None);
         assert_eq!(Staking::threshold_to_stash(server_info.tss_account), None);
 
@@ -549,15 +549,15 @@ fn it_requires_attestation_before_validate_is_succesful() {
 
         // At this point we shouldn't have any pending attestations on either side.
         assert!(Attestation::pending_attestations(bob).is_none());
-        assert!(Staking::validation_queue(crate::Status::Pending, bob).is_none());
-        assert!(Staking::validation_queue(crate::Status::Confirmed, bob).is_some());
+        assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_none());
+        assert!(Staking::validation_queue((crate::Status::Confirmed, bob)).is_some());
 
         // Now we expect that the `on_initialize` hook of the Staking Extension pallet will have
         // picked up our confirmed attestation.
         current_block += 1;
         run_to_block(current_block);
 
-        assert!(Staking::validation_queue(crate::Status::Confirmed, bob).is_none());
+        assert!(Staking::validation_queue((crate::Status::Confirmed, bob)).is_none());
         assert!(Staking::threshold_server(alice).is_some());
         assert!(Staking::threshold_to_stash(bob).is_some());
 
