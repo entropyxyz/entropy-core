@@ -67,7 +67,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
-async fn test_reshare_foo() {
+async fn test_reshare() {
     initialize_test_logger().await;
     clean_tests();
 
@@ -119,7 +119,7 @@ async fn test_reshare_foo() {
     run_to_block(&rpc, block_number + 1).await;
     // Send the OCW message to all TS servers who don't have a chain node
     let response_results = join_all(
-        validator_ports
+        validator_ports[1..]
             .iter()
             .map(|port| {
                 client
