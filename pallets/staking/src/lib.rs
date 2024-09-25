@@ -164,6 +164,10 @@ pub mod pallet {
     pub type ThresholdToStash<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
+    /// The state of a validator's attestation.
+    ///
+    /// An attestation should only get moved into a `Confirmed` state after passing the checks set
+    /// out in the Attestation pallet.
     #[derive(
         Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
     )]
@@ -173,8 +177,10 @@ pub mod pallet {
         Confirmed,
     }
 
-    /// That way we can query based off status in the hook, so only go through entires that are
-    /// confirmed and update those
+    /// A queue of validator attestation requests.
+    ///
+    /// This tracks the status of each attestation (pending or confirmed), as well as information
+    /// about the validator who is in the process of submitting an attestation.
     #[pallet::storage]
     #[pallet::getter(fn validation_queue)]
     pub type ValidationQueue<T: Config> = StorageDoubleMap<
