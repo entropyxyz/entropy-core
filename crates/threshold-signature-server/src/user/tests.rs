@@ -1687,7 +1687,7 @@ async fn test_get_oracle_data() {
     assert_eq!(oracle_data_fail.len(), 0);
 }
 
-pub async fn submit_transaction_requests(
+pub async fn submit_transaction_request(
     validator_urls_and_keys: (String, entropy_shared::X25519PublicKey),
     signature_request: UserSignatureRequest,
     keyring: Sr25519Keyring,
