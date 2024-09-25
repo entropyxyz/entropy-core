@@ -1371,7 +1371,7 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (validator_ips, _validator_ids) =
+    let (_validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Development).await;
     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
     let substrate_context = test_node_process_testing_state(true).await;
@@ -1716,13 +1716,10 @@ pub async fn submit_transaction_sign_tx_requests(
     let validators_info = if let Some(validators_info) = validators_info_option {
         validators_info
     } else {
-        get_signers_from_chain(api, rpc).await.unwrap()
+        get_signers_from_chain(api, rpc).await.unwrap().0
     };
 
-    let relayer_sig_req = RelayerSignatureRequest {
-        user_signature_request,
-        validators_info,
-    };
+    let relayer_sig_req = RelayerSignatureRequest { user_signature_request, validators_info };
 
     let signed_message = EncryptedSignedMessage::new(
         &signer,
@@ -1746,7 +1743,7 @@ pub async fn get_sign_tx_data(
     message: String,
     signature_verifying_key: [u8; 33],
 ) -> (Vec<ValidatorInfo>, UserSignatureRequest, Vec<(String, [u8; 32])>) {
-    let validators_info = get_signers_from_chain(api, rpc).await.unwrap();
+    let (validators_info, _) = get_signers_from_chain(api, rpc).await.unwrap();
 
     let signature_request = UserSignatureRequest {
         message,

@@ -137,12 +137,9 @@ pub async fn relay_tx(
         .find(|validator| validator.tss_account == *signer.account_id())
         .ok_or_else(|| UserErr::NotValidator)?;
 
-    let signers_query = entropy::storage().staking_extension().signers();
-    let signers = query_chain(&api, &rpc, signers_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Error getting signers"))?;
+    let (selected_signers, all_signers) = get_signers_from_chain(&api, &rpc).await?;
 
-    let signers_info = get_validators_info(&api, &rpc, signers).await?;
+    let signers_info = get_validators_info(&api, &rpc, all_signers).await?;
 
     signers_info
         .iter()
@@ -153,11 +150,10 @@ pub async fn relay_tx(
 
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
 
-    let signers = get_signers_from_chain(&api, &rpc).await?;
     let user_signature_request: UserSignatureRequest =
         serde_json::from_slice(&signed_message.message.0)?;
     let relayer_sig_req =
-        RelayerSignatureRequest { user_signature_request, validators_info: signers };
+        RelayerSignatureRequest { user_signature_request, validators_info: selected_signers };
     let block_number = rpc
         .chain_get_header(None)
         .await?

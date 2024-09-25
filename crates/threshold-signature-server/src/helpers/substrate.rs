@@ -114,7 +114,7 @@ pub async fn get_validators_info(
 pub async fn get_signers_from_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<Vec<ValidatorInfo>, UserErr> {
+) -> Result<(Vec<ValidatorInfo>, Vec<AccountId32>), UserErr> {
     let signer_query = entropy::storage().staking_extension().signers();
     let signers = query_chain(api, rpc, signer_query, None)
         .await?
@@ -158,10 +158,10 @@ pub async fn get_signers_from_chain(
         handles.push(handle);
     }
 
-    let mut all_signers: Vec<ValidatorInfo> = vec![];
+    let mut all_selected_signers: Vec<ValidatorInfo> = vec![];
     for handle in handles {
-        all_signers.push(handle.await??);
+        all_selected_signers.push(handle.await??);
     }
 
-    Ok(all_signers)
+    Ok((all_selected_signers, signers))
 }
