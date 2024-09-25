@@ -18,6 +18,7 @@ use x509_parser::{
     x509::SubjectPublicKeyInfo,
 };
 
+/// Intel's root public key together with metadata, encoded as der
 const INTEL_ROOT_CA_PK_DER: [u8; 91] = [
     48, 89, 48, 19, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 8, 42, 134, 72, 206, 61, 3, 1, 7, 3, 66,
     0, 4, 11, 169, 196, 192, 192, 200, 97, 147, 163, 254, 35, 214, 176, 44, 218, 16, 168, 187, 212,
@@ -42,7 +43,7 @@ fn x509_to_subject_public_key(input: X509Certificate) -> Result<Vec<u8>, X509Err
     }
 }
 
-pub fn setup_attestation(pck: Vec<u8>, pck_provider: Vec<u8>) -> Result<[u8; 65], X509Error> {
+pub fn parse_pck_cert_chain(pck: Vec<u8>, pck_provider: Vec<u8>) -> Result<[u8; 65], X509Error> {
     // Parse input certificates from der encoding
     let pck = parse_der(&pck)?;
     let pck_provider = parse_der(&pck_provider)?;

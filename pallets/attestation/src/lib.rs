@@ -55,6 +55,7 @@ pub mod pallet {
     use sp_std::vec::Vec;
     use tdx_quote::Quote;
 
+    pub use crate::pck::parse_pck_cert_chain;
     pub use crate::weights::WeightInfo;
 
     /// A nonce included as input for a TDX quote
