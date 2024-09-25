@@ -128,8 +128,6 @@ pub async fn get_signers_from_chain(
 
     let selected_signers: Vec<_> = {
         let mut cloned_signers = signers.clone();
-        // TODO: temp remove dave for now until test dave is spun up correctly
-        cloned_signers.pop();
         cloned_signers
             .choose_multiple(&mut rand::thread_rng(), threshold as usize)
             .cloned()
