@@ -171,7 +171,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
+    let (validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Integration).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
@@ -208,6 +208,29 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
+
+    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+
+    let mock_client = reqwest::Client::new();
+
+    let signed_message = EncryptedSignedMessage::new(
+        &one.pair(),
+        serde_json::to_vec(&signature_request.clone()).unwrap(),
+        &X25519_PUBLIC_KEYS[0],
+        &[],
+    )
+    .unwrap();
+    let url = format!("http://{}/user/sign_tx", validator_ips[0]);
+    let signature_request_responses_fail_not_relayer = mock_client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message).unwrap())
+        .send()
+        .await;
+    assert_eq!(
+        signature_request_responses_fail_not_relayer.unwrap().text().await.unwrap(),
+        "Message sent directly to signer"
+    );
 
     // Test: A user that is not registered is not able to send a signature request
 
@@ -410,6 +433,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
+    // Pops off a validator to trigger the too few validator check
     validators_info.pop();
 
     let test_user_res_not_registered_sign_tx = submit_transaction_sign_tx_requests(
@@ -426,6 +450,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
         test_user_res_not_registered_sign_tx.unwrap().text().await.unwrap(),
         "Too few signers selected"
     );
+    // Adds on a dummy validator to trigger the validator check
     validators_info.push(ValidatorInfo {
         x25519_public_key: relayer_ip_and_key.clone().1,
         ip_address: relayer_ip_and_key.clone().0,
@@ -460,7 +485,7 @@ async fn signature_request_with_derived_account_works() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (_validator_ips, _validator_ids) =
+    let (_idsvalidator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
@@ -493,26 +518,7 @@ async fn signature_request_with_derived_account_works() {
             .unwrap();
     verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
         .await;
-    let mock_client = reqwest::Client::new();
 
-    let signed_message = EncryptedSignedMessage::new(
-        &alice.pair(),
-        serde_json::to_vec(&signature_request.clone()).unwrap(),
-        &X25519_PUBLIC_KEYS[0],
-        &[],
-    )
-    .unwrap();
-
-    let signature_request_responses_fail_not_relayer = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&signed_message).unwrap())
-        .send()
-        .await;
-    assert_eq!(
-        signature_request_responses_fail_not_relayer.unwrap().text().await.unwrap(),
-        "Message sent directly to signer"
-    );
     clean_tests();
 }
 
@@ -1682,7 +1688,7 @@ async fn test_get_oracle_data() {
 }
 
 pub async fn submit_transaction_requests(
-    validator_urls_and_keys: (String, [u8; 32]),
+    validator_urls_and_keys: (String, entropy_shared::X25519PublicKey),
     signature_request: UserSignatureRequest,
     keyring: Sr25519Keyring,
 ) -> std::result::Result<reqwest::Response, reqwest::Error> {
@@ -1707,7 +1713,7 @@ pub async fn submit_transaction_requests(
 pub async fn submit_transaction_sign_tx_requests(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    validator_urls_and_keys: (String, [u8; 32]),
+    validator_urls_and_keys: (String, entropy_shared::X25519PublicKey),
     user_signature_request: UserSignatureRequest,
     signer: sr25519::Pair,
     validators_info_option: Option<Vec<ValidatorInfo>>,
