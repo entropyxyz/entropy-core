@@ -528,15 +528,13 @@ fn it_requires_attestation_before_validate_is_succesful() {
 
         // Here we have to mock the `attest()` extrinsic call since we can't call an offchain worker
         // in the tests.
-        use entropy_shared::QuoteInputData;
-        use rand_core::OsRng;
 
         // For now it doesn't matter what this is, but once we handle PCK certificates this will
         // need to correspond to the public key in the certificate
-        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
+        let signing_key = tdx_quote::SigningKey::random(&mut rand_core::OsRng);
         let nonce = [0; 32];
 
-        let input_data = QuoteInputData::new(
+        let input_data = entropy_shared::QuoteInputData::new(
             server_info.tss_account,
             server_info.x25519_public_key,
             nonce,
