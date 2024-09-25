@@ -163,7 +163,6 @@ pub async fn relay_tx(
     let string_verifying_key =
         hex::encode(relayer_sig_req.user_signature_request.signature_verifying_key.clone());
 
-    // do programs and other check
     let _ = pre_sign_checks(
         &api,
         &rpc,
