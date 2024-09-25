@@ -45,7 +45,7 @@
 //! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
 //! message will be sent on the response stream with the result.
 //!
-//! If everything went well, the message will be a vector of JSON object with a signle property "Ok"
+//! If everything went well, the message will be a vector of JSON objects with a signle property "Ok"
 //! containing an array which contains two strings. Each element in the vector is a response from a signer.
 //!
 //! For example:
