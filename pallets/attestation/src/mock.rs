@@ -36,6 +36,13 @@ use std::cell::RefCell;
 
 use crate as pallet_attestation;
 
+/// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+/// key
+pub const PCK: [u8; 32] = [
+    117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
+    168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
+];
+
 const NULL_ARR: [u8; 32] = [0; 32];
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -342,10 +349,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     };
     pallet_attestation.assimilate_storage(&mut t).unwrap();
 
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(&pck.verifying_key()).unwrap();
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         threshold_servers: vec![
-            // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
-            (5, (0, NULL_ARR, vec![20])),
+            // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL, PCK))
+            (5, (0, NULL_ARR, vec![20], pck_encoded.to_vec().try_into().unwrap())),
         ],
         proactive_refresh_data: (vec![], vec![]),
         mock_signer_rotate: (false, vec![], vec![]),

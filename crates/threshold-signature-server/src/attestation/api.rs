@@ -71,17 +71,18 @@ pub async fn attest(
 }
 
 /// Create a mock quote for testing on non-TDX hardware
-#[cfg(any(test, feature = "unsafe"))]
+#[cfg(not(feature = "production"))]
 pub async fn create_quote(
     block_number: u32,
     nonce: [u8; 32],
     signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
     x25519_secret: &StaticSecret,
 ) -> Result<Vec<u8>, AttestationErr> {
+    use rand::{rngs::StdRng, SeedableRng};
     use rand_core::OsRng;
     use sp_core::Pair;
 
-    // In the real thing this is the hardware key used in the quoting enclave
+    // In the real thing this is the key used in the quoting enclave
     let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
 
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
@@ -93,18 +94,30 @@ pub async fn create_quote(
         block_number,
     );
 
-    let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
+    // This is generated deterministically from TSS account id
+    let mut pck_seeder = StdRng::from_seed(signer.signer().public().0);
+    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+
+    let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec();
     Ok(quote)
 }
 
-/// Once implemented, this will create a TDX quote in production
-#[cfg(not(any(test, feature = "unsafe")))]
+/// Create a TDX quote in production
+#[cfg(feature = "production")]
 pub async fn create_quote(
-    _block_number: u32,
-    _nonce: [u8; 32],
-    _signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
-    _x25519_secret: &StaticSecret,
+    block_number: u32,
+    nonce: [u8; 32],
+    signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
+    x25519_secret: &StaticSecret,
 ) -> Result<Vec<u8>, AttestationErr> {
-    // Non-mock attestation (the real thing) will go here
-    Err(AttestationErr::NotImplemented)
+    let public_key = x25519_dalek::PublicKey::from(x25519_secret);
+
+    let input_data = entropy_shared::QuoteInputData::new(
+        signer.signer().public(),
+        *public_key.as_bytes(),
+        nonce,
+        block_number,
+    );
+
+    Ok(configfs_tsm::create_quote(input_data.0)?)
 }

@@ -22,6 +22,7 @@ use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
 use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
+use sp_runtime::BoundedVec;
 const NULL_ARR: [u8; 32] = [0; 32];
 
 #[test]
@@ -29,11 +30,21 @@ fn basic_setup_works() {
     new_test_ext().execute_with(|| {
         assert_eq!(
             Staking::threshold_server(5).unwrap(),
-            ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }
+            ServerInfo {
+                tss_account: 7,
+                x25519_public_key: NULL_ARR,
+                endpoint: vec![20],
+                provisioning_certification_key: BoundedVec::with_max_capacity()
+            }
         );
         assert_eq!(
             Staking::threshold_server(6).unwrap(),
-            ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }
+            ServerInfo {
+                tss_account: 8,
+                x25519_public_key: NULL_ARR,
+                endpoint: vec![40],
+                provisioning_certification_key: BoundedVec::with_max_capacity()
+            }
         );
         assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
@@ -51,8 +62,12 @@ fn it_takes_in_an_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -68,6 +83,7 @@ fn it_takes_in_an_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20, 20, 20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
         assert_noop!(
             Staking::validate(
@@ -78,8 +94,12 @@ fn it_takes_in_an_endpoint() {
             Error::<Test>::EndpointTooLong
         );
 
-        let server_info =
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20, 20] };
+        let server_info = ServerInfo {
+            tss_account: 5,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20, 20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
@@ -100,8 +120,12 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -134,8 +158,12 @@ fn it_changes_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -161,8 +189,12 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -185,8 +217,12 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 5,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -209,8 +245,12 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -224,8 +264,12 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 5,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -250,8 +294,12 @@ fn it_deletes_when_no_bond_left() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
