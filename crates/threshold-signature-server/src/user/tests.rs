@@ -170,9 +170,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -307,9 +306,8 @@ async fn signature_request_with_derived_account_works() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -356,9 +354,8 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let one = AccountKeyring::Dave;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -436,9 +433,8 @@ async fn test_request_limit_are_updated_during_signing() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -539,9 +535,8 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -631,9 +626,8 @@ async fn test_program_with_config() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -716,9 +710,8 @@ async fn test_jumpstart_network() {
 
     let alice = AccountKeyring::Alice;
 
-    let add_parent_key = false;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -917,9 +910,8 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;
@@ -998,9 +990,8 @@ async fn test_device_key_proxy() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
@@ -1138,7 +1129,7 @@ async fn test_faucet() {
     let alice = AccountKeyring::Alice;
 
     let (validator_ips, _validator_ids) =
-        spawn_testing_validators(false, ChainSpecType::Development).await;
+        spawn_testing_validators(ChainSpecType::Development).await;
     let substrate_context = test_node_process_testing_state(true).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -1310,9 +1301,8 @@ async fn test_registration_flow() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let add_parent_key_to_kvdb = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key_to_kvdb, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
