@@ -20,7 +20,7 @@ use entropy_testing_utils::{
     helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
     jump_start_network,
     substrate_context::test_context_stationary,
-    test_node_process_testing_state, ChainSpecType
+    test_node_process_testing_state, ChainSpecType,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
