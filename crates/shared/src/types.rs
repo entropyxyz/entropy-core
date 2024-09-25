@@ -128,11 +128,21 @@ impl QuoteInputData {
     }
 }
 
+/// A trait used to get an X25519 key for a given account ID.
+///
+/// Not every account ID will have an associated X25519 public key, in which case the implementer is
+/// expected to return `None`.
 pub trait X25519KeyProvider<T> {
+    /// Get an X25519 public key, if any, for the given account ID.
     fn x25519_public_key(account_id: &T) -> Option<X25519PublicKey>;
 }
 
+/// A trait used to describe a queue of attestations.
 pub trait AttestationQueue<T> {
+    /// The list of pending (not processed) attestations.
     fn pending_attestations() -> Vec<T>;
+
+    /// Indicate that a given attestation is ready to be moved from a pending state to a confirmed
+    /// state.
     fn confirm_attestation(account_id: &T);
 }
