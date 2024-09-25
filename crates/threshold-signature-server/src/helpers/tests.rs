@@ -200,8 +200,6 @@ pub async fn spawn_testing_validators(
         let dave_id = PartyId::new(SubxtAccountId32(
             *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
         ));
-        // TODO: fix
-        put_keyshares_in_db("alice", dave_kv, add_parent_key).await;
         ids.push(dave_id);
     }
 
@@ -302,6 +300,7 @@ pub async fn jump_start_network_with_signer(
         {
             put_keyshares_in_db(keyshare_index, validator_name).await;
             keyshare_index += 1;
+        } else {
             non_signer = Some(validator_name);
         }
     }

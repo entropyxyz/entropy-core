@@ -1372,6 +1372,7 @@ async fn test_faucet() {
 
     let (validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Development).await;
+    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
     let substrate_context = test_node_process_testing_state(true).await;
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
