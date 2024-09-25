@@ -188,7 +188,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, program_hash) =
@@ -399,7 +399,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, tss_account) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -474,7 +474,7 @@ async fn signature_request_with_derived_account_works() {
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -535,7 +535,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
     let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
 
     let mock_client = reqwest::Client::new();
@@ -653,7 +653,7 @@ async fn test_request_limit_are_updated_during_signing() {
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
@@ -854,7 +854,7 @@ async fn test_program_with_config() {
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
     let program_hash = test_client::store_program(
         &entropy_api,
@@ -1147,7 +1147,7 @@ async fn test_fail_infinite_program() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let non_signer = jump_start_network(&api, &rpc).await.unwrap();
-    let (relayer_ip_and_key, _) = validator_name_to_realyer_info(non_signer, &api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
         &api,
@@ -1245,7 +1245,7 @@ async fn test_device_key_proxy() {
     // for later
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_realyer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
     // We need to store a program in order to be able to register succesfully
     let program_hash = test_client::store_program(

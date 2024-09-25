@@ -156,7 +156,7 @@ pub async fn relay_tx(
     let signers = get_signers_from_chain(&api, &rpc).await?;
     let user_signature_request: UserSignatureRequest =
         serde_json::from_slice(&signed_message.message.0)?;
-    let relayer_sig_req: RelayerSignatureRequest =
+    let relayer_sig_req =
         RelayerSignatureRequest { user_signature_request, validators_info: signers };
     let block_number = rpc
         .chain_get_header(None)
