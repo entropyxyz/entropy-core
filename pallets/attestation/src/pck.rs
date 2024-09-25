@@ -43,6 +43,8 @@ fn x509_to_subject_public_key(input: X509Certificate) -> Result<Vec<u8>, X509Err
     }
 }
 
+/// Validate PCK and provider certificates and if valid return the PCK
+/// These certificates will be provided by a joining validator
 pub fn parse_pck_cert_chain(pck: Vec<u8>, pck_provider: Vec<u8>) -> Result<[u8; 65], X509Error> {
     // Parse input certificates from der encoding
     let pck = parse_der(&pck)?;
@@ -52,7 +54,7 @@ pub fn parse_pck_cert_chain(pck: Vec<u8>, pck_provider: Vec<u8>) -> Result<[u8; 
     pck.verify_signature(Some(pck_provider.public_key()))?;
 
     // Check provider signature matches root public key
-    let (_, root_public_key) = SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER).unwrap();
+    let (_, root_public_key) = SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER)?;
     pck_provider.verify_signature(Some(&root_public_key))?;
 
     // Return the PCK public key
