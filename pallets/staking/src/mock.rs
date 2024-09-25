@@ -72,7 +72,8 @@ thread_local! {
 
 
 }
-type AccountId = u64;
+
+pub(crate) type AccountId = u64;
 type Balance = u64;
 
 parameter_types! {
