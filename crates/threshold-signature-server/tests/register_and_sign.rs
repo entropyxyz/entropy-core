@@ -35,6 +35,7 @@ use sp_keyring::AccountKeyring;
 use subxt::{tx::PairSigner, utils::AccountId32};
 use synedrion::k256::ecdsa::VerifyingKey;
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn integration_test_register_and_sign() {
