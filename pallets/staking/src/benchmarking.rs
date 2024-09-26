@@ -77,15 +77,25 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info =
-        ServerInfo { tss_account: threshold, x25519_public_key, endpoint: vec![20, 20] };
+    let server_info = ServerInfo {
+        tss_account: threshold,
+        x25519_public_key,
+        endpoint: vec![20, 20],
+    };
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
-            RawOrigin::Signed(bonder).into(),
+            RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
-            server_info,
+            server_info.clone(),
         ));
+
+        let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(bonder)
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+
+        ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+        ThresholdServers::<T>::insert(&validator_id, server_info);
     }
 }
 
@@ -97,7 +107,6 @@ benchmarks! {
     let x25519_public_key = NULL_ARR;
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
-
 
   }:  _(RawOrigin::Signed(bonder.clone()), vec![30])
   verify {
@@ -154,7 +163,6 @@ benchmarks! {
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
     prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
-
     let validator_preference = ValidatorPrefs::default();
 
     let server_info = ServerInfo {
@@ -165,7 +173,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)
   verify {
-    assert_last_event::<T>(Event::<T>::NodeInfoChanged(bonder,  vec![20], threshold).into());
+    assert_last_event::<T>(Event::<T>::AttestationCheckQueued(bonder).into());
   }
 
   declare_synced {

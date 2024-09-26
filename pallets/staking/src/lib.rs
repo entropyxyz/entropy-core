@@ -370,8 +370,8 @@ pub mod pallet {
         fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
             let confirmed_validators = ValidationQueue::<T>::drain_prefix((Status::Confirmed,));
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
-                ThresholdServers::<T>::insert(&validator_id, server_info.clone());
-                ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
+                ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+                ThresholdServers::<T>::insert(&validator_id, server_info);
             }
 
             Weight::zero()
