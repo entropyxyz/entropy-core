@@ -710,7 +710,7 @@ impl pallet_staking::Config for Runtime {
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 100;
-  pub const MaxPendingAttestations: u32 = MaxActiveValidators / 4;
+  pub const MaxPendingAttestations: u32 = 250;
 }
 
 impl pallet_staking_extension::Config for Runtime {
