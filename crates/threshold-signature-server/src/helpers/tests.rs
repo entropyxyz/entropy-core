@@ -219,7 +219,7 @@ async fn put_keyshares_in_db(_index: usize, validator_name: ValidatorName) {
         ValidatorName::Bob => "bob",
         ValidatorName::Charlie => "charlie",
         ValidatorName::Dave => "dave",
-        ValidatorName::Eve => "eve", 
+        ValidatorName::Eve => "eve",
     };
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");

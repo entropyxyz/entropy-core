@@ -208,7 +208,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    
+
     let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
 
@@ -519,7 +519,7 @@ async fn signature_request_with_derived_account_works() {
     let verifying_key =
         SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
             .unwrap();
-    
+
     let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
     verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
@@ -683,7 +683,7 @@ async fn test_request_limit_are_updated_during_signing() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    
+
     let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
 
@@ -928,7 +928,7 @@ async fn test_program_with_config() {
 
     let message_hash = Hasher::keccak(message.as_bytes());
     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    
+
     let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
     verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
