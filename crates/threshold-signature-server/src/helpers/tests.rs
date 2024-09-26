@@ -347,17 +347,7 @@ pub async fn store_program_and_register(
     (verifying_key, program_hash)
 }
 
-pub async fn put_jumpstart_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    pair: sr25519::Pair,
-) {
-    let account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(pair);
-
-    let registering_tx = entropy::tx().registry().jump_start_network();
-    submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
-}
-
+/// Do a network jumpstart DKG
 pub async fn do_jump_start(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -404,4 +394,16 @@ pub async fn do_jump_start(
         };
     }
     assert!(got_jumpstart_event);
+}
+
+/// Submit a jumpstart extrinsic
+async fn put_jumpstart_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    pair: sr25519::Pair,
+) {
+    let account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(pair);
+
+    let registering_tx = entropy::tx().registry().jump_start_network();
+    submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
 }
