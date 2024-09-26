@@ -364,19 +364,19 @@ pub async fn do_jump_start(
     pair: sr25519::Pair,
 ) {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    put_jumpstart_request_on_chain(&api, &rpc, pair).await;
+    put_jumpstart_request_on_chain(api, rpc, pair).await;
 
-    run_to_block(&rpc, block_number + 1).await;
+    run_to_block(rpc, block_number + 1).await;
 
     let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
     let validators_info =
-        query_chain(&api, &rpc, selected_validators_query, None).await.unwrap().unwrap();
+        query_chain(api, rpc, selected_validators_query, None).await.unwrap().unwrap();
     let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
     let onchain_user_request = OcwMessageDkg { block_number, validators_info };
 
     let client = reqwest::Client::new();
     let response_results = join_all(
-        vec![3002, 3003, 3004]
+        [3002, 3003, 3004]
             .iter()
             .map(|port| {
                 client
@@ -398,10 +398,10 @@ pub async fn do_jump_start(
         let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
         let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
         let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
-        for _event in jump_start_event.flatten() {
+        if let Some(_event) = jump_start_event.flatten().next() {
             got_jumpstart_event = true;
             break;
-        }
+        };
     }
     assert!(got_jumpstart_event);
 }
