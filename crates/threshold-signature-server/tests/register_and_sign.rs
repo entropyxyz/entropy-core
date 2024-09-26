@@ -15,31 +15,23 @@
 
 use entropy_client::{
     chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
-        EntropyConfig,
     },
-    client as test_client,
-    substrate::{query_chain, submit_transaction},
-    Hasher,
+    client as test_client, Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::OcwMessageDkg;
 use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
     spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
-use entropy_tss::helpers::tests::{initialize_test_logger, run_to_block};
-use futures::future::join_all;
+use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
 use serial_test::serial;
-use sp_core::{Encode, Pair};
-use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use subxt::{
-    backend::legacy::LegacyRpcMethods, events::EventsClient, tx::PairSigner, utils::AccountId32,
-    OnlineClient,
-};
+use sp_core::Pair;
+use sp_keyring::AccountKeyring;
+use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
@@ -47,8 +39,6 @@ use synedrion::k256::ecdsa::VerifyingKey;
 async fn integration_test_register_and_sign() {
     initialize_test_logger().await;
     clean_tests();
-
-    let alice = AccountKeyring::Alice;
 
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Integration).await;
@@ -59,49 +49,8 @@ async fn integration_test_register_and_sign() {
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let client = reqwest::Client::new();
-
     // First jumpstart the network
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    put_jumpstart_request_on_chain(&api, &rpc, &alice).await;
-
-    run_to_block(&rpc, block_number + 1).await;
-
-    let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
-    let validators_info =
-        query_chain(&api, &rpc, selected_validators_query, None).await.unwrap().unwrap();
-    let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
-    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
-
-    let response_results = join_all(
-        vec![3002, 3003, 3004]
-            .iter()
-            .map(|port| {
-                client
-                    .post(format!("http://127.0.0.1:{}/generate_network_key", port))
-                    .body(onchain_user_request.clone().encode())
-                    .send()
-            })
-            .collect::<Vec<_>>(),
-    )
-    .await;
-    for response_result in response_results {
-        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    }
-
-    // Wait for jump start event
-    let mut got_jumpstart_event = false;
-    for _ in 0..75 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
-        for _event in jump_start_event.flatten() {
-            got_jumpstart_event = true;
-            break;
-        }
-    }
-    assert!(got_jumpstart_event);
+    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
 
     // Now register an account
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -156,15 +105,4 @@ async fn integration_test_register_and_sign() {
         verifying_key.to_vec(),
         recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
     );
-}
-
-async fn put_jumpstart_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    keyring: &Sr25519Keyring,
-) {
-    let account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(keyring.pair());
-
-    let registering_tx = entropy::tx().registry().jump_start_network();
-    submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
 }
