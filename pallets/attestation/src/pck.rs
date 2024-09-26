@@ -34,16 +34,17 @@ use x509_verify::{
     Signature, VerifyInfo, VerifyingKey,
 };
 
+/// Given a cerificate and a public key, verify the certificate
 fn verify_cert(subject: &Certificate, issuer_pk: VerifyingKey) -> Result<(), PckParseVerifyError> {
     let verify_info = VerifyInfo::new(
         subject.tbs_certificate.to_der().unwrap().into(),
         Signature::new(&subject.signature_algorithm, subject.signature.as_bytes().unwrap()),
     );
-
-    issuer_pk.verify(&verify_info)?;
-    Ok(())
+    Ok(issuer_pk.verify(&verify_info)?)
 }
 
+/// Validate PCK and provider certificates and if valid return the PCK
+/// These certificates will be provided by a joining validator
 pub fn parse_pck_cert_chain(
     pck: Vec<u8>,
     pck_provider: Vec<u8>,
@@ -63,7 +64,7 @@ pub fn parse_pck_cert_chain(
     Ok(pck_key.as_bytes().ok_or(PckParseVerifyError::BadPublicKey)?.try_into()?)
 }
 
-/// An error when parsing a quote
+/// An error when parsing or verifying a PCK or provider certificate
 #[derive(Debug)]
 pub enum PckParseVerifyError {
     Parse,
