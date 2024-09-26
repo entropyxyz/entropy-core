@@ -210,14 +210,22 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(index: usize, validator_name: ValidatorName) {
+async fn put_keyshares_in_db(_index: usize, validator_name: ValidatorName) {
     // Eve's keyshares are used as the network parent key
     let user_name = "eve";
+
+    let string_validator_name = match validator_name {
+        ValidatorName::Alice => "alice",
+        ValidatorName::Bob => "bob",
+        ValidatorName::Charlie => "charlie",
+        ValidatorName::Dave => "dave",
+        ValidatorName::Eve => "eve", 
+    };
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/{}-keyshare-{}.keyshare",
-            user_name, index
+            "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
+            user_name, string_validator_name
         ));
         std::fs::read(file_path).unwrap()
     };

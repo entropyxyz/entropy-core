@@ -20,7 +20,7 @@ use entropy_kvdb::kv_manager::helpers::serialize;
 use entropy_shared::{DETERMINISTIC_KEY_SHARE_DAVE, DETERMINISTIC_KEY_SHARE_EVE};
 use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
 use entropy_tss::helpers::{
-    launch::{DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC},
+    launch::{DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC, DEFAULT_DAVE_MNEMONIC},
     validator::get_signer_and_x25519_secret_from_mnemonic,
 };
 use std::{env::args, path::PathBuf};
@@ -34,7 +34,7 @@ async fn main() {
         get_signer_and_x25519_secret_from_mnemonic(DEFAULT_ALICE_MNEMONIC).unwrap();
     let (bob_pair, _) = get_signer_and_x25519_secret_from_mnemonic(DEFAULT_BOB_MNEMONIC).unwrap();
     let (charlie_pair, _) =
-        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_CHARLIE_MNEMONIC).unwrap();
+        get_signer_and_x25519_secret_from_mnemonic(DEFAULT_DAVE_MNEMONIC).unwrap();
 
     let names_and_secret_keys =
         [("dave", *DETERMINISTIC_KEY_SHARE_DAVE), ("eve", *DETERMINISTIC_KEY_SHARE_EVE)];
@@ -65,7 +65,7 @@ async fn main() {
 }
 
 async fn write_keyshares(base_path: PathBuf, name: &str, keyshares_bytes: Vec<Vec<u8>>) {
-    let holder_names = ["alice", "bob", "charlie"];
+    let holder_names = ["alice", "bob", "dave"];
     for (i, bytes) in keyshares_bytes.iter().enumerate() {
         let filename = format!("{}-keyshare-held-by-{}.keyshare", name, holder_names[i]);
         let mut filepath = base_path.clone();

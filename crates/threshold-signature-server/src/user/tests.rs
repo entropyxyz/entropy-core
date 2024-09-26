@@ -21,6 +21,7 @@ use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client as test_client,
     client::{sign, update_programs},
+    user::get_all_signers_from_chain,
 };
 use entropy_kvdb::{
     clean_tests,
@@ -195,7 +196,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
 
     // Test: We check that an account with a program succeeds in submiting a signature request
-    let (validators_info, mut signature_request, _validator_ips_and_keys) =
+    let (_validators_info, mut signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
@@ -207,7 +208,9 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
+    
+    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
 
     signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
@@ -505,7 +508,7 @@ async fn signature_request_with_derived_account_works() {
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair()).await;
 
-    let (validators_info, signature_request, _validator_ips_and_keys) =
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
     let signature_request_responses =
@@ -516,7 +519,9 @@ async fn signature_request_with_derived_account_works() {
     let verifying_key =
         SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
             .unwrap();
-    verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
+    
+    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
 
     clean_tests();
@@ -678,7 +683,9 @@ async fn test_request_limit_are_updated_during_signing() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &validators_info).await;
+    
+    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
 
     // Next we check request limiter increases
     let mock_client = reqwest::Client::new();
@@ -718,7 +725,7 @@ async fn test_request_limit_are_updated_during_signing() {
     )
     .to_json();
 
-    for validator_info in validators_info {
+    for validator_info in all_signers_info {
         mock_client
             .post(format!("http://{}/unsafe/put", validator_info.ip_address))
             .header("Content-Type", "application/json")
@@ -911,7 +918,7 @@ async fn test_program_with_config() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (validators_info, signature_request, _validator_ips_and_keys) =
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), verifying_key).await;
 
     // Here we check that the signature request was indeed completed successfully
@@ -921,7 +928,9 @@ async fn test_program_with_config() {
 
     let message_hash = Hasher::keccak(message.as_bytes());
     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    verify_signature(signature_request_responses, message_hash, &verifying_key, &validators_info)
+    
+    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
 
     clean_tests();
@@ -1117,6 +1126,7 @@ pub async fn verify_signature(
         .unwrap();
         assert_eq!(verifying_key, &recovery_key_from_sig);
         let mut sig_recovery_results = vec![];
+
         // do not know which validator created which message, run through them all
         for validator_info in validators_info {
             let sig_recovery = <sr25519::Pair as Pair>::verify(
@@ -1332,7 +1342,7 @@ async fn test_device_key_proxy() {
     ))]);
 
     // Now we'll send off a signature request using the new program with auxilary data
-    let (validators_info, mut signature_request, _validator_ips_and_keys) =
+    let (_validators_info, mut signature_request, _validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
             .await;
 
@@ -1344,8 +1354,8 @@ async fn test_device_key_proxy() {
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-
-    verify_signature(test_user_res, message_hash, &verifying_key, &validators_info).await;
+    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    verify_signature(test_user_res, message_hash, &verifying_key, &all_signers_info).await;
 }
 
 /// FIXME (#909): Ignored due to block number changing message causing signing selection to be the incorrect nodes
