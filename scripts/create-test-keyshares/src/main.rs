@@ -20,10 +20,7 @@ use entropy_kvdb::kv_manager::helpers::serialize;
 use entropy_shared::{DETERMINISTIC_KEY_SHARE_DAVE, DETERMINISTIC_KEY_SHARE_EVE};
 use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
 use entropy_tss::helpers::{
-    launch::{
-        DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-        DEFAULT_DAVE_MNEMONIC,
-    },
+    launch::{DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_DAVE_MNEMONIC},
     validator::get_signer_and_x25519_secret_from_mnemonic,
 };
 use std::{env::args, path::PathBuf};

@@ -295,7 +295,7 @@ pub async fn jump_start_network_with_signer(
     let mut non_signer = None;
     let mut keyshare_index = 0;
     for validator_name in validators_names {
-        let mnemonic = development_mnemonic(&Some(validator_name.clone()));
+        let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
             get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
         let jump_start_confirm_request =
