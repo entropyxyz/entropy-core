@@ -28,6 +28,7 @@ use crate::{
 };
 pub use entropy_client::substrate::{query_chain, submit_transaction};
 use entropy_shared::user::ValidatorInfo;
+use rand::prelude::SliceRandom;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, Config, OnlineClient};
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
@@ -107,4 +108,60 @@ pub async fn get_validators_info(
         all_signers.push(handle.await.unwrap().unwrap());
     }
     Ok(all_signers)
+}
+
+/// Returns a threshold of signer's ValidatorInfo from the chain
+pub async fn get_signers_from_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(Vec<ValidatorInfo>, Vec<AccountId32>), UserErr> {
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(api, rpc, signer_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Get all validators error"))?;
+
+    let key_info_query = entropy::storage().parameters().signers_info();
+    let threshold = query_chain(api, rpc, key_info_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Failed to get signers info"))?
+        .threshold;
+
+    let selected_signers: Vec<_> = {
+        let cloned_signers = signers.clone();
+        cloned_signers
+            .choose_multiple(&mut rand::thread_rng(), threshold as usize)
+            .cloned()
+            .collect()
+    };
+
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+    let mut handles = Vec::new();
+
+    for signer in selected_signers {
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, UserErr>> = tokio::task::spawn({
+            let api = api.clone();
+            let rpc = rpc.clone();
+            async move {
+                let threshold_address_query =
+                    entropy::storage().staking_extension().threshold_servers(signer);
+                let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+                    .await?
+                    .ok_or_else(|| UserErr::ChainFetch("threshold_servers query error"))?;
+                Ok(ValidatorInfo {
+                    x25519_public_key: server_info.x25519_public_key,
+                    ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+                    tss_account: server_info.tss_account,
+                })
+            }
+        });
+
+        handles.push(handle);
+    }
+
+    let mut all_selected_signers: Vec<ValidatorInfo> = vec![];
+    for handle in handles {
+        all_selected_signers.push(handle.await??);
+    }
+
+    Ok((all_selected_signers, signers))
 }

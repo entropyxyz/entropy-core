@@ -38,18 +38,19 @@ where
     Params: SchemeParams,
 {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
-    let signers = vec![alice.clone(), bob, charlie.clone()];
+    let signers = vec![alice.clone(), bob.clone(), charlie.clone()];
     let session_id = SessionId::from_seed(b"12345".as_slice());
     let all_parties =
         signers.iter().map(|pair| PartyId::from(pair.public())).collect::<BTreeSet<_>>();
 
-    let old_holders = all_parties.clone().into_iter().take(2).collect::<BTreeSet<_>>();
+    let mut old_holders = all_parties.clone();
+    old_holders.remove(&PartyId::from(charlie.clone().public()));
 
     let keyshares =
         KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
     let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
-    let alice_id = PartyId::from(alice.public());
+    let alice_id = PartyId::from(bob.public());
     let new_holder = NewHolder {
         verifying_key: keyshares[&alice_id].verifying_key(),
         old_threshold: 2,

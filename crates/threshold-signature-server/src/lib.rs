@@ -32,14 +32,54 @@
 //! is an encrypted, signed message.
 //!
 //!
+//! #### `/user/relay_tx` - POST
+//!
+//! [crate::user::api::relay_tx()]
+//!
+//! Called by a user to submit a transaction to sign. Takes a
+//! [UserSignatureRequest] encrypted in a [SignedMessage](crate::validation::SignedMessage).
+//!
+//! Picks signers and gets them to sign a message then returns the responses to the user.
+//!
+//! The response is chunked response stream. If the `UserSignatureRequest` could be processed, a
+//! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
+//! message will be sent on the response stream with the result.
+//!
+//! If everything went well, the message will be a vector of JSON objects with a signle property "Ok"
+//! containing an array which contains two strings. Each element in the vector is a response from a signer.
+//!
+//! For example:
+//!
+//! `[{"Ok":["t7Mcxfdigds3RoT6OO/P+uMFE+XigRjUpn72E1cRU4Q2u7cVxZlsNRYhnahA+DvSNHBddj0HRz5u/XPlJT9QOQE=","32d7c0bfd90b546993d1ad51c542e1fc9dd1706c7bca395c8bd7f9642ae842400769488404dabd25d438cf08785a6750f95e7489245b8760af115f450d5f0a83"]}]`
+//!
+//! The first string is a base64 encoded signature produced by the signing protocol. This is a 65
+//! byte signature, the final byte of which is a
+//! [recovery ID](https://docs.rs/synedrion/latest/synedrion/ecdsa/struct.RecoveryId.html).
+//!
+//! The second string is a hex encoded sr25519 signature of the signature made by the TSS server,
+//! which can be used to authenticate that this response really came from this TSS server.
+//!
+//! In case signing was not successfull, the message will be a JSON object with a signle property "Err"
+//! containing an error message, for example:
+//!
+//! "[{\"Err\":\"Too many requests - wait a block\"},{\"Err\":\"Too many requests - wait a block\"}]"
+//!
+//! Curl example for `user/sign_tx`:
+//! ```text
+//! curl -X POST -H "Content-Type: application/json" \
+//!   -d '{"msg" "0x174...hex encoded signedmessage...","sig":"821754409744cbb878b44bd1e3dc575a4ea721e12d781b074fcdb808fc79fd33dd1928b1a281c0b6261a30536a7c0106a102f27dad1bc3ef475b626f0e57c983","pk":[172,133,159,138,33,110,235,27,50,11,76,118,209,24,218,61,116,7,250,82,52,132,208,169,128,18,109,59,77,13,34,10],"recip":[10,192,41,240,184,83,178,59,237,101,45,109,13,230,155,124,195,141,148,249,55,50,238,252,133,181,134,30,144,247,58,34],"a":[169,94,23,7,19,184,134,70,233,117,2,84,242,135,246,95,159,14,218,125,209,191,175,89,41,196,182,96,117,5,159,98],"nonce":[114,93,158,35,209,188,96,248,85,131,95,237]}' \
+//!   -H "Accept: application/json" \
+//!   http://127.0.0.1:3001/user/relay_tx
+//! ```
+//!
 //! #### `/user/sign_tx` - POST
 //!
 //! [crate::user::api::sign_tx()]
 //!
-//! Called by a user to submit a transaction to sign (the new way of doing signing). Takes a
-//! [UserSignatureRequest] encrypted in a [SignedMessage](crate::validation::SignedMessage).
+//! Called by a relayer to submit a transaction to sign. Takes a
+//! [RelayerSignatureRequest] encrypted in a [SignedMessage](crate::validation::SignedMessage).
 //!
-//! The response is chunked response stream. If the `UserSignatureRequest` could be processed, a
+//! The response is chunked response stream. If the `RelayerSignatureRequest` could be processed, a
 //! success response header is sent.  Then the signing protocol runs. When the it finishes, a single
 //! message will be sent on the response stream with the result.
 //!
@@ -169,6 +209,7 @@ pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
         .route("/generate_network_key", post(generate_network_key))
         .route("/user/sign_tx", post(sign_tx))
+        .route("/user/relay_tx", post(relay_tx))
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/reshare", post(new_reshare))
         .route("/validator/rotate_network_key", post(rotate_network_key))

@@ -19,6 +19,11 @@ At the moment this project **does not** adhere to
   pallet. The genesis build config was also removed. Additionally, the `new/user/` HTTP endpoint in
   the TSS was removed since it was no longer necessary.
 - In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes `version_number` to maintain backwards compatibility if programs runtime is updated
+- In [#1050](https://github.com/entropyxyz/entropy-core/pull/1050), the flow for signing has changed.
+  A user now sends their request to any validator that is not a signer. This will act as a relayer.
+  As such, `UserSignatureRequest` no longer requires the `validators_info` field since the the
+  relayer adds that in after. The response received from the validator is now a `Vec<Responses>`
+  from the signers.
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -40,6 +45,7 @@ At the moment this project **does not** adhere to
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
+- Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))

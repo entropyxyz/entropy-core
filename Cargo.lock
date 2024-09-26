@@ -2494,6 +2494,7 @@ dependencies = [
  "hex",
  "js-sys",
  "num",
+ "rand",
  "rand_core 0.6.4",
  "reqwest",
  "serde",

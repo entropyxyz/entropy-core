@@ -17,7 +17,7 @@
 pub use entropy_client::Hasher;
 use std::time::Duration;
 
-use entropy_client::user::UserSignatureRequest;
+use entropy_client::user::RelayerSignatureRequest;
 use entropy_protocol::{Listener, RecoverableSignature, SessionId, SigningSessionInfo};
 use entropy_shared::SETUP_TIMEOUT_SECONDS;
 use sp_core::Pair;
@@ -41,7 +41,7 @@ use crate::{
 #[tracing::instrument(skip(app_state), level = tracing::Level::DEBUG)]
 pub async fn do_signing(
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    user_signature_request: UserSignatureRequest,
+    relayer_signature_request: RelayerSignatureRequest,
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
     request_limit: u32,
@@ -52,7 +52,7 @@ pub async fn do_signing(
     let state = &app_state.listener_state;
     let kv_manager = &app_state.kv_store;
 
-    let info = SignInit::new(user_signature_request.clone(), signing_session_info.clone());
+    let info = SignInit::new(relayer_signature_request.clone(), signing_session_info.clone());
     let signing_service = ThresholdSigningService::new(state, kv_manager);
     let (pair_signer, x25519_secret_key) = get_signer_and_x25519_secret(kv_manager)
         .await
@@ -64,7 +64,7 @@ pub async fn do_signing(
     // Set up context for signing protocol execution
     let sign_context = signing_service.get_sign_context(info.clone(), derivation_path).await?;
 
-    let tss_accounts: Vec<AccountId32> = user_signature_request
+    let tss_accounts: Vec<AccountId32> = relayer_signature_request
         .validators_info
         .iter()
         .map(|validator_info| validator_info.tss_account.clone())
@@ -72,7 +72,7 @@ pub async fn do_signing(
 
     // subscribe to all other participating parties. Listener waits for other subscribers.
     let (rx_ready, rx_from_others, listener) =
-        Listener::new(user_signature_request.validators_info, &account_id);
+        Listener::new(relayer_signature_request.validators_info, &account_id);
 
     let session_id = SessionId::Sign(sign_context.sign_init.signing_session_info.clone());
 

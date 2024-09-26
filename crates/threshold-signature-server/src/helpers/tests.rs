@@ -210,14 +210,22 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(index: usize, validator_name: ValidatorName) {
+async fn put_keyshares_in_db(_index: usize, validator_name: ValidatorName) {
     // Eve's keyshares are used as the network parent key
     let user_name = "eve";
+
+    let string_validator_name = match validator_name {
+        ValidatorName::Alice => "alice",
+        ValidatorName::Bob => "bob",
+        ValidatorName::Charlie => "charlie",
+        ValidatorName::Dave => "dave",
+        ValidatorName::Eve => "eve",
+    };
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/{}-keyshare-{}.keyshare",
-            user_name, index
+            "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
+            user_name, string_validator_name
         ));
         std::fs::read(file_path).unwrap()
     };
@@ -278,12 +286,13 @@ pub async fn jump_start_network_with_signer(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) {
+) -> Option<ValidatorName> {
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
 
     let validators_names =
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    let mut non_signer = None;
     let mut keyshare_index = 0;
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name));
@@ -299,8 +308,11 @@ pub async fn jump_start_network_with_signer(
         {
             put_keyshares_in_db(keyshare_index, validator_name).await;
             keyshare_index += 1;
+        } else {
+            non_signer = Some(validator_name);
         }
     }
+    non_signer
 }
 
 /// Helper to store a program and register a user. Returns the verify key and program hash.
