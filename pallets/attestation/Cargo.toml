@@ -21,7 +21,8 @@ sp-staking        ={ version="27.0.0", default-features=false }
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 sp-std            ={ version="14.0.0", default-features=false }
 pallet-session    ={ version="29.0.0", default-features=false, optional=true }
-x509-parser       ={ version="0.16.0", features=["verify"] }
+x509-verify       ={ version="0.4.6", features=["x509"] }
+spki              ="0.7.3"
 
 pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[

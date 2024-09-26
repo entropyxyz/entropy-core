@@ -13,11 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use x509_parser::{
-    certificate::X509Certificate, error::X509Error, prelude::FromDer, public_key::PublicKey,
-    x509::SubjectPublicKeyInfo,
-};
-
 /// Intel's root public key together with metadata, encoded as der
 const INTEL_ROOT_CA_PK_DER: [u8; 91] = [
     48, 89, 48, 19, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 8, 42, 134, 72, 206, 61, 3, 1, 7, 3, 66,
@@ -27,36 +22,69 @@ const INTEL_ROOT_CA_PK_DER: [u8; 91] = [
     4, 174, 115, 148,
 ];
 
-/// Parse a der encoded certificate to an X509Certificate struct
-fn parse_der(input: &[u8]) -> Result<X509Certificate, X509Error> {
-    let (_remaining, cert) = X509Certificate::from_der(input)?;
-    Ok(cert)
+use core::array::TryFromSliceError;
+use sp_std::vec::Vec;
+use spki::{
+    der::{asn1::BitString, Any},
+    SubjectPublicKeyInfo,
+};
+use x509_verify::{
+    der::{Decode, Encode},
+    x509_cert::Certificate,
+    Signature, VerifyInfo, VerifyingKey,
+};
+
+fn verify_cert(subject: &Certificate, issuer_pk: VerifyingKey) -> Result<(), PckParseVerifyError> {
+    let verify_info = VerifyInfo::new(
+        subject.tbs_certificate.to_der().unwrap().into(),
+        Signature::new(&subject.signature_algorithm, subject.signature.as_bytes().unwrap()),
+    );
+
+    issuer_pk.verify(&verify_info)?;
+    Ok(())
 }
 
-/// Given an X509Certificate, get the subject public key, assuming it is ECDSA, and encoded it to
-/// bytes
-fn x509_to_subject_public_key(input: X509Certificate) -> Result<Vec<u8>, X509Error> {
-    let public_key = input.tbs_certificate.subject_pki.parsed()?;
-    match public_key {
-        PublicKey::EC(ec_point) => Ok(ec_point.data().to_vec()),
-        _ => Err(X509Error::Generic),
+pub fn parse_pck_cert_chain(
+    pck: Vec<u8>,
+    pck_provider: Vec<u8>,
+) -> Result<[u8; 65], PckParseVerifyError> {
+    let pck = Certificate::from_der(&pck)?;
+    let provider = Certificate::from_der(&pck_provider)?;
+    let root_pk: SubjectPublicKeyInfo<Any, BitString> =
+        SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER)?;
+    verify_cert(&provider, root_pk.try_into()?)?;
+
+    let provider_verifying_key: VerifyingKey =
+        provider.tbs_certificate.subject_public_key_info.try_into()?;
+    verify_cert(&pck, provider_verifying_key)?;
+
+    let pck_key = pck.tbs_certificate.subject_public_key_info.subject_public_key;
+
+    Ok(pck_key.as_bytes().ok_or(PckParseVerifyError::BadPublicKey)?.try_into()?)
+}
+
+/// An error when parsing a quote
+#[derive(Debug)]
+pub enum PckParseVerifyError {
+    Parse,
+    Verify,
+    BadPublicKey,
+}
+
+impl From<spki::der::Error> for PckParseVerifyError {
+    fn from(_: spki::der::Error) -> PckParseVerifyError {
+        PckParseVerifyError::Parse
     }
 }
 
-/// Validate PCK and provider certificates and if valid return the PCK
-/// These certificates will be provided by a joining validator
-pub fn parse_pck_cert_chain(pck: Vec<u8>, pck_provider: Vec<u8>) -> Result<[u8; 65], X509Error> {
-    // Parse input certificates from der encoding
-    let pck = parse_der(&pck)?;
-    let pck_provider = parse_der(&pck_provider)?;
+impl From<x509_verify::Error> for PckParseVerifyError {
+    fn from(_: x509_verify::Error) -> PckParseVerifyError {
+        PckParseVerifyError::Verify
+    }
+}
 
-    // Check PCK signature matches provider public key
-    pck.verify_signature(Some(pck_provider.public_key()))?;
-
-    // Check provider signature matches root public key
-    let (_, root_public_key) = SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER)?;
-    pck_provider.verify_signature(Some(&root_public_key))?;
-
-    // Return the PCK public key
-    Ok(x509_to_subject_public_key(pck)?.try_into().unwrap())
+impl From<TryFromSliceError> for PckParseVerifyError {
+    fn from(_: TryFromSliceError) -> PckParseVerifyError {
+        PckParseVerifyError::BadPublicKey
+    }
 }
