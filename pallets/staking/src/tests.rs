@@ -24,7 +24,7 @@ use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
 const NULL_ARR: [u8; 32] = [0; 32];
 
-/// Once `valdiate()` is called we need to wait for an attestation to happen before populating
+/// Once `validate()` is called we need to wait for an attestation to happen before populating
 /// certain data structures.
 ///
 /// For our tests we don't always want to go through that flow, so here we manually populate those
