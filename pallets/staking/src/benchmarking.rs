@@ -77,11 +77,8 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info = ServerInfo {
-        tss_account: threshold,
-        x25519_public_key,
-        endpoint: vec![20, 20],
-    };
+    let server_info =
+        ServerInfo { tss_account: threshold, x25519_public_key, endpoint: vec![20, 20] };
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
