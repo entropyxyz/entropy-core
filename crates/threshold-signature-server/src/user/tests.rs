@@ -105,6 +105,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::UserInputPartyInfo;
+use crate::helpers::tests::do_jump_start;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -944,8 +945,6 @@ async fn test_jumpstart_network() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
-
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Integration).await;
 
@@ -955,52 +954,9 @@ async fn test_jumpstart_network() {
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
+    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+
     let client = reqwest::Client::new();
-
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-
-    put_jumpstart_request_on_chain(&api, &rpc, &alice).await;
-
-    run_to_block(&rpc, block_number + 1).await;
-
-    let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
-    let validators_info =
-        query_chain(&api, &rpc, selected_validators_query, None).await.unwrap().unwrap();
-    let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
-    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
-
-    // succeeds
-    let response_results = join_all(
-        vec![3002, 3003, 3004]
-            .iter()
-            .map(|port| {
-                client
-                    .post(format!("http://127.0.0.1:{}/generate_network_key", port))
-                    .body(onchain_user_request.clone().encode())
-                    .send()
-            })
-            .collect::<Vec<_>>(),
-    )
-    .await;
-
-    for response_result in response_results {
-        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    }
-
-    // wait for jump start event check that key exists in kvdb
-    let mut got_jumpstart_event = false;
-    for _ in 0..75 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
-        for _event in jump_start_event.flatten() {
-            got_jumpstart_event = true;
-            break;
-        }
-    }
-    assert!(got_jumpstart_event);
-
     let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
 
     // check to make sure keyshare is correct
@@ -1041,18 +997,6 @@ pub async fn put_register_request_on_chain(
         events.find_first::<entropy::registry::events::AccountRegistered>()?.unwrap();
 
     Ok(registered_event)
-}
-
-pub async fn put_jumpstart_request_on_chain(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    sig_req_keyring: &Sr25519Keyring,
-) {
-    let sig_req_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(sig_req_keyring.pair());
-
-    let registering_tx = entropy::tx().registry().jump_start_network();
-    submit_transaction(api, rpc, &sig_req_account, &registering_tx, None).await.unwrap();
 }
 
 #[tokio::test]
