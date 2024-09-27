@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationQueue, QuoteInputData, KeyProvider};
+    use entropy_shared::{AttestationQueue, KeyProvider, QuoteInputData};
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
