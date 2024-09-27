@@ -368,13 +368,18 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
+            let initial_count = ValidationQueue::<T>::count();
+
             let confirmed_validators = ValidationQueue::<T>::drain_prefix((Status::Confirmed,));
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
                 ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
                 ThresholdServers::<T>::insert(&validator_id, server_info);
             }
 
-            Weight::zero()
+            // We only want to pay for the difference in entries, since that's what we actually
+            // ended up looking through
+            let final_count = ValidationQueue::<T>::count();
+            <T as Config>::WeightInfo::on_initialize(initial_count - final_count)
         }
     }
 
