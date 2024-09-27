@@ -15,16 +15,24 @@
 
 use entropy_shared::{AttestationQueue, QuoteInputData};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::BoundedVec;
 use frame_system::{EventRecord, RawOrigin};
 
 use super::*;
 #[allow(unused)]
 use crate::Pallet as AttestationPallet;
 
-// This is a randomly generated secret p256 ECDSA key
-const ENCLAVE_SIGNING_KEY: [u8; 32] = [
+/// This is a randomly generated secret p256 ECDSA key - for mocking attestation
+const ATTESTATION_KEY: [u8; 32] = [
     167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
     27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+];
+
+/// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+/// key
+const PCK: [u8; 32] = [
+    117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
+    168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
 ];
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
@@ -40,7 +48,9 @@ benchmarks! {
     let attestee: T::AccountId = whitelisted_caller();
     let nonce = [0; 32];
 
-    let signing_key = tdx_quote::SigningKey::from_bytes(&ENCLAVE_SIGNING_KEY.into()).unwrap();
+    let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
 
     let input_data = QuoteInputData::new(
         &attestee, // TSS Account ID
@@ -48,7 +58,7 @@ benchmarks! {
         nonce,
         1, // Block number
     );
-    let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0).as_bytes().to_vec();
+    let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec();
 
     // Insert a pending attestation so that this quote is expected
     <PendingAttestations<T>>::insert(attestee.clone(), nonce);
@@ -62,6 +72,13 @@ benchmarks! {
         [0; 32],
         b"http://localhost:3001".to_vec()
     );
+    // <ThresholdToStash<T>>::insert(attestee.clone(), stash_account.clone());
+    // <ThresholdServers<T>>::insert(stash_account.clone(), ServerInfo {
+    //     tss_account: attestee.clone(),
+    //     x25519_public_key: [0; 32],
+    //     endpoint: b"http://localhost:3001".to_vec(),
+    //     provisioning_certification_key: pck_encoded.to_vec().try_into().unwrap(),
+    // });
 
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
   verify {

@@ -35,7 +35,7 @@
 use core::convert::TryInto;
 
 pub use pallet::*;
-use pallet_staking::ValidatorPrefs;
+use pallet_staking::{MaxNominationsOf, ValidatorPrefs};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -118,6 +118,7 @@ pub mod pallet {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
+        pub provisioning_certification_key: VerifyingKey,
     }
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
@@ -266,7 +267,7 @@ pub mod pallet {
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
         <T as pallet_session::Config>::ValidatorId,
-        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL),
+        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL, VerifyingKey),
     );
 
     #[pallet::genesis_config]
@@ -293,6 +294,7 @@ pub mod pallet {
                     tss_account: server_info_tuple.0.clone(),
                     x25519_public_key: server_info_tuple.1,
                     endpoint: server_info_tuple.2.clone(),
+                    provisioning_certification_key: server_info_tuple.3.clone(),
                 };
 
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
@@ -334,6 +336,10 @@ pub mod pallet {
         ReshareNotInProgress,
         AlreadyConfirmed,
         TooManyPendingAttestations,
+        NoUnbondingWhenSigner,
+        NoUnbondingWhenNextSigner,
+        NoUnnominatingWhenSigner,
+        NoUnnominatingWhenNextSigner,
     }
 
     #[pallet::event]
@@ -447,9 +453,46 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Wraps's substrate withdraw unbonded but clears extra state if fully unbonded
+        /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
         #[pallet::call_index(2)]
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get()))]
+        pub fn unbond(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let controller = ensure_signed(origin.clone())?;
+            let ledger =
+                pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+
+            let (signers_length, nominators_length) =
+                Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
+
+            pallet_staking::Pallet::<T>::unbond(origin, value)?;
+
+            Ok(Some(<T as Config>::WeightInfo::unbond(signers_length, nominators_length)).into())
+        }
+
+        /// Wraps's Substrate's `chill` extrinsic but checks to make sure the targeted account is not a signer or next signer
+        #[pallet::call_index(3)]
+        #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get()))]
+        pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            let controller = ensure_signed(origin.clone())?;
+            let ledger =
+                pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
+                    .map_err(|_| Error::<T>::NoThresholdKey)?;
+
+            let (signers_length, nominators_length) =
+                Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
+
+            pallet_staking::Pallet::<T>::chill(origin)?;
+
+            Ok(Some(<T as Config>::WeightInfo::chill(signers_length, nominators_length)).into())
+        }
+
+        /// Wraps's Substrate's `withdraw_unbonded` extrinsic but clears extra state if fully unbonded
+        #[pallet::call_index(4)]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get()))]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
             num_slashing_spans: u32,
@@ -459,8 +502,12 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NoThresholdKey)?;
 
-            let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash)
-                .or(Err(Error::<T>::InvalidValidatorId))?;
+            let validator_id =
+                <T as pallet_session::Config>::ValidatorId::try_from(ledger.stash.clone())
+                    .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            let (signers_length, nominators_length) =
+                Self::ensure_not_signer_or_next_signer_or_nominating(&ledger.stash)?;
 
             pallet_staking::Pallet::<T>::withdraw_unbonded(origin, num_slashing_spans)?;
             // TODO: do not allow unbonding of validator if not enough validators https://github.com/entropyxyz/entropy-core/issues/942
@@ -471,7 +518,11 @@ pub mod pallet {
                 IsValidatorSynced::<T>::remove(&validator_id);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
-            Ok(().into())
+            Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(
+                signers_length,
+                nominators_length,
+            ))
+            .into())
         }
 
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
@@ -479,7 +530,7 @@ pub mod pallet {
         ///
         /// Note that - just like the original `validate()` extrinsic - the effects of this are
         /// only applied in the following era.
-        #[pallet::call_index(3)]
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::validate())]
         pub fn validate(
             origin: OriginFor<T>,
@@ -523,7 +574,7 @@ pub mod pallet {
 
         /// Let a validator declare if their kvdb is synced or not synced
         /// `synced`: State of validator's kvdb
-        #[pallet::call_index(4)]
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
         pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
@@ -533,7 +584,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(5)]
+        #[pallet::call_index(7)]
         #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
@@ -581,6 +632,47 @@ pub mod pallet {
                 pallet_staking::Pallet::<T>::ledger(StakingAccount::Controller(controller.clone()))
                     .map_err(|_| Error::<T>::NotController)?;
             Ok(ledger.stash)
+        }
+
+        /// Ensures that the current validator is not a signer or a next signer
+        pub fn ensure_not_signer_or_next_signer_or_nominating(
+            stash: &T::AccountId,
+        ) -> Result<(u32, u32), DispatchError> {
+            let nominations = pallet_staking::Nominators::<T>::get(stash)
+                .map_or_else(Vec::new, |x| x.targets.into_inner());
+
+            let signers = Self::signers();
+
+            // Check if the validator_id or any nominated validator is in signers
+            let in_signers = |id: &T::AccountId| {
+                let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(id.clone());
+                match validator_id {
+                    Ok(v_id) => signers.contains(&v_id),
+                    Err(_) => false,
+                }
+            };
+
+            ensure!(!in_signers(stash), Error::<T>::NoUnbondingWhenSigner);
+            ensure!(!nominations.iter().any(in_signers), Error::<T>::NoUnnominatingWhenSigner);
+
+            if let Some(next_signers) = Self::next_signers() {
+                let next_signers_contains = |id: &T::AccountId| {
+                    let validator_id =
+                        <T as pallet_session::Config>::ValidatorId::try_from(id.clone());
+                    match validator_id {
+                        Ok(v_id) => next_signers.next_signers.contains(&v_id),
+                        Err(_) => false,
+                    }
+                };
+
+                ensure!(!next_signers_contains(stash), Error::<T>::NoUnbondingWhenNextSigner);
+                ensure!(
+                    !nominations.iter().any(next_signers_contains),
+                    Error::<T>::NoUnnominatingWhenNextSigner
+                );
+            }
+
+            Ok((signers.len() as u32, nominations.len() as u32))
         }
 
         pub fn get_randomness() -> ChaCha20Rng {

@@ -22,6 +22,7 @@ use frame_support::{assert_noop, assert_ok};
 use frame_system::{EventRecord, Phase};
 use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
+use sp_runtime::BoundedVec;
 const NULL_ARR: [u8; 32] = [0; 32];
 
 /// Once `validate()` is called we need to wait for an attestation to happen before populating
@@ -39,11 +40,21 @@ fn basic_setup_works() {
     new_test_ext().execute_with(|| {
         assert_eq!(
             Staking::threshold_server(5).unwrap(),
-            ServerInfo { tss_account: 7, x25519_public_key: NULL_ARR, endpoint: vec![20] }
+            ServerInfo {
+                tss_account: 7,
+                x25519_public_key: NULL_ARR,
+                endpoint: vec![20],
+                provisioning_certification_key: BoundedVec::with_max_capacity()
+            }
         );
         assert_eq!(
             Staking::threshold_server(6).unwrap(),
-            ServerInfo { tss_account: 8, x25519_public_key: NULL_ARR, endpoint: vec![40] }
+            ServerInfo {
+                tss_account: 8,
+                x25519_public_key: NULL_ARR,
+                endpoint: vec![40],
+                provisioning_certification_key: BoundedVec::with_max_capacity()
+            }
         );
         assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
@@ -61,8 +72,12 @@ fn it_takes_in_an_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -80,6 +95,7 @@ fn it_takes_in_an_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20, 20, 20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
         assert_noop!(
             Staking::validate(
@@ -90,8 +106,12 @@ fn it_takes_in_an_endpoint() {
             Error::<Test>::EndpointTooLong
         );
 
-        let server_info =
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20, 20] };
+        let server_info = ServerInfo {
+            tss_account: 5,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20, 20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
@@ -112,8 +132,12 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -148,8 +172,12 @@ fn it_changes_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -177,8 +205,12 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -203,8 +235,12 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 5,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -229,8 +265,12 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -244,8 +284,12 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 5,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -263,7 +307,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
 #[test]
 fn it_deletes_when_no_bond_left() {
     new_test_ext().execute_with(|| {
-        Signers::<Test>::put(vec![5, 6]);
+        Signers::<Test>::put(vec![5, 6, 7]);
         start_active_era(1);
 
         assert_ok!(FrameStaking::bond(
@@ -272,8 +316,12 @@ fn it_deletes_when_no_bond_left() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -336,6 +384,49 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(Staking::threshold_to_stash(3), None);
         // validator no longer synced
         assert_eq!(Staking::is_validator_synced(2), false);
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(7),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(7), 0),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
+
+        // test nominating flow
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(9),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![7]));
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(9), 0),
+            Error::<Test>::NoUnnominatingWhenSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(8),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        NextSigners::<Test>::put(NextSignerInfo { next_signers: vec![8], confirmations: vec![] });
+
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(8), 0),
+            Error::<Test>::NoUnbondingWhenNextSigner
+        );
+
+        // test nominating flow
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![8]));
+        assert_noop!(
+            Staking::withdraw_unbonded(RuntimeOrigin::signed(9), 0),
+            Error::<Test>::NoUnnominatingWhenNextSigner
+        );
     });
 }
 
@@ -562,7 +653,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
         assert!(Staking::threshold_to_stash(bob).is_some());
 
         // TODO: Verify events, verify storage values are correct
-    });
+        }
 }
 
 #[test]
@@ -610,4 +701,104 @@ fn it_does_not_allow_validation_queue_to_grow_too_much() {
             Error::<Test>::TooManyPendingAttestations
         );
     })
+}
+
+#[test]
+fn it_stops_unbonded_when_signer_or_next_signer() {
+    new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![7]);
+        start_active_era(1);
+
+        // test nominating flow
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(9),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![7]));
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(9), 100u64),
+            Error::<Test>::NoUnnominatingWhenSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(7),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(7), 0),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(8),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        NextSigners::<Test>::put(NextSignerInfo { next_signers: vec![8], confirmations: vec![] });
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(8), 0),
+            Error::<Test>::NoUnbondingWhenNextSigner
+        );
+
+        // test nominating flow
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![8]));
+        assert_noop!(
+            Staking::unbond(RuntimeOrigin::signed(9), 100u64),
+            Error::<Test>::NoUnnominatingWhenNextSigner
+        );
+    });
+}
+
+#[test]
+fn it_stops_chill_when_signer_or_next_signer() {
+    new_test_ext().execute_with(|| {
+        Signers::<Test>::put(vec![7]);
+        start_active_era(1);
+
+        // test nominating flow
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(9),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![7]));
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(9)),
+            Error::<Test>::NoUnnominatingWhenSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(7),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(7)),
+            Error::<Test>::NoUnbondingWhenSigner
+        );
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(8),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        NextSigners::<Test>::put(NextSignerInfo { next_signers: vec![8], confirmations: vec![] });
+
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(8)),
+            Error::<Test>::NoUnbondingWhenNextSigner
+        );
+        // test nominating flow
+        assert_ok!(FrameStaking::nominate(RuntimeOrigin::signed(9), vec![8]));
+        assert_noop!(
+            Staking::chill(RuntimeOrigin::signed(9)),
+            Error::<Test>::NoUnnominatingWhenNextSigner
+        );
+    });
 }

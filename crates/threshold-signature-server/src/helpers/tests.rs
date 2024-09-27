@@ -34,18 +34,22 @@ use crate::{
         substrate::submit_transaction,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
+    r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
+use entropy_client::substrate::query_chain;
 use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
-use entropy_shared::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
+use entropy_shared::{OcwMessageDkg, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
+use futures::future::join_all;
+use parity_scale_codec::Encode;
 use std::time::Duration;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
+    backend::legacy::LegacyRpcMethods, events::EventsClient, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
@@ -121,7 +125,7 @@ pub async fn create_clients(
 }
 
 /// A way to specify which chainspec to use in testing
-#[derive(Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum ChainSpecType {
     /// The development chainspec, which has 3 TSS nodes
     Development,
@@ -132,7 +136,6 @@ pub enum ChainSpecType {
 /// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
 /// desired
 pub async fn spawn_testing_validators(
-    add_parent_key: bool,
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
     let add_fourth_server = chain_spec_type == ChainSpecType::Integration;
@@ -164,11 +167,6 @@ pub async fn spawn_testing_validators(
     ));
 
     let mut ids = vec![alice_id, bob_id, charlie_id];
-
-    put_keyshares_in_db("alice", alice_kv, add_parent_key).await;
-    put_keyshares_in_db("bob", bob_kv, add_parent_key).await;
-    put_keyshares_in_db("charlie", charlie_kv, add_parent_key).await;
-    // Don't give dave keyshares as dave is not initially in the signing committee
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -215,25 +213,38 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(holder_name: &str, kvdb: KvManager, add_parent_key: bool) {
-    let mut user_names_and_verifying_keys =
-        vec![("eve", hex::encode(EVE_VERIFYING_KEY)), ("dave", hex::encode(DAVE_VERIFYING_KEY))];
-    if add_parent_key {
-        user_names_and_verifying_keys.push(("eve", hex::encode(NETWORK_PARENT_KEY)))
-    }
-    for (user_name, user_verifying_key) in user_names_and_verifying_keys {
-        let keyshare_bytes = {
-            let project_root =
-                project_root::get_project_root().expect("Error obtaining project root.");
-            let file_path = project_root.join(format!(
-                "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
-                user_name, holder_name
-            ));
-            std::fs::read(file_path).unwrap()
-        };
-        let reservation = kvdb.kv().reserve_key(user_verifying_key).await.unwrap();
-        kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
-    }
+async fn put_keyshares_in_db(_index: usize, validator_name: ValidatorName) {
+    // Eve's keyshares are used as the network parent key
+    let user_name = "eve";
+
+    let string_validator_name = match validator_name {
+        ValidatorName::Alice => "alice",
+        ValidatorName::Bob => "bob",
+        ValidatorName::Charlie => "charlie",
+        ValidatorName::Dave => "dave",
+        ValidatorName::Eve => "eve",
+    };
+    let keyshare_bytes = {
+        let project_root = project_root::get_project_root().expect("Error obtaining project root.");
+        let file_path = project_root.join(format!(
+            "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
+            user_name, string_validator_name
+        ));
+        std::fs::read(file_path).unwrap()
+    };
+
+    let unsafe_put = UnsafeQuery { key: hex::encode(NETWORK_PARENT_KEY), value: keyshare_bytes };
+    let unsafe_put = serde_json::to_string(&unsafe_put).unwrap();
+
+    let port = 3001 + (validator_name as usize);
+    let http_client = reqwest::Client::new();
+    http_client
+        .post(format!("http://127.0.0.1:{port}/unsafe/put"))
+        .header("Content-Type", "application/json")
+        .body(unsafe_put.clone())
+        .send()
+        .await
+        .unwrap();
 }
 
 /// Removes the program at the program hash
@@ -278,12 +289,14 @@ pub async fn jump_start_network_with_signer(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) {
+) -> Option<ValidatorName> {
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
 
     let validators_names =
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
+    let mut non_signer = None;
+    let mut keyshare_index = 0;
     for validator_name in validators_names {
         let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
@@ -292,9 +305,17 @@ pub async fn jump_start_network_with_signer(
             entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
 
         // Ignore the error as one confirmation will fail
-        let _result =
-            submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None).await;
+        if submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None)
+            .await
+            .is_ok()
+        {
+            put_keyshares_in_db(keyshare_index, validator_name).await;
+            keyshare_index += 1;
+        } else {
+            non_signer = Some(validator_name);
+        }
     }
+    non_signer
 }
 
 /// Helper to store a program and register a user. Returns the verify key and program hash.
@@ -336,4 +357,65 @@ pub async fn store_program_and_register(
     .unwrap();
 
     (verifying_key, program_hash)
+}
+
+/// Do a network jumpstart DKG
+pub async fn do_jump_start(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    pair: sr25519::Pair,
+) {
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    put_jumpstart_request_on_chain(api, rpc, pair).await;
+
+    run_to_block(rpc, block_number + 1).await;
+
+    let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
+    let validators_info =
+        query_chain(api, rpc, selected_validators_query, None).await.unwrap().unwrap();
+    let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
+    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
+
+    let client = reqwest::Client::new();
+    let response_results = join_all(
+        [3002, 3003, 3004]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/generate_network_key", port))
+                    .body(onchain_user_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
+
+    // Wait for jump start event
+    let mut got_jumpstart_event = false;
+    for _ in 0..75 {
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
+        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
+        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
+        if let Some(_event) = jump_start_event.flatten().next() {
+            got_jumpstart_event = true;
+            break;
+        };
+    }
+    assert!(got_jumpstart_event);
+}
+
+/// Submit a jumpstart extrinsic
+async fn put_jumpstart_request_on_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    pair: sr25519::Pair,
+) {
+    let account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(pair);
+
+    let registering_tx = entropy::tx().registry().jump_start_network();
+    submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
 }

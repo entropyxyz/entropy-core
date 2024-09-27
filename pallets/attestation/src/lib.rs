@@ -51,7 +51,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
-    use tdx_quote::Quote;
+    use tdx_quote::{decode_verifying_key, Quote};
 
     pub use crate::weights::WeightInfo;
 
@@ -125,6 +125,10 @@ pub mod pallet {
         NoX25519KeyForAccount,
         /// Unacceptable VM image running
         BadMrtdValue,
+        /// Cannot decode verifying key (PCK)
+        CannotDecodeVerifyingKey,
+        /// Could not verify PCK signature
+        PckVerification,
     }
 
     #[pallet::call]
@@ -144,12 +148,20 @@ pub mod pallet {
             let nonce =
                 PendingAttestations::<T>::get(&who).ok_or(Error::<T>::UnexpectedAttestation)?;
 
-            // Parse the quote (which internally verifies the signature)
+            // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
             // Get associated x25519 public key from staking pallet
             let x25519_public_key =
                 T::KeyProvider::x25519_public_key(&who).ok_or(Error::<T>::NoX25519KeyForAccount)?;
+
+            // Get associated server info from staking pallet
+            // let server_info = {
+            //     let stash_account = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
+            //         .ok_or(Error::<T>::NoStashAccount)?;
+            //     pallet_staking_extension::Pallet::<T>::threshold_server(&stash_account)
+            //         .ok_or(Error::<T>::NoServerInfo)?
+            // };
 
             // Get current block number
             let block_number: u32 = {
@@ -159,7 +171,7 @@ pub mod pallet {
 
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
-                QuoteInputData::new(&who, x25519_public_key, nonce, block_number);
+                QuoteInputData::new(&who, server_info.x25519_public_key, nonce, block_number);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
                 Error::<T>::IncorrectInputData
@@ -171,8 +183,18 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
-            // TODO #982 Check that the attestation public key matches that from PCK certificate
-            let _attestation_key = quote.attestation_key;
+            // Check that the attestation public key is signed with the PCK
+            let provisioning_certification_key = decode_verifying_key(
+                &server_info
+                    .provisioning_certification_key
+                    .to_vec()
+                    .try_into()
+                    .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
+            )
+            .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
+            quote
+                .verify_with_pck(provisioning_certification_key)
+                .map_err(|_| Error::<T>::PckVerification)?;
 
             PendingAttestations::<T>::remove(&who);
             T::AttestationQueue::confirm_attestation(&who);
