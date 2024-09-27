@@ -15,27 +15,39 @@
 
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
+use super::*;
+#[allow(unused_imports)]
+use crate::Pallet as Staking;
 use entropy_shared::MAX_SIGNERS;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
     sp_runtime::traits::StaticLookup,
-    traits::{Currency, Get},
+    traits::{Currency, Defensive, Get},
     BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
-use pallet_staking::{Pallet as FrameStaking, RewardDestination, ValidatorPrefs};
+use pallet_staking::{
+    Event as FrameStakingEvent, MaxNominationsOf, Nominations, Pallet as FrameStaking,
+    RewardDestination, ValidatorPrefs,
+};
 use sp_std::{vec, vec::Vec};
-
-use super::*;
-#[allow(unused_imports)]
-use crate::Pallet as Staking;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
+}
+
+fn assert_last_event_frame_staking<T: Config>(
+    generic_event: <T as pallet_staking::Config>::RuntimeEvent,
+) {
     let events = frame_system::Pallet::<T>::events();
     let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
     // compare to the last event record
@@ -130,13 +142,50 @@ benchmarks! {
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
 
+  unbond {
+    let s in 0 .. MAX_SIGNERS as u32;
+    let n in 0 .. MaxNominationsOf::<T>::get();
 
-  withdraw_unbonded {
     let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
+    let signers = vec![validator_id_res.clone(); s as usize];
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![],
+    });
+
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
+
+    let targets = BoundedVec::try_from(vec![threshold.clone(); n as usize]).unwrap();
+    let nominations = Nominations { targets, submitted_in: 0, suppressed: false };
+    pallet_staking::Nominators::<T>::insert(bonder.clone(), nominations);
+  }:  _(RawOrigin::Signed(bonder.clone()), 10u32.into())
+  verify {
+    assert_last_event_frame_staking::<T>(FrameStakingEvent::Unbonded{ stash: bonder, amount: 10u32.into() }.into() );
+
+  }
+
+  chill {
+    let c in 0 .. MAX_SIGNERS as u32;
+    let n in 0 .. MaxNominationsOf::<T>::get();
+
+    let caller: T::AccountId = whitelisted_caller();
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+    let bonder: T::AccountId = account("bond", 0, SEED);
+    let threshold: T::AccountId = account("threshold", 0, SEED);
+
+    let signers = vec![validator_id_res.clone(); c as usize];
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![],
+    });
+
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
     let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
 
     // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
@@ -145,6 +194,47 @@ benchmarks! {
       bond,
     ));
 
+    let targets = BoundedVec::try_from(vec![threshold.clone(); n as usize]).unwrap();
+    let nominations = Nominations { targets, submitted_in: 0, suppressed: false };
+    pallet_staking::Nominators::<T>::insert(bonder.clone(), nominations);
+
+    let _ = pallet_staking::Validators::<T>::clear(100, None);
+
+  }:  _(RawOrigin::Signed(bonder.clone()))
+  verify {
+    assert_last_event_frame_staking::<T>(FrameStakingEvent::Chilled{ stash: bonder }.into() );
+
+  }
+
+
+  withdraw_unbonded {
+    let c in 0 .. MAX_SIGNERS as u32;
+    let n in 0 .. MaxNominationsOf::<T>::get();
+
+    let caller: T::AccountId = whitelisted_caller();
+    let bonder: T::AccountId = account("bond", 0, SEED);
+    let threshold: T::AccountId = account("threshold", 0, SEED);
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
+
+    let signers = vec![validator_id_res.clone(); c as usize];
+    Signers::<T>::put(signers.clone());
+    NextSigners::<T>::put(NextSignerInfo {
+      next_signers: signers,
+      confirmations: vec![],
+    });
+
+    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
+    let bond = <T as pallet_staking::Config>::Currency::minimum_balance() * 10u32.into();
+
+    // assume fully unbonded as slightly more weight, but not enough to handle partial unbond
+    assert_ok!(<FrameStaking<T>>::unbond(
+      RawOrigin::Signed(bonder.clone()).into(),
+      bond,
+    ));
+
+    let targets = BoundedVec::try_from(vec![threshold.clone(); n as usize]).unwrap();
+    let nominations = Nominations { targets, submitted_in: 0, suppressed: false };
+    pallet_staking::Nominators::<T>::insert(bonder.clone(), nominations);
 
   }:  _(RawOrigin::Signed(bonder.clone()), 0u32)
   verify {
