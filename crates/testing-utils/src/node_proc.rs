@@ -45,11 +45,17 @@ where
     R: Config,
 {
     /// Construct a builder for spawning a test node process.
-    pub fn build<S>(program: S, chain_type: String, force_authoring: bool, bootnode: Option<String>) -> TestNodeProcessBuilder
+    pub fn build<S>(
+        program: S,
+        chain_type: String,
+        force_authoring: bool,
+        bootnode: Option<String>,
+        threshold_url: Option<String>,
+    ) -> TestNodeProcessBuilder
     where
         S: AsRef<OsStr> + Clone,
     {
-        TestNodeProcessBuilder::new(program, chain_type, force_authoring, bootnode)
+        TestNodeProcessBuilder::new(program, chain_type, force_authoring, bootnode, threshold_url)
     }
 
     /// Attempt to kill the running substrate process.
@@ -76,11 +82,18 @@ pub struct TestNodeProcessBuilder {
     scan_port_range: bool,
     chain_type: String,
     force_authoring: bool,
-    bootnode: Option<String>
+    bootnode: Option<String>,
+    tss_server_endpoint: Option<String>,
 }
 
 impl TestNodeProcessBuilder {
-    pub fn new<P>(node_path: P, chain_type: String, force_authoring: bool, bootnode: Option<String>) -> TestNodeProcessBuilder
+    pub fn new<P>(
+        node_path: P,
+        chain_type: String,
+        force_authoring: bool,
+        bootnode: Option<String>,
+        tss_server_endpoint: Option<String>,
+    ) -> TestNodeProcessBuilder
     where
         P: AsRef<OsStr>,
     {
@@ -90,7 +103,8 @@ impl TestNodeProcessBuilder {
             scan_port_range: false,
             chain_type,
             force_authoring,
-            bootnode
+            bootnode,
+            tss_server_endpoint,
         }
     }
 
@@ -129,6 +143,10 @@ impl TestNodeProcessBuilder {
             cmd.arg(arg);
         }
 
+        if let Some(tss_server_endpoint) = &self.tss_server_endpoint {
+            let arg = format!("--tss-server-endpoint={}", tss_server_endpoint.as_str());
+            cmd.arg(arg);
+        }
 
         let ws_port = if self.scan_port_range {
             let (p2p_port, _http_port, ws_port) = next_open_port()

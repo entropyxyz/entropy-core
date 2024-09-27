@@ -18,8 +18,6 @@ use subxt::{config::substrate::SubstrateExtrinsicParams, OnlineClient};
 
 use super::node_proc::TestNodeProcess;
 use crate::chain_api::*;
-use std::time::{Duration, self};
-use std::thread;
 /// Verifies that the Entropy node binary exists.
 ///
 /// If a path is provided using the `ENTROPY_NODE` environment variable, that will take priority.
@@ -63,16 +61,23 @@ pub async fn test_node_process_with(
     key: AccountKeyring,
     chain_type: String,
     force_authoring: bool,
-    bootnode: Option<String>
+    bootnode: Option<String>,
+    tss_server_endpoint: Option<String>,
 ) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
     let path = path.to_str().expect("Path should've been checked to be valid earlier.");
 
-    let proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring, bootnode)
-        .with_authority(key)
-        .scan_for_open_ports()
-        .spawn::<EntropyConfig>()
-        .await;
+    let proc = TestNodeProcess::<EntropyConfig>::build(
+        path,
+        chain_type,
+        force_authoring,
+        bootnode,
+        tss_server_endpoint,
+    )
+    .with_authority(key)
+    .scan_for_open_ports()
+    .spawn::<EntropyConfig>()
+    .await;
     proc.unwrap()
 }
 
@@ -80,20 +85,21 @@ pub async fn test_node(
     key: AccountKeyring,
     chain_type: String,
     force_authoring: bool,
-    bootnode: Option<String>
+    bootnode: Option<String>,
 ) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
     let path = path.to_str().expect("Path should've been checked to be valid earlier.");
 
-    let proc = TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring, bootnode)
-        .with_authority(key)
-        .spawn::<EntropyConfig>()
-        .await;
+    let proc =
+        TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring, bootnode, None)
+            .with_authority(key)
+            .spawn::<EntropyConfig>()
+            .await;
     proc.unwrap()
 }
 
 pub async fn test_node_process() -> TestNodeProcess<EntropyConfig> {
-    test_node_process_with(AccountKeyring::Alice, "--dev".to_string(), false, None).await
+    test_node_process_with(AccountKeyring::Alice, "--dev".to_string(), false, None, None).await
 }
 
 pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
@@ -106,12 +112,43 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
 pub async fn test_node_process_testing_state(
     force_authoring: bool,
 ) -> Vec<TestNodeProcess<EntropyConfig>> {
-    let alice_bootnode = Some("/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38".to_string());
-    let result = test_node(AccountKeyring::Alice, "--chain=integration-tests".to_string(), force_authoring, None).await;
-    thread::sleep(time::Duration::from_secs(5));
-    let result_bob = test_node_process_with(AccountKeyring::Bob, "--chain=integration-tests".to_string(), force_authoring, alice_bootnode.clone()).await;
-    let result_charlie = test_node_process_with(AccountKeyring::Charlie, "--chain=integration-tests".to_string(), force_authoring, alice_bootnode.clone()).await;
-    let result_dave = test_node_process_with(AccountKeyring::Dave, "--chain=integration-tests".to_string(), force_authoring, alice_bootnode.clone()).await;
+    let alice_bootnode = Some(
+        "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38"
+            .to_string(),
+    );
+    // reduses message from chain to same TSS cleaning up a lot of logging
+    let fuck_off_tss_ip = Some("127.0.0.1:4010".to_string());
+    let result = test_node(
+        AccountKeyring::Alice,
+        "--chain=integration-tests".to_string(),
+        force_authoring,
+        None,
+    )
+    .await;
+    let result_bob = test_node_process_with(
+        AccountKeyring::Bob,
+        "--chain=integration-tests".to_string(),
+        force_authoring,
+        alice_bootnode.clone(),
+        fuck_off_tss_ip.clone(),
+    )
+    .await;
+    let result_charlie = test_node_process_with(
+        AccountKeyring::Charlie,
+        "--chain=integration-tests".to_string(),
+        force_authoring,
+        alice_bootnode.clone(),
+        fuck_off_tss_ip.clone(),
+    )
+    .await;
+    let result_dave = test_node_process_with(
+        AccountKeyring::Dave,
+        "--chain=integration-tests".to_string(),
+        force_authoring,
+        alice_bootnode.clone(),
+        fuck_off_tss_ip.clone(),
+    )
+    .await;
 
     vec![result, result_bob, result_charlie, result_dave]
 }
