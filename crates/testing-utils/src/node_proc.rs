@@ -45,11 +45,11 @@ where
     R: Config,
 {
     /// Construct a builder for spawning a test node process.
-    pub fn build<S>(program: S, chain_type: String, force_authoring: bool) -> TestNodeProcessBuilder
+    pub fn build<S>(program: S, chain_type: String, force_authoring: bool, bootnode: Option<String>) -> TestNodeProcessBuilder
     where
         S: AsRef<OsStr> + Clone,
     {
-        TestNodeProcessBuilder::new(program, chain_type, force_authoring)
+        TestNodeProcessBuilder::new(program, chain_type, force_authoring, bootnode)
     }
 
     /// Attempt to kill the running substrate process.
@@ -76,10 +76,11 @@ pub struct TestNodeProcessBuilder {
     scan_port_range: bool,
     chain_type: String,
     force_authoring: bool,
+    bootnode: Option<String>
 }
 
 impl TestNodeProcessBuilder {
-    pub fn new<P>(node_path: P, chain_type: String, force_authoring: bool) -> TestNodeProcessBuilder
+    pub fn new<P>(node_path: P, chain_type: String, force_authoring: bool, bootnode: Option<String>) -> TestNodeProcessBuilder
     where
         P: AsRef<OsStr>,
     {
@@ -89,6 +90,7 @@ impl TestNodeProcessBuilder {
             scan_port_range: false,
             chain_type,
             force_authoring,
+            bootnode
         }
     }
 
@@ -122,10 +124,15 @@ impl TestNodeProcessBuilder {
             cmd.arg(arg);
         }
 
+        if let Some(bootnode) = &self.bootnode {
+            let arg = format!("--bootnodes={}", bootnode.as_str());
+            cmd.arg(arg);
+        }
+
+
         let ws_port = if self.scan_port_range {
             let (p2p_port, _http_port, ws_port) = next_open_port()
                 .ok_or_else(|| "No available ports in the given port range".to_owned())?;
-
             cmd.arg(format!("--port={p2p_port}"));
             cmd.arg(format!("--rpc-port={ws_port}"));
             tracing::info!("ws port: {ws_port}");
