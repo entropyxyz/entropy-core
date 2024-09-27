@@ -601,10 +601,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
             tss_account: bob,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::try_from(
-                pck_encoded.to_vec(),
-            )
-            .unwrap(),
+            provisioning_certification_key: BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
         };
 
         // Our call to `validate` should succeed, adding Bob into the validation queue. Bob should

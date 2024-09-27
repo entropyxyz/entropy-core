@@ -404,6 +404,15 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let threshold_account_id: T::AccountId = account("threshold", 0, SEED);
 
+        /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+        /// key
+        const PCK: [u8; 32] = [
+            117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
+            207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
+        ];
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+
     let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller)
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
@@ -414,6 +423,10 @@ benchmarks! {
             tss_account: threshold_account_id.clone(),
             x25519_public_key: NULL_ARR,
             endpoint: vec![0],
+            provisioning_certification_key: BoundedVec::try_from(
+                pck_encoded.to_vec(),
+            )
+            .unwrap(),
         };
 
         ValidationQueue::<T>::insert(
