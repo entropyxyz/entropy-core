@@ -662,10 +662,11 @@ fn it_requires_attestation_before_validate_is_succesful() {
         run_to_block(current_block);
 
         assert!(Staking::validation_queue((crate::Status::Confirmed, bob)).is_none());
-        assert!(Staking::threshold_server(alice).is_some());
-        assert!(Staking::threshold_to_stash(bob).is_some());
-
-        // TODO: Verify events, verify storage values are correct
+        assert_eq!(Staking::threshold_to_stash(bob), Some(alice));
+        assert_eq!(
+            Staking::threshold_server(alice),
+            Some(server_info)
+        );
     })
 }
 
