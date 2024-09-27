@@ -748,6 +748,22 @@ pub mod pallet {
 
             Ok(weight)
         }
+
+        fn get_server_info(account_id: &T::AccountId) -> Option<ServerInfo<T::AccountId>> {
+            // Here we do something a admittedly a little confusing, but simply we check:
+            // - if any potential validators have a server info (`ValidationQueue`)
+            // - if any accepted validator candidates (but not necessarily validators) have server
+            //   info
+            // - if any validators have server info
+            ValidationQueue::<T>::get((Status::Pending, account_id))
+                .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
+                .map(|(_v, s)| s)
+                .or_else(|| {
+                    let stash_account = Self::threshold_to_stash(account_id)?;
+                    let server_info = Self::threshold_server(&stash_account)?;
+                    Some(server_info)
+                })
+        }
     }
 
     pub struct SessionManager<I, T: Config>(
@@ -799,32 +815,13 @@ pub mod pallet {
 
     impl<T: Config> entropy_shared::X25519KeyProvider<T::AccountId> for Pallet<T> {
         fn x25519_public_key(account_id: &T::AccountId) -> Option<entropy_shared::X25519PublicKey> {
-            // Here we do something a admittedly a little confusing, but simply we check:
-            // - if any potential validators have a key (`ValidationQueue`)
-            // - if any accepted validator candidates (but not necessarily validators) have a key
-            // - if any validators have a key
-            ValidationQueue::<T>::get((Status::Pending, account_id))
-                .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
-                .map(|(_v, s)| s.x25519_public_key)
-                .or_else(|| {
-                    let stash_account = Self::threshold_to_stash(account_id)?;
-                    let server_info = Self::threshold_server(&stash_account)?;
-                    Some(server_info.x25519_public_key)
-                })
+            Self::get_server_info(account_id).map(|s| s.x25519_public_key)
         }
 
         fn provisioning_key(
             account_id: &T::AccountId,
         ) -> Option<entropy_shared::EncodedVerifyingKey> {
-            let key = ValidationQueue::<T>::get((Status::Pending, account_id))
-                .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
-                .map(|(_v, s)| s.provisioning_certification_key)
-                .or_else(|| {
-                    let stash_account = Self::threshold_to_stash(account_id)?;
-                    let server_info = Self::threshold_server(&stash_account)?;
-                    Some(server_info.provisioning_certification_key)
-                });
-
+            let key = Self::get_server_info(account_id).map(|s| s.provisioning_certification_key);
             key.map(|k| k.to_vec().try_into().expect("Any key read from storage should be valid."))
         }
     }
