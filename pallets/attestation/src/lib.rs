@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationQueue, QuoteInputData, X25519KeyProvider};
+    use entropy_shared::{AttestationQueue, QuoteInputData, KeyProvider};
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
@@ -68,8 +68,8 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Describes the weights of the dispatchables exposed by this pallet.
         type WeightInfo: WeightInfo;
-        /// A type used to get an X25519 key for a given account ID.
-        type KeyProvider: entropy_shared::X25519KeyProvider<Self::AccountId>;
+        /// A type used to get different keys for a given account ID.
+        type KeyProvider: entropy_shared::KeyProvider<Self::AccountId>;
         /// A type used to describe a queue of attestations.
         type AttestationQueue: entropy_shared::AttestationQueue<Self::AccountId>;
     }

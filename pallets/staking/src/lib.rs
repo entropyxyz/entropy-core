@@ -813,7 +813,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> entropy_shared::X25519KeyProvider<T::AccountId> for Pallet<T> {
+    impl<T: Config> entropy_shared::KeyProvider<T::AccountId> for Pallet<T> {
         fn x25519_public_key(account_id: &T::AccountId) -> Option<entropy_shared::X25519PublicKey> {
             Self::get_server_info(account_id).map(|s| s.x25519_public_key)
         }

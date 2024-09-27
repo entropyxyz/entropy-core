@@ -132,13 +132,15 @@ impl QuoteInputData {
     }
 }
 
-/// A trait used to get an X25519 key for a given account ID.
+/// A trait used to get different stored keys for a given account ID.
 ///
-/// Not every account ID will have an associated X25519 public key, in which case the implementer is
-/// expected to return `None`.
-pub trait X25519KeyProvider<T> {
+/// Not every account ID will have an given key, in which case the implementer is expected to
+/// return `None`.
+pub trait KeyProvider<T> {
     /// Get an X25519 public key, if any, for the given account ID.
     fn x25519_public_key(account_id: &T) -> Option<X25519PublicKey>;
+
+    /// Get a provisioning certification key, if any, for the given account ID.
     fn provisioning_key(account_id: &T) -> Option<EncodedVerifyingKey>;
 }
 
