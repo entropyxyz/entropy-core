@@ -588,8 +588,24 @@ fn it_requires_attestation_before_validate_is_succesful() {
             pallet_staking::RewardDestination::Account(alice),
         ));
 
-        let server_info =
-            ServerInfo { tss_account: bob, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+        /// key
+        const PCK: [u8; 32] = [
+            117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
+            207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
+        ];
+        let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+        let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+
+        let server_info = ServerInfo {
+            tss_account: bob,
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::try_from(
+                pck_encoded.to_vec(),
+            )
+            .unwrap(),
+        };
 
         // Our call to `validate` should succeed, adding Bob into the validation queue. Bob should
         // not be considered a candidate yet though.
@@ -632,7 +648,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
             current_block as u32,
         );
 
-        let quote = tdx_quote::Quote::mock(signing_key.clone(), input_data.0);
+        let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0);
         assert_ok!(Attestation::attest(
             RuntimeOrigin::signed(server_info.tss_account),
             quote.as_bytes().to_vec(),
@@ -653,7 +669,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
         assert!(Staking::threshold_to_stash(bob).is_some());
 
         // TODO: Verify events, verify storage values are correct
-        }
+    })
 }
 
 #[test]
@@ -669,8 +685,12 @@ fn it_does_not_allow_validation_queue_to_grow_too_much() {
                 pallet_staking::RewardDestination::Account(i),
             ));
 
-            let server_info =
-                ServerInfo { tss_account: i + 1, x25519_public_key: NULL_ARR, endpoint: vec![20] };
+            let server_info = ServerInfo {
+                tss_account: i + 1,
+                x25519_public_key: NULL_ARR,
+                endpoint: vec![20],
+                provisioning_certification_key: BoundedVec::with_max_capacity(),
+            };
 
             assert_ok!(Staking::validate(
                 RuntimeOrigin::signed(i),
@@ -690,6 +710,7 @@ fn it_does_not_allow_validation_queue_to_grow_too_much() {
             tss_account: max_attestations + 2,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
 
         assert_noop!(

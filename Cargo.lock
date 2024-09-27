@@ -2752,7 +2752,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote 0.1.0 (git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2)",
+ "tdx-quote",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2811,7 +2811,7 @@ dependencies = [
  "subxt",
  "subxt-signer",
  "synedrion",
- "tdx-quote 0.1.0 (git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2)",
+ "tdx-quote",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.24.0",
@@ -6709,7 +6709,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote 0.1.0 (git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2)",
+ "tdx-quote",
 ]
 
 [[package]]
@@ -7433,7 +7433,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote 0.1.0 (git+https://github.com/entropyxyz/tdx-quote?rev=f7968ff)",
+ "tdx-quote",
 ]
 
 [[package]]
@@ -14145,16 +14145,6 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 name = "tdx-quote"
 version = "0.1.0"
 source = "git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2#cb167f2aef1c7539c91082ee21c764eac60f6bef"
-dependencies = [
- "nom",
- "p256",
- "sha2 0.10.8",
-]
-
-[[package]]
-name = "tdx-quote"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote?rev=f7968ff#f7968ff35ff744ff8c007cffe6ec8d709d7f18d9"
 dependencies = [
  "nom",
  "p256",
