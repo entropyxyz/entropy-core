@@ -52,25 +52,25 @@ async fn main() {
     for (_keypair, name) in keypairs_and_names.iter() {
         let (keypairs_this_time, names_this_time): (Vec<sr25519::Pair>, Vec<ValidatorName>) =
             keypairs_and_names.iter().filter(|(_, n)| n != name).cloned().unzip();
-        let test_keyshares = create_test_keyshares::<TestParams>(
-            secret_key,
+
+        // We cant do .try_into().unwrap() here becasue sr25519::Pair doesn't implement Debug
+        let keypairs_this_time = [
             keypairs_this_time[0].clone(),
             keypairs_this_time[1].clone(),
             keypairs_this_time[2].clone(),
-        )
-        .await;
+        ];
+
+        // Create and write test keyshares
+        let test_keyshares =
+            create_test_keyshares::<TestParams>(secret_key, keypairs_this_time.clone()).await;
         let test_keyshares_serialized: Vec<_> =
             test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
         let keyshares_and_names = zip(test_keyshares_serialized, names_this_time.clone()).collect();
         write_keyshares(base_path.join("test"), name, keyshares_and_names).await;
 
-        let production_keyshares = create_test_keyshares::<ProductionParams>(
-            secret_key,
-            keypairs_this_time[0].clone(),
-            keypairs_this_time[1].clone(),
-            keypairs_this_time[2].clone(),
-        )
-        .await;
+        // Create and write production keyshares
+        let production_keyshares =
+            create_test_keyshares::<ProductionParams>(secret_key, keypairs_this_time.clone()).await;
         let production_keyshres_serialized: Vec<_> =
             production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
         let keyshares_and_names = zip(production_keyshres_serialized, names_this_time).collect();

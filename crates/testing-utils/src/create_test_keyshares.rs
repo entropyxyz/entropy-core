@@ -30,22 +30,20 @@ use std::collections::BTreeSet;
 /// threshold keyshares with auxiliary info
 pub async fn create_test_keyshares<Params>(
     distributed_secret_key_bytes: [u8; 32],
-    alice: sr25519::Pair,
-    bob: sr25519::Pair,
-    charlie: sr25519::Pair,
+    signers: [sr25519::Pair; 3],
 ) -> Vec<(ThresholdKeyShare<Params, PartyId>, AuxInfo<Params, PartyId>)>
 where
     Params: SchemeParams,
 {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
-    let signers = vec![alice, bob, charlie.clone()];
+    // let signers = vec![alice, bob, charlie.clone()];
     let session_id = SessionId::from_seed(b"12345".as_slice());
     let all_parties =
         signers.iter().map(|pair| PartyId::from(pair.public())).collect::<BTreeSet<_>>();
 
     let mut old_holders = all_parties.clone();
     // Remove one member as we initially create 2 of 2 keyshares, then reshare to 2 of 3
-    old_holders.remove(&PartyId::from(charlie.clone().public()));
+    old_holders.remove(&PartyId::from(signers[2].public()));
 
     let keyshares =
         KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
@@ -57,9 +55,8 @@ where
         old_holders,
     };
 
-    let mut sessions = signers
+    let mut sessions = signers[..2]
         .iter()
-        .filter(|&pair| pair.public() != charlie.public())
         .map(|pair| {
             let inputs = KeyResharingInputs {
                 old_holder: Some(OldHolder {
@@ -82,7 +79,7 @@ where
         })
         .collect::<Vec<_>>();
 
-    let charlie_session = {
+    let new_holder_session = {
         let inputs = KeyResharingInputs {
             old_holder: None,
             new_holder: Some(new_holder.clone()),
@@ -92,14 +89,14 @@ where
         make_key_resharing_session(
             &mut OsRng,
             session_id,
-            PairWrapper(charlie),
+            PairWrapper(signers[2].clone()),
             &all_parties,
             inputs,
         )
         .unwrap()
     };
 
-    sessions.push(charlie_session);
+    sessions.push(new_holder_session);
 
     let new_t_key_shares = run_nodes(sessions).await;
 
