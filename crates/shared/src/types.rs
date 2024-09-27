@@ -139,6 +139,7 @@ impl QuoteInputData {
 pub trait X25519KeyProvider<T> {
     /// Get an X25519 public key, if any, for the given account ID.
     fn x25519_public_key(account_id: &T) -> Option<X25519PublicKey>;
+    fn provisioning_key(account_id: &T) -> Option<EncodedVerifyingKey>;
 }
 
 /// A trait used to describe a queue of attestations.
@@ -153,6 +154,7 @@ pub trait AttestationQueue<T> {
         tss_account: T,
         x25519_public_key: X25519PublicKey,
         endpoint: Vec<u8>,
+        provisioning_certification_key: EncodedVerifyingKey,
     );
 
     /// The list of pending (not processed) attestations.

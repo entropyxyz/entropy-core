@@ -812,6 +812,21 @@ pub mod pallet {
                     Some(server_info.x25519_public_key)
                 })
         }
+
+        fn provisioning_key(
+            account_id: &T::AccountId,
+        ) -> Option<entropy_shared::EncodedVerifyingKey> {
+            let key = ValidationQueue::<T>::get((Status::Pending, account_id))
+                .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
+                .map(|(_v, s)| s.provisioning_certification_key)
+                .or_else(|| {
+                    let stash_account = Self::threshold_to_stash(account_id)?;
+                    let server_info = Self::threshold_server(&stash_account)?;
+                    Some(server_info.provisioning_certification_key)
+                });
+
+            key.map(|k| k.to_vec().try_into().expect("Any key read from storage should be valid."))
+        }
     }
 
     impl<T: Config> entropy_shared::AttestationQueue<T::AccountId> for Pallet<T> {
@@ -834,20 +849,29 @@ pub mod pallet {
         //
         // # Panics
         //
-        // Note: The `validator_stash` address should be validatated using `Self::get_stash`,
-        // otherwise this method will panic.
+        // Panics if an invalid `validator_stash` or `provisioning_certification_key` are passed
+        // in. The caller should check (e.g, using `Self::get_stash()` that these inputs are valid.
         fn push_pending_attestation(
             validator_stash: T::AccountId,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
             endpoint: Vec<u8>,
+            provisioning_certification_key: entropy_shared::EncodedVerifyingKey,
         ) {
             let validator_id = T::ValidatorId::try_from(validator_stash)
                 .map_err(|_| ())
                 .expect("The stash address should have been checked by the caller.");
 
-            let server_info =
-                ServerInfo { tss_account: tss_account.clone(), x25519_public_key, endpoint };
+            let provisioning_certification_key =
+                BoundedVec::try_from(provisioning_certification_key.to_vec())
+                    .expect("The PCK from the caller should be valid.");
+
+            let server_info = ServerInfo {
+                tss_account: tss_account.clone(),
+                x25519_public_key,
+                endpoint,
+                provisioning_certification_key,
+            };
 
             ValidationQueue::<T>::insert(
                 (Status::Pending, tss_account),

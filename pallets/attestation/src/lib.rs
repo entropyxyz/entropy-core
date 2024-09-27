@@ -155,14 +155,6 @@ pub mod pallet {
             let x25519_public_key =
                 T::KeyProvider::x25519_public_key(&who).ok_or(Error::<T>::NoX25519KeyForAccount)?;
 
-            // Get associated server info from staking pallet
-            // let server_info = {
-            //     let stash_account = pallet_staking_extension::Pallet::<T>::threshold_to_stash(&who)
-            //         .ok_or(Error::<T>::NoStashAccount)?;
-            //     pallet_staking_extension::Pallet::<T>::threshold_server(&stash_account)
-            //         .ok_or(Error::<T>::NoServerInfo)?
-            // };
-
             // Get current block number
             let block_number: u32 = {
                 let block_number = <frame_system::Pallet<T>>::block_number();
@@ -171,7 +163,7 @@ pub mod pallet {
 
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
-                QuoteInputData::new(&who, server_info.x25519_public_key, nonce, block_number);
+                QuoteInputData::new(&who, x25519_public_key, nonce, block_number);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
                 Error::<T>::IncorrectInputData
@@ -183,15 +175,18 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
+            let provisioning_certification_key =
+                T::KeyProvider::provisioning_key(&who).ok_or(Error::<T>::NoX25519KeyForAccount)?;
+
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(
-                &server_info
-                    .provisioning_certification_key
+                    &provisioning_certification_key
                     .to_vec()
                     .try_into()
                     .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
             )
             .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
+
             quote
                 .verify_with_pck(provisioning_certification_key)
                 .map_err(|_| Error::<T>::PckVerification)?;
