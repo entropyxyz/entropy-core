@@ -453,9 +453,10 @@ pub(crate) fn run_to_block(n: BlockNumber) {
         System::set_block_number(b);
         Session::on_initialize(b);
 
-        // TODO (Nando): Check what order this a) would actually get run in b) should get run in
-        Attestation::on_initialize(b);
+        // In our production runtime the attestation pallet's `on_initalize` hook gets run after the
+        // staking pallet's hook based off the pallet indices, so we follow the same flow here.
         Staking::on_initialize(b);
+        Attestation::on_initialize(b);
 
         <FrameStaking as Hooks<u64>>::on_initialize(b);
         Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
