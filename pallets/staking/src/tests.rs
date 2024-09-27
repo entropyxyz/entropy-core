@@ -663,10 +663,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
 
         assert!(Staking::validation_queue((crate::Status::Confirmed, bob)).is_none());
         assert_eq!(Staking::threshold_to_stash(bob), Some(alice));
-        assert_eq!(
-            Staking::threshold_server(alice),
-            Some(server_info)
-        );
+        assert_eq!(Staking::threshold_server(alice), Some(server_info));
     })
 }
 
