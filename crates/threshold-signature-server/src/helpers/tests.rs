@@ -213,22 +213,12 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(_index: usize, validator_name: ValidatorName) {
-    // Eve's keyshares are used as the network parent key
-    let user_name = "eve";
-
-    let string_validator_name = match validator_name {
-        ValidatorName::Alice => "alice",
-        ValidatorName::Bob => "bob",
-        ValidatorName::Charlie => "charlie",
-        ValidatorName::Dave => "dave",
-        ValidatorName::Eve => "eve",
-    };
+async fn put_keyshares_in_db(non_signer_name: ValidatorName, validator_name: ValidatorName) {
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
-            user_name, string_validator_name
+            "crates/testing-utils/keyshares/production/{}/keyshare-held-by-{}.keyshare",
+            non_signer_name, validator_name
         ));
         std::fs::read(file_path).unwrap()
     };
@@ -296,8 +286,7 @@ pub async fn jump_start_network_with_signer(
     let validators_names =
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
     let mut non_signer = None;
-    let mut keyshare_index = 0;
-    for validator_name in validators_names {
+    for validator_name in validators_names.clone() {
         let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
             get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
@@ -307,14 +296,19 @@ pub async fn jump_start_network_with_signer(
         // Ignore the error as one confirmation will fail
         if submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None)
             .await
-            .is_ok()
+            .is_err()
         {
-            put_keyshares_in_db(keyshare_index, validator_name).await;
-            keyshare_index += 1;
-        } else {
             non_signer = Some(validator_name);
         }
     }
+    if let Some(non_signer) = non_signer {
+        for validator_name in validators_names {
+            put_keyshares_in_db(non_signer, validator_name).await;
+        }
+    } else {
+        panic!("No non signer");
+    }
+
     non_signer
 }
 

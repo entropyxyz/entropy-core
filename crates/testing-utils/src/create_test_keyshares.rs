@@ -38,21 +38,21 @@ where
     Params: SchemeParams,
 {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
-    let signers = vec![alice.clone(), bob.clone(), charlie.clone()];
+    let signers = vec![alice, bob, charlie.clone()];
     let session_id = SessionId::from_seed(b"12345".as_slice());
     let all_parties =
         signers.iter().map(|pair| PartyId::from(pair.public())).collect::<BTreeSet<_>>();
 
     let mut old_holders = all_parties.clone();
+    // Remove one member as we initially create 2 of 2 keyshares, then reshare to 2 of 3
     old_holders.remove(&PartyId::from(charlie.clone().public()));
 
     let keyshares =
         KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
     let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
-    let alice_id = PartyId::from(bob.public());
     let new_holder = NewHolder {
-        verifying_key: keyshares[&alice_id].verifying_key(),
+        verifying_key: keyshares.values().next().unwrap().verifying_key(),
         old_threshold: 2,
         old_holders,
     };
