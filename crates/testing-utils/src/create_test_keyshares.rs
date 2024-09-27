@@ -36,7 +36,6 @@ where
     Params: SchemeParams,
 {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
-    // let signers = vec![alice, bob, charlie.clone()];
     let session_id = SessionId::from_seed(b"12345".as_slice());
     let all_parties =
         signers.iter().map(|pair| PartyId::from(pair.public())).collect::<BTreeSet<_>>();
