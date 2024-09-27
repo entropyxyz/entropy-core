@@ -17,7 +17,7 @@
 use entropy_protocol::{SigningSessionInfo, ValidatorInfo};
 use serde::{Deserialize, Serialize};
 
-use entropy_client::user::UserSignatureRequest;
+use entropy_client::user::RelayerSignatureRequest;
 
 /// Information passed to the Signing Client, to initiate the signing process.
 /// Most of this information comes from a `Message` struct which gets propagated when a user's
@@ -33,7 +33,7 @@ pub struct SignInit {
 impl SignInit {
     /// Creates new signing object based on passed in data
     #[allow(dead_code)]
-    pub fn new(message: UserSignatureRequest, signing_session_info: SigningSessionInfo) -> Self {
+    pub fn new(message: RelayerSignatureRequest, signing_session_info: SigningSessionInfo) -> Self {
         Self { signing_session_info, validators_info: message.validators_info }
     }
 }

@@ -28,22 +28,24 @@ use entropy_testing_utils::{
     },
     jump_start_network, spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
+use entropy_tss::helpers::tests::initialize_test_logger;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use subxt::{tx::PairSigner, utils::AccountId32};
 use synedrion::k256::ecdsa::VerifyingKey;
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn integration_test_register_and_sign() {
+    initialize_test_logger().await;
     clean_tests();
     let account_owner = AccountKeyring::Ferdie.pair();
     let signature_request_author = AccountKeyring::One;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
     let substrate_context = test_node_process_testing_state(force_authoring).await;

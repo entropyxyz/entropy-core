@@ -24,6 +24,7 @@ use frame_support::{
     assert_ok, ensure,
     sp_runtime::traits::StaticLookup,
     traits::{Currency, Defensive, Get},
+    BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
@@ -31,7 +32,6 @@ use pallet_staking::{
     Event as FrameStakingEvent, MaxNominationsOf, Nominations, Pallet as FrameStaking,
     RewardDestination, ValidatorPrefs,
 };
-use sp_runtime::BoundedVec;
 use sp_std::{vec, vec::Vec};
 
 const NULL_ARR: [u8; 32] = [0; 32];
@@ -90,8 +90,12 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info =
-        ServerInfo { tss_account: threshold, x25519_public_key, endpoint: vec![20, 20] };
+    let server_info = ServerInfo {
+        tss_account: threshold,
+        x25519_public_key,
+        endpoint: vec![20, 20],
+        provisioning_certification_key: BoundedVec::with_max_capacity(),
+    };
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
@@ -133,6 +137,7 @@ benchmarks! {
       endpoint: vec![20, 20],
       tss_account: _bonder.clone(),
       x25519_public_key: NULL_ARR,
+      provisioning_certification_key: BoundedVec::with_max_capacity(),
     };
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
@@ -252,6 +257,7 @@ benchmarks! {
         tss_account: threshold.clone(),
         x25519_public_key: NULL_ARR,
         endpoint: vec![20],
+        provisioning_certification_key: BoundedVec::with_max_capacity(),
     };
 
   }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)

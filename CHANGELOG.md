@@ -23,6 +23,11 @@ At the moment this project **does not** adhere to
   validator if they are currently in the signing comittee. This was applied to `unbond`, `chill`,
   and `withdraw_unbonded`
 - In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes `version_number` to maintain backwards compatibility if programs runtime is updated
+- In [#1050](https://github.com/entropyxyz/entropy-core/pull/1050), the flow for signing has changed.
+  A user now sends their request to any validator that is not a signer. This will act as a relayer.
+  As such, `UserSignatureRequest` no longer requires the `validators_info` field since the the
+  relayer adds that in after. The response received from the validator is now a `Vec<Responses>`
+  from the signers.
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -40,10 +45,12 @@ At the moment this project **does not** adhere to
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
 - Select validators for jumpstart DKG [#1053](https://github.com/entropyxyz/entropy-core/pull/1053))
 - Add a programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
+- Handle Provisioning Certification Keys (PCKs) ([#1051](https://github.com/entropyxyz/entropy-core/pull/1051))
 
 ### Changed
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
 - No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
+- Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))

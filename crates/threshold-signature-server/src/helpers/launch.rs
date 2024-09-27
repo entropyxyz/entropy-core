@@ -65,7 +65,7 @@ pub const FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
 
 // Deafult name for TSS server
 // Will set mnemonic and db path
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ValidatorName {
     Alice,
     Bob,
