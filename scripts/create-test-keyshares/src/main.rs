@@ -21,7 +21,7 @@ use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
 use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
 use entropy_tss::helpers::{
     launch::{
-        DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
+        ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
         DEFAULT_DAVE_MNEMONIC,
     },
     validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -35,10 +35,10 @@ async fn main() {
     let base_path = PathBuf::from(args().nth(1).unwrap_or_else(|| ".".to_string()));
 
     let keypairs_and_names: Vec<_> = [
-        (DEFAULT_ALICE_MNEMONIC, "alice".to_string()),
-        (DEFAULT_BOB_MNEMONIC, "bob".to_string()),
-        (DEFAULT_CHARLIE_MNEMONIC, "charlie".to_string()),
-        (DEFAULT_DAVE_MNEMONIC, "dave".to_string()),
+        (DEFAULT_ALICE_MNEMONIC, ValidatorName::Alice),
+        (DEFAULT_BOB_MNEMONIC, ValidatorName::Bob),
+        (DEFAULT_CHARLIE_MNEMONIC, ValidatorName::Charlie),
+        (DEFAULT_DAVE_MNEMONIC, ValidatorName::Dave),
     ]
     .into_iter()
     .map(|(mnemonic, name)| {
@@ -50,7 +50,7 @@ async fn main() {
     let secret_key = *DETERMINISTIC_KEY_SHARE_EVE;
 
     for (_keypair, name) in keypairs_and_names.iter() {
-        let (keypairs_this_time, names_this_time): (Vec<sr25519::Pair>, Vec<String>) =
+        let (keypairs_this_time, names_this_time): (Vec<sr25519::Pair>, Vec<ValidatorName>) =
             keypairs_and_names.iter().filter(|(_, n)| n != name).cloned().unzip();
         let test_keyshares = create_test_keyshares::<TestParams>(
             secret_key,
@@ -80,12 +80,12 @@ async fn main() {
 
 async fn write_keyshares(
     base_path: PathBuf,
-    name_of_excluded: &str,
-    keyshares_and_names: Vec<(Vec<u8>, String)>,
+    name_of_excluded: &ValidatorName,
+    keyshares_and_names: Vec<(Vec<u8>, ValidatorName)>,
 ) {
     for (keyshare, name) in keyshares_and_names {
         let mut filepath = base_path.clone();
-        filepath.push(name_of_excluded);
+        filepath.push(name_of_excluded.to_string());
         let filename = format!("keyshare-held-by-{}.keyshare", name);
         filepath.push(filename);
         println!("Writing keyshare file: {:?}", filepath);
