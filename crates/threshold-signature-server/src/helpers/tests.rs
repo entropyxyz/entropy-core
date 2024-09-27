@@ -220,6 +220,7 @@ async fn put_keyshares_in_db(non_signer_name: ValidatorName, validator_name: Val
             "crates/testing-utils/keyshares/production/{}/keyshare-held-by-{}.keyshare",
             non_signer_name, validator_name
         ));
+        println!("File path {:?}", file_path);
         std::fs::read(file_path).unwrap()
     };
 
@@ -303,7 +304,9 @@ pub async fn jump_start_network_with_signer(
     }
     if let Some(non_signer) = non_signer {
         for validator_name in validators_names {
-            put_keyshares_in_db(non_signer, validator_name).await;
+            if non_signer != validator_name {
+                put_keyshares_in_db(non_signer, validator_name).await;
+            }
         }
     } else {
         panic!("No non signer");
