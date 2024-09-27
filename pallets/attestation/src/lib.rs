@@ -189,6 +189,7 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
             let pending_validators = T::AttestationQueue::pending_attestations();
+            let num_pending_attestations = pending_validators.len() as u32;
             let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
 
             for account_id in pending_validators {
@@ -199,7 +200,7 @@ pub mod pallet {
 
             AttestationRequests::<T>::insert(now, requests);
 
-            Weight::zero()
+            <T as Config>::WeightInfo::on_initialize(num_pending_attestations)
         }
     }
 }
