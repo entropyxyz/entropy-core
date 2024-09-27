@@ -718,12 +718,6 @@ pub mod pallet {
     }
 
     impl<T: Config> entropy_shared::AttestationQueue<T::AccountId> for Pallet<T> {
-        fn pending_attestations() -> Vec<T::AccountId> {
-            ValidationQueue::<T>::iter_prefix((Status::Pending,))
-                .map(|(k, _v)| k)
-                .collect::<Vec<_>>()
-        }
-
         fn confirm_attestation(account_id: &T::AccountId) {
             if let Some((validator_id, server_info)) =
                 ValidationQueue::<T>::take((Status::Pending, account_id))
@@ -733,6 +727,41 @@ pub mod pallet {
                     (validator_id, server_info),
                 );
             }
+        }
+
+        // Right now this method is mostly here to work around to allow the Attestation pallet
+        // benchmarks to write to the Staking Extension pallet storage.
+        //
+        // Don't rely on this for anything serious (e.g, actually getting potential validators into the
+        // correct state.
+        //
+        // # Panics
+        //
+        // Note: The `validator_stash` address should be validatated using `Self::get_stash`,
+        // otherwise this method will panic.
+        fn push_pending_attestation(
+            validator_stash: T::AccountId,
+            tss_account: T::AccountId,
+            x25519_public_key: X25519PublicKey,
+            endpoint: Vec<u8>,
+        ) {
+            let validator_id = T::ValidatorId::try_from(validator_stash)
+                .map_err(|_| ())
+                .expect("The stash address should have been checked by the caller.");
+
+            let server_info =
+                ServerInfo { tss_account: tss_account.clone(), x25519_public_key, endpoint };
+
+            ValidationQueue::<T>::insert(
+                (Status::Pending, tss_account),
+                (validator_id, server_info),
+            );
+        }
+
+        fn pending_attestations() -> Vec<T::AccountId> {
+            ValidationQueue::<T>::iter_prefix((Status::Pending,))
+                .map(|(k, _v)| k)
+                .collect::<Vec<_>>()
         }
     }
 }

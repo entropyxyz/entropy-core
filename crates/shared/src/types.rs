@@ -139,10 +139,19 @@ pub trait X25519KeyProvider<T> {
 
 /// A trait used to describe a queue of attestations.
 pub trait AttestationQueue<T> {
-    /// The list of pending (not processed) attestations.
-    fn pending_attestations() -> Vec<T>;
-
     /// Indicate that a given attestation is ready to be moved from a pending state to a confirmed
     /// state.
     fn confirm_attestation(account_id: &T);
+
+    /// Request that an attestation get added to the queue for later processing.
+    fn push_pending_attestation(
+        signer: T,
+        tss_account: T,
+        x25519_public_key: X25519PublicKey,
+        endpoint: Vec<u8>,
+    );
+
+    /// The list of pending (not processed) attestations.
+    fn pending_attestations() -> Vec<T>;
+
 }

@@ -13,10 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use entropy_shared::QuoteInputData;
+use entropy_shared::{AttestationQueue, QuoteInputData};
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{EventRecord, RawOrigin};
-use pallet_staking_extension::{ServerInfo, ThresholdServers, ThresholdToStash};
 
 use super::*;
 #[allow(unused)]
@@ -54,16 +53,15 @@ benchmarks! {
     // Insert a pending attestation so that this quote is expected
     <PendingAttestations<T>>::insert(attestee.clone(), nonce);
 
-    let stash_account = <T as pallet_session::Config>::ValidatorId::try_from(attestee.clone())
-        .or(Err(()))
-        .unwrap();
-
-    <ThresholdToStash<T>>::insert(attestee.clone(), stash_account.clone());
-    <ThresholdServers<T>>::insert(stash_account.clone(), ServerInfo {
-        tss_account: attestee.clone(),
-        x25519_public_key: [0; 32],
-        endpoint: b"http://localhost:3001".to_vec(),
-    });
+    // We also need to write to the queue (whose specific implementation writes to the staking
+    // pallet in this case) to ensure that the `attest` extrinsic has all the information about our
+    // attestee available.
+    T::AttestationQueue::push_pending_attestation(
+        attestee.clone(),
+        attestee.clone(),
+        [0; 32],
+        b"http://localhost:3001".to_vec()
+    );
 
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
   verify {
