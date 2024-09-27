@@ -153,5 +153,4 @@ pub trait AttestationQueue<T> {
 
     /// The list of pending (not processed) attestations.
     fn pending_attestations() -> Vec<T>;
-
 }
