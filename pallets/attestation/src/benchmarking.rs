@@ -15,7 +15,6 @@
 
 use entropy_shared::{AttestationQueue, QuoteInputData};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-use frame_support::BoundedVec;
 use frame_system::{EventRecord, RawOrigin};
 
 use super::*;
@@ -70,16 +69,9 @@ benchmarks! {
         attestee.clone(),
         attestee.clone(),
         [0; 32],
-        b"http://localhost:3001".to_vec()
+        b"http://localhost:3001".to_vec(),
+        pck_encoded,
     );
-    // <ThresholdToStash<T>>::insert(attestee.clone(), stash_account.clone());
-    // <ThresholdServers<T>>::insert(stash_account.clone(), ServerInfo {
-    //     tss_account: attestee.clone(),
-    //     x25519_public_key: [0; 32],
-    //     endpoint: b"http://localhost:3001".to_vec(),
-    //     provisioning_certification_key: pck_encoded.to_vec().try_into().unwrap(),
-    // });
-
   }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
   verify {
     assert_last_event::<T>(
@@ -98,13 +90,17 @@ benchmarks! {
     let nonce = [0; 32];
     let block_number = <frame_system::Pallet<T>>::block_number();
 
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+
     for i in 0..s {
         let threshold_account_id: T::AccountId = account("threshold", 0, i);
         T::AttestationQueue::push_pending_attestation(
             threshold_account_id.clone(),
             threshold_account_id.clone(),
             [0; 32],
-            b"http://localhost:3001".to_vec()
+            b"http://localhost:3001".to_vec(),
+            pck_encoded,
         );
     }
   }: {

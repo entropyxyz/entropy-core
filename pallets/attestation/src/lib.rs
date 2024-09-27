@@ -180,7 +180,7 @@ pub mod pallet {
 
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(
-                    &provisioning_certification_key
+                &provisioning_certification_key
                     .to_vec()
                     .try_into()
                     .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
