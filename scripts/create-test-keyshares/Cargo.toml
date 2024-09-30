@@ -7,6 +7,7 @@ homepage   ='https://entropy.xyz/'
 license    ='AGPL-3.0-or-later'
 repository ='https://github.com/entropyxyz/entropy-core'
 edition    ='2021'
+publish    =false
 
 [dependencies]
 entropy-testing-utils={ version="0.2.0-rc.1", path="../../crates/testing-utils" }
