@@ -28,6 +28,11 @@ At the moment this project **does not** adhere to
   As such, `UserSignatureRequest` no longer requires the `validators_info` field since the the
   relayer adds that in after. The response received from the validator is now a `Vec<Responses>`
   from the signers.
+- In ([#1063](https://github.com/entropyxyz/entropy-core/pull/1063)) the
+  `pallet_staking_extension::validate()` extrinsic was changed so that in order to populate certain
+  data structures related to a candidates state (namely `ThresholdToStash` and `ThresholdServer`) an
+  attestation from the Attestation pallet must have been received. Success of the `validate()`
+  extrinsic **does not** mean the caller is a candidate or validator.
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -51,6 +56,7 @@ At the moment this project **does not** adhere to
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
 - No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
 - Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
+- Trigger attestation check during validate ([#1063](https://github.com/entropyxyz/entropy-core/pull/1063))
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
