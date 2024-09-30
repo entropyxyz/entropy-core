@@ -145,6 +145,16 @@ It is however only intended for use with test networks and has no secure private
 
 Everytime a change to the chain's interface happens, metadata needs to be pulled. You'll need to install Subxt using `cargo install subxt-cli`. Then [run a development chain](#getting-started-with-docker) and then invoke [the `./scripts/pull_entropy_metadata.sh` script](./scripts/pull_entropy_metadata.sh).
 
+## Regenerating test keyshares
+
+To speed up running tests, some tests use pre-generated keyshares rather than running a distributed key generation during the test. If you need to regenerate these keyshares because something has changed in either Synedrion or the identities of the test TS servers, you can run:
+
+```sh
+./scripts/create-test-keyshares.sh`
+```
+
+from the project root.  For an explanation of how the test keyshare sets are structured, see [`create-test-keyshares`](./scripts/create-test-keyshares/README.md).
+
 ## Support
 
 Need help with something not necessarily related to `entropy-core`?
