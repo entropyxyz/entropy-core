@@ -17,6 +17,7 @@ use entropy_client::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+        EntropyConfig,
     },
     client as test_client,
     substrate::query_chain,
@@ -35,7 +36,7 @@ use futures::future::join_all;
 use serial_test::serial;
 use sp_core::{Encode, Pair};
 use sp_keyring::AccountKeyring;
-use subxt::utils::AccountId32;
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
@@ -55,74 +56,6 @@ async fn integration_test_reshare_register_and_sign() {
 
     // First jumpstart the network
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
-
-    // Get current signers
-    let signer_query = entropy::storage().staking_extension().signers();
-    let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-    let mut signers = Vec::new();
-    for signer in signer_stash_accounts.iter() {
-        let query = entropy::storage().staking_extension().threshold_servers(signer);
-        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-        signers.push(server_info);
-    }
-
-    // Get all validators
-    let validators_query = entropy::storage().session().validators();
-    let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
-
-    // Get stash account of a non-signer, to become the new signer
-    // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses
-    let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
-
-    let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    let onchain_reshare_request =
-        OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
-
-    run_to_block(&rpc, block_number + 1).await;
-    // Send the OCW message to all TS servers who don't have a chain node
-    let client = reqwest::Client::new();
-    let validator_ports = vec![3001, 3002, 3003, 3004];
-    let response_results = join_all(
-        validator_ports[1..]
-            .iter()
-            .map(|port| {
-                client
-                    .post(format!("http://127.0.0.1:{}/validator/reshare", port))
-                    .body(onchain_reshare_request.clone().encode())
-                    .send()
-            })
-            .collect::<Vec<_>>(),
-    )
-    .await;
-    for response_result in response_results {
-        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    }
-
-    let new_signers = {
-        let signer_query = entropy::storage().staking_extension().signers();
-        let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-        let mut signers = Vec::new();
-        for signer in signer_ids {
-            let query = entropy::storage().staking_extension().threshold_servers(signer);
-            let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-            signers.push(server_info);
-        }
-        signers
-    };
-
-    // Tell TS servers who do not have an associated chain node to rotate their keyshare.
-    // This is called by the chain on getting confirmation of the reshare from all of the new
-    // signing group.
-    for signer in new_signers {
-        let _ = client
-            .post(format!(
-                "http://{}/validator/rotate_network_key",
-                std::str::from_utf8(&signer.endpoint).unwrap()
-            ))
-            .send()
-            .await
-            .unwrap();
-    }
 
     // Now register an account
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -177,4 +110,101 @@ async fn integration_test_reshare_register_and_sign() {
         verifying_key.to_vec(),
         recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
     );
+
+    // Do a reshare
+    do_reshare(&api, &rpc).await;
+
+    // Sign a message again
+    let recoverable_signature = test_client::sign(
+        &api,
+        &rpc,
+        signature_request_author.pair(),
+        verifying_key,
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
+    )
+    .await
+    .unwrap();
+
+    // Check the signature
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_should_succeed_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(
+        verifying_key.to_vec(),
+        recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
+    );
+}
+
+async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<EntropyConfig>) {
+    // Get current signers
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    let mut signers = Vec::new();
+    for signer in signer_stash_accounts.iter() {
+        let query = entropy::storage().staking_extension().threshold_servers(signer);
+        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+        signers.push(server_info);
+    }
+
+    // Get all validators
+    let validators_query = entropy::storage().session().validators();
+    let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
+
+    // Get stash account of a non-signer, to become the new signer
+    // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses
+    let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
+
+    let block_number = TEST_RESHARE_BLOCK_NUMBER;
+    let onchain_reshare_request =
+        OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
+
+    run_to_block(&rpc, block_number + 1).await;
+    // Send the OCW message to all TS servers who don't have a chain node
+    let client = reqwest::Client::new();
+    let response_results = join_all(
+        [3002, 3003, 3004]
+            .iter()
+            .map(|port| {
+                client
+                    .post(format!("http://127.0.0.1:{}/validator/reshare", port))
+                    .body(onchain_reshare_request.clone().encode())
+                    .send()
+            })
+            .collect::<Vec<_>>(),
+    )
+    .await;
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
+
+    let new_signers = {
+        let signer_query = entropy::storage().staking_extension().signers();
+        let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+        let mut signers = Vec::new();
+        for signer in signer_ids {
+            let query = entropy::storage().staking_extension().threshold_servers(signer);
+            let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+            signers.push(server_info);
+        }
+        signers
+    };
+
+    // Tell TS servers who do not have an associated chain node to rotate their keyshare.
+    // This is called by the chain on getting confirmation of the reshare from all of the new
+    // signing group.
+    for signer in new_signers {
+        let _ = client
+            .post(format!(
+                "http://{}/validator/rotate_network_key",
+                std::str::from_utf8(&signer.endpoint).unwrap()
+            ))
+            .send()
+            .await
+            .unwrap();
+    }
 }
