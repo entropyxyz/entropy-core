@@ -311,6 +311,7 @@ pub mod pallet {
         NoUnbondingWhenNextSigner,
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
+        NoChangingThresholdAccountWhenSigner,
     }
 
     #[pallet::event]
@@ -388,6 +389,12 @@ pub mod pallet {
             let stash = Self::get_stash(&who)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
+
+            let signers = Self::signers();
+            ensure!(
+                !signers.contains(&validator_id),
+                Error::<T>::NoChangingThresholdAccountWhenSigner
+            );
 
             let new_server_info: ServerInfo<T::AccountId> =
                 ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
