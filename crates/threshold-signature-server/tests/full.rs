@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::collections::HashSet;
+
 use entropy_client::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -41,7 +43,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
-async fn integration_test_reshare_register_and_sign() {
+async fn integration_test_register_sign_reshare_sign() {
     initialize_test_logger().await;
     clean_tests();
 
@@ -207,4 +209,12 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
             .await
             .unwrap();
     }
+
+    // Check that the signers have changed since before the reshare
+    let signer_query = entropy::storage().staking_extension().signers();
+    let new_signer_stash_accounts =
+        query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    let old: HashSet<[u8; 32]> = signer_stash_accounts.iter().map(|s| s.0).collect();
+    let new: HashSet<[u8; 32]> = new_signer_stash_accounts.iter().map(|s| s.0).collect();
+    assert_ne!(old, new);
 }
