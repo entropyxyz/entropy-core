@@ -51,7 +51,7 @@ async fn integration_test_register_sign_reshare_sign() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
