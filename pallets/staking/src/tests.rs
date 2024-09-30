@@ -233,6 +233,12 @@ fn it_changes_threshold_account() {
             Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 5, NULL_ARR),
             Error::<Test>::TssAccountAlreadyExists
         );
+
+        Signers::<Test>::put(vec![1]);
+        assert_noop!(
+            Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 9, NULL_ARR,),
+            Error::<Test>::NoChangingThresholdAccountWhenSigner
+        );
     });
 }
 
