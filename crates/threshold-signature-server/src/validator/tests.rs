@@ -71,7 +71,7 @@ async fn test_reshare() {
     initialize_test_logger().await;
     clean_tests();
 
-    let cxt = test_node_process_testing_state(true).await;
+    let cxt = &test_node_process_testing_state(true).await[0];
 
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Integration).await;
@@ -316,7 +316,7 @@ async fn test_reshare_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
-    let cxt = test_node_process_testing_state(true).await;
+    let cxt = &test_node_process_testing_state(true).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let kv = setup_client().await;

@@ -182,7 +182,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
@@ -418,7 +418,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
@@ -495,7 +495,7 @@ async fn signature_request_with_derived_account_works() {
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
@@ -540,7 +540,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -658,7 +658,7 @@ async fn test_request_limit_are_updated_during_signing() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -763,7 +763,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -863,7 +863,7 @@ async fn test_program_with_config() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -949,7 +949,7 @@ async fn test_jumpstart_network() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -1103,7 +1103,7 @@ async fn test_fail_infinite_program() {
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
 
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
@@ -1199,7 +1199,7 @@ async fn test_device_key_proxy() {
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
@@ -1336,7 +1336,7 @@ async fn test_faucet() {
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Development).await;
     let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
-    let substrate_context = test_node_process_testing_state(true).await;
+    let substrate_context = &test_node_process_testing_state(true).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
@@ -1493,7 +1493,7 @@ async fn test_registration_flow() {
     // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
     // able to get our chain in the right state to be jump started.
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 

@@ -44,7 +44,7 @@ use sp_keyring::AccountKeyring;
 async fn test_proactive_refresh() {
     initialize_test_logger().await;
     clean_tests();
-    let _cxt = test_node_process_testing_state(false).await;
+    let _cxt = &test_node_process_testing_state(false).await[0];
 
     let (validator_ips, _ids) = spawn_testing_validators(ChainSpecType::Integration).await;
     let signing_committee_ips = &validator_ips[..3].to_vec();
