@@ -21,7 +21,10 @@
 use crate::{
     app,
     chain_api::{
-        entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
+        entropy::{
+            self, runtime_types::bounded_collections::bounded_vec::BoundedVec,
+            runtime_types::pallet_staking_extension::pallet::JumpStartStatus,
+        },
         EntropyConfig,
     },
     get_signer,
@@ -49,7 +52,7 @@ use futures::future::join_all;
 use parity_scale_codec::Encode;
 use std::time::Duration;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, events::EventsClient, ext::sp_core::sr25519, tx::PairSigner,
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
@@ -389,23 +392,31 @@ pub async fn do_jump_start(
             .collect::<Vec<_>>(),
     )
     .await;
+
+    let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
+    let mut jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
+        .await
+        .unwrap()
+        .unwrap()
+        .jump_start_status;
+    let mut i = 0;
+    while format!("{:?}", jump_start_status) != format!("{:?}", JumpStartStatus::Done) {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
+            .await
+            .unwrap()
+            .unwrap()
+            .jump_start_status;
+        i += 1;
+        if i > 75 {
+            panic!("Jump start failed");
+        }
+    }
+
+    assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
-
-    // Wait for jump start event
-    let mut got_jumpstart_event = false;
-    for _ in 0..75 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
-        if let Some(_event) = jump_start_event.flatten().next() {
-            got_jumpstart_event = true;
-            break;
-        };
-    }
-    assert!(got_jumpstart_event);
 }
 
 /// Submit a jumpstart extrinsic
