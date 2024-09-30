@@ -379,7 +379,7 @@ pub mod pallet {
             let confirmed_validators = ValidationQueue::<T>::drain_prefix((Status::Confirmed,));
             for (_account_id, (validator_id, server_info)) in confirmed_validators {
                 ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
-                ThresholdServers::<T>::insert(&validator_id, server_info);
+                ThresholdServers::<T>::insert(validator_id, server_info);
             }
 
             // We only want to pay for the difference in entries, since that's what we actually
@@ -751,13 +751,13 @@ pub mod pallet {
 
         fn get_server_info(account_id: &T::AccountId) -> Option<ServerInfo<T::AccountId>> {
             // Here we do something a admittedly a little confusing, but simply we check:
-            // - if any potential validators have a server info (`ValidationQueue`)
+            // - if any potential validators have server info (`ValidationQueue`)
             // - if any accepted validator candidates (but not necessarily validators) have server
             //   info
             // - if any validators have server info
             ValidationQueue::<T>::get((Status::Pending, account_id))
                 .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
-                .map(|(_v, s)| s)
+                .map(|(_v, server_info)| server_info)
                 .or_else(|| {
                     let stash_account = Self::threshold_to_stash(account_id)?;
                     let server_info = Self::threshold_server(&stash_account)?;
@@ -821,8 +821,11 @@ pub mod pallet {
         fn provisioning_key(
             account_id: &T::AccountId,
         ) -> Option<entropy_shared::EncodedVerifyingKey> {
-            let key = Self::get_server_info(account_id).map(|s| s.provisioning_certification_key);
-            key.map(|k| k.to_vec().try_into().expect("Any key read from storage should be valid."))
+            let pck = Self::get_server_info(account_id).map(|s| s.provisioning_certification_key);
+            pck.map(|key| {
+                key.to_vec().try_into()
+                    .expect("The length of both structures is `VERIFICATION_KEY_LENGTH`, so the conversion must succeed.")
+            })
         }
     }
 
@@ -838,8 +841,8 @@ pub mod pallet {
             }
         }
 
-        // Right now this method is mostly here to work around to allow the Attestation pallet
-        // benchmarks to write to the Staking Extension pallet storage.
+        // This method is mostly here as a work around to allow the Attestation pallet benchmarks to
+        // write to the Staking Extension pallet storage.
         //
         // Don't rely on this for anything serious (e.g, actually getting potential validators into the
         // correct state.

@@ -31,8 +31,8 @@ const NULL_ARR: [u8; 32] = [0; 32];
 /// For our tests we don't always want to go through that flow, so here we manually populate those
 /// data structures.
 fn mock_attest_validate(validator_id: AccountId, server_info: ServerInfo<AccountId>) {
-    ThresholdServers::<Test>::insert(&validator_id, server_info.clone());
     ThresholdToStash::<Test>::insert(&server_info.tss_account, validator_id);
+    ThresholdServers::<Test>::insert(validator_id, server_info);
 }
 
 #[test]
