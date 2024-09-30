@@ -49,8 +49,15 @@ mod tests;
 pub mod pallet {
     use entropy_shared::{AttestationQueue, KeyProvider, QuoteInputData};
     use frame_support::pallet_prelude::*;
+    use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
+    use sp_runtime::traits::TrailingZeroInput;
     use sp_std::vec::Vec;
+
+    use rand_chacha::{
+        rand_core::{RngCore, SeedableRng},
+        ChaCha20Rng, ChaChaRng,
+    };
     use tdx_quote::{decode_verifying_key, Quote};
 
     pub use crate::weights::WeightInfo;
@@ -68,6 +75,8 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Describes the weights of the dispatchables exposed by this pallet.
         type WeightInfo: WeightInfo;
+        /// Something that provides randomness in the runtime.
+        type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
         /// A type used to get different keys for a given account ID.
         type KeyProvider: entropy_shared::KeyProvider<Self::AccountId>;
         /// A type used to describe a queue of attestations.
@@ -210,7 +219,8 @@ pub mod pallet {
             let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
 
             for account_id in pending_validators {
-                let nonce = [0; 32]; // TODO (Nando): Fill this out properly
+                let mut nonce = [0; 32];
+                Self::get_randomness().fill_bytes(&mut nonce[..]);
                 PendingAttestations::<T>::insert(&account_id, nonce);
                 requests.push(account_id.encode());
             }
@@ -218,6 +228,19 @@ pub mod pallet {
             AttestationRequests::<T>::insert(now, requests);
 
             <T as Config>::WeightInfo::on_initialize(num_pending_attestations)
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        pub fn get_randomness() -> ChaCha20Rng {
+            let phrase = b"quote_creation";
+            // TODO: Is randomness freshness an issue here
+            // https://github.com/paritytech/substrate/issues/8312
+            let (seed, _) = T::Randomness::random(phrase);
+            // seed needs to be guaranteed to be 32 bytes.
+            let seed = <[u8; 32]>::decode(&mut TrailingZeroInput::new(seed.as_ref()))
+                .expect("input is padded with zeroes; qed");
+            ChaChaRng::from_seed(seed)
         }
     }
 }

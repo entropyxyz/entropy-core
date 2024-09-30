@@ -23,6 +23,9 @@ use frame_system::{EventRecord, Phase};
 use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
 use sp_runtime::BoundedVec;
+
+use rand_core::RngCore;
+
 const NULL_ARR: [u8; 32] = [0; 32];
 
 /// Once `validate()` is called we need to wait for an attestation to happen before populating
@@ -636,7 +639,10 @@ fn it_requires_attestation_before_validate_is_succesful() {
         // For now it doesn't matter what this is, but once we handle PCK certificates this will
         // need to correspond to the public key in the certificate
         let signing_key = tdx_quote::SigningKey::random(&mut rand_core::OsRng);
-        let nonce = [0; 32];
+
+        // Note that this is using fake randomness from the mock runtime
+        let mut nonce = [0; 32];
+        Attestation::get_randomness().fill_bytes(&mut nonce[..]);
 
         let input_data = entropy_shared::QuoteInputData::new(
             server_info.tss_account,
