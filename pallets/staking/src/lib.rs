@@ -374,12 +374,12 @@ pub mod pallet {
         /// Allows a validator to change their threshold key so can confirm done when coms manager
         /// `new_account`: nodes's threshold account
         #[pallet::call_index(1)]
-        #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts())]
+        #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts(MAX_SIGNERS as u32))]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             ensure!(
                 !ThresholdToStash::<T>::contains_key(&tss_account),
                 Error::<T>::TssAccountAlreadyExists
@@ -408,7 +408,8 @@ pub mod pallet {
                     }
                 })?;
             Self::deposit_event(Event::ThresholdAccountChanged(validator_id, new_server_info));
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32))
+                .into())
         }
 
         /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
