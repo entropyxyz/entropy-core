@@ -53,12 +53,10 @@ async fn main() {
         let (keypairs_this_time, names_this_time): (Vec<sr25519::Pair>, Vec<ValidatorName>) =
             keypairs_and_names.iter().filter(|(_, n)| n != name).cloned().unzip();
 
-        // We cant do .try_into().unwrap() here becasue sr25519::Pair doesn't implement Debug
-        let keypairs_this_time = [
-            keypairs_this_time[0].clone(),
-            keypairs_this_time[1].clone(),
-            keypairs_this_time[2].clone(),
-        ];
+        let keypairs_this_time: [sr25519::Pair; 3] = keypairs_this_time
+            .try_into()
+            .map_err(|_| "Cannot convert keypair vector to array")
+            .unwrap();
 
         // Create and write test keyshares
         let test_keyshares =
