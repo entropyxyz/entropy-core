@@ -309,7 +309,7 @@ pub async fn jump_start_network_with_signer(
             }
         }
     } else {
-        tracing::error!("No non signer - not storing pre-generated keyshares");
+        tracing::error!("Missing non-signer - not storing pre-generated keyshares");
     }
 
     non_signer
