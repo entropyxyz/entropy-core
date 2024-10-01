@@ -185,6 +185,9 @@ pub mod pallet {
     ///
     /// This tracks the status of each attestation (pending or confirmed), as well as information
     /// about the validator who is in the process of submitting an attestation.
+    ///
+    /// The `Key` expects the TSS `AccountId` to be used, while the `Value` expects a validator
+    /// `AccountId`.
     #[pallet::storage]
     #[pallet::getter(fn validation_queue)]
     pub type ValidationQueue<T: Config> = CountedStorageNMap<
