@@ -841,16 +841,20 @@ pub mod pallet {
             }
         }
 
-        // This method is mostly here as a work around to allow the Attestation pallet benchmarks to
-        // write to the Staking Extension pallet storage.
-        //
-        // Don't rely on this for anything serious (e.g, actually getting potential validators into the
-        // correct state.
-        //
-        // # Panics
-        //
-        // Panics if an invalid `validator_stash` or `provisioning_certification_key` are passed
-        // in. The caller should check (e.g, using `Self::get_stash()` that these inputs are valid.
+        /// Request that an attestation get added to the queue for later processing.
+        ///
+        /// # Developer Note
+        ///
+        /// This method is mostly here as a work around to allow the Attestation pallet benchmarks to
+        /// write to the Staking Extension pallet storage.
+        ///
+        /// Don't rely on this for anything serious (e.g, actually getting potential validators into the
+        /// correct state.
+        ///
+        /// # Panics
+        ///
+        /// Panics if an invalid `validator_stash` or `provisioning_certification_key` are passed
+        /// in. The caller should check (e.g, using `Self::get_stash()` that these inputs are valid.
         fn push_pending_attestation(
             validator_stash: T::AccountId,
             tss_account: T::AccountId,
