@@ -37,7 +37,7 @@ use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, ByteArray};
 use sp_runtime::{BoundedVec, Perbill};
 
-pub fn devnet_three_node_initial_tss_servers(
+pub fn devnet_four_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, BoundedVecEncodedVerifyingKey)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
@@ -60,7 +60,14 @@ pub fn devnet_three_node_initial_tss_servers(
         provisioning_certification_key::CHARLIE.clone(),
     );
 
-    vec![alice, bob, charlie]
+    let dave = (
+        crate::chain_spec::tss_account_id::DAVE.clone(),
+        crate::chain_spec::tss_x25519_public_key::DAVE,
+        "127.0.0.1:3004".to_string(),
+        provisioning_certification_key::DAVE.clone(),
+    );
+
+    vec![alice, bob, charlie, dave]
 }
 
 pub fn devnet_local_docker_four_node_initial_tss_servers(
@@ -98,8 +105,8 @@ pub fn devnet_local_docker_four_node_initial_tss_servers(
 
 /// The configuration used for development.
 ///
-/// Since Entropy requires at two-of-three threshold setup, we spin up three validators: Alice, Bob,
-/// and Charlie.
+/// Since Entropy requires at two-of-three threshold setup, and requires an additional relayer node,
+/// we spin up four validators: Alice, Bob, Charlie and Dave.
 pub fn development_config() -> ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Development")
@@ -111,10 +118,11 @@ pub fn development_config() -> ChainSpec {
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
                 crate::chain_spec::authority_keys_from_seed("Charlie"),
+                crate::chain_spec::authority_keys_from_seed("Dave"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            devnet_three_node_initial_tss_servers(),
+            devnet_four_node_initial_tss_servers(),
         ))
         .build()
 }
