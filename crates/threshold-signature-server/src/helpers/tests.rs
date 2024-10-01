@@ -21,7 +21,10 @@
 use crate::{
     app,
     chain_api::{
-        entropy::{self, runtime_types::bounded_collections::bounded_vec::BoundedVec},
+        entropy::{
+            self, runtime_types::bounded_collections::bounded_vec::BoundedVec,
+            runtime_types::pallet_staking_extension::pallet::JumpStartStatus,
+        },
         EntropyConfig,
     },
     get_signer,
@@ -49,7 +52,7 @@ use futures::future::join_all;
 use parity_scale_codec::Encode;
 use std::time::Duration;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, events::EventsClient, ext::sp_core::sr25519, tx::PairSigner,
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
@@ -213,23 +216,14 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(_index: usize, validator_name: ValidatorName) {
-    // Eve's keyshares are used as the network parent key
-    let user_name = "eve";
-
-    let string_validator_name = match validator_name {
-        ValidatorName::Alice => "alice",
-        ValidatorName::Bob => "bob",
-        ValidatorName::Charlie => "charlie",
-        ValidatorName::Dave => "dave",
-        ValidatorName::Eve => "eve",
-    };
+async fn put_keyshares_in_db(non_signer_name: ValidatorName, validator_name: ValidatorName) {
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/{}-keyshare-held-by-{}.keyshare",
-            user_name, string_validator_name
+            "crates/testing-utils/keyshares/production/{}/keyshare-held-by-{}.keyshare",
+            non_signer_name, validator_name
         ));
+        println!("File path {:?}", file_path);
         std::fs::read(file_path).unwrap()
     };
 
@@ -296,8 +290,7 @@ pub async fn jump_start_network_with_signer(
     let validators_names =
         vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
     let mut non_signer = None;
-    let mut keyshare_index = 0;
-    for validator_name in validators_names {
+    for validator_name in validators_names.clone() {
         let mnemonic = development_mnemonic(&Some(validator_name));
         let (tss_signer, _static_secret) =
             get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
@@ -307,14 +300,21 @@ pub async fn jump_start_network_with_signer(
         // Ignore the error as one confirmation will fail
         if submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None)
             .await
-            .is_ok()
+            .is_err()
         {
-            put_keyshares_in_db(keyshare_index, validator_name).await;
-            keyshare_index += 1;
-        } else {
             non_signer = Some(validator_name);
         }
     }
+    if let Some(non_signer) = non_signer {
+        for validator_name in validators_names {
+            if non_signer != validator_name {
+                put_keyshares_in_db(non_signer, validator_name).await;
+            }
+        }
+    } else {
+        tracing::error!("Missing non-signer - not storing pre-generated keyshares");
+    }
+
     non_signer
 }
 
@@ -389,23 +389,31 @@ pub async fn do_jump_start(
             .collect::<Vec<_>>(),
     )
     .await;
+
+    let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
+    let mut jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
+        .await
+        .unwrap()
+        .unwrap()
+        .jump_start_status;
+    let mut i = 0;
+    while format!("{:?}", jump_start_status) != format!("{:?}", JumpStartStatus::Done) {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
+            .await
+            .unwrap()
+            .unwrap()
+            .jump_start_status;
+        i += 1;
+        if i > 75 {
+            panic!("Jump start failed");
+        }
+    }
+
+    assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
-
-    // Wait for jump start event
-    let mut got_jumpstart_event = false;
-    for _ in 0..75 {
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-        let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
-        let events = EventsClient::new(api.clone()).at(block_hash.unwrap()).await.unwrap();
-        let jump_start_event = events.find::<entropy::registry::events::FinishedNetworkJumpStart>();
-        if let Some(_event) = jump_start_event.flatten().next() {
-            got_jumpstart_event = true;
-            break;
-        };
-    }
-    assert!(got_jumpstart_event);
 }
 
 /// Submit a jumpstart extrinsic

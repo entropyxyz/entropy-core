@@ -53,7 +53,7 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_staking_extension.
 pub trait WeightInfo {
 	fn change_endpoint() -> Weight;
-	fn change_threshold_accounts() -> Weight;
+	fn change_threshold_accounts(s: u32) -> Weight;
 	fn chill(c: u32, n: u32) -> Weight;
 	fn unbond(c: u32, n: u32) -> Weight;
 	fn withdraw_unbonded(c: u32, n: u32) -> Weight;
@@ -81,20 +81,27 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:1)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::ThresholdServers` (r:1 w:1)
 	/// Proof: `StakingExtension::ThresholdServers` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ThresholdToStash` (r:0 w:1)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn change_threshold_accounts() -> Weight {
+	/// The range of component `s` is `[0, 15]`.
+	fn change_threshold_accounts(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1118`
-		//  Estimated: `4583`
-		// Minimum execution time: 23_000_000 picoseconds.
-		Weight::from_parts(24_000_000, 4583)
-			.saturating_add(T::DbWeight::get().reads(2_u64))
-			.saturating_add(T::DbWeight::get().writes(2_u64))
+		//  Measured:  `1455 + s * (32 ±0)`
+		//  Estimated: `4918 + s * (32 ±0)`
+		// Minimum execution time: 27_000_000 picoseconds.
+		Weight::from_parts(31_058_011, 0)
+			.saturating_add(Weight::from_parts(0, 4918))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
@@ -349,20 +356,27 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:1)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::ThresholdServers` (r:1 w:1)
 	/// Proof: `StakingExtension::ThresholdServers` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ThresholdToStash` (r:0 w:1)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn change_threshold_accounts() -> Weight {
+	/// The range of component `s` is `[0, 15]`.
+	fn change_threshold_accounts(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1118`
-		//  Estimated: `4583`
-		// Minimum execution time: 23_000_000 picoseconds.
-		Weight::from_parts(24_000_000, 4583)
-			.saturating_add(RocksDbWeight::get().reads(2_u64))
-			.saturating_add(RocksDbWeight::get().writes(2_u64))
+		//  Measured:  `1455 + s * (32 ±0)`
+		//  Estimated: `4918 + s * (32 ±0)`
+		// Minimum execution time: 27_000_000 picoseconds.
+		Weight::from_parts(31_058_011, 0)
+			.saturating_add(Weight::from_parts(0, 4918))
+			.saturating_add(RocksDbWeight::get().reads(5))
+			.saturating_add(RocksDbWeight::get().writes(2))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
 	}
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)

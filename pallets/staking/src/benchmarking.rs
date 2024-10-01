@@ -122,14 +122,17 @@ benchmarks! {
   }
 
   change_threshold_accounts {
+    let s in 0 .. MAX_SIGNERS as u32;
     let caller: T::AccountId = whitelisted_caller();
     let _bonder: T::AccountId = account("bond", 0, SEED);
     let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone()).or(Err(Error::<T>::InvalidValidatorId));
+    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
     prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold, NULL_ARR);
-
+    let signers = vec![validator_id_signers.clone(); s as usize];
+    Signers::<T>::put(signers.clone());
 
   }:  _(RawOrigin::Signed(_bonder.clone()), _bonder.clone(), NULL_ARR)
   verify {
