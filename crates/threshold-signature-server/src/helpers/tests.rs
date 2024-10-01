@@ -384,9 +384,9 @@ pub async fn do_jump_start(
     for validator_info in validators_info {
         let url = format!(
             "http://{}/generate_network_key",
-            std::str::from_utf8(&validator_info.ip_address.clone()).unwrap().to_string()
+            std::str::from_utf8(&validator_info.ip_address.clone()).unwrap()
         );
-        if url != "http://127.0.0.1:3001/generate_network_key".to_string() {
+        if url != *"http://127.0.0.1:3001/generate_network_key" {
             results.push(client.post(url).body(onchain_user_request.clone().encode()).send())
         }
     }
