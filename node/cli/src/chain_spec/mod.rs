@@ -120,6 +120,7 @@ pub mod tss_x25519_public_key {
 
     // The `DEFAULT_EVE_MNEMONIC` is used to derive the public key for the tss version of eve
     /// Mnemonic: "impact federal dish number fun crisp various wedding radio immense whisper glue"
+    #[allow(dead_code)]
     pub const EVE_TSS: [u8; 32] = [
         66, 106, 241, 196, 65, 224, 212, 85, 99, 184, 198, 249, 172, 237, 47, 2, 151, 182, 0, 74,
         210, 39, 102, 193, 107, 13, 12, 153, 27, 83, 146, 63,
