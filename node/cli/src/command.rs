@@ -69,7 +69,7 @@ impl SubstrateCli for Cli {
 
     // | --chain           | Description |
     // |-----------------  |----------- |
-    // | dev               | Three nodes, Three threshold servers, Alice Bob and Charlie, Development Configuration |
+    // | dev               | Four nodes, Four threshold servers, Alice Bob and Charlie and Dave, Development Configuration |
     // | devnet-local      | Four nodes, four threshold servers, Alice Bob Charlie and Dave, Development Configuration, Docker Compatible |
     // | integration-tests | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
     // | testnet-local     | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration, Docker Compatible |
