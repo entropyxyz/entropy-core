@@ -221,7 +221,7 @@ async fn test_reshare() {
     }
 
     // Check that rotating the network key wont work again later
-    run_to_block(&rpc, block_number + 7).await;
+    run_to_block(&rpc, block_number + 9).await;
 
     let response_stale =
         client.post("http://127.0.0.1:3001/validator/rotate_network_key").send().await.unwrap();
