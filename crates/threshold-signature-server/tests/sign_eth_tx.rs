@@ -26,7 +26,7 @@ use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
     spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
-use entropy_tss::helpers::tests::do_jump_start;
+use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
     types::{RecoveryMessage, Transaction, TransactionRequest, U256},
@@ -46,6 +46,7 @@ const GOERLI_CHAIN_ID: u64 = 5;
 #[tokio::test]
 #[serial]
 async fn integration_test_sign_eth_tx() {
+    initialize_test_logger().await;
     clean_tests();
 
     let (_validator_ips, _validator_ids) =
