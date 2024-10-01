@@ -132,6 +132,8 @@ pub mod pallet {
         IncorrectInputData,
         /// The given account doesn't have a registered X25519 public key.
         NoX25519KeyForAccount,
+        /// The given account doesn't have a registered provisioning certification key.
+        NoPCKForAccount,
         /// Unacceptable VM image running
         BadMrtdValue,
         /// Cannot decode verifying key (PCK)
@@ -185,7 +187,7 @@ pub mod pallet {
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
             let provisioning_certification_key =
-                T::KeyProvider::provisioning_key(&who).ok_or(Error::<T>::NoX25519KeyForAccount)?;
+                T::KeyProvider::provisioning_key(&who).ok_or(Error::<T>::NoPCKForAccount)?;
 
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(
