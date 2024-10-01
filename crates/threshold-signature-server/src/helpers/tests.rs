@@ -365,6 +365,7 @@ pub async fn do_jump_start(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     pair: sr25519::Pair,
 ) {
+    run_to_block(rpc, 2).await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_jumpstart_request_on_chain(api, rpc, pair).await;
 
@@ -374,21 +375,23 @@ pub async fn do_jump_start(
     let validators_info =
         query_chain(api, rpc, selected_validators_query, None).await.unwrap().unwrap();
     let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
-    let onchain_user_request = OcwMessageDkg { block_number, validators_info };
+    let onchain_user_request =
+        OcwMessageDkg { block_number, validators_info: validators_info.clone() };
 
     let client = reqwest::Client::new();
-    let response_results = join_all(
-        [3002, 3003, 3004]
-            .iter()
-            .map(|port| {
-                client
-                    .post(format!("http://127.0.0.1:{}/generate_network_key", port))
-                    .body(onchain_user_request.clone().encode())
-                    .send()
-            })
-            .collect::<Vec<_>>(),
-    )
-    .await;
+
+    let mut results = vec![];
+    for validator_info in validators_info {
+        let url = format!(
+            "http://{}/generate_network_key",
+            std::str::from_utf8(&validator_info.ip_address.clone()).unwrap().to_string()
+        );
+        if url != "http://127.0.0.1:3001/generate_network_key".to_string() {
+            results.push(client.post(url).body(onchain_user_request.clone().encode()).send())
+        }
+    }
+
+    let response_results = join_all(results).await;
 
     let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
     let mut jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
