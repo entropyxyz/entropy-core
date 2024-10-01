@@ -74,6 +74,12 @@ pub enum ValidatorName {
     Eve,
 }
 
+impl std::fmt::Display for ValidatorName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
+    }
+}
+
 /// Output for --setup-only flag
 #[derive(Deserialize, Debug, Clone)]
 pub struct SetupOnlyOutput {
