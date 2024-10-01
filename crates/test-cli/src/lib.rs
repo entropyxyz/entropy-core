@@ -76,6 +76,7 @@ enum CliCommand {
         /// interface.
         programs: Vec<String>,
         /// Option of version numbers to go with the programs, will default to 0 if None
+        #[arg(short, long)]
         program_version_numbers: Option<Vec<u8>>,
         /// A name or mnemonic from which to derive a program modification keypair.
         /// This is used to send the register extrinsic so it must be funded
@@ -311,7 +312,7 @@ pub async fn run_command(
                 program_version_number,
             )
             .await?;
-            Ok(format!("Program stored {hash}"))
+            Ok(format!("Program stored: {}", hex::encode(hash)))
         },
         CliCommand::RemoveProgram { mnemonic_option, hash } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
@@ -409,7 +410,7 @@ pub async fn run_command(
 
             if !programs.is_empty() {
                 println!(
-                    "{:<11} {:<48} {:<11} {:<14} {} {}",
+                    "{:<64} {:<48} {:<11} {:<14} {} {}",
                     "Hash".blue(),
                     "Stored by:".green(),
                     "Times used:".purple(),
@@ -420,7 +421,7 @@ pub async fn run_command(
                 for (hash, program_info) in programs {
                     println!(
                         "{} {} {:>11} {:>14} {:<13} {}",
-                        hash,
+                        hex::encode(hash),
                         program_info.deployer,
                         program_info.ref_counter,
                         program_info.bytecode.len(),

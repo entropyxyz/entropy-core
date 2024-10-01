@@ -96,8 +96,6 @@ pub enum ClientError {
     TryFromSlice(#[from] std::array::TryFromSliceError),
     #[error("User is not registered on-chain")]
     NotRegistered,
-    #[error("No synced validators")]
-    NoSyncedValidators,
     #[error("Cannot confirm program was created")]
     CannotConfirmProgramCreated,
     #[error("Cannot confirm program was removed")]
@@ -108,4 +106,6 @@ pub enum ClientError {
     CannotQuerySynced,
     #[error("Verifying key has incorrect length")]
     BadVerifyingKeyLength,
+    #[error("There are no validators which can act as a relay node for signature requests")]
+    NoNonSigningValidators,
 }
