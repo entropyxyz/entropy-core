@@ -13,13 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{str::FromStr, sync::Arc, time::SystemTime};
+use std::{
+    str::{from_utf8, FromStr},
+    sync::Arc,
+    time::SystemTime,
+};
 
 use axum::{
     body::{Body, Bytes},
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -40,8 +44,9 @@ use entropy_shared::{
 };
 use futures::{
     channel::mpsc,
-    future::{join_all, FutureExt},
-    Stream,
+    future::{join_all, try_join_all, FutureExt},
+    stream::TryStreamExt,
+    Stream, StreamExt,
 };
 use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
 use parity_scale_codec::{Decode, DecodeAll, Encode};
@@ -62,13 +67,15 @@ use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
 
 use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
+use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::{do_signing, Hasher},
         substrate::{
-            get_oracle_data, get_program, get_stash_address, query_chain, submit_transaction,
+            get_oracle_data, get_program, get_signers_from_chain, get_stash_address,
+            get_validators_info, query_chain, submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
         validator::{get_signer, get_signer_and_x25519_secret},
@@ -79,7 +86,7 @@ use crate::{
     AppState, Configuration,
 };
 
-pub use entropy_client::user::{get_signers_from_chain, UserSignatureRequest};
+pub use entropy_client::user::{RelayerSignatureRequest, UserSignatureRequest};
 pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Type for validators to send user key's back and forth
@@ -106,6 +113,137 @@ pub struct RequestLimitStorage {
 /// Called by a user to initiate the signing process for a message
 ///
 /// Takes an [EncryptedSignedMessage] containing a JSON serialized [UserSignatureRequest]
+///
+/// Chooses signers and relays transactions to them and then results back to user
+#[tracing::instrument(skip_all, fields(request_author))]
+pub async fn relay_tx(
+    State(app_state): State<AppState>,
+    Json(encrypted_msg): Json<EncryptedSignedMessage>,
+) -> Result<(StatusCode, Body), UserErr> {
+    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
+    // make sure is a validator and not a signer
+    let validators_query = entropy::storage().session().validators();
+    let validators = query_chain(&api, &rpc, validators_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Error getting validators"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, validators).await?;
+
+    validators_info
+        .iter()
+        .find(|validator| validator.tss_account == *signer.account_id())
+        .ok_or_else(|| UserErr::NotValidator)?;
+
+    let (selected_signers, all_signers) = get_signers_from_chain(&api, &rpc).await?;
+
+    let signers_info = get_validators_info(&api, &rpc, all_signers).await?;
+
+    signers_info
+        .iter()
+        .find(|signer_info| signer_info.tss_account == *signer.account_id())
+        .map_or(Ok(()), |_| Err(UserErr::RelayMessageSigner))?;
+
+    let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
+
+    tracing::Span::current().record("request_author", signed_message.account_id().to_string());
+
+    let user_signature_request: UserSignatureRequest =
+        serde_json::from_slice(&signed_message.message.0)?;
+    let relayer_sig_req =
+        RelayerSignatureRequest { user_signature_request, validators_info: selected_signers };
+    let block_number = rpc
+        .chain_get_header(None)
+        .await?
+        .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
+        .number;
+
+    let string_verifying_key =
+        hex::encode(relayer_sig_req.user_signature_request.signature_verifying_key.clone());
+
+    let _ = pre_sign_checks(
+        &api,
+        &rpc,
+        relayer_sig_req.user_signature_request.clone(),
+        block_number,
+        string_verifying_key,
+    )
+    .await?;
+
+    // relay message
+    let (mut response_tx, response_rx) = mpsc::channel(1);
+
+    tokio::spawn(async move {
+        let result: Result<(), UserErr> = async {
+            let client = reqwest::Client::new();
+            let results = join_all(
+                relayer_sig_req
+                    .validators_info
+                    .iter()
+                    .map(|signer_info| async {
+                        let signed_message = EncryptedSignedMessage::new(
+                            signer.signer(),
+                            serde_json::to_vec(&relayer_sig_req.clone())?,
+                            &signer_info.x25519_public_key,
+                            &[],
+                        )?;
+
+                        let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
+
+                        let response = client
+                            .post(url)
+                            .header("Content-Type", "application/json")
+                            .body(serde_json::to_string(&signed_message)?)
+                            .send()
+                            .await?;
+
+                        Ok::<_, UserErr>(response)
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await;
+
+            let mut send_back = vec![];
+
+            for result in results {
+                let mut resp = result?;
+                let chunk = resp
+                    .chunk()
+                    .await?
+                    .ok_or(UserErr::OptionUnwrapError("No chunk data".to_string()))?;
+
+                if resp.status() == 200 {
+                    let signing_result: Result<(String, Signature), String> =
+                        serde_json::from_slice(&chunk)?;
+                    send_back.push(signing_result);
+                } else {
+                    send_back.push(Err(String::from_utf8(chunk.to_vec())?));
+                }
+            }
+
+            if response_tx.try_send(serde_json::to_string(&send_back)?).is_err() {
+                tracing::warn!("Cannot send signing protocol output - connection is closed");
+            }
+
+            Ok(())
+        }
+        .await;
+
+        if let Err(e) = result {
+            tracing::error!("Error in tokio::spawn task: {:?}", e);
+        }
+    });
+
+    let result_stream = response_rx.map(Ok::<_, UserErr>);
+
+    Ok((StatusCode::OK, Body::from_stream(result_stream)))
+}
+
+/// Called by a relayer to initiate the signing process for a message
+///
+/// Takes an [EncryptedSignedMessage] containing a JSON serialized [RelayerSignatureRequest]
 #[tracing::instrument(skip_all, fields(request_author))]
 pub async fn sign_tx(
     State(app_state): State<AppState>,
@@ -120,15 +258,70 @@ pub async fn sign_tx(
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
+    let validators_query = entropy::storage().session().validators();
+
+    let validators = query_chain(&api, &rpc, validators_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Error getting signers"))?;
+
+    let validators_info = get_validators_info(&api, &rpc, validators).await?;
+
+    validators_info
+        .iter()
+        .find(|validator| validator.tss_account == request_author)
+        .ok_or_else(|| UserErr::NotRelayedFromValidator)?;
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None)
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Failed to get request limit"))?;
 
-    let mut user_sig_req: UserSignatureRequest = serde_json::from_slice(&signed_message.message.0)?;
+    let relayer_sig_request: RelayerSignatureRequest =
+        serde_json::from_slice(&signed_message.message.0)?;
 
-    let string_verifying_key = hex::encode(user_sig_req.signature_verifying_key.clone());
+    // check validator info > threshold
+    let key_info_query = entropy::storage().parameters().signers_info();
+    let threshold = query_chain(&api, &rpc, key_info_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Failed to get signers info"))?
+        .threshold;
+
+    if relayer_sig_request.validators_info.len() < threshold as usize {
+        return Err(UserErr::TooFewSigners);
+    }
+    // validators are signers
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signer_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Get all validators error"))?;
+
+    let validator_exists = {
+        let mut found = true;
+
+        for validator_info in &relayer_sig_request.validators_info {
+            let stash_address_query = entropy::storage()
+                .staking_extension()
+                .threshold_to_stash(validator_info.tss_account.clone());
+
+            let stash_address = query_chain(&api, &rpc, stash_address_query, None)
+                .await?
+                .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
+
+            // If the stash_address is found in signers, we can stop further checking
+            if !signers.contains(&stash_address) {
+                found = false;
+                break;
+            }
+        }
+        found
+    };
+
+    if !validator_exists {
+        return Err(UserErr::IncorrectSigner);
+    }
+
+    let string_verifying_key =
+        hex::encode(relayer_sig_request.user_signature_request.signature_verifying_key.clone());
     request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
         .await?;
 
@@ -138,68 +331,19 @@ pub async fn sign_tx(
         .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
         .number;
 
-    check_stale(user_sig_req.block_number, block_number).await?;
-
-    // Probably impossible but block signing from parent key anyways
-    if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
-        return Err(UserErr::NoSigningFromParentKey);
-    }
-
-    let user_details =
-        get_registered_details(&api, &rpc, user_sig_req.signature_verifying_key.clone()).await?;
-    check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
-
-    let message = hex::decode(&user_sig_req.message)?;
-
-    if user_details.programs_data.0.is_empty() {
-        return Err(UserErr::NoProgramPointerDefined());
-    }
-
-    // Handle aux data padding, if it is not explicit by client for ease send through None, error
-    // if incorrect length
-    let auxilary_data_vec;
-    if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
-        if auxilary_data.len() < user_details.programs_data.0.len() {
-            return Err(UserErr::MismatchAuxData);
-        } else {
-            auxilary_data_vec = auxilary_data;
-        }
-    } else {
-        auxilary_data_vec = vec![None; user_details.programs_data.0.len()];
-    }
-
-    // gets fuel from chain
-    let max_instructions_per_programs_query =
-        entropy::storage().parameters().max_instructions_per_programs();
-    let fuel = query_chain(&api, &rpc, max_instructions_per_programs_query, None)
-        .await?
-        .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
-
-    let mut runtime = Runtime::new(ProgramConfig { fuel });
-
-    for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
-        let program_info = get_program(&api, &rpc, &program_data.program_pointer).await?;
-        let oracle_data = get_oracle_data(&api, &rpc, program_info.oracle_data_pointer).await?;
-        let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
-        let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
-        runtime.evaluate(
-            &program_info.bytecode,
-            &signature_request,
-            Some(&program_data.program_config),
-            Some(&oracle_data),
-        )?;
-    }
-
-    let signers = get_signers_from_chain(&api, &rpc).await?;
-
-    // Use the validator info from chain as we can be sure it is in the correct order and the
-    // details are correct
-    user_sig_req.validators_info = signers;
+    let (mut runtime, user_details, message) = pre_sign_checks(
+        &api,
+        &rpc,
+        relayer_sig_request.user_signature_request.clone(),
+        block_number,
+        string_verifying_key,
+    )
+    .await?;
 
     let message_hash = compute_hash(
         &api,
         &rpc,
-        &user_sig_req.hash,
+        &relayer_sig_request.user_signature_request.hash,
         &mut runtime,
         &user_details.programs_data.0,
         message.as_slice(),
@@ -207,7 +351,10 @@ pub async fn sign_tx(
     .await?;
 
     let signing_session_id = SigningSessionInfo {
-        signature_verifying_key: user_sig_req.signature_verifying_key.clone(),
+        signature_verifying_key: relayer_sig_request
+            .user_signature_request
+            .signature_verifying_key
+            .clone(),
         message_hash,
         request_author,
     };
@@ -227,7 +374,7 @@ pub async fn sign_tx(
     tokio::spawn(async move {
         let signing_protocol_output = do_signing(
             &rpc,
-            user_sig_req,
+            relayer_sig_request,
             &app_state,
             signing_session_id,
             request_limit,
@@ -523,4 +670,64 @@ pub fn check_hash_pointer_out_of_bounds(
         },
         _ => Ok(()),
     }
+}
+
+pub async fn pre_sign_checks(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    user_sig_req: UserSignatureRequest,
+    block_number: u32,
+    string_verifying_key: String,
+) -> Result<(Runtime, RegisteredInfo, Vec<u8>), UserErr> {
+    check_stale(user_sig_req.block_number, block_number).await?;
+
+    // Probably impossible but block signing from parent key anyways
+    if string_verifying_key == hex::encode(NETWORK_PARENT_KEY) {
+        return Err(UserErr::NoSigningFromParentKey);
+    }
+
+    let user_details =
+        get_registered_details(api, rpc, user_sig_req.signature_verifying_key.clone()).await?;
+    check_hash_pointer_out_of_bounds(&user_sig_req.hash, user_details.programs_data.0.len())?;
+
+    let message = hex::decode(&user_sig_req.message)?;
+
+    if user_details.programs_data.0.is_empty() {
+        return Err(UserErr::NoProgramPointerDefined());
+    }
+
+    // Handle aux data padding, if it is not explicit by client for ease send through None, error
+    // if incorrect length
+    let auxilary_data_vec = if let Some(auxilary_data) = user_sig_req.clone().auxilary_data {
+        if auxilary_data.len() < user_details.programs_data.0.len() {
+            return Err(UserErr::MismatchAuxData);
+        }
+        auxilary_data
+    } else {
+        vec![None; user_details.programs_data.0.len()]
+    };
+
+    // gets fuel from chain
+    let max_instructions_per_programs_query =
+        entropy::storage().parameters().max_instructions_per_programs();
+    let fuel = query_chain(api, rpc, max_instructions_per_programs_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
+
+    let mut runtime = Runtime::new(ProgramConfig { fuel });
+
+    for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
+        let program_info = get_program(api, rpc, &program_data.program_pointer).await?;
+        let oracle_data = get_oracle_data(api, rpc, program_info.oracle_data_pointer).await?;
+        let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
+        let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
+        runtime.evaluate(
+            &program_info.bytecode,
+            &signature_request,
+            Some(&program_data.program_config),
+            Some(&oracle_data),
+        )?;
+    }
+
+    Ok((runtime, user_details, message))
 }

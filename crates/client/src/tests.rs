@@ -16,8 +16,11 @@ use crate::{
     update_programs,
 };
 use entropy_testing_utils::{
-    constants::TEST_PROGRAM_WASM_BYTECODE, jump_start_network,
-    substrate_context::test_context_stationary, test_node_process_testing_state,
+    constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS},
+    helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
+    jump_start_network, spawn_testing_validators,
+    substrate_context::test_context_stationary,
+    test_node_process_testing_state, ChainSpecType,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
@@ -64,6 +67,12 @@ async fn test_change_threshold_accounts() {
     )
     .await
     .unwrap();
+
+    let provisioning_certification_key = {
+        let key = derive_mock_pck_verifying_key(&TSS_ACCOUNTS[0]);
+        BoundedVec(encode_verifying_key(&key).unwrap().to_vec())
+    };
+
     assert_eq!(
         format!("{:?}", result),
         format!(
@@ -73,7 +82,8 @@ async fn test_change_threshold_accounts() {
                 ServerInfo {
                     tss_account: AccountId32(one.pair().public().0),
                     x25519_public_key,
-                    endpoint: "127.0.0.1:3001".as_bytes().to_vec()
+                    endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
+                    provisioning_certification_key,
                 }
             )
         )
@@ -124,8 +134,11 @@ async fn test_store_and_remove_program() {
 async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
 
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(ChainSpecType::Integration).await;
+
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 

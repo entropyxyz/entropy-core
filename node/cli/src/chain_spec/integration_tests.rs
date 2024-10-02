@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::{get_account_id_from_seed, ChainSpec};
+use crate::chain_spec::{get_account_id_from_seed, provisioning_certification_key, ChainSpec};
 use crate::endowed_accounts::endowed_accounts_dev;
 
 use entropy_runtime::{
@@ -59,7 +59,7 @@ pub fn integration_tests_config() -> ChainSpec {
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             vec![
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
             ],
         ))
         .build()
@@ -158,6 +158,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
                         "127.0.0.1:3001".as_bytes().to_vec(),
+                        provisioning_certification_key::ALICE.clone(),
                     ),
                 ),
                 (
@@ -166,6 +167,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
                         "127.0.0.1:3002".as_bytes().to_vec(),
+                        provisioning_certification_key::BOB.clone(),
                     ),
                 ),
                 (
@@ -174,6 +176,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
                         "127.0.0.1:3003".as_bytes().to_vec(),
+                        provisioning_certification_key::CHARLIE.clone(),
                     ),
                 ),
                 (
@@ -182,6 +185,7 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::DAVE,
                         "127.0.0.1:3004".as_bytes().to_vec(),
+                        provisioning_certification_key::DAVE.clone(),
                     ),
                 ),
             ],
@@ -214,7 +218,7 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")],),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Charlie//stash")],),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts

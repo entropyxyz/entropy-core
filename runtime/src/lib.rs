@@ -318,6 +318,8 @@ impl Contains<RuntimeCall> for BaseCallFilter {
             call,
             RuntimeCall::Staking(pallet_staking::Call::withdraw_unbonded { .. })
                 | RuntimeCall::Staking(pallet_staking::Call::validate { .. })
+                | RuntimeCall::Staking(pallet_staking::Call::unbond { .. })
+                | RuntimeCall::Staking(pallet_staking::Call::chill { .. })
         );
         if is_paused || system_reject {
             // no paused call

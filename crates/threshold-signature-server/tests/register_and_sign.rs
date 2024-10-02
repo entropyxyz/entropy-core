@@ -17,7 +17,6 @@ use entropy_client::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
-        EntropyConfig,
     },
     client as test_client, Hasher,
 };
@@ -26,34 +25,36 @@ use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
-    jump_start_network, spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
+    spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
+use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
 use serial_test::serial;
-use sp_core::{sr25519, Pair};
+use sp_core::Pair;
 use sp_keyring::AccountKeyring;
-use subxt::{tx::PairSigner, utils::AccountId32};
+use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
 async fn integration_test_register_and_sign() {
+    initialize_test_logger().await;
     clean_tests();
-    let account_owner = AccountKeyring::Ferdie.pair();
-    let signature_request_author = AccountKeyring::One;
 
-    let add_parent_key = true;
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(add_parent_key, ChainSpecType::Integration).await;
+        spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = test_node_process_testing_state(force_authoring).await;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
+
     let api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    // Jumpstart the network
-    let alice = AccountKeyring::Alice;
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-    jump_start_network(&api, &rpc, &signer).await;
+    // First jumpstart the network
+    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+
+    // Now register an account
+    let account_owner = AccountKeyring::Ferdie.pair();
+    let signature_request_author = AccountKeyring::One;
 
     // Store a program
     let program_pointer = test_client::store_program(

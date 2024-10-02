@@ -397,11 +397,14 @@ impl pallet_parameters::Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_balances = pallet_balances::GenesisConfig::<Test> {
-        balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
+        balances: vec![(1, 100), (2, 100), (3, 100), (4, 100), (7, 100), (8, 100), (9, 200)],
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
-        // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL))
-        threshold_servers: vec![(5, (7, NULL_ARR, vec![20])), (6, (8, NULL_ARR, vec![40]))],
+        // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL, VerifyingKey))
+        threshold_servers: vec![
+            (5, (7, NULL_ARR, vec![20], BoundedVec::with_max_capacity())),
+            (6, (8, NULL_ARR, vec![40], BoundedVec::with_max_capacity())),
+        ],
         proactive_refresh_data: (vec![], vec![]),
         mock_signer_rotate: (false, vec![], vec![]),
     };

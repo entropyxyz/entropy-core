@@ -21,6 +21,7 @@ pub use crate::{
 };
 use anyhow::anyhow;
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
+use rand::Rng;
 use std::str::FromStr;
 pub use synedrion::KeyShare;
 
@@ -38,17 +39,18 @@ use crate::{
     },
     client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
     substrate::{get_registered_details, submit_transaction_with_pair},
-    user::{get_signers_from_chain, UserSignatureRequest},
+    user::{get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest},
     Hasher,
 };
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
-use futures::{future, stream::StreamExt};
+use futures::stream::StreamExt;
 use sp_core::{sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
+    ext::sp_core::sr25519::Signature,
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
@@ -113,14 +115,16 @@ pub async fn sign(
 ) -> Result<RecoverableSignature, ClientError> {
     let message_hash = Hasher::keccak(&message);
 
-    let validators_info = get_signers_from_chain(api, rpc).await?;
+    let validators_info = get_validators_not_signer_for_relay(api, rpc).await?;
+    if validators_info.is_empty() {
+        return Err(ClientError::NoNonSigningValidators);
+    }
 
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;
     let signature_request = UserSignatureRequest {
         message: hex::encode(message),
         auxilary_data: Some(vec![auxilary_data.map(hex::encode)]),
-        validators_info: validators_info.clone(),
         block_number,
         hash: HashingAlgorithm::Keccak,
         signature_verifying_key: signature_verifying_key.to_vec(),
@@ -129,70 +133,64 @@ pub async fn sign(
     let signature_request_vec = serde_json::to_vec(&signature_request)?;
     let client = reqwest::Client::new();
 
-    // Make http requests to TSS servers
-    let submit_transaction_requests = validators_info
-        .iter()
-        .map(|validator_info| async {
-            let encrypted_message = EncryptedSignedMessage::new(
-                &user_keypair,
-                signature_request_vec.clone(),
-                &validator_info.x25519_public_key,
-                &[],
-            )?;
-            let message_json = serde_json::to_string(&encrypted_message)?;
+    let mut rng = rand::thread_rng();
+    let random_index = rng.gen_range(0..validators_info.len());
+    let validator_info = &validators_info[random_index];
 
-            let url = format!("http://{}/user/sign_tx", validator_info.ip_address);
+    // Make http request to TSS server
+    let encrypted_message = EncryptedSignedMessage::new(
+        &user_keypair,
+        signature_request_vec.clone(),
+        &validator_info.x25519_public_key,
+        &[],
+    )?;
+    let message_json = serde_json::to_string(&encrypted_message)?;
 
-            let res = client
-                .post(url)
-                .header("Content-Type", "application/json")
-                .body(message_json)
-                .send()
-                .await;
-            Ok::<_, ClientError>(res)
-        })
-        .collect::<Vec<_>>();
+    let url = format!("http://{}/user/relay_tx", validator_info.ip_address);
 
-    // If we have a keyshare, connect to TSS servers
-    let results = future::try_join_all(submit_transaction_requests).await?;
+    let result = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(message_json)
+        .send()
+        .await?;
 
-    // Get the first result
-    if let Some(res) = results.into_iter().next() {
-        let output = res?;
-        if output.status() != 200 {
-            return Err(ClientError::SigningFailed(output.text().await?));
-        }
+    let mut bytes_stream = result.bytes_stream();
+    let chunk = bytes_stream.next().await.ok_or(ClientError::NoResponse)??;
+    let signing_results: Vec<Result<(String, Signature), String>> = serde_json::from_slice(&chunk)?;
+    // take only one of the responses randomly
+    let mut rng = rand::thread_rng();
+    let random_index = rng.gen_range(0..signing_results.len());
+    let (signature_base64, signature_of_signature) =
+        signing_results[random_index].clone().map_err(ClientError::SigningFailed)?;
+    tracing::debug!("Signature: {}", signature_base64);
+    let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
 
-        let mut bytes_stream = output.bytes_stream();
-        let chunk = bytes_stream.next().await.ok_or(ClientError::NoResponse)??;
-        let signing_result: Result<(String, sr25519::Signature), String> =
-            serde_json::from_slice(&chunk)?;
-        let (signature_base64, signature_of_signature) =
-            signing_result.map_err(ClientError::SigningFailed)?;
-        tracing::debug!("Signature: {}", signature_base64);
-        let mut decoded_sig = BASE64_STANDARD.decode(signature_base64)?;
-
-        // Verify the response signature from the TSS client
-        if !sr25519::Pair::verify(
+    // Verify the response signature from the TSS client
+    let signers = get_all_signers_from_chain(api, rpc).await?;
+    let mut sig_recovery_results = vec![];
+    for signer_info in signers {
+        let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signature_of_signature,
-            &decoded_sig,
-            &sr25519::Public(validators_info[0].tss_account.0),
-        ) {
-            return Err(ClientError::BadSignature);
-        }
-
-        let recovery_digit = decoded_sig.pop().ok_or(ClientError::NoRecoveryId)?;
-        let signature = k256Signature::from_slice(&decoded_sig)?;
-        let recovery_id =
-            RecoveryId::from_byte(recovery_digit).ok_or(ClientError::BadRecoveryId)?;
-
-        let verifying_key_of_signature =
-            VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
-        tracing::debug!("Verifying Key {:?}", verifying_key_of_signature);
-
-        return Ok(RecoverableSignature { signature, recovery_id });
+            decoded_sig.clone(),
+            &sr25519::Public(signer_info.tss_account.0),
+        );
+        sig_recovery_results.push(sig_recovery)
     }
-    Err(ClientError::NoResponse)
+
+    if !sig_recovery_results.contains(&true) {
+        return Err(ClientError::BadSignature);
+    }
+
+    let recovery_digit = decoded_sig.pop().ok_or(ClientError::NoRecoveryId)?;
+    let signature = k256Signature::from_slice(&decoded_sig)?;
+    let recovery_id = RecoveryId::from_byte(recovery_digit).ok_or(ClientError::BadRecoveryId)?;
+
+    let verifying_key_of_signature =
+        VerifyingKey::recover_from_prehash(&message_hash, &signature, recovery_id)?;
+    tracing::debug!("Verifying Key {:?}", verifying_key_of_signature);
+
+    return Ok(RecoverableSignature { signature, recovery_id });
 }
 
 /// Store a program on chain and return it's hash

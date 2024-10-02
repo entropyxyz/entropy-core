@@ -30,8 +30,6 @@ pub struct UserSignatureRequest {
     pub message: String,
     /// Hex-encoded auxilary data for program evaluation, will not be signed (eg. zero-knowledge proof, serialized struct, etc)
     pub auxilary_data: Option<Vec<Option<String>>>,
-    /// Information from the validators in signing party
-    pub validators_info: Vec<ValidatorInfo>,
     /// When the message was created and signed
     pub block_number: BlockNumber,
     /// Hashing algorithm to be used for signing
@@ -40,24 +38,32 @@ pub struct UserSignatureRequest {
     pub signature_verifying_key: Vec<u8>,
 }
 
-pub async fn get_signers_from_chain(
+/// Represents an unparsed transaction request coming from a relayer to a signer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RelayerSignatureRequest {
+    // Request relayed from user to signer
+    pub user_signature_request: UserSignatureRequest,
+    /// Information for the validators in the signing party
+    pub validators_info: Vec<ValidatorInfo>,
+}
+
+/// Gets a validator from chain to relay a message to the signers
+/// Filters out all signers
+pub async fn get_validators_not_signer_for_relay(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<Vec<ValidatorInfo>, SubgroupGetError> {
     let signer_query = entropy::storage().staking_extension().signers();
-    let mut validators = query_chain(api, rpc, signer_query, None)
+    let signers = query_chain(api, rpc, signer_query, None)
         .await?
         .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
 
-    let key_info_query = entropy::storage().parameters().signers_info();
-    let threshold = query_chain(api, rpc, key_info_query, None)
+    let validators_query = entropy::storage().session().validators();
+    let mut validators = query_chain(api, rpc, validators_query, None)
         .await?
-        .ok_or_else(|| SubgroupGetError::ChainFetch("Failed to get signers info"))?
-        .threshold;
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Error getting validators"))?;
 
-    // TODO #899 For now we just take the first t validators as the ones to perform signing
-    validators.truncate(threshold as usize);
-
+    validators.retain(|validator| !signers.contains(validator));
     let block_hash = rpc.chain_get_block_hash(None).await?;
     let mut handles = Vec::new();
 
@@ -69,6 +75,51 @@ pub async fn get_signers_from_chain(
                 async move {
                     let threshold_address_query =
                         entropy::storage().staking_extension().threshold_servers(validator);
+                    let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
+                        .await?
+                        .ok_or_else(|| {
+                            SubgroupGetError::ChainFetch("threshold_servers query error")
+                        })?;
+                    Ok(ValidatorInfo {
+                        x25519_public_key: server_info.x25519_public_key,
+                        ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
+                        tss_account: server_info.tss_account,
+                    })
+                }
+            });
+
+        handles.push(handle);
+    }
+
+    let mut all_validators: Vec<ValidatorInfo> = vec![];
+    for handle in handles {
+        all_validators.push(handle.await??);
+    }
+
+    Ok(all_validators)
+}
+
+/// Gets all signers from chain
+pub async fn get_all_signers_from_chain(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<Vec<ValidatorInfo>, SubgroupGetError> {
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(api, rpc, signer_query, None)
+        .await?
+        .ok_or_else(|| SubgroupGetError::ChainFetch("Get all validators error"))?;
+
+    let block_hash = rpc.chain_get_block_hash(None).await?;
+    let mut handles = Vec::new();
+
+    for signer in signers {
+        let handle: tokio::task::JoinHandle<Result<ValidatorInfo, SubgroupGetError>> =
+            tokio::task::spawn({
+                let api = api.clone();
+                let rpc = rpc.clone();
+                async move {
+                    let threshold_address_query =
+                        entropy::storage().staking_extension().threshold_servers(signer);
                     let server_info = query_chain(&api, &rpc, threshold_address_query, block_hash)
                         .await?
                         .ok_or_else(|| {
