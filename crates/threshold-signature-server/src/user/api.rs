@@ -13,77 +13,48 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    str::{from_utf8, FromStr},
-    sync::Arc,
-    time::SystemTime,
-};
+use std::str::FromStr;
 
 use axum::{
     body::{Body, Bytes},
     extract::State,
     http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Json, Router,
+    Json,
 };
 use base64::prelude::{Engine, BASE64_STANDARD};
-use bip39::{Language, Mnemonic};
-use blake2::{Blake2s256, Digest};
 use entropy_client::substrate::get_registered_details;
-use entropy_kvdb::kv_manager::{
-    error::{InnerKvError, KvError},
-    helpers::serialize as key_serialize,
-    value::PartyInfo,
-    KvManager,
-};
+use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
-use entropy_protocol::{KeyParams, PartyId, SigningSessionInfo, ValidatorInfo};
-use entropy_shared::{
-    HashingAlgorithm, OcwMessageDkg, X25519PublicKey, NETWORK_PARENT_KEY, TOTAL_SIGNERS,
-};
-use futures::{
-    channel::mpsc,
-    future::{join_all, try_join_all, FutureExt},
-    stream::TryStreamExt,
-    Stream, StreamExt,
-};
-use num::{bigint::BigInt, FromPrimitive, Num, ToPrimitive};
-use parity_scale_codec::{Decode, DecodeAll, Encode};
-use rand_core::OsRng;
+use entropy_protocol::SigningSessionInfo;
+use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
+use futures::{channel::mpsc, future::join_all, StreamExt};
+use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::AccountId32, H256};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{crypto::Ss58Codec, sr25519, sr25519::Signature, Pair},
-    tx::{PairSigner, Signer},
-    utils::{AccountId32 as SubxtAccountId32, MultiAddress},
-    Config, OnlineClient,
+    ext::sp_core::{sr25519, sr25519::Signature, Pair},
+    tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32,
+    OnlineClient,
 };
-use synedrion::ThresholdKeyShare;
-use tokio::select;
-use tracing::instrument;
 use x25519_dalek::StaticSecret;
-use zeroize::Zeroize;
 
-use super::{ParsedUserInputPartyInfo, ProgramError, UserErr, UserInputPartyInfo};
+use super::UserErr;
 use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
-        signing::{do_signing, Hasher},
+        signing::do_signing,
         substrate::{
-            get_oracle_data, get_program, get_signers_from_chain, get_stash_address,
-            get_validators_info, query_chain, submit_transaction,
+            get_oracle_data, get_program, get_signers_from_chain, get_validators_info, query_chain,
+            submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
-        validator::{get_signer, get_signer_and_x25519_secret},
+        validator::get_signer_and_x25519_secret,
     },
-    signing_client::{ListenerState, ProtocolErr},
     validation::{check_stale, EncryptedSignedMessage},
-    validator::api::check_forbidden_key,
-    AppState, Configuration,
+    AppState,
 };
 
 pub use entropy_client::user::{RelayerSignatureRequest, UserSignatureRequest};
