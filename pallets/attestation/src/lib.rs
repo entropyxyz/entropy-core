@@ -39,8 +39,6 @@ pub mod benchmarking;
 
 pub mod weights;
 
-mod pck;
-
 #[cfg(test)]
 mod mock;
 
@@ -55,7 +53,6 @@ pub mod pallet {
     use sp_std::vec::Vec;
     use tdx_quote::{decode_verifying_key, Quote};
 
-    pub use crate::pck::parse_pck_cert_chain;
     pub use crate::weights::WeightInfo;
 
     /// A nonce included as input for a TDX quote

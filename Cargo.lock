@@ -6748,9 +6748,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "spki",
  "tdx-quote",
- "x509-verify",
 ]
 
 [[package]]
@@ -7472,6 +7470,8 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
+ "spki",
+ "x509-verify",
 ]
 
 [[package]]
