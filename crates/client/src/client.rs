@@ -329,7 +329,7 @@ pub async fn put_register_request_on_chain(
     let registered_event = registered_events
         .find::<entropy::registry::events::AccountRegistered>()
         .flatten()
-        .find_map(|event| (event.0 == signature_request_keypair.public().into()).then_some(event))
+        .find_map(|event| (event.0 == signature_request_keypair.public().0.into()).then_some(event))
         .ok_or(ClientError::NotRegistered);
 
     registered_event
