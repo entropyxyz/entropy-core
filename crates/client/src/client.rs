@@ -47,10 +47,12 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
 use futures::stream::StreamExt;
-use sp_core::{sr25519, Pair};
+use sp_core::{
+    sr25519::{self, Signature},
+    Pair,
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    ext::sp_core::sr25519::Signature,
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
@@ -327,7 +329,7 @@ pub async fn put_register_request_on_chain(
     let registered_event = registered_events
         .find::<entropy::registry::events::AccountRegistered>()
         .flatten()
-        .find_map(|event| (event.0 == signature_request_keypair.public().into()).then_some(event))
+        .find_map(|event| (event.0 == signature_request_keypair.public().0.into()).then_some(event))
         .ok_or(ClientError::NotRegistered);
 
     registered_event

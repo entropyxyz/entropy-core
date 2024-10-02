@@ -33,6 +33,8 @@ At the moment this project **does not** adhere to
   data structures related to a candidates state (namely `ThresholdToStash` and `ThresholdServer`) an
   attestation from the Attestation pallet must have been received. Success of the `validate()`
   extrinsic **does not** mean the caller is a candidate or validator.
+- In [#1086](https://github.com/entropyxyz/entropy-core/pull/1086) `Eve` was removed as a validator
+  from the `devnet-local` chainspec and replaced with `Charlie`.
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -58,6 +60,7 @@ At the moment this project **does not** adhere to
 - No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
 - Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
 - Trigger attestation check during validate ([#1063](https://github.com/entropyxyz/entropy-core/pull/1063))
+- Add fourth node to `devnet-local` configuration ([#1086](https://github.com/entropyxyz/entropy-core/pull/1086))
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
