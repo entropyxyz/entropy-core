@@ -6702,6 +6702,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "scale-info",
  "sp-core 29.0.0",
@@ -7414,6 +7415,7 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
+ "pallet-attestation",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",
@@ -7423,6 +7425,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "scale-info",
  "serde",
  "sp-consensus-babe 0.33.0",
@@ -7432,6 +7435,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
+ "tdx-quote",
 ]
 
 [[package]]
