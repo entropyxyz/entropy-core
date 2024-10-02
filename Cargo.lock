@@ -1400,8 +1400,9 @@ dependencies = [
 
 [[package]]
 name = "configfs-tsm"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/configfs-tsm?rev=f32c166#f32c166e21251eaed072659460a7d3766aaa61ff"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69e259465c479ea772003ae9e70bcecebefa0e46e0862ffe728edefafc96006b"
 
 [[package]]
 name = "console"
@@ -14141,8 +14142,9 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 
 [[package]]
 name = "tdx-quote"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2#cb167f2aef1c7539c91082ee21c764eac60f6bef"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e10fe3140395153ccb4050f6eb51fe621a3b6d76da489601aec9fabe2fb1c3e0"
 dependencies = [
  "nom",
  "p256",
