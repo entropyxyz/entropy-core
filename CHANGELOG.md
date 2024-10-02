@@ -28,6 +28,8 @@ At the moment this project **does not** adhere to
   As such, `UserSignatureRequest` no longer requires the `validators_info` field since the the
   relayer adds that in after. The response received from the validator is now a `Vec<Responses>`
   from the signers.
+- In [#1086](https://github.com/entropyxyz/entropy-core/pull/1086) `Eve` was removed as a validator
+  from the `devnet-local` chainspec and replaced with `Charlie`.
 
 ### Added
 - Jumpstart network ([#918](https://github.com/entropyxyz/entropy-core/pull/918))
@@ -52,6 +54,8 @@ At the moment this project **does not** adhere to
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
 - No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
 - Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
+- Add fourth node to `devnet-local` configuration ([#1086](https://github.com/entropyxyz/entropy-core/pull/1086))
+
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
