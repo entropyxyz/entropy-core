@@ -75,7 +75,7 @@ pub const MAX_SIGNERS: u8 = 15;
 pub const SIGNER_THRESHOLD: u8 = 2;
 
 /// For testing to line up chain mock data and reshare_test
-pub const TEST_RESHARE_BLOCK_NUMBER: u32 = 9;
+pub const TEST_RESHARE_BLOCK_NUMBER: u32 = 11;
 
 /// Program version number, must be incremented if version number changes
 pub const PROGRAM_VERSION_NUMBER: u8 = 0;
