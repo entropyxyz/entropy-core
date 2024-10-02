@@ -47,10 +47,12 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
 use futures::stream::StreamExt;
-use sp_core::{sr25519, Pair};
+use sp_core::{
+    sr25519::{self, Signature},
+    Pair,
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    ext::sp_core::sr25519::Signature,
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
