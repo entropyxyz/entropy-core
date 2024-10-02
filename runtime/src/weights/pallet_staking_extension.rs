@@ -191,7 +191,7 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(c.into()))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(n.into()))
 	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:1)
+	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
@@ -215,16 +215,18 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	/// Proof: `BagsList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CounterForValidators` (r:1 w:1)
 	/// Proof: `Staking::CounterForValidators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `StakingExtension::ThresholdServers` (r:0 w:1)
-	/// Proof: `StakingExtension::ThresholdServers` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::CounterForValidationQueue` (r:1 w:1)
+	/// Proof: `StakingExtension::CounterForValidationQueue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ValidationQueue` (r:1 w:1)
+	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	fn validate() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1918`
+		//  Measured:  `1943`
 		//  Estimated: `6248`
 		// Minimum execution time: 61_000_000 picoseconds.
 		Weight::from_parts(68_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 6248))
-			.saturating_add(T::DbWeight::get().reads(13))
+			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
@@ -324,5 +326,29 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
+	}
+	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:250)
+	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::CounterForValidationQueue` (r:1 w:1)
+	/// Proof: `StakingExtension::CounterForValidationQueue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ThresholdServers` (r:0 w:1)
+	/// Proof: `StakingExtension::ThresholdServers` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::ThresholdToStash` (r:0 w:250)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `s` is `[1, 250]`.
+	fn on_initialize(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `337 + s * (154 ±0)`
+		//  Estimated: `3799 + s * (2630 ±0)`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(21_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3799))
+			// Standard Error: 66_002
+			.saturating_add(Weight::from_parts(9_585_598, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(s.into())))
+			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(s.into())))
+			.saturating_add(Weight::from_parts(0, 2630).saturating_mul(s.into()))
 	}
 }

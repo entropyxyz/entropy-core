@@ -116,6 +116,9 @@ pub async fn sign(
     let message_hash = Hasher::keccak(&message);
 
     let validators_info = get_validators_not_signer_for_relay(api, rpc).await?;
+    if validators_info.is_empty() {
+        return Err(ClientError::NoNonSigningValidators);
+    }
 
     tracing::debug!("Validators info {:?}", validators_info);
     let block_number = rpc.chain_get_header(None).await?.ok_or(ClientError::BlockNumber)?.number;

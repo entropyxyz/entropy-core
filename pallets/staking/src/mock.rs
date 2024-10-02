@@ -47,6 +47,7 @@ const NULL_ARR: [u8; 32] = [0; 32];
 
 pub const KEY_ID_A: KeyTypeId = KeyTypeId([4; 4]);
 pub const KEY_ID_B: KeyTypeId = KeyTypeId([9; 4]);
+
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
   pub enum Test
@@ -60,6 +61,7 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
+    Attestation: pallet_attestation,
   }
 );
 
@@ -70,7 +72,8 @@ thread_local! {
 
 
 }
-type AccountId = u64;
+
+pub(crate) type AccountId = u64;
 type Balance = u64;
 
 parameter_types! {
@@ -376,28 +379,39 @@ impl Randomness<H256, BlockNumber> for TestPastRandomness {
     }
 }
 
-parameter_types! {
-  pub const MaxEndpointLength: u32 = 3;
-}
-impl pallet_staking_extension::Config for Test {
-    type Currency = Balances;
-    type MaxEndpointLength = MaxEndpointLength;
-    type Randomness = TestPastRandomness;
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-}
-
 impl pallet_parameters::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<Self::AccountId>;
     type WeightInfo = ();
 }
 
+parameter_types! {
+  pub const MaxEndpointLength: u32 = 3;
+  pub const MaxPendingAttestations: u32 = 4;
+}
+
+impl pallet_staking_extension::Config for Test {
+    type Currency = Balances;
+    type MaxEndpointLength = MaxEndpointLength;
+    type Randomness = TestPastRandomness;
+    type RuntimeEvent = RuntimeEvent;
+    type MaxPendingAttestations = MaxPendingAttestations;
+    type WeightInfo = ();
+}
+
+impl pallet_attestation::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+    type Randomness = TestPastRandomness;
+    type KeyProvider = Staking;
+    type AttestationQueue = Staking;
+}
+
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_balances = pallet_balances::GenesisConfig::<Test> {
-        balances: vec![(1, 100), (2, 100), (3, 100), (4, 100), (7, 100), (8, 100), (9, 200)],
+        balances: (1..=9).map(|i| if i == 9 { (i, 200) } else { (i, 100) }).collect::<Vec<_>>(),
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL, VerifyingKey))
@@ -429,6 +443,12 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     for b in (System::block_number() + 1)..=n {
         System::set_block_number(b);
         Session::on_initialize(b);
+
+        // In our production runtime the attestation pallet's `on_initalize` hook gets run after the
+        // staking pallet's hook based off the pallet indices, so we follow the same flow here.
+        Staking::on_initialize(b);
+        Attestation::on_initialize(b);
+
         <FrameStaking as Hooks<u64>>::on_initialize(b);
         Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
         if b != n {
