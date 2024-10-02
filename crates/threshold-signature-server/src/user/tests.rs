@@ -1304,8 +1304,6 @@ async fn test_device_key_proxy() {
     verify_signature(test_user_res, message_hash, &verifying_key, &all_signers_info).await;
 }
 
-/// FIXME (#909): Ignored due to block number changing message causing signing selection to be the incorrect nodes
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_faucet() {
@@ -1334,13 +1332,46 @@ async fn test_faucet() {
     let alice = AccountKeyring::Alice;
 
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Development).await;
-    let relayer_ip_and_key = ("localhost:3001".to_string(), X25519_PUBLIC_KEYS[0]);
+        spawn_testing_validators(ChainSpecType::Integration).await;
     let substrate_context = &test_node_process_testing_state(true).await[0];
     let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
-    let verifying_key = EVE_VERIFYING_KEY;
+    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let (relayer_ip_and_key, _) =
+        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+
+    let program_hash = test_client::store_program(
+        &entropy_api,
+        &rpc,
+        &two.pair(),
+        FAUCET_PROGRAM.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+        0u8,
+    )
+    .await
+    .unwrap();
+
+    let amount_to_send = 200000001;
+    let genesis_hash = &entropy_api.genesis_hash();
+
+    let faucet_user_config = UserConfig {
+        max_transfer_amount: amount_to_send,
+        genesis_hash: hex::encode(genesis_hash.encode()),
+    };
+
+    let (verifying_key, _registered_info) = test_client::register(
+        &entropy_api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
+
     let verfiying_key_account_hash = blake2_256(&verifying_key);
     let verfiying_key_account = subxtAccountId32(verfiying_key_account_hash);
 
@@ -1363,27 +1394,6 @@ async fn test_faucet() {
         .submit_and_watch()
         .await
         .unwrap();
-
-    let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
-        &two.pair(),
-        FAUCET_PROGRAM.to_owned(),
-        vec![],
-        vec![],
-        vec![],
-        0u8,
-    )
-    .await
-    .unwrap();
-
-    let amount_to_send = 200000001;
-    let genesis_hash = &entropy_api.genesis_hash();
-
-    let faucet_user_config = UserConfig {
-        max_transfer_amount: amount_to_send,
-        genesis_hash: hex::encode(genesis_hash.encode()),
-    };
 
     update_programs(
         &entropy_api,
