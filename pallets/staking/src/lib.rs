@@ -41,6 +41,8 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
+mod pck;
+
 #[cfg(test)]
 mod mock;
 
@@ -68,6 +70,7 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -95,6 +98,7 @@ pub mod pallet {
         type MaxEndpointLength: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+        type PckCertChainVerifier: PckCertChainVerifier;
     }
 
     /// A unique identifier of a subgroup or partition of validators that have the same set of
@@ -494,10 +498,22 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            server_info: ServerInfo<T::AccountId>,
+            tss_account: T::AccountId,
+            x25519_public_key: X25519PublicKey,
+            endpoint: TssServerURL,
+            pck_cert: Vec<u8>,
+            provider_cert: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
-
+            let pck =
+                T::PckCertChainVerifier::verify_pck_cert_chain(pck_cert, provider_cert).unwrap();
+            let server_info = ServerInfo::<T::AccountId> {
+                tss_account,
+                x25519_public_key,
+                endpoint,
+                // TODO convert to a compressed public key
+                provisioning_certification_key: pck[..33].to_vec().try_into().unwrap(),
+            };
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong

@@ -71,7 +71,11 @@ fn it_takes_in_an_endpoint() {
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            3,          // TSS account
+            NULL_ARR,   // x25519_public_key
+            vec![20],   // endpoint
+            Vec::new(), // pck cert
+            Vec::new(), // provider cert
         ));
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(1).unwrap();
