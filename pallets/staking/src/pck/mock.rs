@@ -1,5 +1,6 @@
 use super::{CompressedVerifyingKey, PckCertChainVerifier, PckParseVerifyError};
 use sp_runtime::BoundedVec;
+use sp_std::vec::Vec;
 
 pub struct MockPckCertChainVerifyer {}
 
