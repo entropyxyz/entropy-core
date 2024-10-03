@@ -13,31 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use axum::http::StatusCode;
 use base64::prelude::{Engine, BASE64_STANDARD};
-use bip39::{Language, Mnemonic};
-use blake3::hash;
 use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client as test_client,
-    client::{sign, update_programs},
-    user::get_all_signers_from_chain,
+    client::update_programs,
+    user::{get_all_signers_from_chain, UserSignatureRequest},
 };
-use entropy_kvdb::{
-    clean_tests,
-    encrypted_sled::PasswordMethod,
-    kv_manager::{helpers::deserialize as keyshare_deserialize, value::KvManager},
-};
-use entropy_programs_runtime::{Runtime, SignatureRequest};
+use entropy_kvdb::clean_tests;
+use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     decode_verifying_key,
-    protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage, WsConnection},
-    KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, SigningSessionInfo, ValidatorInfo,
+    protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
+    KeyShareWithAuxInfo, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
-    HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY,
-    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, EVE_VERIFYING_KEY, FERDIE_VERIFYING_KEY,
-    NETWORK_PARENT_KEY,
+    HashingAlgorithm, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH,
+    EVE_VERIFYING_KEY, NETWORK_PARENT_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -45,66 +37,38 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
     },
     constants::{
-        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_FAIL, AUXILARY_DATA_SHOULD_SUCCEED,
-        FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_FAIL, PREIMAGE_SHOULD_SUCCEED,
-        TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE, TEST_PROGRAM_CUSTOM_HASH,
-        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        AUXILARY_DATA_SHOULD_SUCCEED, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY,
+        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
+        TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
-        SubstrateTestingContext,
     },
 };
-use futures::{
-    future::{self, join_all},
-    join, Future, SinkExt, StreamExt,
-};
-use hex_literal::hex;
 use more_asserts as ma;
-use parity_scale_codec::{Decode, DecodeAll, Encode};
-use rand_core::OsRng;
+use parity_scale_codec::{Decode, Encode};
 use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, Pair as OtherPair, H160};
+use sp_core::{crypto::Ss58Codec, Pair as OtherPair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::{
-    env, fs,
-    path::PathBuf,
-    str,
-    str::FromStr,
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    config::substrate::{BlakeTwo256, SubstrateHeader},
-    config::{DefaultExtrinsicParamsBuilder, PolkadotExtrinsicParamsBuilder as Params},
-    events::EventsClient,
+    config::PolkadotExtrinsicParamsBuilder as Params,
     ext::{
-        sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Bytes, Pair},
+        sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
         sp_runtime::AccountId32,
     },
     tx::{PairSigner, TxStatus},
-    utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature, Static, H256},
-    Config, OnlineClient,
+    utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
+    OnlineClient,
 };
-use subxt_signer::ecdsa::PublicKey as EcdsaPublicKey;
+use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
-use synedrion::{
-    k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
-    AuxInfo, ThresholdKeyShare,
-};
-use tokio::select;
-use tokio::{
-    io::{AsyncRead, AsyncReadExt},
-    task::JoinHandle,
-};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
-use x25519_dalek::{PublicKey, StaticSecret};
+use tokio_tungstenite::connect_async;
 
-use super::UserInputPartyInfo;
 use crate::helpers::tests::do_jump_start;
 use crate::{
     chain_api::{
@@ -118,30 +82,23 @@ use crate::{
     helpers::{
         launch::{
             development_mnemonic, load_kv_store, setup_mnemonic, threshold_account_id,
-            Configuration, ValidatorName, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-            DEFAULT_ENDPOINT, DEFAULT_MNEMONIC,
+            ValidatorName,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
-            create_clients, initialize_test_logger, jump_start_network_with_signer, remove_program,
-            run_to_block, setup_client, spawn_testing_validators, store_program_and_register,
-            unsafe_get, ChainSpecType,
+            initialize_test_logger, jump_start_network_with_signer, run_to_block, setup_client,
+            spawn_testing_validators, store_program_and_register, unsafe_get, ChainSpecType,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     r#unsafe::api::UnsafeQuery,
-    signing_client::ListenerState,
-    user::{
-        api::{
-            check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
-            request_limit_key, RelayerSignatureRequest, RequestLimitStorage, UserRegistrationInfo,
-            UserSignatureRequest,
-        },
-        UserErr,
+    user::api::{
+        check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
+        request_limit_key, RelayerSignatureRequest, RequestLimitStorage,
     },
-    validation::{mnemonic_to_pair, new_mnemonic, EncryptedSignedMessage},
+    validation::EncryptedSignedMessage,
 };
 
 #[tokio::test]

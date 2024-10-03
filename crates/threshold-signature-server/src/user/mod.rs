@@ -14,15 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Functionality and HTTP endpoints relating to user interaction
-#![allow(dead_code)]
-#![allow(unused_imports)]
 pub mod api;
 pub mod errors;
-
-use std::{
-    fs::File,
-    io::{BufWriter, Write},
-};
 
 use entropy_kvdb::kv_manager::value::{KvValue, PartyInfo};
 use serde::{Deserialize, Serialize};
