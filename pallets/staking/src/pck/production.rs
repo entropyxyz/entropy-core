@@ -42,7 +42,7 @@ impl PckCertChainVerifier for ProductionPckCertChainVerifyer {
     ) -> Result<CompressedVerifyingKey, PckParseVerifyError> {
         // TODO validate chain of arbitrary length
         let pck_uncompressed = parse_pck_cert_chain(
-            pck_certificate_chain.get(0).unwrap().to_vec(),
+            pck_certificate_chain.first().unwrap().to_vec(),
             pck_certificate_chain.get(1).unwrap().to_vec(),
         )?;
         // Compress public key

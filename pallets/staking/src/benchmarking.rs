@@ -90,18 +90,18 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info = ServerInfo {
+    let joining_server_info = JoiningServerInfo {
         tss_account: threshold,
         x25519_public_key,
         endpoint: vec![20, 20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        pck_certificate_chain: Vec::new(),
     };
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder).into(),
             ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
     }
 }
@@ -256,14 +256,14 @@ benchmarks! {
 
     let validator_preference = ValidatorPrefs::default();
 
-    let server_info = ServerInfo {
+    let joining_server_info = JoiningServerInfo {
         tss_account: threshold.clone(),
         x25519_public_key: NULL_ARR,
         endpoint: vec![20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        pck_certificate_chain: Vec::new(),
     };
 
-  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)
+  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, joining_server_info)
   verify {
     assert_last_event::<T>(Event::<T>::NodeInfoChanged(bonder,  vec![20], threshold).into());
   }
