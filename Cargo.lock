@@ -1400,8 +1400,9 @@ dependencies = [
 
 [[package]]
 name = "configfs-tsm"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/configfs-tsm?rev=f32c166#f32c166e21251eaed072659460a7d3766aaa61ff"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69e259465c479ea772003ae9e70bcecebefa0e46e0862ffe728edefafc96006b"
 
 [[package]]
 name = "console"
@@ -2766,7 +2767,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote",
+ "tdx-quote 0.0.1",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2825,7 +2826,7 @@ dependencies = [
  "subxt",
  "subxt-signer",
  "synedrion",
- "tdx-quote",
+ "tdx-quote 0.0.1",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -6740,6 +6741,7 @@ dependencies = [
  "pallet-staking-reward-curve",
  "pallet-timestamp",
  "parity-scale-codec",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "scale-info",
  "sp-core 29.0.0",
@@ -6748,7 +6750,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote",
+ "tdx-quote 0.0.1",
 ]
 
 [[package]]
@@ -7453,6 +7455,7 @@ dependencies = [
  "frame-system",
  "log",
  "p256",
+ "pallet-attestation",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",
@@ -7463,6 +7466,7 @@ dependencies = [
  "parity-scale-codec",
  "rand",
  "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "scale-info",
  "serde",
  "sp-consensus-babe 0.33.0",
@@ -7473,6 +7477,7 @@ dependencies = [
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
  "spki",
+ "tdx-quote 0.1.0",
  "x509-verify",
 ]
 
@@ -14211,6 +14216,17 @@ name = "target-lexicon"
 version = "0.12.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
+
+[[package]]
+name = "tdx-quote"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e10fe3140395153ccb4050f6eb51fe621a3b6d76da489601aec9fabe2fb1c3e0"
+dependencies = [
+ "nom",
+ "p256",
+ "sha2 0.10.8",
+]
 
 [[package]]
 name = "tdx-quote"

@@ -131,3 +131,34 @@ impl QuoteInputData {
         Self(hasher.finalize().into())
     }
 }
+
+/// A trait used to get different stored keys for a given account ID.
+///
+/// Not every account ID will have an given key, in which case the implementer is expected to
+/// return `None`.
+pub trait KeyProvider<T> {
+    /// Get an X25519 public key, if any, for the given account ID.
+    fn x25519_public_key(account_id: &T) -> Option<X25519PublicKey>;
+
+    /// Get a provisioning certification key, if any, for the given account ID.
+    fn provisioning_key(account_id: &T) -> Option<EncodedVerifyingKey>;
+}
+
+/// A trait used to describe a queue of attestations.
+pub trait AttestationQueue<T> {
+    /// Indicate that a given attestation is ready to be moved from a pending state to a confirmed
+    /// state.
+    fn confirm_attestation(account_id: &T);
+
+    /// Request that an attestation get added to the queue for later processing.
+    fn push_pending_attestation(
+        signer: T,
+        tss_account: T,
+        x25519_public_key: X25519PublicKey,
+        endpoint: Vec<u8>,
+        provisioning_certification_key: EncodedVerifyingKey,
+    );
+
+    /// The list of pending (not processed) attestations.
+    fn pending_attestations() -> Vec<T>;
+}

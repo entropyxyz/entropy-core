@@ -66,6 +66,7 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         pallet_prelude::*,
+        storage::types::CountedStorageNMap,
         traits::{Currency, Randomness},
         DefaultNoBound,
     };
@@ -96,6 +97,8 @@ pub mod pallet {
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
         type Currency: Currency<Self::AccountId>;
         type MaxEndpointLength: Get<u32>;
+        /// The maximum number of pending attestations that can be held in the validation queue.
+        type MaxPendingAttestations: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
         type PckCertChainVerifier: PckCertChainVerifier;
@@ -182,6 +185,34 @@ pub mod pallet {
     #[pallet::getter(fn threshold_to_stash)]
     pub type ThresholdToStash<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
+
+    /// The state of a validator's attestation.
+    ///
+    /// An attestation should only get moved into a `Confirmed` state after passing the checks set
+    /// out in the Attestation pallet.
+    #[derive(
+        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+    )]
+    pub enum Status {
+        #[default]
+        Pending,
+        Confirmed,
+    }
+
+    /// A queue of validator attestation requests.
+    ///
+    /// This tracks the status of each attestation (pending or confirmed), as well as information
+    /// about the validator who is in the process of submitting an attestation.
+    ///
+    /// The `Key` expects the TSS `AccountId` to be used, while the `Value` expects a validator
+    /// `AccountId`.
+    #[pallet::storage]
+    #[pallet::getter(fn validation_queue)]
+    pub type ValidationQueue<T: Config> = CountedStorageNMap<
+        Key = (NMapKey<Blake2_128Concat, Status>, NMapKey<Blake2_128Concat, T::AccountId>),
+        Value = (T::ValidatorId, ServerInfo<T::AccountId>),
+        QueryKind = OptionQuery,
+    >;
 
     /// Tracks wether the validator's kvdb is synced using a stash key as an identifier
     #[pallet::storage]
@@ -325,6 +356,7 @@ pub mod pallet {
         NotNextSigner,
         ReshareNotInProgress,
         AlreadyConfirmed,
+        TooManyPendingAttestations,
         NoUnbondingWhenSigner,
         NoUnbondingWhenNextSigner,
         NoUnnominatingWhenSigner,
@@ -357,6 +389,26 @@ pub mod pallet {
         SignerConfirmed(<T as pallet_session::Config>::ValidatorId),
         /// Validators subgroups rotated [old, new]
         SignersRotation(Vec<<T as pallet_session::Config>::ValidatorId>),
+        /// A TSS account has been queued up for an attestation check.
+        AttestationCheckQueued(T::AccountId),
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
+            let initial_count = ValidationQueue::<T>::count();
+
+            let confirmed_validators = ValidationQueue::<T>::drain_prefix((Status::Confirmed,));
+            for (_account_id, (validator_id, server_info)) in confirmed_validators {
+                ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+                ThresholdServers::<T>::insert(validator_id, server_info);
+            }
+
+            // We only want to pay for the difference in entries, since that's what we actually
+            // ended up looking through
+            let final_count = ValidationQueue::<T>::count();
+            <T as Config>::WeightInfo::on_initialize(initial_count - final_count)
+        }
     }
 
     #[pallet::call]
@@ -543,14 +595,19 @@ pub mod pallet {
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ThresholdServers::<T>::insert(&validator_id, server_info.clone());
-            ThresholdToStash::<T>::insert(&server_info.tss_account, validator_id);
+            ensure!(
+                ValidationQueue::<T>::count() < T::MaxPendingAttestations::get(),
+                Error::<T>::TooManyPendingAttestations
+            );
 
-            Self::deposit_event(Event::NodeInfoChanged(
-                who,
-                server_info.endpoint,
-                server_info.tss_account,
-            ));
+            // Here we don't add the caller as a staking candidate yet. We need to first wait for
+            // them to pass an attestation check.
+            ValidationQueue::<T>::insert(
+                (Status::Pending, server_info.tss_account.clone()),
+                (validator_id, server_info),
+            );
+
+            Self::deposit_event(Event::AttestationCheckQueued(who));
 
             Ok(())
         }
@@ -731,6 +788,22 @@ pub mod pallet {
 
             Ok(weight)
         }
+
+        fn get_server_info(account_id: &T::AccountId) -> Option<ServerInfo<T::AccountId>> {
+            // Here we do something a admittedly a little confusing, but simply we check:
+            // - if any potential validators have server info (`ValidationQueue`)
+            // - if any accepted validator candidates (but not necessarily validators) have server
+            //   info
+            // - if any validators have server info
+            ValidationQueue::<T>::get((Status::Pending, account_id))
+                .or_else(|| ValidationQueue::<T>::get((Status::Confirmed, account_id)))
+                .map(|(_v, server_info)| server_info)
+                .or_else(|| {
+                    let stash_account = Self::threshold_to_stash(account_id)?;
+                    let server_info = Self::threshold_server(&stash_account)?;
+                    Some(server_info)
+                })
+        }
     }
 
     pub struct SessionManager<I, T: Config>(
@@ -777,6 +850,83 @@ pub mod pallet {
 
         fn start_session(start_index: SessionIndex) {
             I::start_session(start_index);
+        }
+    }
+
+    impl<T: Config> entropy_shared::KeyProvider<T::AccountId> for Pallet<T> {
+        fn x25519_public_key(account_id: &T::AccountId) -> Option<entropy_shared::X25519PublicKey> {
+            Self::get_server_info(account_id).map(|s| s.x25519_public_key)
+        }
+
+        fn provisioning_key(
+            account_id: &T::AccountId,
+        ) -> Option<entropy_shared::EncodedVerifyingKey> {
+            let pck = Self::get_server_info(account_id).map(|s| s.provisioning_certification_key);
+            pck.map(|key| {
+                key.to_vec().try_into()
+                    .expect("The length of both structures is `VERIFICATION_KEY_LENGTH`, so the conversion must succeed.")
+            })
+        }
+    }
+
+    impl<T: Config> entropy_shared::AttestationQueue<T::AccountId> for Pallet<T> {
+        fn confirm_attestation(account_id: &T::AccountId) {
+            if let Some((validator_id, server_info)) =
+                ValidationQueue::<T>::take((Status::Pending, account_id))
+            {
+                ValidationQueue::<T>::insert(
+                    (Status::Confirmed, account_id),
+                    (validator_id, server_info),
+                );
+            }
+        }
+
+        /// Request that an attestation get added to the queue for later processing.
+        ///
+        /// # Developer Note
+        ///
+        /// This method is mostly here as a work around to allow the Attestation pallet benchmarks to
+        /// write to the Staking Extension pallet storage.
+        ///
+        /// Don't rely on this for anything serious (e.g, actually getting potential validators into the
+        /// correct state.
+        ///
+        /// # Panics
+        ///
+        /// Panics if an invalid `validator_stash` or `provisioning_certification_key` are passed
+        /// in. The caller should check (e.g, using `Self::get_stash()` that these inputs are valid.
+        fn push_pending_attestation(
+            validator_stash: T::AccountId,
+            tss_account: T::AccountId,
+            x25519_public_key: X25519PublicKey,
+            endpoint: Vec<u8>,
+            provisioning_certification_key: entropy_shared::EncodedVerifyingKey,
+        ) {
+            let validator_id = T::ValidatorId::try_from(validator_stash)
+                .map_err(|_| ())
+                .expect("The stash address should have been checked by the caller.");
+
+            let provisioning_certification_key =
+                BoundedVec::try_from(provisioning_certification_key.to_vec())
+                    .expect("The PCK from the caller should be valid.");
+
+            let server_info = ServerInfo {
+                tss_account: tss_account.clone(),
+                x25519_public_key,
+                endpoint,
+                provisioning_certification_key,
+            };
+
+            ValidationQueue::<T>::insert(
+                (Status::Pending, tss_account),
+                (validator_id, server_info),
+            );
+        }
+
+        fn pending_attestations() -> Vec<T::AccountId> {
+            ValidationQueue::<T>::iter_prefix((Status::Pending,))
+                .map(|(k, _v)| k)
+                .collect::<Vec<_>>()
         }
     }
 }

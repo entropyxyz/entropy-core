@@ -27,12 +27,16 @@ impl PckCertChainVerifier for MockPckCertChainVerifyer {
             first_certificate.clone().try_into().map_err(|_| PckParseVerifyError::Parse)?;
 
         // Derive a keypair
-        let mut pck_seeder = StdRng::from_seed(tss_account_id);
-        let pck_secret = SigningKey::random(&mut pck_seeder);
+        let pck_secret = signing_key_from_seed(tss_account_id);
 
         // Convert/compress the public key
         let pck_public = VerifyingKey::from(&pck_secret);
         let pck_public = pck_public.to_encoded_point(true).as_bytes().to_vec();
         Ok(pck_public.try_into().map_err(|_| PckParseVerifyError::Parse)?)
     }
+}
+
+pub fn signing_key_from_seed(input: [u8; 32]) -> SigningKey {
+    let mut pck_seeder = StdRng::from_seed(input);
+    SigningKey::random(&mut pck_seeder)
 }

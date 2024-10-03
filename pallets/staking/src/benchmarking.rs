@@ -100,10 +100,27 @@ fn prep_bond_and_validate<T: Config>(
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
-            RawOrigin::Signed(bonder).into(),
+            RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
-            joining_server_info,
+            joining_server_info.clone(),
         ));
+
+        let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(bonder)
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+
+        ThresholdToStash::<T>::insert(&joining_server_info.tss_account, &validator_id);
+
+        let server_info = ServerInfo {
+            tss_account: joining_server_info.tss_account,
+            x25519_public_key: joining_server_info.x25519_public_key,
+            endpoint: joining_server_info.endpoint,
+            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
+                .to_vec()
+                .try_into()
+                .unwrap(),
+        };
+        ThresholdServers::<T>::insert(&validator_id, server_info);
     }
 }
 
@@ -115,7 +132,6 @@ benchmarks! {
     let x25519_public_key = NULL_ARR;
 
     prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
-
 
   }:  _(RawOrigin::Signed(bonder.clone()), vec![30])
   verify {
@@ -254,7 +270,6 @@ benchmarks! {
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let x25519_public_key: [u8; 32] = NULL_ARR;
     prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
-
     let validator_preference = ValidatorPrefs::default();
 
     let joining_server_info = JoiningServerInfo {
@@ -266,7 +281,7 @@ benchmarks! {
 
   }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, joining_server_info)
   verify {
-    assert_last_event::<T>(Event::<T>::NodeInfoChanged(bonder,  vec![20], threshold).into());
+    assert_last_event::<T>(Event::<T>::AttestationCheckQueued(bonder).into());
   }
 
   declare_synced {
@@ -395,6 +410,57 @@ benchmarks! {
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());
+  }
+
+  on_initialize {
+      let s in 1 .. T::MaxPendingAttestations::get() as u32;
+
+    let caller: T::AccountId = whitelisted_caller();
+    let threshold_account_id: T::AccountId = account("threshold", 0, SEED);
+
+    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+    /// key
+    const PCK: [u8; 32] = [
+        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
+        207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
+    ];
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+
+    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller)
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    for i in 0..s {
+        let threshold_account_id: T::AccountId = account("threshold", 0, i);
+        let server_info = ServerInfo {
+            tss_account: threshold_account_id.clone(),
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![0],
+            provisioning_certification_key: BoundedVec::try_from(
+                pck_encoded.to_vec(),
+            )
+            .unwrap(),
+        };
+
+        ValidationQueue::<T>::insert(
+            (Status::Confirmed, threshold_account_id),
+            (validator_id.clone(), server_info),
+        );
+    }
+  }: {
+      use frame_support::traits::Hooks;
+      let _ = Staking::<T>::on_initialize(Default::default());
+  } verify {
+        // Here we'll just spot check one account instead of `s` accounts since if one was written
+        // all were
+        let threshold_account_id: T::AccountId = account("threshold", 0, 0);
+        assert!(ThresholdToStash::<T>::contains_key(threshold_account_id));
+        assert!(ThresholdServers::<T>::contains_key(validator_id));
+
+        // We'll also want to ensure that our queue was indeed emptied out during `on_initialize`
+        let confirmed = ValidationQueue::<T>::iter_prefix((Status::Confirmed,)).collect::<Vec<_>>();
+        assert!(confirmed.len() == 0);
   }
 }
 
