@@ -41,10 +41,7 @@ impl PckCertChainVerifier for ProductionPckCertChainVerifyer {
         pck_certificate_chain: Vec<Vec<u8>>,
     ) -> Result<CompressedVerifyingKey, PckParseVerifyError> {
         // TODO validate chain of arbitrary length
-        let pck_uncompressed = parse_pck_cert_chain(
-            pck_certificate_chain.first().unwrap().to_vec(),
-            pck_certificate_chain.get(1).unwrap().to_vec(),
-        )?;
+        let pck_uncompressed = verify_pck_cert_chain(pck_certificate_chain)?;
         // Compress public key
         let point = p256::EncodedPoint::from_bytes(pck_uncompressed).unwrap();
         let pck_verifying_key = p256::ecdsa::VerifyingKey::from_encoded_point(&point).unwrap();
@@ -54,7 +51,7 @@ impl PckCertChainVerifier for ProductionPckCertChainVerifyer {
 }
 
 /// Given a cerificate and a public key, verify the certificate
-fn verify_cert(subject: &Certificate, issuer_pk: VerifyingKey) -> Result<(), PckParseVerifyError> {
+fn verify_cert(subject: &Certificate, issuer_pk: &VerifyingKey) -> Result<(), PckParseVerifyError> {
     let verify_info = VerifyInfo::new(
         subject.tbs_certificate.to_der().unwrap().into(),
         Signature::new(&subject.signature_algorithm, subject.signature.as_bytes().unwrap()),
@@ -64,21 +61,38 @@ fn verify_cert(subject: &Certificate, issuer_pk: VerifyingKey) -> Result<(), Pck
 
 /// Validate PCK and provider certificates and if valid return the PCK
 /// These certificates will be provided by a joining validator
-pub fn parse_pck_cert_chain(
-    pck: Vec<u8>,
-    pck_provider: Vec<u8>,
-) -> Result<[u8; 65], PckParseVerifyError> {
-    let pck = Certificate::from_der(&pck)?;
-    let provider = Certificate::from_der(&pck_provider)?;
+fn verify_pck_cert_chain(certificates_der: Vec<Vec<u8>>) -> Result<[u8; 65], PckParseVerifyError> {
+    if certificates_der.is_empty() {
+        return Err(PckParseVerifyError::NoCertificate);
+    }
+    // Parse the certificates
+    let mut certificates = Vec::new();
+    for certificate in certificates_der {
+        certificates.push(Certificate::from_der(&certificate)?);
+    }
+
+    // Get the rook public key
     let root_pk: SubjectPublicKeyInfo<Any, BitString> =
         SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER)?;
-    verify_cert(&provider, root_pk.try_into()?)?;
+    let root_pk: VerifyingKey = root_pk.try_into()?;
 
-    let provider_verifying_key: VerifyingKey =
-        provider.tbs_certificate.subject_public_key_info.try_into()?;
-    verify_cert(&pck, provider_verifying_key)?;
+    // Verify the certificate chain
+    for i in 0..certificates.len() {
+        let verifying_key: &VerifyingKey = if i + 1 == certificates.len() {
+            &root_pk
+        } else {
+            &certificates[i + 1].tbs_certificate.subject_public_key_info.clone().try_into()?
+        };
+        verify_cert(&certificates[i], verifying_key)?;
+    }
 
-    let pck_key = pck.tbs_certificate.subject_public_key_info.subject_public_key;
+    // Get the first certificate
+    let pck_key = &certificates
+        .first()
+        .ok_or(PckParseVerifyError::NoCertificate)?
+        .tbs_certificate
+        .subject_public_key_info
+        .subject_public_key;
 
     Ok(pck_key.as_bytes().ok_or(PckParseVerifyError::BadPublicKey)?.try_into()?)
 }

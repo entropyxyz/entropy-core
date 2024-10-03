@@ -31,6 +31,7 @@ pub enum PckParseVerifyError {
     Parse,
     Verify,
     BadPublicKey,
+    NoCertificate,
 }
 
 impl From<spki::der::Error> for PckParseVerifyError {
