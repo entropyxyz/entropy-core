@@ -66,7 +66,7 @@ fn it_takes_in_an_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
@@ -83,7 +83,7 @@ fn it_takes_in_an_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20, 20, 20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_noop!(
             Staking::validate(
@@ -98,7 +98,7 @@ fn it_takes_in_an_endpoint() {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_noop!(
             Staking::validate(
@@ -124,7 +124,7 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
@@ -162,7 +162,7 @@ fn it_changes_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
@@ -193,7 +193,7 @@ fn it_changes_threshold_account() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
@@ -221,7 +221,7 @@ fn it_changes_threshold_account() {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
@@ -255,7 +255,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
@@ -274,7 +274,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
@@ -304,7 +304,7 @@ fn it_deletes_when_no_bond_left() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            pck_certificate_chain: Vec::new(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
