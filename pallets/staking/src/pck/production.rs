@@ -41,12 +41,15 @@ impl PckCertChainVerifier for ProductionPckCertChainVerifyer {
         pck_certificate_chain: Vec<Vec<u8>>,
     ) -> Result<CompressedVerifyingKey, PckParseVerifyError> {
         // TODO validate chain of arbitrary length
-        let pck = parse_pck_cert_chain(
+        let pck_uncompressed = parse_pck_cert_chain(
             pck_certificate_chain.get(0).unwrap().to_vec(),
             pck_certificate_chain.get(1).unwrap().to_vec(),
         )?;
-        // TODO compress public key
-        Ok(pck[..33].to_vec().try_into().unwrap())
+        // Compress public key
+        let point = p256::EncodedPoint::from_bytes(pck_uncompressed).unwrap();
+        let pck_verifying_key = p256::ecdsa::VerifyingKey::from_encoded_point(&point).unwrap();
+        let pck_compressed = pck_verifying_key.to_encoded_point(true).as_bytes().to_vec();
+        Ok(pck_compressed.try_into().unwrap())
     }
 }
 
