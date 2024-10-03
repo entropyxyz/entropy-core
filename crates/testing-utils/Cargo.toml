@@ -9,24 +9,26 @@ repository ='https://github.com/entropyxyz/entropy-core'
 edition    ='2021'
 
 [dependencies]
-subxt             ="0.35.3"
-sp-keyring        ="34.0.0"
-project-root      ="0.2.2"
-sp-core           ={ version="31.0.0", default-features=false }
+subxt="0.35.3"
+sp-keyring="34.0.0"
+project-root="0.2.2"
+sp-core={ version="31.0.0", default-features=false }
 parity-scale-codec="3.6.12"
-lazy_static       ="1.5.0"
-hex-literal       ="0.4.1"
-tokio             ={ version="1.40", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
-axum              ={ version="0.7.7" }
-entropy-shared    ={ version="0.3.0-rc.1", path="../shared" }
-entropy-kvdb      ={ version="0.3.0-rc.1", path="../kvdb", default-features=false }
-entropy-tss       ={ version="0.3.0-rc.1", path="../threshold-signature-server", features=["test_helpers"] }
-entropy-protocol  ={ version="0.3.0-rc.1", path="../protocol" }
-synedrion         ={ git="https://github.com/entropyxyz/synedrion", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa" }
-hex               ="0.4.3"
-rand_core         ="0.6.4"
-rand              ="0.8.5"
-tdx-quote         ={ version="0.0.1", features=["mock"] }
+lazy_static="1.5.0"
+hex-literal="0.4.1"
+tokio={ version="1.40", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+axum={ version="0.7.7" }
+entropy-shared={ version="0.3.0-rc.1", path="../shared" }
+entropy-kvdb={ version="0.3.0-rc.1", path="../kvdb", default-features=false }
+entropy-tss={ version="0.3.0-rc.1", path="../threshold-signature-server", features=[
+  "test_helpers",
+] }
+entropy-protocol={ version="0.3.0-rc.1", path="../protocol" }
+synedrion={ git="https://github.com/entropyxyz/synedrion", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa" }
+hex="0.4.3"
+rand_core="0.6.4"
+rand="0.8.5"
+tdx-quote={ version="0.0.1", features=["mock"] }
 
 # Logging
 tracing           ="0.1.37"
