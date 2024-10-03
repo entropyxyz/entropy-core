@@ -100,3 +100,17 @@ fn verify_cert(subject: &Certificate, issuer_pk: &VerifyingKey) -> Result<(), Pc
     );
     Ok(issuer_pk.verify(&verify_info)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_verify_pck_cert_chain() {
+        let pck = include_bytes!("../../test_pck_certs/pck_cert.der").to_vec();
+        let platform = include_bytes!("../../test_pck_certs/platform_pcs_cert.der").to_vec();
+        let _key =
+            ProductionPckCertChainVerifyer::verify_pck_certificate_chain(vec![pck, platform])
+                .unwrap();
+    }
+}
