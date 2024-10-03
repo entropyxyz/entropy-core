@@ -133,11 +133,6 @@ pub mod pallet {
         pub pck_certificate_chain: Vec<Vec<u8>>,
     }
 
-    // impl From<JoiningServerInfo> for ServerInfo {
-    //     fn from(joining_server_info: JoiningServerInfo) -> Self {
-    //     }
-    // }
-
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
@@ -362,6 +357,10 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        PckCertificateParse,
+        PckCertificateVerify,
+        PckCertificateBadPublicKey,
+        PckCertificateNoCertificate,
     }
 
     #[pallet::event]
@@ -572,7 +571,16 @@ pub mod pallet {
                 T::PckCertChainVerifier::verify_pck_certificate_chain(
                     joining_server_info.pck_certificate_chain,
                 )
-                .unwrap();
+                .map_err(|error| match error {
+                    pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
+                    pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
+                    pck::PckParseVerifyError::BadPublicKey => {
+                        Error::<T>::PckCertificateBadPublicKey
+                    },
+                    pck::PckParseVerifyError::NoCertificate => {
+                        Error::<T>::PckCertificateNoCertificate
+                    },
+                })?;
             let server_info = ServerInfo::<T::AccountId> {
                 tss_account: joining_server_info.tss_account,
                 x25519_public_key: joining_server_info.x25519_public_key,
