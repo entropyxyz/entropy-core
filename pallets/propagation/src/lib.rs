@@ -172,7 +172,7 @@ pub mod pallet {
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
 
             let req_body = OcwMessageReshare {
-                new_signer: reshare_data.new_signer,
+                new_signers: reshare_data.new_signers,
                 // subtract 1 from blocknumber since the request is from the last block
                 block_number: converted_block_number.saturating_sub(1),
             };

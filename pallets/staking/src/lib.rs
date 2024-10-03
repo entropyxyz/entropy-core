@@ -129,7 +129,7 @@ pub mod pallet {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct ReshareInfo<BlockNumber> {
-        pub new_signer: Vec<Vec<u8>>,
+        pub new_signers: Vec<Vec<u8>>,
         pub block_number: BlockNumber,
     }
 
@@ -316,7 +316,7 @@ pub mod pallet {
                 next_signers.push(self.mock_signer_rotate.2[0].clone());
                 let next_signers = next_signers.to_vec();
                 NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-                let new_signer = self
+                let new_signers = self
                     .mock_signer_rotate
                     .clone()
                     .2
@@ -326,7 +326,7 @@ pub mod pallet {
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    new_signer,
+                    new_signers,
                 })
             }
         }
@@ -719,7 +719,7 @@ pub mod pallet {
                 return Ok(weight);
             }
 
-            let mut new_signer: Vec<Vec<u8>> = vec![];
+            let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
 
             // removes first signer and pushes new signer to back if total signers not increased
@@ -757,7 +757,7 @@ pub mod pallet {
                 }
 
                 current_signers.push(next_signer_up.clone());
-                new_signer.push(next_signer_up.encode());
+                new_signers.push(next_signer_up.encode());
             }
 
             NextSigners::<T>::put(NextSignerInfo {
@@ -769,7 +769,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
-                new_signer,
+                new_signers,
             };
 
             ReshareData::<T>::put(reshare_info);

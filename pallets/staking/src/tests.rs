@@ -486,7 +486,7 @@ fn it_tests_new_session_handler() {
             "Check reshare block start at 100 + 1"
         );
         assert_eq!(
-            Staking::reshare_data().new_signer,
+            Staking::reshare_data().new_signers,
             vec![1u64.encode(), 3u64.encode()],
             "Check reshare next signer up is 3"
         );
