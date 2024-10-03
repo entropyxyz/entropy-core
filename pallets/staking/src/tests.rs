@@ -610,15 +610,6 @@ fn it_requires_attestation_before_validate_is_succesful() {
             pallet_staking::RewardDestination::Account(alice),
         ));
 
-        // /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
-        // /// key
-        // const PCK: [u8; 32] = [
-        //     117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
-        //     207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
-        // ];
-        // let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-        // let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-
         let joining_server_info = JoiningServerInfo {
             tss_account: bob,
             x25519_public_key: NULL_ARR,
