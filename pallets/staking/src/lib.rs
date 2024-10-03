@@ -41,7 +41,7 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
-mod pck;
+pub mod pck;
 
 #[cfg(test)]
 mod mock;
@@ -121,6 +121,20 @@ pub mod pallet {
         pub endpoint: TssServerURL,
         pub provisioning_certification_key: VerifyingKey,
     }
+
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    pub struct JoiningServerInfo<AccountId> {
+        pub tss_account: AccountId,
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: TssServerURL,
+        pub pck_certificate_chain: Vec<Vec<u8>>,
+    }
+
+    // impl From<JoiningServerInfo> for ServerInfo {
+    //     fn from(joining_server_info: JoiningServerInfo) -> Self {
+    //     }
+    // }
+
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
@@ -498,21 +512,20 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            tss_account: T::AccountId,
-            x25519_public_key: X25519PublicKey,
-            endpoint: TssServerURL,
-            pck_cert: Vec<u8>,
-            provider_cert: Vec<u8>,
+            joining_server_info: JoiningServerInfo<T::AccountId>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
-            let pck =
-                T::PckCertChainVerifier::verify_pck_cert_chain(pck_cert, provider_cert).unwrap();
+
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(
+                    joining_server_info.pck_certificate_chain,
+                )
+                .unwrap();
             let server_info = ServerInfo::<T::AccountId> {
-                tss_account,
-                x25519_public_key,
-                endpoint,
-                // TODO convert to a compressed public key
-                provisioning_certification_key: pck[..33].to_vec().try_into().unwrap(),
+                tss_account: joining_server_info.tss_account,
+                x25519_public_key: joining_server_info.x25519_public_key,
+                endpoint: joining_server_info.endpoint,
+                provisioning_certification_key,
             };
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),

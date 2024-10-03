@@ -38,6 +38,7 @@ use sp_std::vec;
 
 use crate as pallet_staking_extension;
 use pallet_staking_extension::pck::MockPckCertChainVerifyer;
+
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 

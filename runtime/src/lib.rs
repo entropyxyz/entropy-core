@@ -719,6 +719,7 @@ impl pallet_staking_extension::Config for Runtime {
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
+    type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifyer;
 }
 
 parameter_types! {

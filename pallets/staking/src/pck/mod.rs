@@ -20,9 +20,8 @@ use core::array::TryFromSliceError;
 use sp_std::vec::Vec;
 
 pub trait PckCertChainVerifier {
-    fn verify_pck_cert_chain(
-        pck_cert: Vec<u8>,
-        provider_cert: Vec<u8>,
+    fn verify_pck_certificate_chain(
+        pck_certificate_chain: Vec<Vec<u8>>,
     ) -> Result<CompressedVerifyingKey, PckParseVerifyError>;
 }
 

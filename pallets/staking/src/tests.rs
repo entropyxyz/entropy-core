@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, NextSignerInfo, NextSigners,
-    ServerInfo, Signers, ThresholdToStash,
+    mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, JoiningServerInfo, NextSignerInfo,
+    NextSigners, ServerInfo, Signers, ThresholdToStash,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -62,20 +62,16 @@ fn it_takes_in_an_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            3,          // TSS account
-            NULL_ARR,   // x25519_public_key
-            vec![20],   // endpoint
-            Vec::new(), // pck cert
-            Vec::new(), // provider cert
+            joining_server_info,
         ));
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(1).unwrap();
@@ -83,32 +79,32 @@ fn it_takes_in_an_endpoint() {
         assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 1);
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20, 20, 20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
-                server_info,
+                joining_server_info,
             ),
             Error::<Test>::EndpointTooLong
         );
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_noop!(
             Staking::validate(
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
-                server_info
+                joining_server_info
             ),
             pallet_staking::Error::<Test>::NotController
         );
@@ -124,16 +120,16 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info.clone(),
+            joining_server_info.clone(),
         ));
 
         // Attempt to call validate with a TSS account which already exists
@@ -146,7 +142,7 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             Staking::validate(
                 RuntimeOrigin::signed(2),
                 pallet_staking::ValidatorPrefs::default(),
-                server_info,
+                joining_server_info,
             ),
             Error::<Test>::TssAccountAlreadyExists
         );
@@ -162,16 +158,16 @@ fn it_changes_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
 
         assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), vec![30]));
@@ -193,16 +189,16 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
 
         assert_ok!(Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 4, NULL_ARR));
@@ -221,16 +217,16 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
 
         assert_noop!(
@@ -255,16 +251,16 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
 
         // Check that we cannot change to a TSS account which already exists
@@ -274,16 +270,16 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
 
         assert_noop!(
@@ -304,16 +300,16 @@ fn it_deletes_when_no_bond_left() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: Vec::new(),
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
-            server_info,
+            joining_server_info,
         ));
         IsValidatorSynced::<Test>::insert(2, true);
 

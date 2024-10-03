@@ -7452,6 +7452,7 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
+ "p256",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",

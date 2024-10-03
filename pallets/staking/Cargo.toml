@@ -30,6 +30,7 @@ sp-std            ={ version="14.0.0", default-features=false }
 sp-consensus-babe ={ version="0.33.0", default-features=false }
 x509-verify       ={ version="0.4.6", features=["x509"] }
 spki              ="0.7.3"
+p256              ={ version = "0.13.2", default-features = false, features = ["ecdsa"] }
 
 pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
 entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
