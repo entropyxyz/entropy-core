@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Handle execution of the signing and DKG protocols
-#![allow(dead_code)]
 mod context;
 
 use entropy_kvdb::kv_manager::KvManager;

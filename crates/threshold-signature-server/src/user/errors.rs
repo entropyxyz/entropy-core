@@ -15,10 +15,9 @@
 
 //! Errors used in User creation
 
-use std::{io::Cursor, string::FromUtf8Error};
+use std::string::FromUtf8Error;
 
 use axum::{
-    body,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -27,10 +26,7 @@ use entropy_protocol::{errors::ProtocolExecutionErr, sign_and_encrypt::Encrypted
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
-use crate::{
-    chain_api::entropy,
-    signing_client::{ProtocolErr, SubscribeErr},
-};
+use crate::signing_client::{ProtocolErr, SubscribeErr};
 
 /// Errors related to parsing and evaulating programs.
 #[derive(Error, Debug, PartialEq)]
