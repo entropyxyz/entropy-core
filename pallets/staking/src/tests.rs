@@ -477,8 +477,8 @@ fn it_tests_new_session_handler() {
         });
 
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
-        // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
-        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
+        // takes signers original (5,6) not in validators pops off both, adds (fake randomness in mock so adds 1 and 3)
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![1, 3]);
 
         assert_eq!(
             Staking::reshare_data().block_number,
@@ -487,8 +487,8 @@ fn it_tests_new_session_handler() {
         );
         assert_eq!(
             Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
+            vec![1u64.encode(), 3u64.encode()],
+            "Check reshare next signer up is 3"
         );
         assert_eq!(
             Staking::jump_start_progress().parent_key_threshold,
@@ -500,11 +500,6 @@ fn it_tests_new_session_handler() {
             Staking::reshare_data().block_number,
             101,
             "Check reshare block start at 100 + 1"
-        );
-        assert_eq!(
-            Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
         );
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));

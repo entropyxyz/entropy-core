@@ -129,7 +129,7 @@ pub mod pallet {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct ReshareInfo<BlockNumber> {
-        pub new_signer: Vec<u8>,
+        pub new_signer: Vec<Vec<u8>>,
         pub block_number: BlockNumber,
     }
 
@@ -316,11 +316,17 @@ pub mod pallet {
                 next_signers.push(self.mock_signer_rotate.2[0].clone());
                 let next_signers = next_signers.to_vec();
                 NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-
+                let new_signer = self
+                    .mock_signer_rotate
+                    .clone()
+                    .2
+                    .into_iter()
+                    .map(|x| x.encode())
+                    .collect::<Vec<_>>();
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    new_signer: self.mock_signer_rotate.clone().2[0].encode(),
+                    new_signer,
                 })
             }
         }
@@ -713,29 +719,45 @@ pub mod pallet {
                 return Ok(weight);
             }
 
-            let mut new_signer = vec![];
+            let mut new_signer: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
 
-            if current_signers_length <= signers_info.total_signers as usize {
+            // removes first signer and pushes new signer to back if total signers not increased
+            if current_signers_length >= signers_info.total_signers as usize {
+                let mut remove_indexs = vec![];
+                for (i, current_signer) in current_signers.clone().into_iter().enumerate() {
+                    if !validators.contains(&current_signer) {
+                        remove_indexs.push(i);
+                    }
+                }
+                if remove_indexs.len() == 0 {
+                    current_signers.remove(0);
+                } else {
+                    let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
+                    dbg!(remove_indexs_reversed.clone());
+                    for remove_index in remove_indexs_reversed {
+                        current_signers.remove(*remove_index);
+                    }
+                }
+            }
+
+            while current_signers.len() < signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
-                let mut next_signer_up = &current_signers[0].clone();
+                let mut next_signer_up = &validators[0].clone();
                 let mut index;
-
+                dbg!(current_signers.clone());
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
+                    dbg!(current_signers.clone());
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
+                    dbg!(next_signer_up.clone());
                     count += 1;
                 }
 
                 current_signers.push(next_signer_up.clone());
-                new_signer = next_signer_up.encode();
-            }
-
-            // removes first signer and pushes new signer to back if total signers not increased
-            if current_signers_length >= signers_info.total_signers as usize {
-                current_signers.remove(0);
+                new_signer.push(next_signer_up.encode());
             }
 
             NextSigners::<T>::put(NextSignerInfo {
