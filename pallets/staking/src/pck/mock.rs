@@ -32,7 +32,7 @@ impl PckCertChainVerifier for MockPckCertChainVerifyer {
         // Convert/compress the public key
         let pck_public = VerifyingKey::from(&pck_secret);
         let pck_public = pck_public.to_encoded_point(true).as_bytes().to_vec();
-        Ok(pck_public.try_into().map_err(|_| PckParseVerifyError::Parse)?)
+        pck_public.try_into().map_err(|_| PckParseVerifyError::Parse)
     }
 }
 

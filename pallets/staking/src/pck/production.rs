@@ -50,7 +50,7 @@ impl PckCertChainVerifier for ProductionPckCertChainVerifyer {
         let pck_verifying_key = p256::ecdsa::VerifyingKey::from_encoded_point(&point)
             .map_err(|_| PckParseVerifyError::BadPublicKey)?;
         let pck_compressed = pck_verifying_key.to_encoded_point(true).as_bytes().to_vec();
-        Ok(pck_compressed.try_into().map_err(|_| PckParseVerifyError::BadPublicKey)?)
+        pck_compressed.try_into().map_err(|_| PckParseVerifyError::BadPublicKey)
     }
 }
 
