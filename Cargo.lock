@@ -14056,8 +14056,9 @@ dependencies = [
 
 [[package]]
 name = "synedrion"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa#1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa"
+version = "0.2.0-beta.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d68ecdc79fc2be671be2abe5391d25b38fca840e18665ef2a177aa925f6740ac"
 dependencies = [
  "base64 0.21.7",
  "bincode 2.0.0-rc.3",

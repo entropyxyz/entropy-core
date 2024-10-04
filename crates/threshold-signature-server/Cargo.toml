@@ -22,7 +22,7 @@ zeroize            ="1.8.1"
 hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
-synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa" }
+synedrion          ={ version="0.2.0-beta.0" }
 strum              ="0.26.2"
 backoff            ={ version="0.4.0", features=["tokio"] }
 
