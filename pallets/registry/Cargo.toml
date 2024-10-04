@@ -16,7 +16,7 @@ bip32     ={ version="0.5.2", default-features=false, features=["alloc"] }
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 log       ={ version="0.4.22", default-features=false }
 scale-info={ version="2.11", default-features=false, features=["derive"] }
-synedrion ={ git="https://github.com/entropyxyz/synedrion/", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa", default-features=false }
+synedrion ={ version="0.2.0-beta.0", default-features=false }
 rand      ={ version="0.8.5", default-features=false, features=["alloc"] }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
