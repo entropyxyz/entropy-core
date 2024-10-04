@@ -313,16 +313,13 @@ pub mod pallet {
             // mocks a signer rotation for tss new_reshare tests
             if self.mock_signer_rotate.0 {
                 let next_signers = &mut self.mock_signer_rotate.1.clone();
-                next_signers.push(self.mock_signer_rotate.2[0].clone());
+                let mut new_signers = vec![];
+                for new_signer in self.mock_signer_rotate.2.clone() {
+                    next_signers.push(new_signer.clone());
+                    new_signers.push(new_signer.encode())
+                }
                 let next_signers = next_signers.to_vec();
                 NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-                let new_signers = self
-                    .mock_signer_rotate
-                    .clone()
-                    .2
-                    .into_iter()
-                    .map(|x| x.encode())
-                    .collect::<Vec<_>>();
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
@@ -730,11 +727,10 @@ pub mod pallet {
                         remove_indexs.push(i);
                     }
                 }
-                if remove_indexs.len() == 0 {
+                if remove_indexs.is_empty() {
                     current_signers.remove(0);
                 } else {
                     let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
-                    dbg!(remove_indexs_reversed.clone());
                     for remove_index in remove_indexs_reversed {
                         current_signers.remove(*remove_index);
                     }
@@ -746,13 +742,10 @@ pub mod pallet {
                 // grab a current signer to initiate value
                 let mut next_signer_up = &validators[0].clone();
                 let mut index;
-                dbg!(current_signers.clone());
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
-                    dbg!(current_signers.clone());
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
-                    dbg!(next_signer_up.clone());
                     count += 1;
                 }
 
