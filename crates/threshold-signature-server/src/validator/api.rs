@@ -68,10 +68,26 @@ pub async fn new_reshare(
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting next signers"))?
         .next_signers;
 
-    let validators_info = get_validators_info(&api, &rpc, next_signers)
+    let signers_query = entropy::storage().staking_extension().signers();
+    let signers = query_chain(&api, &rpc, signers_query, None)
+        .await?
+        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
+
+    let signers_validators_info = get_validators_info(&api, &rpc, signers)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
+    let mut validators_info = get_validators_info(&api, &rpc, next_signers)
+        .await
+        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
+    let mut all_holders = validators_info.clone();
+    for signer_validator_info in signers_validators_info {
+        let contains =
+            all_holders.iter().position(|v| v.tss_account == signer_validator_info.tss_account);
+        if contains.is_none() {
+            all_holders.push(signer_validator_info);
+        }
+    }
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
@@ -94,7 +110,7 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer = validators_info
+    let is_proper_signer = all_holders
         .iter()
         .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
@@ -116,15 +132,14 @@ pub async fn new_reshare(
                     .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
             Some(OldHolder { key_share: key_share.0 })
         };
-
     let party_ids: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
-    let pruned_old_holders =
-        prune_old_holders(&api, &rpc, data.new_signers, validators_info.clone()).await?;
+    let old_holders =
+        prune_old_holders(&api, &rpc, data.new_signers, all_holders.clone()).await?;
 
     let old_holders: BTreeSet<PartyId> =
-        pruned_old_holders.into_iter().map(|x| PartyId::new(x.tss_account)).collect();
+        old_holders.into_iter().map(|x| PartyId::new(x.tss_account)).collect();
 
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
@@ -149,7 +164,7 @@ pub async fn new_reshare(
 
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
-    for validator_info in validators_info {
+    for validator_info in all_holders {
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
             ip_address: validator_info.ip_address,
@@ -158,7 +173,7 @@ pub async fn new_reshare(
         converted_validator_info.push(validator_info.clone());
         tss_accounts.push(validator_info.tss_account.clone());
     }
-
+    dbg!(converted_validator_info.clone());
     let channels = get_channels(
         &app_state.listener_state,
         converted_validator_info,
