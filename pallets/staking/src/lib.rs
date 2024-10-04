@@ -41,6 +41,8 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
+pub mod pck;
+
 #[cfg(test)]
 mod mock;
 
@@ -69,6 +71,7 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -98,6 +101,7 @@ pub mod pallet {
         type MaxPendingAttestations: Get<u32>;
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+        type PckCertChainVerifier: PckCertChainVerifier;
     }
 
     /// A unique identifier of a subgroup or partition of validators that have the same set of
@@ -120,6 +124,15 @@ pub mod pallet {
         pub endpoint: TssServerURL,
         pub provisioning_certification_key: VerifyingKey,
     }
+
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    pub struct JoiningServerInfo<AccountId> {
+        pub tss_account: AccountId,
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: TssServerURL,
+        pub pck_certificate_chain: Vec<Vec<u8>>,
+    }
+
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
@@ -344,6 +357,10 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        PckCertificateParse,
+        PckCertificateVerify,
+        PckCertificateBadPublicKey,
+        PckCertificateNoCertificate,
     }
 
     #[pallet::event]
@@ -546,10 +563,30 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            server_info: ServerInfo<T::AccountId>,
+            joining_server_info: JoiningServerInfo<T::AccountId>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(
+                    joining_server_info.pck_certificate_chain,
+                )
+                .map_err(|error| match error {
+                    pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
+                    pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
+                    pck::PckParseVerifyError::BadPublicKey => {
+                        Error::<T>::PckCertificateBadPublicKey
+                    },
+                    pck::PckParseVerifyError::NoCertificate => {
+                        Error::<T>::PckCertificateNoCertificate
+                    },
+                })?;
+            let server_info = ServerInfo::<T::AccountId> {
+                tss_account: joining_server_info.tss_account,
+                x25519_public_key: joining_server_info.x25519_public_key,
+                endpoint: joining_server_info.endpoint,
+                provisioning_certification_key,
+            };
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong

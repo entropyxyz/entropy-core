@@ -310,6 +310,7 @@ impl pallet_staking_extension::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxPendingAttestations = MaxPendingAttestations;
     type WeightInfo = ();
+    type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifyer;
 }
 
 parameter_types! {

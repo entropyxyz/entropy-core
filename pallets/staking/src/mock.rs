@@ -37,6 +37,7 @@ use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec;
 
 use crate as pallet_staking_extension;
+use pallet_staking_extension::pck::MockPckCertChainVerifyer;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -397,6 +398,7 @@ impl pallet_staking_extension::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxPendingAttestations = MaxPendingAttestations;
     type WeightInfo = ();
+    type PckCertChainVerifier = MockPckCertChainVerifyer;
 }
 
 impl pallet_attestation::Config for Test {

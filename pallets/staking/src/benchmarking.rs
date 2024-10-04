@@ -16,6 +16,7 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
 use super::*;
+use crate::pck::MOCK_PCK_DERIVED_FROM_NULL_ARRAY;
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
 use entropy_shared::MAX_SIGNERS;
@@ -90,25 +91,35 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info = ServerInfo {
+    let joining_server_info = JoiningServerInfo {
         tss_account: threshold,
         x25519_public_key,
         endpoint: vec![20, 20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        pck_certificate_chain: vec![[0u8; 32].to_vec()],
     };
 
     if validate_also {
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
-            server_info.clone(),
+            joining_server_info.clone(),
         ));
 
         let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(bonder)
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
 
-        ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+        ThresholdToStash::<T>::insert(&joining_server_info.tss_account, &validator_id);
+
+        let server_info = ServerInfo {
+            tss_account: joining_server_info.tss_account,
+            x25519_public_key: joining_server_info.x25519_public_key,
+            endpoint: joining_server_info.endpoint,
+            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
+                .to_vec()
+                .try_into()
+                .unwrap(),
+        };
         ThresholdServers::<T>::insert(&validator_id, server_info);
     }
 }
@@ -146,7 +157,7 @@ benchmarks! {
       endpoint: vec![20, 20],
       tss_account: _bonder.clone(),
       x25519_public_key: NULL_ARR,
-      provisioning_certification_key: BoundedVec::with_max_capacity(),
+      provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
     };
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
@@ -261,14 +272,14 @@ benchmarks! {
     prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
     let validator_preference = ValidatorPrefs::default();
 
-    let server_info = ServerInfo {
+    let joining_server_info = JoiningServerInfo {
         tss_account: threshold.clone(),
         x25519_public_key: NULL_ARR,
         endpoint: vec![20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        pck_certificate_chain: vec![[0u8; 32].to_vec()],
     };
 
-  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)
+  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, joining_server_info)
   verify {
     assert_last_event::<T>(Event::<T>::AttestationCheckQueued(bonder).into());
   }

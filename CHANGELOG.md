@@ -61,6 +61,7 @@ At the moment this project **does not** adhere to
 - Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
 - Trigger attestation check during validate ([#1063](https://github.com/entropyxyz/entropy-core/pull/1063))
 - Add fourth node to `devnet-local` configuration ([#1086](https://github.com/entropyxyz/entropy-core/pull/1086))
+- Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 
 ### Removed
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
