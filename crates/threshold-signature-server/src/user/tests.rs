@@ -29,7 +29,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{
     HashingAlgorithm, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH,
-    EVE_VERIFYING_KEY, NETWORK_PARENT_KEY,
+    NETWORK_PARENT_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{

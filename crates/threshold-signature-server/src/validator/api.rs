@@ -28,6 +28,7 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
+use blake2::{Blake2s256, Digest};
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 pub use entropy_protocol::{
     decode_verifying_key,
@@ -106,7 +107,7 @@ pub async fn new_reshare(
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
-        if data.new_signer == my_stash_address.encode() {
+        if data.new_signers.contains(&my_stash_address.encode()) {
             None
         } else {
             let kvdb_result = app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await?;
@@ -120,7 +121,7 @@ pub async fn new_reshare(
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
     let pruned_old_holders =
-        prune_old_holders(&api, &rpc, data.new_signer, validators_info.clone()).await?;
+        prune_old_holders(&api, &rpc, data.new_signers, validators_info.clone()).await?;
 
     let old_holders: BTreeSet<PartyId> =
         pruned_old_holders.into_iter().map(|x| PartyId::new(x.tss_account)).collect();
@@ -273,7 +274,14 @@ pub async fn validate_new_reshare(
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
 
-    if reshare_data.new_signer != chain_data.new_signer
+    let mut hasher_chain_data = Blake2s256::new();
+    hasher_chain_data.update(chain_data.new_signers.encode());
+    let chain_data_hash = hasher_chain_data.finalize();
+    let mut hasher_verifying_data = Blake2s256::new();
+    hasher_verifying_data.update(reshare_data.new_signers.encode());
+    let verifying_data_hash = hasher_verifying_data.finalize();
+
+    if verifying_data_hash != chain_data_hash
         || chain_data.block_number != reshare_data.block_number
     {
         return Err(ValidatorErr::InvalidData);
@@ -365,20 +373,24 @@ pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
 pub async fn prune_old_holders(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    new_signer: Vec<u8>,
+    new_signers: Vec<Vec<u8>>,
     validators_info: Vec<ValidatorInfo>,
 ) -> Result<Vec<ValidatorInfo>, ValidatorErr> {
-    Ok(if !new_signer.is_empty() {
-        let address_slice: &[u8; 32] = &new_signer.clone().try_into().unwrap();
-        let new_signer_address = AccountId32(*address_slice);
-        let new_signer_info = &get_validators_info(api, rpc, vec![new_signer_address])
-            .await
-            .map_err(|e| ValidatorErr::UserError(e.to_string()))?[0];
-        validators_info
-            .iter()
-            .filter(|x| x.tss_account != new_signer_info.tss_account)
-            .cloned()
-            .collect()
+    Ok(if !new_signers.is_empty() {
+        let mut filtered_validators_info = vec![];
+        for new_signer in new_signers {
+            let address_slice: &[u8; 32] = &new_signer.clone().try_into().unwrap();
+            let new_signer_address = AccountId32(*address_slice);
+            let new_signer_info = &get_validators_info(api, rpc, vec![new_signer_address])
+                .await
+                .map_err(|e| ValidatorErr::UserError(e.to_string()))?[0];
+            filtered_validators_info = validators_info
+                .iter()
+                .filter(|x| x.tss_account != new_signer_info.tss_account)
+                .cloned()
+                .collect::<Vec<_>>();
+        }
+        filtered_validators_info
     } else {
         validators_info.clone()
     })
