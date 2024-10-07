@@ -60,7 +60,7 @@ fn knows_how_to_mock_several_http_calls() {
         });
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/validator/rotate_network_key".into(),
+            uri: "http://localhost:3001/rotate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [10, 0, 0, 0].to_vec(),
@@ -95,7 +95,7 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_reshare(7).unwrap();
 
         pallet_staking_extension::RotateKeyshares::<Test>::put(10);
-        Propagation::post_rotate_keyshare(10).unwrap();
+        Propagation::post_rotate_network_key(10).unwrap();
     })
 }
 

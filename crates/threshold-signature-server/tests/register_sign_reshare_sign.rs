@@ -202,7 +202,7 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
     for signer in new_signers {
         let _ = client
             .post(format!(
-                "http://{}/validator/rotate_network_key",
+                "http://{}/rotate_network_key",
                 std::str::from_utf8(&signer.endpoint).unwrap()
             ))
             .send()

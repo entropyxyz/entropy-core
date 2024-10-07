@@ -212,7 +212,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/user/relay_tx", post(relay_tx))
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/reshare", post(new_reshare))
-        .route("/validator/rotate_network_key", post(rotate_network_key))
+        .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
