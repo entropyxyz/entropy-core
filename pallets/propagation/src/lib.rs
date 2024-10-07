@@ -311,12 +311,16 @@ pub mod pallet {
                 let from_local = sp_io::offchain::local_storage_get(kind, b"attest")
                     .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
                 let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/attest");
+                let converted_block_number: u32 =
+                    BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
 
                 let req_body = OcwMessageAttestationRequest {
                     tss_account_ids: attestations_to_request
                         .into_iter()
                         .filter_map(|v| v.try_into().ok())
                         .collect(),
+                    // subtract 1 from blocknumber since the request is from the last block
+                    block_number: converted_block_number.saturating_sub(1),
                 };
                 log::debug!("propagation::post attestation: {:?}", &[req_body.encode()]);
 

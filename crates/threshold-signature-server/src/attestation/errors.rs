@@ -40,6 +40,14 @@ pub enum AttestationErr {
     #[cfg(feature = "production")]
     #[error("Quote generation: {0}")]
     QuoteGeneration(#[from] std::io::Error),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
+    #[error("Data is repeated")]
+    RepeatedData,
+    #[error("Kv error: {0}")]
+    Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
+    #[error("Data is stale")]
+    StaleData,
 }
 
 impl IntoResponse for AttestationErr {

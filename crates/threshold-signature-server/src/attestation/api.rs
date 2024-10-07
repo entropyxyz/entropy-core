@@ -17,14 +17,18 @@ use crate::{
     attestation::errors::AttestationErr,
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     get_signer_and_x25519_secret,
-    helpers::substrate::{query_chain, submit_transaction},
+    helpers::{
+        launch::LATEST_BLOCK_NUMBER_ATTEST,
+        substrate::{query_chain, submit_transaction},
+    },
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
+use entropy_kvdb::kv_manager::{KvManager};
 use entropy_shared::OcwMessageAttestationRequest;
 use parity_scale_codec::Decode;
 use sp_core::Pair;
-use subxt::tx::PairSigner;
+use subxt::{tx::PairSigner};
 use x25519_dalek::StaticSecret;
 
 /// HTTP POST endpoint to initiate a TDX attestation.
@@ -39,15 +43,22 @@ pub async fn attest(
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let attestation_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
 
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
+    // We also need the current block number as input
+    let block_number =
+        rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
+
+    validate_new_attest(block_number, &attestation_requests, &app_state.kv_store).await?;
+
     // Check whether there is an attestion request for us
     if !attestation_requests.tss_account_ids.contains(&signer.signer().public().0) {
         return Ok(StatusCode::OK);
     }
 
-    let api = get_api(&app_state.configuration.endpoint).await?;
-    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
     // Get the input nonce for this attestation
+    // Also acts as chain check to make sure data is on chain
     let nonce = {
         let pending_attestation_query =
             entropy::storage().attestation().pending_attestations(signer.account_id());
@@ -55,10 +66,6 @@ pub async fn attest(
             .await?
             .ok_or_else(|| AttestationErr::Unexpected)?
     };
-
-    // We also need the current block number as input
-    let block_number =
-        rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
 
     // We add 1 to the block number as this will be processed in the next block
     let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
@@ -100,6 +107,35 @@ pub async fn create_quote(
 
     let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec();
     Ok(quote)
+}
+
+/// Validates attest endpoint
+/// Checks to make sure that attestation is not repeated or old
+pub async fn validate_new_attest(
+    latest_block_number: u32,
+    chain_data: &OcwMessageAttestationRequest,
+    kv_manager: &KvManager,
+) -> Result<(), AttestationErr> {
+    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_ATTEST).await?;
+    if u32::from_be_bytes(
+        last_block_number_recorded
+            .try_into()
+            .map_err(|_| AttestationErr::Conversion("Block number conversion"))?,
+    ) >= chain_data.block_number
+    {
+        return Err(AttestationErr::RepeatedData);
+    }
+
+    // we subtract 1 as the message info is coming from the previous block
+    if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        return Err(AttestationErr::StaleData);
+    }
+
+    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_ATTEST).await?;
+    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string()).await?;
+    kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
+
+    Ok(())
 }
 
 /// Create a TDX quote in production
