@@ -24,11 +24,11 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
-use entropy_kvdb::kv_manager::{KvManager};
+use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::OcwMessageAttestationRequest;
 use parity_scale_codec::Decode;
 use sp_core::Pair;
-use subxt::{tx::PairSigner};
+use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
 
 /// HTTP POST endpoint to initiate a TDX attestation.
