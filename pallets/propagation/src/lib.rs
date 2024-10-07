@@ -112,7 +112,9 @@ pub mod pallet {
             let validators_info = pallet_registry::Pallet::<T>::jumpstart_dkg(
                 block_number.saturating_sub(1u32.into()),
             );
-
+            if validators_info.is_empty() {
+                return Ok(());
+            }
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
