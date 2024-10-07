@@ -9,6 +9,12 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0-rc.1...master)
 
+### Breaking Changes
+- In [#1104](https://github.com/entropyxyz/entropy-core/pull/1104) the `/validator/rotate_network_key` endpoint was renamed to `rotate_network_key`
+
+### Changed
+- Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
+
 ## [0.3.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0-rc.1) - 2024-10-04
 
 ### Breaking Changes
