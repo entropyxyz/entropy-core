@@ -60,7 +60,7 @@ fn knows_how_to_mock_several_http_calls() {
         });
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/validator/rotate_keyshares".into(),
+            uri: "http://localhost:3001/validator/rotate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [10, 0, 0, 0].to_vec(),

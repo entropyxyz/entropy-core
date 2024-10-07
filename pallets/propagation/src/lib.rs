@@ -261,12 +261,12 @@ pub mod pallet {
 
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
-            let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_keyshares")
-                .unwrap_or_else(|| b"http://localhost:3001/validator/rotate_keyshares".to_vec());
+            let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_network_key")
+                .unwrap_or_else(|| b"http://localhost:3001/validator/rotate_network_key".to_vec());
             let url = str::from_utf8(&from_local)
-                .unwrap_or("http://localhost:3001/validator/rotate_keyshares");
+                .unwrap_or("http://localhost:3001/validator/rotate_network_key");
 
-            log::warn!("propagation::post rotate keyshare");
+            log::warn!("propagation::post rotate network key");
 
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
