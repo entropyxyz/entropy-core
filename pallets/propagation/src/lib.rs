@@ -263,8 +263,8 @@ pub mod pallet {
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_network_key")
                 .unwrap_or_else(|| b"http://localhost:3001/rotate_network_key".to_vec());
-            let url = str::from_utf8(&from_local)
-                .unwrap_or("http://localhost:3001/rotate_network_key");
+            let url =
+                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/rotate_network_key");
 
             log::warn!("propagation::post rotate network key");
 

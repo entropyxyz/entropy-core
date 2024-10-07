@@ -615,7 +615,8 @@ pub mod pallet {
             );
 
             let current_signer_length = signers_info.next_signers.len();
-            let is_last_confirmation = signers_info.confirmations.len() == (current_signer_length - 1);
+            let is_last_confirmation =
+                signers_info.confirmations.len() == (current_signer_length - 1);
 
             // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
             // ensure that rotation was indeed successful.
@@ -636,7 +637,6 @@ pub mod pallet {
             // TODO: Weight is `Pays::No` but want a more accurate weight for max signers vs current
             // signers see https://github.com/entropyxyz/entropy-core/issues/985
             Ok(Pays::No.into())
-
         }
     }
 
