@@ -111,7 +111,7 @@ pub async fn create_quote(
 
 /// Validates attest endpoint
 /// Checks to make sure that attestation is not repeated or old
-pub async fn validate_new_attest(
+pub async fn validate_new_attestation(
     latest_block_number: u32,
     chain_data: &OcwMessageAttestationRequest,
     kv_manager: &KvManager,
