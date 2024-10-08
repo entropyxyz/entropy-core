@@ -88,6 +88,7 @@ pub struct OcwMessageProactiveRefresh {
 pub struct OcwMessageAttestationRequest {
     /// The account ids of all TSS servers who must submit an attestation this block
     pub tss_account_ids: Vec<[u8; 32]>,
+    /// The block height at which this attestation request was made.
     pub block_number: BlockNumber,
 }
 
