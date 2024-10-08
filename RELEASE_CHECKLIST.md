@@ -47,8 +47,7 @@ tagged as the final release.
     - Jumpstart the network using:
         - `cargo run -p entropy-test-cli -- jumpstart-network`
     - Register an account using:
-        - `cargo run -p entropy-test-cli -- register \
-            ./crates/testing-utils/template_barebones.wasm -m //One`
+        - `cargo run -p entropy-test-cli -- register ./crates/testing-utils/template_barebones.wasm -m //One`
     - Request a signature using:
         - `cargo run -p entropy-test-cli -- sign \
             $VERIFYING_KEY "Hello, Docker Compose"`
