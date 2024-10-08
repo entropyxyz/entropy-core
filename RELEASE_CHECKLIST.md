@@ -49,8 +49,7 @@ tagged as the final release.
     - Register an account using:
         - `cargo run -p entropy-test-cli -- register ./crates/testing-utils/template_barebones.wasm -m //One`
     - Request a signature using:
-        - `cargo run -p entropy-test-cli -- sign \
-            $VERIFYING_KEY "Hello, Docker Compose"`
+        - `cargo run -p entropy-test-cli -- sign $VERIFYING_KEY "Hello, Docker Compose"`
 - [ ] Publish a test release tag
     - E.g `git tag test/hc/release/vX.Y.Z-rc.1 && git push origin test/hc/release/vX.Y.Z-rc.1`
 - [ ] Double check that the _published_ images still run correctly using the Docker compose from
