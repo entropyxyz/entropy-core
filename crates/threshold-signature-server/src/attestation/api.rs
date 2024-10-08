@@ -50,7 +50,7 @@ pub async fn attest(
     let block_number =
         rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
 
-    validate_new_attest(block_number, &attestation_requests, &app_state.kv_store).await?;
+    validate_new_attestation(block_number, &attestation_requests, &app_state.kv_store).await?;
 
     // Check whether there is an attestion request for us
     if !attestation_requests.tss_account_ids.contains(&signer.signer().public().0) {

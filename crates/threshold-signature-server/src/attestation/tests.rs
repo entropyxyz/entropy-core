@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use crate::{
-    attestation::api::validate_new_attest,
+    attestation::api::validate_new_attestation,
     chain_api::{entropy, get_api, get_rpc},
     helpers::{
         substrate::query_chain,
@@ -85,7 +85,7 @@ async fn test_attest_validation_fail() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let ocw_message = OcwMessageAttestationRequest { tss_account_ids: vec![], block_number };
     let err_stale_data =
-        validate_new_attest(block_number, &ocw_message, &kv).await.map_err(|e| e.to_string());
+        validate_new_attestation(block_number, &ocw_message, &kv).await.map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
     run_to_block(&rpc, block_number).await;
 
@@ -95,7 +95,7 @@ async fn test_attest_validation_fail() {
     kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
 
     let err_repeated_data =
-        validate_new_attest(block_number, &ocw_message, &kv).await.map_err(|e| e.to_string());
+        validate_new_attestation(block_number, &ocw_message, &kv).await.map_err(|e| e.to_string());
     assert_eq!(err_repeated_data, Err("Data is repeated".to_string()));
     clean_tests();
 }
