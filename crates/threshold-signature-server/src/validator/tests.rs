@@ -67,7 +67,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
-async fn test_reshare_foo() {
+async fn test_reshare() {
     initialize_test_logger().await;
     clean_tests();
 
@@ -113,8 +113,10 @@ async fn test_reshare_foo() {
     let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    let onchain_reshare_request =
-        OcwMessageReshare { new_signers: vec![new_signer.0.to_vec()], block_number: block_number - 1 };
+    let onchain_reshare_request = OcwMessageReshare {
+        new_signers: vec![new_signer.0.to_vec()],
+        block_number: block_number - 1,
+    };
 
     run_to_block(&rpc, block_number).await;
     // Send the OCW message to all TS servers who don't have a chain node

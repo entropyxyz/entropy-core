@@ -205,7 +205,8 @@ pub async fn do_proactive_refresh(
     .await?;
 
     let result =
-        execute_reshare(session_id, channels, signer.signer(), inputs,  &party_ids, Some(aux_info)).await?;
+        execute_reshare(session_id, channels, signer.signer(), inputs, &party_ids, Some(aux_info))
+            .await?;
     Ok(result)
 }
 
