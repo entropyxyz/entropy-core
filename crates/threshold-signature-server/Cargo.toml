@@ -65,7 +65,7 @@ bip32            ={ version="0.5.2" }
 bip39            ={ version="2.1.0", features=["zeroize"] }
 bytes            ={ version="1.7", default-features=false, features=["serde"] }
 base64           ="0.22.1"
-clap             ={ version="4.5.19", features=["derive"] }
+clap             ={ version="4.5.20", features=["derive"] }
 num              ="0.4.3"
 snow             ="0.9.6"
 sha3             ="0.10.8"
