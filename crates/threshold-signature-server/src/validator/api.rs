@@ -81,7 +81,7 @@ pub async fn new_reshare(
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
     let mut all_holders = validators_info.clone();
-    for signer_validator_info in signers_validators_info {
+    for signer_validator_info in signers_validators_info.clone() {
         let contains =
             all_holders.iter().position(|v| v.tss_account == signer_validator_info.tss_account);
         if contains.is_none() {
@@ -132,12 +132,14 @@ pub async fn new_reshare(
                     .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
             Some(OldHolder { key_share: key_share.0 })
         };
+
     let party_ids: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
-    let old_holders =
-        prune_old_holders(&api, &rpc, data.new_signers, all_holders.clone()).await?;
-
+    let verifiers: BTreeSet<PartyId> =
+        all_holders.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
+   
+    let old_holders = prune_old_holders(&api, &rpc, data.new_signers, validators_info).await?;
     let old_holders: BTreeSet<PartyId> =
         old_holders.into_iter().map(|x| PartyId::new(x.tss_account)).collect();
 
@@ -173,7 +175,7 @@ pub async fn new_reshare(
         converted_validator_info.push(validator_info.clone());
         tss_accounts.push(validator_info.tss_account.clone());
     }
-    dbg!(converted_validator_info.clone());
+
     let channels = get_channels(
         &app_state.listener_state,
         converted_validator_info,
@@ -185,7 +187,7 @@ pub async fn new_reshare(
     .await?;
 
     let (new_key_share, aux_info) =
-        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, None).await?;
+        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, &verifiers, None).await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
@@ -279,10 +281,10 @@ pub async fn validate_new_reshare(
         .ok_or_else(|| ValidatorErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    // we subtract 1 as the message info is coming from the previous block
-    if latest_block_number.saturating_sub(1) != chain_data.block_number {
-        return Err(ValidatorErr::StaleData);
-    }
+    // // we subtract 1 as the message info is coming from the previous block
+    // if latest_block_number.saturating_sub(1) != chain_data.block_number {
+    //     return Err(ValidatorErr::StaleData);
+    // }
 
     let reshare_data_info_query = entropy::storage().staking_extension().reshare_data();
     let reshare_data = query_chain(api, rpc, reshare_data_info_query, None)
@@ -296,11 +298,11 @@ pub async fn validate_new_reshare(
     hasher_verifying_data.update(reshare_data.new_signers.encode());
     let verifying_data_hash = hasher_verifying_data.finalize();
 
-    if verifying_data_hash != chain_data_hash
-        || chain_data.block_number != reshare_data.block_number
-    {
-        return Err(ValidatorErr::InvalidData);
-    }
+    // if verifying_data_hash != chain_data_hash
+    //     || chain_data.block_number != reshare_data.block_number
+    // {
+    //     return Err(ValidatorErr::InvalidData);
+    // }
     kv_manager.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await?;
     let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await?;
     kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;

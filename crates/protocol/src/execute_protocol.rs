@@ -334,6 +334,7 @@ pub async fn execute_reshare(
     chans: Channels,
     threshold_pair: &sr25519::Pair,
     inputs: KeyResharingInputs<KeyParams, PartyId>,
+    verifiers: &BTreeSet<PartyId>,
     aux_info_option: Option<AuxInfo<KeyParams, PartyId>>,
 ) -> Result<
     (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>),
@@ -350,7 +351,7 @@ pub async fn execute_reshare(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
         pair,
-        &inputs.new_holders,
+        verifiers,
         inputs.clone(),
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;

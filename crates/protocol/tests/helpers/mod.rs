@@ -144,7 +144,7 @@ pub async fn server(
                 new_threshold: old_key.threshold(),
             };
 
-            let new_keyshare = execute_reshare(session_id, channels, &pair, inputs, None).await?;
+            let new_keyshare = execute_reshare(session_id, channels, &pair, inputs, &party_ids, None).await?;
             Ok(ProtocolOutput::Reshare(new_keyshare.0))
         },
         SessionId::Dkg { .. } => {
