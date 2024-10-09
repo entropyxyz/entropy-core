@@ -77,7 +77,7 @@ pub async fn new_reshare(
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
-    let mut validators_info = get_validators_info(&api, &rpc, next_signers)
+    let validators_info = get_validators_info(&api, &rpc, next_signers)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
     let mut all_holders = validators_info.clone();
