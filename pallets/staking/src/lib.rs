@@ -352,6 +352,7 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        FailedAttestationCheck,
     }
 
     #[pallet::event]
@@ -575,21 +576,16 @@ pub mod pallet {
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
-            // TODO: use proper error here
-            use entropy_shared::AttestationHandler;
-            ensure!(T::AttestationHandler::verify_quote(&who, quote).is_ok(), Error::<T>::TssAccountAlreadyExists);
+            ensure!(
+                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                    &who, quote
+                )
+                .is_ok(),
+                Error::<T>::FailedAttestationCheck
+            );
 
-            // ensure!(
-            //     ValidationQueue::<T>::count() < T::MaxPendingAttestations::get(),
-            //     Error::<T>::TooManyPendingAttestations
-            // );
-
-            // Here we don't add the caller as a staking candidate yet. We need to first wait for
-            // them to pass an attestation check.
-            // ValidationQueue::<T>::insert(
-            //     (Status::Pending, server_info.tss_account.clone()),
-            //     (validator_id, server_info),
-            // );
+            ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+            ThresholdServers::<T>::insert(validator_id, server_info);
 
             Self::deposit_event(Event::AttestationCheckQueued(who));
 
