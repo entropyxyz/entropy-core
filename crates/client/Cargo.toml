@@ -33,7 +33,7 @@ hex             ={ version="0.4.3", optional=true }
 anyhow          ="1.0.89"
 
 # Only for the browser
-js-sys={ version="0.3.70", optional=true }
+js-sys={ version="0.3.71", optional=true }
 tokio ={ version="1.40", features=["time"] }
 
 [dev-dependencies]
