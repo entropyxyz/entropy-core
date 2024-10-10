@@ -126,6 +126,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult>(
                     tracing::warn!("Got verifying key during protocol - ignoring");
                 }
             };
+            dbg!(from.clone());
             // Put messages which were not for this session back onto the incoming message channel
             for message in messages_for_later.into_iter() {
                 tx.incoming_sender.send(message).await?;

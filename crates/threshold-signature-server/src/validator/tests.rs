@@ -67,7 +67,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
-async fn test_reshare() {
+async fn test_reshare_foo() {
     initialize_test_logger().await;
     clean_tests();
 
@@ -133,6 +133,7 @@ async fn test_reshare() {
     )
     .await;
     for response_result in response_results {
+        // dbg!(response_result.unwrap().status());
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
 
