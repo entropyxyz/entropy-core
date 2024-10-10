@@ -89,15 +89,26 @@ pub mod pallet {
         + pallet_staking::Config
         + pallet_parameters::Config
     {
+        /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        /// Something that provides randomness in the runtime.
-        type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
-        type Currency: Currency<Self::AccountId>;
-        type MaxEndpointLength: Get<u32>;
-        /// The maximum number of pending attestations that can be held in the validation queue.
-        type MaxPendingAttestations: Get<u32>;
+
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+
+        /// Something that provides randomness in the runtime.
+        type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
+
+        /// The currency mechanism, used to take storage deposits for example.
+        type Currency: Currency<Self::AccountId>;
+
+        /// The maximum length of a threshold server's endpoint address, in bytes.
+        type MaxEndpointLength: Get<u32>;
+
+        /// The maximum number of pending attestations that can be held in the validation queue.
+        type MaxPendingAttestations: Get<u32>;
+
+        /// The handler to use when issuing and verifying attestations.
+        type AttestationHandler: entropy_shared::AttestationHandler<Self::AccountId>;
     }
 
     /// Endpoint where a threshold server can be reached at
