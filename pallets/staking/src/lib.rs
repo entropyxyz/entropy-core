@@ -555,6 +555,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
             server_info: ServerInfo<T::AccountId>,
+            quote: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
@@ -574,17 +575,21 @@ pub mod pallet {
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
-            ensure!(
-                ValidationQueue::<T>::count() < T::MaxPendingAttestations::get(),
-                Error::<T>::TooManyPendingAttestations
-            );
+            // TODO: use proper error here
+            use entropy_shared::AttestationHandler;
+            ensure!(T::AttestationHandler::verify_quote(&who, quote).is_ok(), Error::<T>::TssAccountAlreadyExists);
+
+            // ensure!(
+            //     ValidationQueue::<T>::count() < T::MaxPendingAttestations::get(),
+            //     Error::<T>::TooManyPendingAttestations
+            // );
 
             // Here we don't add the caller as a staking candidate yet. We need to first wait for
             // them to pass an attestation check.
-            ValidationQueue::<T>::insert(
-                (Status::Pending, server_info.tss_account.clone()),
-                (validator_id, server_info),
-            );
+            // ValidationQueue::<T>::insert(
+            //     (Status::Pending, server_info.tss_account.clone()),
+            //     (validator_id, server_info),
+            // );
 
             Self::deposit_event(Event::AttestationCheckQueued(who));
 
