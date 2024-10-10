@@ -164,3 +164,17 @@ pub trait AttestationQueue<T> {
     /// The list of pending (not processed) attestations.
     fn pending_attestations() -> Vec<T>;
 }
+
+pub trait AttestationHandler<AccountId> {
+    fn verify_quote(attestee: &AccountId, quote: Vec<u8>) -> Result<(), sp_runtime::DispatchError>;
+}
+
+// A convenienve implementation for testing and benchmarking.
+impl<AccountId> AttestationHandler<AccountId> for () {
+    fn verify_quote(
+        _attestee: &AccountId,
+        _quote: Vec<u8>,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        Ok(())
+    }
+}

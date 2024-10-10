@@ -390,13 +390,32 @@ parameter_types! {
   pub const MaxPendingAttestations: u32 = 4;
 }
 
+pub(crate) const VALID_QUOTE: [u8; 32] = [0; 32];
+pub(crate) const INVALID_QUOTE: [u8; 32] = [1; 32];
+
+pub struct MockAttestationHandler;
+
+impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
+    fn verify_quote(
+        _attestee: &AccountId,
+        quote: Vec<u8>,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        let quote: Result<[u8; 32], _> = quote.try_into();
+        match quote.unwrap() {
+            VALID_QUOTE => Ok(()),
+            _ => Err(sp_runtime::DispatchError::Other("bad quote")),
+        }
+    }
+}
+
 impl pallet_staking_extension::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = TestPastRandomness;
-    type RuntimeEvent = RuntimeEvent;
     type MaxPendingAttestations = MaxPendingAttestations;
-    type WeightInfo = ();
+    type AttestationHandler = MockAttestationHandler;
 }
 
 impl pallet_attestation::Config for Test {
