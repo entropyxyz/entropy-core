@@ -28,6 +28,8 @@ use rand_core::RngCore;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
+/// TODO (Nando): Remove this
+///
 /// Once `validate()` is called we need to wait for an attestation to happen before populating
 /// certain data structures.
 ///
@@ -85,6 +87,7 @@ fn it_takes_in_an_endpoint() {
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         mock_attest_validate(1, server_info);
@@ -105,6 +108,7 @@ fn it_takes_in_an_endpoint() {
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
                 server_info,
+                VALID_QUOTE.to_vec(),
             ),
             Error::<Test>::EndpointTooLong
         );
@@ -119,7 +123,8 @@ fn it_takes_in_an_endpoint() {
             Staking::validate(
                 RuntimeOrigin::signed(4),
                 pallet_staking::ValidatorPrefs::default(),
-                server_info
+                server_info,
+                VALID_QUOTE.to_vec(),
             ),
             pallet_staking::Error::<Test>::NotController
         );
@@ -145,6 +150,7 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         mock_attest_validate(1, server_info.clone());
@@ -160,6 +166,7 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
                 RuntimeOrigin::signed(2),
                 pallet_staking::ValidatorPrefs::default(),
                 server_info,
+                VALID_QUOTE.to_vec(),
             ),
             Error::<Test>::TssAccountAlreadyExists
         );
@@ -185,6 +192,7 @@ fn it_changes_endpoint() {
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         mock_attest_validate(1, server_info);
@@ -218,6 +226,7 @@ fn it_changes_threshold_account() {
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         mock_attest_validate(1, server_info);
@@ -248,6 +257,7 @@ fn it_changes_threshold_account() {
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         mock_attest_validate(2, server_info);
@@ -284,6 +294,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
             server_info,
+            VALID_QUOTE.to_vec(),
         ));
 
         // Check that we cannot change to a TSS account which already exists
@@ -303,6 +314,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
         mock_attest_validate(2, server_info);
 
@@ -335,6 +347,7 @@ fn it_deletes_when_no_bond_left() {
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         mock_attest_validate(2, server_info);
@@ -621,6 +634,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
             RuntimeOrigin::signed(alice),
             pallet_staking::ValidatorPrefs::default(),
             server_info.clone(),
+            VALID_QUOTE.to_vec(),
         ));
 
         assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_some());
@@ -703,6 +717,7 @@ fn it_does_not_allow_validation_queue_to_grow_too_much() {
                 RuntimeOrigin::signed(i),
                 pallet_staking::ValidatorPrefs::default(),
                 server_info.clone(),
+                VALID_QUOTE.to_vec(),
             ));
         }
 
@@ -725,6 +740,7 @@ fn it_does_not_allow_validation_queue_to_grow_too_much() {
                 RuntimeOrigin::signed(max_attestations + 1),
                 pallet_staking::ValidatorPrefs::default(),
                 server_info.clone(),
+                VALID_QUOTE.to_vec(),
             ),
             Error::<Test>::TooManyPendingAttestations
         );
