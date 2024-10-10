@@ -156,7 +156,6 @@ pub mod pallet {
         })]
         pub fn attest(origin: OriginFor<T>, quote: Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-
             <Self as entropy_shared::AttestationHandler<_>>::verify_quote(&who, quote)?;
 
             Self::deposit_event(Event::AttestationMade);
@@ -188,28 +187,8 @@ pub mod pallet {
         }
     }
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            let pending_validators = T::AttestationQueue::pending_attestations();
-            let num_pending_attestations = pending_validators.len() as u32;
-            let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
-
-            for account_id in pending_validators {
-                let mut nonce = [0; 32];
-                Self::get_randomness().fill_bytes(&mut nonce[..]);
-                PendingAttestations::<T>::insert(&account_id, nonce);
-                requests.push(account_id.encode());
-            }
-
-            AttestationRequests::<T>::insert(now, requests);
-
-            <T as Config>::WeightInfo::on_initialize(num_pending_attestations)
-        }
-    }
-
     impl<T: Config> Pallet<T> {
-        pub fn get_randomness() -> ChaCha20Rng {
+        fn get_randomness() -> ChaCha20Rng {
             let phrase = b"quote_creation";
             // TODO: Is randomness freshness an issue here
             // https://github.com/paritytech/substrate/issues/8312
@@ -223,18 +202,18 @@ pub mod pallet {
 
     impl<T: Config> entropy_shared::AttestationHandler<T::AccountId> for Pallet<T> {
         // TODO: Change to attestee
-        fn verify_quote(who: &T::AccountId, quote: Vec<u8>) -> Result<(), DispatchError> {
+        fn verify_quote(attestee: &T::AccountId, quote: Vec<u8>) -> Result<(), DispatchError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
             let nonce =
-                PendingAttestations::<T>::get(&who).ok_or(Error::<T>::UnexpectedAttestation)?;
+                PendingAttestations::<T>::get(attestee).ok_or(Error::<T>::UnexpectedAttestation)?;
 
             // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
             // Get associated x25519 public key from staking pallet
             let x25519_public_key =
-                T::KeyProvider::x25519_public_key(&who).ok_or(Error::<T>::NoX25519KeyForAccount)?;
+                T::KeyProvider::x25519_public_key(attestee).ok_or(Error::<T>::NoX25519KeyForAccount)?;
 
             // Get current block number
             let block_number: u32 = {
@@ -244,7 +223,7 @@ pub mod pallet {
 
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
-                QuoteInputData::new(&who, x25519_public_key, nonce, block_number);
+                QuoteInputData::new(attestee, x25519_public_key, nonce, block_number);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
                 Error::<T>::IncorrectInputData
@@ -257,7 +236,7 @@ pub mod pallet {
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
             let provisioning_certification_key =
-                T::KeyProvider::provisioning_key(&who).ok_or(Error::<T>::NoPCKForAccount)?;
+                T::KeyProvider::provisioning_key(attestee).ok_or(Error::<T>::NoPCKForAccount)?;
 
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(
@@ -272,8 +251,8 @@ pub mod pallet {
                 .verify_with_pck(provisioning_certification_key)
                 .map_err(|_| Error::<T>::PckVerification)?;
 
-            PendingAttestations::<T>::remove(&who);
-            T::AttestationQueue::confirm_attestation(&who);
+            PendingAttestations::<T>::remove(attestee);
+            T::AttestationQueue::confirm_attestation(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
