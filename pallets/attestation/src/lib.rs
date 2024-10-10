@@ -119,6 +119,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         AttestationMade,
+        AttestationIssued(Vec<u8>, BlockNumberFor<T>),
     }
 
     /// Errors related to the attestation pallet
@@ -154,6 +155,67 @@ pub mod pallet {
         pub fn attest(origin: OriginFor<T>, quote: Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
+            <Self as entropy_shared::AttestationHandler<_>>::verify_quote(&who, quote)?;
+
+            Self::deposit_event(Event::AttestationMade);
+
+            Ok(())
+        }
+
+        #[pallet::call_index(1)]
+        #[pallet::weight({
+            <T as Config>::WeightInfo::attest()
+        })]
+        pub fn request_attestation(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            let mut nonce = [0; 32];
+            Self::get_randomness().fill_bytes(&mut nonce[..]);
+            PendingAttestations::<T>::insert(&who, nonce);
+
+            let block_number = <frame_system::Pallet<T>>::block_number();
+            Self::deposit_event(Event::AttestationIssued(nonce.to_vec(), block_number));
+
+            Ok(())
+        }
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
+            let pending_validators = T::AttestationQueue::pending_attestations();
+            let num_pending_attestations = pending_validators.len() as u32;
+            let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
+
+            for account_id in pending_validators {
+                let mut nonce = [0; 32];
+                Self::get_randomness().fill_bytes(&mut nonce[..]);
+                PendingAttestations::<T>::insert(&account_id, nonce);
+                requests.push(account_id.encode());
+            }
+
+            AttestationRequests::<T>::insert(now, requests);
+
+            <T as Config>::WeightInfo::on_initialize(num_pending_attestations)
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        pub fn get_randomness() -> ChaCha20Rng {
+            let phrase = b"quote_creation";
+            // TODO: Is randomness freshness an issue here
+            // https://github.com/paritytech/substrate/issues/8312
+            let (seed, _) = T::Randomness::random(phrase);
+            // seed needs to be guaranteed to be 32 bytes.
+            let seed = <[u8; 32]>::decode(&mut TrailingZeroInput::new(seed.as_ref()))
+                .expect("input is padded with zeroes; qed");
+            ChaChaRng::from_seed(seed)
+        }
+    }
+
+    impl<T: Config> entropy_shared::AttestationHandler<T::AccountId> for Pallet<T> {
+        // TODO: Change to attestee
+        fn verify_quote(who: &T::AccountId, quote: Vec<u8>) -> Result<(), DispatchError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
             let nonce =
@@ -207,42 +269,7 @@ pub mod pallet {
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
-            Self::deposit_event(Event::AttestationMade);
-
             Ok(())
-        }
-    }
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            let pending_validators = T::AttestationQueue::pending_attestations();
-            let num_pending_attestations = pending_validators.len() as u32;
-            let mut requests = AttestationRequests::<T>::get(now).unwrap_or_default();
-
-            for account_id in pending_validators {
-                let mut nonce = [0; 32];
-                Self::get_randomness().fill_bytes(&mut nonce[..]);
-                PendingAttestations::<T>::insert(&account_id, nonce);
-                requests.push(account_id.encode());
-            }
-
-            AttestationRequests::<T>::insert(now, requests);
-
-            <T as Config>::WeightInfo::on_initialize(num_pending_attestations)
-        }
-    }
-
-    impl<T: Config> Pallet<T> {
-        pub fn get_randomness() -> ChaCha20Rng {
-            let phrase = b"quote_creation";
-            // TODO: Is randomness freshness an issue here
-            // https://github.com/paritytech/substrate/issues/8312
-            let (seed, _) = T::Randomness::random(phrase);
-            // seed needs to be guaranteed to be 32 bytes.
-            let seed = <[u8; 32]>::decode(&mut TrailingZeroInput::new(seed.as_ref()))
-                .expect("input is padded with zeroes; qed");
-            ChaChaRng::from_seed(seed)
         }
     }
 }
