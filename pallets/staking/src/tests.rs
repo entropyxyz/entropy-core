@@ -602,7 +602,6 @@ fn it_confirms_keyshare() {
 fn it_requires_attestation_before_validate_is_succesful() {
     new_test_ext().execute_with(|| {
         let (alice, bob) = (1, 2);
-        let mut current_block = 0;
 
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(alice),
@@ -610,26 +609,28 @@ fn it_requires_attestation_before_validate_is_succesful() {
             pallet_staking::RewardDestination::Account(alice),
         ));
 
-        /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
-        /// key
-        const PCK: [u8; 32] = [
-            117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
-            207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
-        ];
-        let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-        let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-
         let server_info = ServerInfo {
             tss_account: bob,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
+            provisioning_certification_key: BoundedVec::try_from([0; 32].to_vec()).unwrap(),
         };
 
-        // Our call to `validate` should succeed, adding Bob into the validation queue. Bob should
-        // not be considered a candidate yet though.
-        assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_none());
+        // First we test that an invalid attestation doesn't allow us to submit our candidacy.
+        assert_noop!(
+            Staking::validate(
+                RuntimeOrigin::signed(alice),
+                pallet_staking::ValidatorPrefs::default(),
+                server_info.clone(),
+                INVALID_QUOTE.to_vec(),
+            ),
+            Error::<Test>::FailedAttestationCheck
+        );
 
+        assert_eq!(Staking::threshold_server(bob), None);
+        assert_eq!(Staking::threshold_to_stash(server_info.tss_account), None);
+
+        // Next we test that a valid attestation gets us into a candidate state.
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(alice),
             pallet_staking::ValidatorPrefs::default(),
@@ -637,57 +638,6 @@ fn it_requires_attestation_before_validate_is_succesful() {
             VALID_QUOTE.to_vec(),
         ));
 
-        assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_some());
-        assert_eq!(Staking::threshold_server(bob), None);
-        assert_eq!(Staking::threshold_to_stash(server_info.tss_account), None);
-
-        // Run to the next block in order to trigger the `on_initialize` hooks.
-        current_block += 1;
-        run_to_block(current_block);
-
-        // The request in the validation queue should now be picked up by the Attestation pallet.
-        assert!(Attestation::pending_attestations(bob).is_some());
-        assert!(Attestation::attestation_requests(current_block).is_some());
-
-        // Run to the next block, in practice this is around when the OCW would run.
-        current_block += 1;
-        run_to_block(current_block);
-
-        // Here we have to mock the `attest()` extrinsic call since we can't call an offchain worker
-        // in the tests.
-
-        // For now it doesn't matter what this is, but once we handle PCK certificates this will
-        // need to correspond to the public key in the certificate
-        let signing_key = tdx_quote::SigningKey::random(&mut rand_core::OsRng);
-
-        // Note that this is using fake randomness from the mock runtime
-        let mut nonce = [0; 32];
-        Attestation::get_randomness().fill_bytes(&mut nonce[..]);
-
-        let input_data = entropy_shared::QuoteInputData::new(
-            server_info.tss_account,
-            server_info.x25519_public_key,
-            nonce,
-            current_block as u32,
-        );
-
-        let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0);
-        assert_ok!(Attestation::attest(
-            RuntimeOrigin::signed(server_info.tss_account),
-            quote.as_bytes().to_vec(),
-        ));
-
-        // At this point we shouldn't have any pending attestations on either side.
-        assert!(Attestation::pending_attestations(bob).is_none());
-        assert!(Staking::validation_queue((crate::Status::Pending, bob)).is_none());
-        assert!(Staking::validation_queue((crate::Status::Confirmed, bob)).is_some());
-
-        // Now we expect that the `on_initialize` hook of the Staking Extension pallet will have
-        // picked up our confirmed attestation.
-        current_block += 1;
-        run_to_block(current_block);
-
-        assert!(Staking::validation_queue((crate::Status::Confirmed, bob)).is_none());
         assert_eq!(Staking::threshold_to_stash(bob), Some(alice));
         assert_eq!(Staking::threshold_server(alice), Some(server_info));
     })
