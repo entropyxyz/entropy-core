@@ -141,6 +141,8 @@ pub mod pallet {
         CannotDecodeVerifyingKey,
         /// Could not verify PCK signature
         PckVerification,
+        /// There's an existing attestation request for this account ID.
+        OutstandingAttestationRequest,
     }
 
     #[pallet::call]
@@ -168,6 +170,12 @@ pub mod pallet {
         })]
         pub fn request_attestation(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
+
+            // We only want one pending attestation request per account.
+            ensure!(
+                !PendingAttestations::<T>::contains_key(&who),
+                Error::<T>::OutstandingAttestationRequest
+            );
 
             let mut nonce = [0; 32];
             Self::get_randomness().fill_bytes(&mut nonce[..]);
