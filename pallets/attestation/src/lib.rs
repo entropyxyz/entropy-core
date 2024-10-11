@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationQueue, KeyProvider, QuoteInputData};
+    use entropy_shared::QuoteInputData;
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
@@ -77,10 +77,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
-        /// A type used to get different keys for a given account ID.
-        type KeyProvider: entropy_shared::KeyProvider<Self::AccountId>;
-        /// A type used to describe a queue of attestations.
-        type AttestationQueue: entropy_shared::AttestationQueue<Self::AccountId>;
     }
 
     #[pallet::genesis_config]
@@ -221,10 +217,6 @@ pub mod pallet {
             // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
-            // Get associated x25519 public key from staking pallet
-            // let x25519_public_key = T::KeyProvider::x25519_public_key(attestee)
-            //     .ok_or(Error::<T>::NoX25519KeyForAccount)?;
-
             // Get current block number
             let block_number: u32 = {
                 let block_number = <frame_system::Pallet<T>>::block_number();
@@ -245,9 +237,6 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
-            // let provisioning_certification_key =
-            //     T::KeyProvider::provisioning_key(attestee).ok_or(Error::<T>::NoPCKForAccount)?;
-
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(
                 &provisioning_certification_key
@@ -262,7 +251,6 @@ pub mod pallet {
                 .map_err(|_| Error::<T>::PckVerification)?;
 
             PendingAttestations::<T>::remove(attestee);
-            // T::AttestationQueue::confirm_attestation(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 

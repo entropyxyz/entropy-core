@@ -420,12 +420,11 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = MockAttestationHandler;
 }
 
+// TODO (Nando): Do we even need this anymore?
 impl pallet_attestation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Randomness = TestPastRandomness;
-    type KeyProvider = Staking;
-    type AttestationQueue = Staking;
 }
 
 // Build genesis storage according to the mock runtime.

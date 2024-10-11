@@ -24,8 +24,6 @@ use pallet_parameters::SignersSize;
 use pallet_session::SessionManager;
 use sp_runtime::BoundedVec;
 
-use rand_core::RngCore;
-
 const NULL_ARR: [u8; 32] = [0; 32];
 
 /// TODO (Nando): Remove this
@@ -640,60 +638,6 @@ fn it_requires_attestation_before_validate_is_succesful() {
 
         assert_eq!(Staking::threshold_to_stash(bob), Some(alice));
         assert_eq!(Staking::threshold_server(alice), Some(server_info));
-    })
-}
-
-#[test]
-fn it_does_not_allow_validation_queue_to_grow_too_much() {
-    new_test_ext().execute_with(|| {
-        let max_attestations = <Test as crate::Config>::MaxPendingAttestations::get() as u64;
-
-        // First we fill up the validation queue as much as we're allowed
-        for i in 1..=max_attestations {
-            assert_ok!(FrameStaking::bond(
-                RuntimeOrigin::signed(i),
-                100u64,
-                pallet_staking::RewardDestination::Account(i),
-            ));
-
-            let server_info = ServerInfo {
-                tss_account: i + 1,
-                x25519_public_key: NULL_ARR,
-                endpoint: vec![20],
-                provisioning_certification_key: BoundedVec::with_max_capacity(),
-            };
-
-            assert_ok!(Staking::validate(
-                RuntimeOrigin::signed(i),
-                pallet_staking::ValidatorPrefs::default(),
-                server_info.clone(),
-                VALID_QUOTE.to_vec(),
-            ));
-        }
-
-        // And then we try and see if we can fit one more request - which shouldn't be allowed.
-        assert_ok!(FrameStaking::bond(
-            RuntimeOrigin::signed(max_attestations + 1),
-            100u64,
-            pallet_staking::RewardDestination::Account(max_attestations + 5),
-        ));
-
-        let server_info = ServerInfo {
-            tss_account: max_attestations + 2,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
-        };
-
-        assert_noop!(
-            Staking::validate(
-                RuntimeOrigin::signed(max_attestations + 1),
-                pallet_staking::ValidatorPrefs::default(),
-                server_info.clone(),
-                VALID_QUOTE.to_vec(),
-            ),
-            Error::<Test>::TooManyPendingAttestations
-        );
     })
 }
 

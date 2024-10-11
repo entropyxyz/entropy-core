@@ -71,8 +71,6 @@ impl pallet_attestation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Randomness = TestPastRandomness;
-    type KeyProvider = Staking;
-    type AttestationQueue = Staking;
 }
 
 parameter_types! {
