@@ -69,11 +69,20 @@ pub async fn new_reshare(
         .next_signers;
 
     let signers_query = entropy::storage().staking_extension().signers();
-    let signers = query_chain(&api, &rpc, signers_query, None)
-        .await?
-        .ok_or_else(|| ValidatorErr::ChainFetch("Error getting signers"))?;
+    let old_signers_stash: Vec<AccountId32> = data
+        .old_signers
+        .into_iter()
+        .map(|s| {
+            let address_slice: &[u8; 32] = &s
+                .clone()
+                .try_into()
+                .map_err(|_| ProtocolErr::AddressConversionError("Invalid Length".to_string()))
+                .unwrap();
+            AccountId32(*address_slice)
+        })
+        .collect();
 
-    let signers_validators_info = get_validators_info(&api, &rpc, signers)
+    let old_signers = get_validators_info(&api, &rpc, old_signers_stash)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
@@ -81,12 +90,12 @@ pub async fn new_reshare(
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
     let mut all_holders = validators_info.clone();
-    for signer_validator_info in signers_validators_info.clone() {
+    for old_signers_info in old_signers.clone() {
         let contains =
-            all_holders.iter().position(|v| v.tss_account == signer_validator_info.tss_account);
+            all_holders.iter().position(|v| v.tss_account == old_signers_info.tss_account);
         if contains.is_none() {
-            dbg!(&signer_validator_info);
-            all_holders.push(signer_validator_info);
+            dbg!(&old_signers_info);
+            all_holders.push(old_signers_info);
         }
     }
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
@@ -138,23 +147,24 @@ pub async fn new_reshare(
     let new_holder_test: Vec<AccountId32> =
         validators_info.iter().cloned().map(|x| x.tss_account).collect();
 
-    let all_holders_test: Vec<AccountId32> = all_holders.iter().cloned().map(|x| x.tss_account).collect();
+    let all_holders_test: Vec<AccountId32> =
+        all_holders.iter().cloned().map(|x| x.tss_account).collect();
 
     let old_holders_test: Vec<AccountId32> =
-        signers_validators_info.iter().cloned().map(|x| x.tss_account).collect();
+        old_signers.iter().cloned().map(|x| x.tss_account).collect();
     // dbg!(&new_holder_test); // BCD
     // dbg!(&all_holders_test); // ABCD
     // dbg!(&old_holders_test); // ABD old holders
     // let new_holders = &prune_old_holders(&api, &rpc, data.new_signers, validators_info).await?;
 
     let new_holders: BTreeSet<PartyId> =
-        signers_validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
+        validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
     let verifiers: BTreeSet<PartyId> =
         all_holders.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
-    
+
     let old_holders: BTreeSet<PartyId> =
-        validators_info.into_iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
+        old_signers.into_iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
     dbg!(parent_key_details.parent_key_threshold.clone());
 
     let new_holder = NewHolder {

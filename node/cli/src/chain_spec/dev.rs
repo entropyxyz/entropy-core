@@ -250,7 +250,7 @@ pub fn development_genesis_config(
                 })
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
-            mock_signer_rotate: (false, vec![], vec![]),
+            mock_signer_rotate: (false, vec![], vec![], vec![]),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts

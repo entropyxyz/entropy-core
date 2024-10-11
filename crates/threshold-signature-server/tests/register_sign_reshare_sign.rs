@@ -163,7 +163,7 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request =
-        OcwMessageReshare { new_signers: vec![new_signer.0.to_vec()], block_number };
+        OcwMessageReshare { new_signers: vec![new_signer.0.to_vec()], old_signers: vec![], block_number };
 
     run_to_block(&rpc, block_number + 1).await;
     // Send the OCW message to all TS servers who don't have a chain node
