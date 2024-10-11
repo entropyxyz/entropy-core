@@ -315,12 +315,13 @@ parameter_types! {
   pub const MaxPendingAttestations: u32 = 4;
 }
 impl pallet_staking_extension::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = TestPastRandomness;
-    type RuntimeEvent = RuntimeEvent;
     type MaxPendingAttestations = MaxPendingAttestations;
-    type WeightInfo = ();
+    type AttestationHandler = ();
 }
 
 parameter_types! {
