@@ -15,7 +15,7 @@
 
 use crate::{
     mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, NextSignerInfo, NextSigners,
-    ServerInfo, Signers, ThresholdServers, ThresholdToStash,
+    ServerInfo, Signers, ThresholdToStash,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -25,18 +25,6 @@ use pallet_session::SessionManager;
 use sp_runtime::BoundedVec;
 
 const NULL_ARR: [u8; 32] = [0; 32];
-
-/// TODO (Nando): Remove this
-///
-/// Once `validate()` is called we need to wait for an attestation to happen before populating
-/// certain data structures.
-///
-/// For our tests we don't always want to go through that flow, so here we manually populate those
-/// data structures.
-fn mock_attest_validate(validator_id: AccountId, server_info: ServerInfo<AccountId>) {
-    ThresholdToStash::<Test>::insert(&server_info.tss_account, validator_id);
-    ThresholdServers::<Test>::insert(validator_id, server_info);
-}
 
 #[test]
 fn basic_setup_works() {
@@ -87,8 +75,6 @@ fn it_takes_in_an_endpoint() {
             server_info.clone(),
             VALID_QUOTE.to_vec(),
         ));
-
-        mock_attest_validate(1, server_info);
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(1).unwrap();
         assert_eq!(endpoint, vec![20]);
@@ -151,8 +137,6 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             VALID_QUOTE.to_vec(),
         ));
 
-        mock_attest_validate(1, server_info.clone());
-
         // Attempt to call validate with a TSS account which already exists
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(2),
@@ -193,8 +177,6 @@ fn it_changes_endpoint() {
             VALID_QUOTE.to_vec(),
         ));
 
-        mock_attest_validate(1, server_info);
-
         assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), vec![30]));
         assert_eq!(Staking::threshold_server(1).unwrap().endpoint, vec![30]);
 
@@ -227,8 +209,6 @@ fn it_changes_threshold_account() {
             VALID_QUOTE.to_vec(),
         ));
 
-        mock_attest_validate(1, server_info);
-
         assert_ok!(Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 4, NULL_ARR));
         assert_eq!(Staking::threshold_server(1).unwrap().tss_account, 4);
         assert_eq!(Staking::threshold_to_stash(4).unwrap(), 1);
@@ -257,8 +237,6 @@ fn it_changes_threshold_account() {
             server_info.clone(),
             VALID_QUOTE.to_vec(),
         ));
-
-        mock_attest_validate(2, server_info);
 
         assert_noop!(
             Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 5, NULL_ARR),
@@ -314,7 +292,6 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             server_info.clone(),
             VALID_QUOTE.to_vec(),
         ));
-        mock_attest_validate(2, server_info);
 
         assert_noop!(
             Staking::change_threshold_accounts(RuntimeOrigin::signed(1), 5, NULL_ARR),
@@ -347,8 +324,6 @@ fn it_deletes_when_no_bond_left() {
             server_info.clone(),
             VALID_QUOTE.to_vec(),
         ));
-
-        mock_attest_validate(2, server_info);
 
         IsValidatorSynced::<Test>::insert(2, true);
 
