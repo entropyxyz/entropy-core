@@ -411,13 +411,13 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
 }
 
 impl pallet_staking_extension::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
+    type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type Randomness = TestPastRandomness;
     type MaxPendingAttestations = MaxPendingAttestations;
-    type AttestationHandler = MockAttestationHandler;
+    type Randomness = TestPastRandomness;
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
 }
 
 // TODO (Nando): Do we even need this anymore?
