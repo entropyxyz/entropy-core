@@ -310,13 +310,11 @@ impl Randomness<H256, BlockNumber> for TestPastRandomness {
 }
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
-  pub const MaxPendingAttestations: u32 = 4;
 }
 impl pallet_staking_extension::Config for Test {
     type AttestationHandler = ();
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type MaxPendingAttestations = MaxPendingAttestations;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();

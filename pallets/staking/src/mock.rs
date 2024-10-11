@@ -387,7 +387,6 @@ impl pallet_parameters::Config for Test {
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
-  pub const MaxPendingAttestations: u32 = 4;
 }
 
 pub(crate) const VALID_QUOTE: [u8; 32] = [0; 32];
@@ -414,7 +413,6 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type MaxPendingAttestations = MaxPendingAttestations;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();

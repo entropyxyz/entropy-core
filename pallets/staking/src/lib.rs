@@ -103,9 +103,6 @@ pub mod pallet {
         /// The maximum length of a threshold server's endpoint address, in bytes.
         type MaxEndpointLength: Get<u32>;
 
-        /// The maximum number of pending attestations that can be held in the validation queue.
-        type MaxPendingAttestations: Get<u32>;
-
         /// The handler to use when issuing and verifying attestations.
         type AttestationHandler: entropy_shared::AttestationHandler<Self::AccountId>;
     }
