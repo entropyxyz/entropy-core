@@ -548,8 +548,17 @@ pub mod pallet {
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
         /// information about a validator's threshold server is provided.
         ///
-        /// Note that - just like the original `validate()` extrinsic - the effects of this are
-        /// only applied in the following era.
+        /// A valid TDX quote must be passed along in order to ensure that the validator candidate
+        /// is running TDX hardware. In order for the chain to be aware that a quote is expected
+        /// from the candidate, `pallet_attestation::request_attestation()` must be called first.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
+        ///
+        /// # Note
+        ///
+        /// Just like the original `validate()` extrinsic the effects of this are only applied in
+        /// the following era.
         #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::validate())]
         pub fn validate(

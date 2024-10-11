@@ -150,19 +150,25 @@ pub mod pallet {
         /// A TDX quote given in response to an attestation request.
         /// The quote format is specified in:
         /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
+        ///
+        /// TODO (Nando): This has been changed to always pass. I'm not sure if we want to remove
+        /// this, or still keep it around in some capacity.
         #[pallet::call_index(0)]
         #[pallet::weight({
             <T as Config>::WeightInfo::attest()
         })]
         pub fn attest(origin: OriginFor<T>, _quote: Vec<u8>) -> DispatchResult {
             let _who = ensure_signed(origin)?;
-            // <Self as entropy_shared::AttestationHandler<_>>::verify_quote(&who, quote)?;
 
             Self::deposit_event(Event::AttestationMade);
 
             Ok(())
         }
 
+        /// Indicates to the chain that the caller wants to make an attestation.
+        ///
+        /// Once the chain is aware of this request, other extrinsics will be able to determine
+        /// whether or not the caller has provided a valid attestation.
         #[pallet::call_index(1)]
         #[pallet::weight({
             <T as Config>::WeightInfo::attest()
