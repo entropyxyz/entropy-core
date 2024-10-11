@@ -716,6 +716,7 @@ parameter_types! {
 }
 
 impl pallet_staking_extension::Config for Runtime {
+    type AttestationHandler = Attestation;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
@@ -1502,8 +1503,6 @@ impl pallet_attestation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
-    type KeyProvider = StakingExtension;
-    type AttestationQueue = StakingExtension;
 }
 
 parameter_types! {
