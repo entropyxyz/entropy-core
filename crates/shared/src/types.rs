@@ -135,6 +135,7 @@ impl QuoteInputData {
 }
 
 /// A trait for types which can handle attestation requests.
+#[cfg(not(feature = "wasm"))]
 pub trait AttestationHandler<AccountId> {
     /// Verify that the given quote is valid and matches the given information about the attestee.
     fn verify_quote(
@@ -146,6 +147,7 @@ pub trait AttestationHandler<AccountId> {
 }
 
 /// A convenience implementation for testing and benchmarking.
+#[cfg(not(feature = "wasm"))]
 impl<AccountId> AttestationHandler<AccountId> for () {
     fn verify_quote(
         _attestee: &AccountId,
