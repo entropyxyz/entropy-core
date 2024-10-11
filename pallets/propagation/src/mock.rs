@@ -378,8 +378,6 @@ impl pallet_attestation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Randomness = TestPastRandomness;
-    type KeyProvider = Staking;
-    type AttestationQueue = Staking;
 }
 
 // Build genesis storage according to the mock runtime.
