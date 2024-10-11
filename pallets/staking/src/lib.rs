@@ -331,8 +331,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// An endpoint has been added or edited. [who, endpoint]
         EndpointChanged(T::AccountId, Vec<u8>),
-        /// Node Info has been added or edited. [who, endpoint, threshold_account]
-        NodeInfoChanged(T::AccountId, Vec<u8>, T::AccountId),
+        /// The caller has been accepted as a validator candidate/runner up. [who, validator ID, threshold_account, endpoint]
+        ValidatorCandidateAccepted(T::AccountId, T::ValidatorId, T::AccountId, Vec<u8>),
         /// A threshold account has been added or edited. [validator, threshold_account]
         ThresholdAccountChanged(
             <T as pallet_session::Config>::ValidatorId,
@@ -550,10 +550,14 @@ pub mod pallet {
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
 
             ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
-            ThresholdServers::<T>::insert(validator_id, server_info);
+            ThresholdServers::<T>::insert(&validator_id, server_info.clone());
 
-            // TODO (Nando): Change this event
-            Self::deposit_event(Event::AttestationCheckQueued(who));
+            Self::deposit_event(Event::ValidatorCandidateAccepted(
+                who,
+                validator_id,
+                server_info.tss_account,
+                server_info.endpoint,
+            ));
 
             Ok(())
         }
