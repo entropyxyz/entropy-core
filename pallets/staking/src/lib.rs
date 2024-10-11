@@ -570,19 +570,22 @@ pub mod pallet {
                 Error::<T>::TssAccountAlreadyExists
             );
 
+            ensure!(
+                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                    &who,
+                    server_info.x25519_public_key,
+                    server_info.provisioning_certification_key.clone(),
+                    quote
+                )
+                .is_ok(),
+                Error::<T>::FailedAttestationCheck
+            );
+
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
 
             let stash = Self::get_stash(&who)?;
             let validator_id =
                 T::ValidatorId::try_from(stash).or(Err(Error::<T>::InvalidValidatorId))?;
-
-            ensure!(
-                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
-                    &who, quote
-                )
-                .is_ok(),
-                Error::<T>::FailedAttestationCheck
-            );
 
             ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
             ThresholdServers::<T>::insert(validator_id, server_info);

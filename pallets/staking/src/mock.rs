@@ -398,12 +398,14 @@ pub struct MockAttestationHandler;
 impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
     fn verify_quote(
         _attestee: &AccountId,
+        _x25519_public_key: entropy_shared::X25519PublicKey,
+        _provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
     ) -> Result<(), sp_runtime::DispatchError> {
         let quote: Result<[u8; 32], _> = quote.try_into();
         match quote.unwrap() {
             VALID_QUOTE => Ok(()),
-            _ => Err(sp_runtime::DispatchError::Other("bad quote")),
+            _ => Err(sp_runtime::DispatchError::Other("Invalid quote")),
         }
     }
 }

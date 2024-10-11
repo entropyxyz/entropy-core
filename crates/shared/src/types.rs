@@ -165,14 +165,23 @@ pub trait AttestationQueue<T> {
     fn pending_attestations() -> Vec<T>;
 }
 
+/// A trait for types which can handle attestation requests.
 pub trait AttestationHandler<AccountId> {
-    fn verify_quote(attestee: &AccountId, quote: Vec<u8>) -> Result<(), sp_runtime::DispatchError>;
+    /// Verify that the given quote is valid and matches the given information about the attestee.
+    fn verify_quote(
+        attestee: &AccountId,
+        x25519_public_key: X25519PublicKey,
+        provisioning_certification_key: BoundedVecEncodedVerifyingKey,
+        quote: Vec<u8>,
+    ) -> Result<(), sp_runtime::DispatchError>;
 }
 
-// A convenienve implementation for testing and benchmarking.
+/// A convenience implementation for testing and benchmarking.
 impl<AccountId> AttestationHandler<AccountId> for () {
     fn verify_quote(
         _attestee: &AccountId,
+        _x25519_public_key: X25519PublicKey,
+        _provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         _quote: Vec<u8>,
     ) -> Result<(), sp_runtime::DispatchError> {
         Ok(())

@@ -154,9 +154,9 @@ pub mod pallet {
         #[pallet::weight({
             <T as Config>::WeightInfo::attest()
         })]
-        pub fn attest(origin: OriginFor<T>, quote: Vec<u8>) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            <Self as entropy_shared::AttestationHandler<_>>::verify_quote(&who, quote)?;
+        pub fn attest(origin: OriginFor<T>, _quote: Vec<u8>) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+            // <Self as entropy_shared::AttestationHandler<_>>::verify_quote(&who, quote)?;
 
             Self::deposit_event(Event::AttestationMade);
 
@@ -201,8 +201,12 @@ pub mod pallet {
     }
 
     impl<T: Config> entropy_shared::AttestationHandler<T::AccountId> for Pallet<T> {
-        // TODO: Change to attestee
-        fn verify_quote(attestee: &T::AccountId, quote: Vec<u8>) -> Result<(), DispatchError> {
+        fn verify_quote(
+            attestee: &T::AccountId,
+            x25519_public_key: entropy_shared::X25519PublicKey,
+            provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
+            quote: Vec<u8>,
+        ) -> Result<(), DispatchError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
             let nonce =
@@ -212,8 +216,8 @@ pub mod pallet {
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
             // Get associated x25519 public key from staking pallet
-            let x25519_public_key =
-                T::KeyProvider::x25519_public_key(attestee).ok_or(Error::<T>::NoX25519KeyForAccount)?;
+            // let x25519_public_key = T::KeyProvider::x25519_public_key(attestee)
+            //     .ok_or(Error::<T>::NoX25519KeyForAccount)?;
 
             // Get current block number
             let block_number: u32 = {
@@ -235,8 +239,8 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
-            let provisioning_certification_key =
-                T::KeyProvider::provisioning_key(attestee).ok_or(Error::<T>::NoPCKForAccount)?;
+            // let provisioning_certification_key =
+            //     T::KeyProvider::provisioning_key(attestee).ok_or(Error::<T>::NoPCKForAccount)?;
 
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(
@@ -252,7 +256,7 @@ pub mod pallet {
                 .map_err(|_| Error::<T>::PckVerification)?;
 
             PendingAttestations::<T>::remove(attestee);
-            T::AttestationQueue::confirm_attestation(attestee);
+            // T::AttestationQueue::confirm_attestation(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
