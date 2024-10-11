@@ -80,42 +80,6 @@ benchmarks! {
     // Check that there is no longer a pending attestation
     assert!(!<PendingAttestations<T>>::contains_key(attestee));
   }
-
-  on_initialize {
-      // Note: We should technically be using `MaxPendingAttestations` but we don't have access to
-      // that here...
-      let s in 1 .. 250;
-
-    let caller: T::AccountId = whitelisted_caller();
-    let nonce = [0; 32];
-    let block_number = <frame_system::Pallet<T>>::block_number();
-
-    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-
-    for i in 0..s {
-        let threshold_account_id: T::AccountId = account("threshold", 0, i);
-        T::AttestationQueue::push_pending_attestation(
-            threshold_account_id.clone(),
-            threshold_account_id.clone(),
-            [0; 32],
-            b"http://localhost:3001".to_vec(),
-            pck_encoded,
-        );
-    }
-  }: {
-      use frame_support::traits::Hooks;
-      let _ = AttestationPallet::<T>::on_initialize(block_number);
-  } verify {
-      // Here we'll just spot check one account instead of `s` accounts since if one was written
-      // all were
-      let threshold_account_id: T::AccountId = account("threshold", 0, 0);
-      assert!(PendingAttestations::<T>::get(threshold_account_id).is_some());
-
-      // We want to ensure that all the requests that we added to the `T::AttestationQueue` were
-      // also added to `AttestationRequests`
-      assert!(AttestationRequests::<T>::get(block_number).unwrap().len() == s as usize);
-  }
 }
 
 impl_benchmark_test_suite!(AttestationPallet, crate::mock::new_test_ext(), crate::mock::Test);

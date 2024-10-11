@@ -400,57 +400,6 @@ benchmarks! {
   verify {
     assert!(NextSigners::<T>::get().is_some());
   }
-
-  on_initialize {
-      let s in 1 .. T::MaxPendingAttestations::get() as u32;
-
-    let caller: T::AccountId = whitelisted_caller();
-    let threshold_account_id: T::AccountId = account("threshold", 0, SEED);
-
-    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
-    /// key
-    const PCK: [u8; 32] = [
-        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
-        207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
-    ];
-    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-
-    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller)
-        .or(Err(Error::<T>::InvalidValidatorId))
-        .unwrap();
-
-    for i in 0..s {
-        let threshold_account_id: T::AccountId = account("threshold", 0, i);
-        let server_info = ServerInfo {
-            tss_account: threshold_account_id.clone(),
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![0],
-            provisioning_certification_key: BoundedVec::try_from(
-                pck_encoded.to_vec(),
-            )
-            .unwrap(),
-        };
-
-        ValidationQueue::<T>::insert(
-            (Status::Confirmed, threshold_account_id),
-            (validator_id.clone(), server_info),
-        );
-    }
-  }: {
-      use frame_support::traits::Hooks;
-      let _ = Staking::<T>::on_initialize(Default::default());
-  } verify {
-        // Here we'll just spot check one account instead of `s` accounts since if one was written
-        // all were
-        let threshold_account_id: T::AccountId = account("threshold", 0, 0);
-        assert!(ThresholdToStash::<T>::contains_key(threshold_account_id));
-        assert!(ThresholdServers::<T>::contains_key(validator_id));
-
-        // We'll also want to ensure that our queue was indeed emptied out during `on_initialize`
-        let confirmed = ValidationQueue::<T>::iter_prefix((Status::Confirmed,)).collect::<Vec<_>>();
-        assert!(confirmed.len() == 0);
-  }
 }
 
 impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test);

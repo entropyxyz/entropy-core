@@ -44,7 +44,6 @@ use core::marker::PhantomData;
 
 pub trait WeightInfo {
     fn attest() -> Weight;
-	fn on_initialize(s: u32, ) -> Weight;
 }
 
 /// Weight functions for `pallet_attestation`.
@@ -66,28 +65,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:0)
-	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::AttestationRequests` (r:1 w:1)
-	/// Proof: `Attestation::AttestationRequests` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::PendingAttestations` (r:0 w:250)
-	/// Proof: `Attestation::PendingAttestations` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `s` is `[1, 250]`.
-	fn on_initialize(s: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `476 + s * (174 ±0)`
-		//  Estimated: `3938 + s * (2650 ±0)`
-		// Minimum execution time: 23_000_000 picoseconds.
-		Weight::from_parts(5_800_748, 0)
-			.saturating_add(Weight::from_parts(0, 3938))
-			// Standard Error: 68_033
-			.saturating_add(Weight::from_parts(6_715_648, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(s.into())))
-			.saturating_add(T::DbWeight::get().writes(1))
-			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))
-			.saturating_add(Weight::from_parts(0, 2650).saturating_mul(s.into()))
-	}
 }
 
 impl WeightInfo for () {
@@ -106,27 +83,5 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 4126))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(1))
-	}
-	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:0)
-	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::AttestationRequests` (r:1 w:1)
-	/// Proof: `Attestation::AttestationRequests` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::PendingAttestations` (r:0 w:250)
-	/// Proof: `Attestation::PendingAttestations` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `s` is `[1, 250]`.
-	fn on_initialize(s: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `476 + s * (174 ±0)`
-		//  Estimated: `3938 + s * (2650 ±0)`
-		// Minimum execution time: 23_000_000 picoseconds.
-		Weight::from_parts(5_800_748, 0)
-			.saturating_add(Weight::from_parts(0, 3938))
-			// Standard Error: 68_033
-			.saturating_add(Weight::from_parts(6_715_648, 0).saturating_mul(s.into()))
-			.saturating_add(RocksDbWeight::get().reads(2))
-			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(s.into())))
-			.saturating_add(RocksDbWeight::get().writes(1))
-			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(s.into())))
-			.saturating_add(Weight::from_parts(0, 2650).saturating_mul(s.into()))
 	}
 }
