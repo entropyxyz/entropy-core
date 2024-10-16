@@ -531,7 +531,7 @@ pub mod pallet {
 
             ensure!(
                 <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
-                    &server_info.tss_account.clone(), // &who, // TODO (Nando): Is this safe?
+                    &server_info.tss_account.clone(),
                     server_info.x25519_public_key,
                     server_info.provisioning_certification_key.clone(),
                     quote

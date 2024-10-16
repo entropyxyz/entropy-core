@@ -23,7 +23,7 @@ const ATTESTEE: u64 = 0;
 #[test]
 fn verify_quote_works() {
     new_test_ext().execute_with(|| {
-        // We start with an existing pending attestation at genesis - get it's nonce
+        // We start with an existing pending attestation at genesis - get its nonce
         let nonce = Attestation::pending_attestations(ATTESTEE).unwrap();
         assert_eq!(nonce, [0; 32]);
 
