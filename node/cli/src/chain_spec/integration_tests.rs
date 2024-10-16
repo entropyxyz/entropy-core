@@ -218,7 +218,7 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Charlie//stash")], vec![get_account_id_from_seed::<sr25519::Public>("Bob//stash"), get_account_id_from_seed::<sr25519::Public>("Dave//stash")]),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Charlie//stash")]),
         },
         "elections": ElectionsConfig {
             members: endowed_accounts

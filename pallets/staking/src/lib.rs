@@ -280,8 +280,7 @@ pub mod pallet {
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
         /// validator info and account new signer to take part in a reshare
-        pub mock_signer_rotate:
-            (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
+        pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
     }
 
     #[pallet::genesis_build]

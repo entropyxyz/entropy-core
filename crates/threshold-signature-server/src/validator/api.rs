@@ -116,15 +116,17 @@ pub async fn new_reshare(
                     .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
             Some(OldHolder { key_share: key_share.0 })
         };
-
+    
+    // new_holders -> From chain next_signers (old_holders (currently forced to be t) + new_holders)
+    // also acts as verifiers as is everyone in the party
     let new_holders: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
-
+    // old holders -> next_signers - new_signers (will be at least t)
     let old_holders =
         &prune_old_holders(&api, &rpc, data.new_signers, validators_info.clone()).await?;
     let old_holders: BTreeSet<PartyId> =
-        old_holders.into_iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
-
+        old_holders.iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
+    
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
         old_threshold: parent_key_details.parent_key_threshold as usize,
