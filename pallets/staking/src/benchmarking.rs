@@ -271,7 +271,7 @@ benchmarks! {
     let block_number = 1;
     let nonce = NULL_ARR;
     let x25519_public_key = NULL_ARR;
-    let endpoint = vec![20];
+    let endpoint = b"http://localhost:3001".to_vec();
     let validate_also = false;
 
     prep_bond_and_validate::<T>(
