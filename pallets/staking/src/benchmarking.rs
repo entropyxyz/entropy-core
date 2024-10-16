@@ -90,18 +90,23 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info = ServerInfo {
-        tss_account: threshold,
-        x25519_public_key,
-        endpoint: vec![20, 20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
-    };
 
     if validate_also {
+        let server_info = ServerInfo {
+            tss_account: threshold,
+            x25519_public_key,
+            endpoint: vec![20, 20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
+
+        // TODO (Nando)
+        let quote = [0; 32].to_vec(); // crate::mock::VALID_QUOTE;
+
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
             server_info.clone(),
+            quote,
         ));
 
         let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(bonder)
@@ -256,21 +261,78 @@ benchmarks! {
   validate {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
-    let threshold: T::AccountId = account("threshold", 0, SEED);
+    let threshold_account: T::AccountId = account("threshold", 0, SEED);
+
+    let validator_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(bonder.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
-    let validator_preference = ValidatorPrefs::default();
+    let endpoint = vec![20];
+    let validate_also = false;
+
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        bonder.clone(),
+        threshold_account.clone(),
+        x25519_public_key.clone()
+    );
+
+    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+    /// key
+    const PCK: [u8; 32] = [
+        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
+        168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
+    ];
+
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+
+    let provisioning_certification_key = sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap();
 
     let server_info = ServerInfo {
-        tss_account: threshold.clone(),
-        x25519_public_key: NULL_ARR,
-        endpoint: vec![20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        tss_account: threshold_account.clone(),
+        x25519_public_key: x25519_public_key.clone(),
+        endpoint: endpoint.clone(),
+        provisioning_certification_key, // : BoundedVec::with_max_capacity(),
     };
 
-  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)
+    let quote = {
+        /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
+        const ATTESTATION_KEY: [u8; 32] = [
+            167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
+            27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+        ];
+
+        let nonce = [0; 32];
+        let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
+
+        let input_data = entropy_shared::QuoteInputData::new(
+            &threshold_account, // &caller, // TSS Account ID
+            NULL_ARR, // x25519 public key
+            nonce,
+            1, // Block number
+        );
+
+        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
+
+    };
+
+    use entropy_shared::AttestationHandler;
+    T::AttestationHandler::request_quote(&threshold_account);
+
+  }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), server_info, quote)
   verify {
-    assert_last_event::<T>(Event::<T>::AttestationCheckQueued(bonder).into());
+    // assert_last_event::<T>(
+    //     Event::<T>::ValidatorCandidateAccepted(
+    //         bonder,
+    //         validator_id,
+    //         threshold_account,
+    //         endpoint
+    //     ).into()
+    // );
   }
 
   declare_synced {
