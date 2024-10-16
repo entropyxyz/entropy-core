@@ -721,7 +721,7 @@ pub mod pallet {
 
             let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
-
+            let mut remove_index_len = 0;
             // removes first signer and pushes new signer to back if total signers not increased
             if current_signers_length >= signers_info.total_signers as usize {
                 let mut remove_indexs = vec![];
@@ -733,8 +733,9 @@ pub mod pallet {
                 if remove_indexs.is_empty() {
                     current_signers.remove(0);
                 } else {
+                    remove_index_len = remove_indexs.len();
                     let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
-                    // TODO: Only remove up to threhsold make an issue explaining this and link
+                    // TODO: Only remove up to threhsold https://github.com/entropyxyz/entropy-core/issues/1114
                     let truncated =
                         remove_indexs_reversed[..signers_info.threshold as usize].to_vec();
                     for remove_index in truncated {
