@@ -402,11 +402,18 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
         quote: Vec<u8>,
     ) -> Result<(), sp_runtime::DispatchError> {
         let quote: Result<[u8; 32], _> = quote.try_into();
-        match quote.unwrap() {
-            VALID_QUOTE => Ok(()),
-            _ => Err(sp_runtime::DispatchError::Other("Invalid quote")),
+        match quote {
+            Ok(q) if q == VALID_QUOTE => Ok(()),
+            Ok(q) if q == INVALID_QUOTE => Err(sp_runtime::DispatchError::Other("Invalid quote")),
+            _ => {
+                // We don't really want to verify quotes for tests in this pallet, so if we get
+                // something else we'll just accept it.
+                Ok(())
+            },
         }
     }
+
+    fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
 }
 
 impl pallet_staking_extension::Config for Test {
