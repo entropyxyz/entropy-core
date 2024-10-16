@@ -736,7 +736,10 @@ pub mod pallet {
                     current_signers.remove(0);
                 } else {
                     let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
-                    for remove_index in remove_indexs_reversed {
+                    // TODO: Only remove up to threhsold make an issue explaining this and link
+                    let truncated =
+                        remove_indexs_reversed[..signers_info.threshold as usize].to_vec();
+                    for remove_index in truncated {
                         current_signers.remove(*remove_index);
                     }
                 }

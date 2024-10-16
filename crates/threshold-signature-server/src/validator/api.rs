@@ -94,7 +94,6 @@ pub async fn new_reshare(
         let contains =
             all_holders.iter().position(|v| v.tss_account == old_signers_info.tss_account);
         if contains.is_none() {
-            dbg!(&old_signers_info);
             all_holders.push(old_signers_info);
         }
     }
@@ -133,10 +132,8 @@ pub async fn new_reshare(
 
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
         if data.new_signers.contains(&my_stash_address.encode()) {
-            dbg!(my_stash_address.clone());
             None
         } else {
-            dbg!("key");
             let kvdb_result = app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await?;
             let key_share: KeyShareWithAuxInfo =
                 entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result)
@@ -144,28 +141,15 @@ pub async fn new_reshare(
             Some(OldHolder { key_share: key_share.0 })
         };
 
-    let new_holder_test: Vec<AccountId32> =
-        validators_info.iter().cloned().map(|x| x.tss_account).collect();
-
-    let all_holders_test: Vec<AccountId32> =
-        all_holders.iter().cloned().map(|x| x.tss_account).collect();
-
-    let old_holders_test: Vec<AccountId32> =
-        old_signers.iter().cloned().map(|x| x.tss_account).collect();
-    // dbg!(&new_holder_test); // BCD
-    // dbg!(&all_holders_test); // ABCD
-    // dbg!(&old_holders_test); // ABD old holders
-    // let new_holders = &prune_old_holders(&api, &rpc, data.new_signers, validators_info).await?;
-
     let new_holders: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
     let verifiers: BTreeSet<PartyId> =
-        all_holders.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
+        validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
+    let old_holders = &prune_old_holders(&api, &rpc, data.new_signers, validators_info).await?;
     let old_holders: BTreeSet<PartyId> =
-        old_signers.into_iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
-    dbg!(parent_key_details.parent_key_threshold.clone());
+        old_holders.into_iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
 
     let new_holder = NewHolder {
         verifying_key: decoded_verifying_key,
@@ -177,7 +161,7 @@ pub async fn new_reshare(
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Failed to get signers info"))?
         .threshold;
-    dbg!(threshold);
+
     let inputs = KeyResharingInputs {
         old_holder,
         new_holder: Some(new_holder),
@@ -199,8 +183,6 @@ pub async fn new_reshare(
         converted_validator_info.push(validator_info.clone());
         tss_accounts.push(validator_info.tss_account.clone());
     }
-    dbg!(&converted_validator_info.len());
-    dbg!(&tss_accounts.len());
     let channels = get_channels(
         &app_state.listener_state,
         converted_validator_info,

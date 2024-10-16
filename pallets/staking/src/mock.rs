@@ -420,7 +420,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (6, (8, NULL_ARR, vec![40], BoundedVec::with_max_capacity())),
         ],
         proactive_refresh_data: (vec![], vec![]),
-        mock_signer_rotate: (false, vec![], vec![]),
+        mock_signer_rotate: (false, vec![], vec![], vec![]),
     };
     pallet_balances.assimilate_storage(&mut t).unwrap();
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();

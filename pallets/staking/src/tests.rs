@@ -509,6 +509,16 @@ fn it_tests_new_session_handler() {
         assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+
+        // reduce threshold to make sure next signers does not drop > then threshold of current signers
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 1,
+            last_session_change: 0,
+        });
+
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 1]);
     });
 }
 
