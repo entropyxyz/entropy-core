@@ -362,7 +362,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (5, (0, NULL_ARR, vec![20], pck_encoded.to_vec().try_into().unwrap())),
         ],
         proactive_refresh_data: (vec![], vec![]),
-        mock_signer_rotate: (false, vec![]),
+        mock_signer_rotate: (false, vec![], vec![]),
     };
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
 
