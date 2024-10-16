@@ -18,7 +18,7 @@
 use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::{MAX_SIGNERS, AttestationHandler};
+use entropy_shared::{AttestationHandler, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -89,7 +89,6 @@ fn prep_bond_and_validate<T: Config>(
         bond,
         reward_destination,
     ));
-
 
     if validate_also {
         let server_info = ServerInfo {
