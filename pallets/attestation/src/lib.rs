@@ -256,5 +256,12 @@ pub mod pallet {
 
             Ok(())
         }
+
+        // Pass the nonce in here, will be useful for benchmarking and testing
+        fn request_quote(who: &T::AccountId) {
+            let mut nonce = [0; 32];
+            // Self::get_randomness().fill_bytes(&mut nonce[..]);
+            PendingAttestations::<T>::insert(&who, nonce);
+        }
     }
 }

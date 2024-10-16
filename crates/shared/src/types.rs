@@ -144,6 +144,8 @@ pub trait AttestationHandler<AccountId> {
         provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
     ) -> Result<(), sp_runtime::DispatchError>;
+
+    fn request_quote(attestee: &AccountId);
 }
 
 /// A convenience implementation for testing and benchmarking.
@@ -157,4 +159,6 @@ impl<AccountId> AttestationHandler<AccountId> for () {
     ) -> Result<(), sp_runtime::DispatchError> {
         Ok(())
     }
+
+    fn request_quote(_attestee: &AccountId) {}
 }
