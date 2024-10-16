@@ -63,7 +63,6 @@ pub trait WeightInfo {
 	fn confirm_key_reshare_completed() -> Weight;
 	fn new_session_base_weight(s: u32) -> Weight;
 	fn new_session(c: u32, l: u32) -> Weight;
-	fn on_initialize(s: u32, ) -> Weight;
 }
 
 /// Weights for pallet_staking_extension using the Substrate node and recommended hardware.
@@ -340,30 +339,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
 	}
-	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:250)
-	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::CounterForValidationQueue` (r:1 w:1)
-	/// Proof: `StakingExtension::CounterForValidationQueue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ThresholdServers` (r:0 w:1)
-	/// Proof: `StakingExtension::ThresholdServers` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ThresholdToStash` (r:0 w:250)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `s` is `[1, 250]`.
-	fn on_initialize(s: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `337 + s * (154 ±0)`
-		//  Estimated: `3799 + s * (2630 ±0)`
-		// Minimum execution time: 21_000_000 picoseconds.
-		Weight::from_parts(21_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3799))
-			// Standard Error: 66_002
-			.saturating_add(Weight::from_parts(9_585_598, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(s.into())))
-			.saturating_add(T::DbWeight::get().writes(2))
-			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(s.into())))
-			.saturating_add(Weight::from_parts(0, 2630).saturating_mul(s.into()))
-	}
 }
 
 // For backwards compatibility and tests
@@ -638,29 +613,5 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(c.into()))
-	}
-	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:250)
-	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::CounterForValidationQueue` (r:1 w:1)
-	/// Proof: `StakingExtension::CounterForValidationQueue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ThresholdServers` (r:0 w:1)
-	/// Proof: `StakingExtension::ThresholdServers` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::ThresholdToStash` (r:0 w:250)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `s` is `[1, 250]`.
-	fn on_initialize(s: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `337 + s * (154 ±0)`
-		//  Estimated: `3799 + s * (2630 ±0)`
-		// Minimum execution time: 21_000_000 picoseconds.
-		Weight::from_parts(21_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3799))
-			// Standard Error: 66_002
-			.saturating_add(Weight::from_parts(9_585_598, 0).saturating_mul(s.into()))
-			.saturating_add(RocksDbWeight::get().reads(2))
-			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(s.into())))
-			.saturating_add(RocksDbWeight::get().writes(2))
-			.saturating_add(RocksDbWeight::get().writes((2_u64).saturating_mul(s.into())))
-			.saturating_add(Weight::from_parts(0, 2630).saturating_mul(s.into()))
 	}
 }

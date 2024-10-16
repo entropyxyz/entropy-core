@@ -61,7 +61,6 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
-    Attestation: pallet_attestation,
   }
 );
 
@@ -387,24 +386,42 @@ impl pallet_parameters::Config for Test {
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
-  pub const MaxPendingAttestations: u32 = 4;
+}
+
+pub(crate) const VALID_QUOTE: [u8; 32] = [0; 32];
+pub(crate) const INVALID_QUOTE: [u8; 32] = [1; 32];
+
+pub struct MockAttestationHandler;
+
+impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
+    fn verify_quote(
+        _attestee: &AccountId,
+        _x25519_public_key: entropy_shared::X25519PublicKey,
+        _provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
+        quote: Vec<u8>,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        let quote: Result<[u8; 32], _> = quote.try_into();
+        match quote {
+            Ok(q) if q == VALID_QUOTE => Ok(()),
+            Ok(q) if q == INVALID_QUOTE => Err(sp_runtime::DispatchError::Other("Invalid quote")),
+            _ => {
+                // We don't really want to verify quotes for tests in this pallet, so if we get
+                // something else we'll just accept it.
+                Ok(())
+            },
+        }
+    }
+
+    fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
 }
 
 impl pallet_staking_extension::Config for Test {
+    type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
-    type MaxPendingAttestations = MaxPendingAttestations;
     type WeightInfo = ();
-}
-
-impl pallet_attestation::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-    type Randomness = TestPastRandomness;
-    type KeyProvider = Staking;
-    type AttestationQueue = Staking;
 }
 
 // Build genesis storage according to the mock runtime.
@@ -444,10 +461,7 @@ pub(crate) fn run_to_block(n: BlockNumber) {
         System::set_block_number(b);
         Session::on_initialize(b);
 
-        // In our production runtime the attestation pallet's `on_initalize` hook gets run after the
-        // staking pallet's hook based off the pallet indices, so we follow the same flow here.
         Staking::on_initialize(b);
-        Attestation::on_initialize(b);
 
         <FrameStaking as Hooks<u64>>::on_initialize(b);
         Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
