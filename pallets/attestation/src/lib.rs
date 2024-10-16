@@ -146,9 +146,6 @@ pub mod pallet {
         /// A TDX quote given in response to an attestation request.
         /// The quote format is specified in:
         /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
-        ///
-        /// TODO (Nando): This has been changed to always pass. I'm not sure if we want to remove
-        /// this, or still keep it around in some capacity.
         #[pallet::call_index(0)]
         #[pallet::weight({
             <T as Config>::WeightInfo::attest()
