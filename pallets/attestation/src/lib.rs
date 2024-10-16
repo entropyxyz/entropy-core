@@ -167,7 +167,7 @@ pub mod pallet {
         /// whether or not the caller has provided a valid attestation.
         #[pallet::call_index(1)]
         #[pallet::weight({
-            <T as Config>::WeightInfo::attest()
+            <T as Config>::WeightInfo::request_attestation()
         })]
         pub fn request_attestation(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
