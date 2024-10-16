@@ -18,7 +18,7 @@
 use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::MAX_SIGNERS;
+use entropy_shared::{MAX_SIGNERS, AttestationHandler};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -268,7 +268,9 @@ benchmarks! {
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
-    let x25519_public_key: [u8; 32] = NULL_ARR;
+    let block_number = 1;
+    let nonce = NULL_ARR;
+    let x25519_public_key = NULL_ARR;
     let endpoint = vec![20];
     let validate_also = false;
 
@@ -289,15 +291,7 @@ benchmarks! {
 
     let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
     let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-
-    let provisioning_certification_key = sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap();
-
-    let server_info = ServerInfo {
-        tss_account: threshold_account.clone(),
-        x25519_public_key: x25519_public_key.clone(),
-        endpoint: endpoint.clone(),
-        provisioning_certification_key, // : BoundedVec::with_max_capacity(),
-    };
+    let provisioning_certification_key = BoundedVec::try_from(pck_encoded.to_vec()).unwrap();
 
     let quote = {
         /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
@@ -306,33 +300,39 @@ benchmarks! {
             27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
         ];
 
-        let nonce = [0; 32];
         let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
 
         let input_data = entropy_shared::QuoteInputData::new(
-            &threshold_account, // &caller, // TSS Account ID
-            NULL_ARR, // x25519 public key
+            &threshold_account,
+            x25519_public_key,
             nonce,
-            1, // Block number
+            block_number,
         );
 
         tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
-
     };
 
-    use entropy_shared::AttestationHandler;
-    T::AttestationHandler::request_quote(&threshold_account);
+    let server_info = ServerInfo {
+        tss_account: threshold_account.clone(),
+        x25519_public_key,
+        endpoint: endpoint.clone(),
+        provisioning_certification_key,
+    };
+
+    // We need to tell the attestation handler that we want a quote. This will let the system to
+    // know to expect one back when we call `validate()`.
+    T::AttestationHandler::request_quote(&threshold_account, nonce);
 
   }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), server_info, quote)
   verify {
-    // assert_last_event::<T>(
-    //     Event::<T>::ValidatorCandidateAccepted(
-    //         bonder,
-    //         validator_id,
-    //         threshold_account,
-    //         endpoint
-    //     ).into()
-    // );
+    assert_last_event::<T>(
+        Event::<T>::ValidatorCandidateAccepted(
+            bonder,
+            validator_id,
+            threshold_account,
+            endpoint
+        ).into()
+    );
   }
 
   declare_synced {
