@@ -51,7 +51,6 @@ sp-npos-elections              ={ version="27.0.0", default-features=false }
 
 rand_core         ="0.6.4"
 tdx-quote         ={ git="https://github.com/entropyxyz/tdx-quote", rev="cb167f2", features=["mock"] }
-pallet-attestation={ version="0.3.0-rc.1", path="../attestation" }
 
 [features]
 default=['std']

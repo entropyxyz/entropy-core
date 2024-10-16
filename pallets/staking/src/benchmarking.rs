@@ -98,8 +98,10 @@ fn prep_bond_and_validate<T: Config>(
             provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
 
-        // TODO (Nando)
-        let quote = [0; 32].to_vec(); // crate::mock::VALID_QUOTE;
+        // Note: This isn't a valid quote, but for testing benches this will pass.
+        //
+        // For actually running benches a valid quote will be required in the future.
+        let quote = [0; 32].to_vec();
 
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),

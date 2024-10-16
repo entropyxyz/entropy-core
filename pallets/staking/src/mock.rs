@@ -61,7 +61,6 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
-    Attestation: pallet_attestation,
   }
 );
 
@@ -425,13 +424,6 @@ impl pallet_staking_extension::Config for Test {
     type WeightInfo = ();
 }
 
-// TODO (Nando): Do we even need this anymore?
-impl pallet_attestation::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-    type Randomness = TestPastRandomness;
-}
-
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
@@ -469,10 +461,7 @@ pub(crate) fn run_to_block(n: BlockNumber) {
         System::set_block_number(b);
         Session::on_initialize(b);
 
-        // In our production runtime the attestation pallet's `on_initalize` hook gets run after the
-        // staking pallet's hook based off the pallet indices, so we follow the same flow here.
         Staking::on_initialize(b);
-        Attestation::on_initialize(b);
 
         <FrameStaking as Hooks<u64>>::on_initialize(b);
         Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
