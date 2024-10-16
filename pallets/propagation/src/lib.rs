@@ -70,7 +70,7 @@ pub mod pallet {
             let _ = Self::post_reshare(block_number);
             let _ = Self::post_proactive_refresh(block_number);
             let _ = Self::post_attestation_request(block_number);
-            let _ = Self::post_rotate_keyshare(block_number);
+            let _ = Self::post_rotate_network_key(block_number);
         }
 
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
@@ -112,7 +112,9 @@ pub mod pallet {
             let validators_info = pallet_registry::Pallet::<T>::jumpstart_dkg(
                 block_number.saturating_sub(1u32.into()),
             );
-
+            if validators_info.is_empty() {
+                return Ok(());
+            }
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
@@ -253,7 +255,7 @@ pub mod pallet {
         }
 
         /// Submits a request to rotate parent network key the threshold servers.
-        pub fn post_rotate_keyshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
+        pub fn post_rotate_network_key(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let rotate_keyshares = pallet_staking_extension::Pallet::<T>::rotate_keyshares();
             if rotate_keyshares != block_number {
                 return Ok(());
@@ -261,12 +263,12 @@ pub mod pallet {
 
             let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
-            let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_keyshares")
-                .unwrap_or_else(|| b"http://localhost:3001/validator/rotate_keyshares".to_vec());
-            let url = str::from_utf8(&from_local)
-                .unwrap_or("http://localhost:3001/validator/rotate_keyshares");
+            let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_network_key")
+                .unwrap_or_else(|| b"http://localhost:3001/rotate_network_key".to_vec());
+            let url =
+                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/rotate_network_key");
 
-            log::warn!("propagation::post rotate keyshare");
+            log::warn!("propagation::post rotate network key");
 
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
@@ -311,12 +313,16 @@ pub mod pallet {
                 let from_local = sp_io::offchain::local_storage_get(kind, b"attest")
                     .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
                 let url = str::from_utf8(&from_local).unwrap_or("http://localhost:3001/attest");
+                let converted_block_number: u32 =
+                    BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
 
                 let req_body = OcwMessageAttestationRequest {
                     tss_account_ids: attestations_to_request
                         .into_iter()
                         .filter_map(|v| v.try_into().ok())
                         .collect(),
+                    // subtract 1 from blocknumber since the request is from the last block
+                    block_number: converted_block_number.saturating_sub(1),
                 };
                 log::debug!("propagation::post attestation: {:?}", &[req_body.encode()]);
 

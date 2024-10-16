@@ -842,11 +842,11 @@ dependencies = [
 
 [[package]]
 name = "bip39"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93f2635620bf0b9d4576eb7bb9a38a55df78bd1205d26fa994b25911a69f212f"
+checksum = "33415e24172c1b7d6066f6d999545375ab8e1d95421d6784bdfff9496f292387"
 dependencies = [
- "bitcoin_hashes 0.11.0",
+ "bitcoin_hashes",
  "rand",
  "rand_core 0.6.4",
  "serde",
@@ -859,12 +859,6 @@ name = "bitcoin-internals"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9425c3bf7089c983facbae04de54513cce73b41c7f9ff8c845b54e7bc64ebbfb"
-
-[[package]]
-name = "bitcoin_hashes"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90064b8dee6815a6470d60bad07bbbaee885c0e12d04177138fa3291a01b7bc4"
 
 [[package]]
 name = "bitcoin_hashes"
@@ -1307,9 +1301,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.19"
+version = "4.5.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7be5744db7978a28d9df86a214130d106a89ce49644cbc4e3f0c22c3fba30615"
+checksum = "b97f376d85a664d5837dbae44bf546e6477a679ff6610010f17276f686d867e8"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1317,9 +1311,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.19"
+version = "4.5.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5fbc17d3ef8278f55b282b2a2e75ae6f6c7d4bb70ed3d0382375104bfafdb4b"
+checksum = "19bc80abd44e4bed93ca373a0704ccbd1b710dc5749406201bb018272808dc54"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2407,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "entropy"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "clap",
  "entropy-runtime",
@@ -2483,7 +2477,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-client"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2514,7 +2508,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-create-test-keyshares"
-version = "0.2.0-rc.1"
+version = "0.3.0-rc.1"
 dependencies = [
  "entropy-kvdb",
  "entropy-shared",
@@ -2527,7 +2521,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-kvdb"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "bincode 1.3.3",
  "chacha20poly1305 0.9.1",
@@ -2572,7 +2566,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-protocol"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2614,7 +2608,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-runtime"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -2699,7 +2693,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-shared"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "blake2 0.10.6",
  "hex-literal",
@@ -2718,7 +2712,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-test-cli"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "anyhow",
  "bincode 1.3.3",
@@ -2736,7 +2730,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-testing-utils"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "axum",
  "entropy-kvdb",
@@ -2762,7 +2756,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-tss"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -3682,9 +3676,9 @@ checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 
 [[package]]
 name = "futures"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "645c6916888f6cb6350d2550b80fb63e734897a8498abe35cfb732b6487804b0"
+checksum = "65bc07b1a8bc7c85c5f2e110c476c7389b4554ba72af57d8445ea63a576b0876"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -3697,9 +3691,9 @@ dependencies = [
 
 [[package]]
 name = "futures-channel"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
+checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
 dependencies = [
  "futures-core",
  "futures-sink",
@@ -3707,15 +3701,15 @@ dependencies = [
 
 [[package]]
 name = "futures-core"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
+checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
 
 [[package]]
 name = "futures-executor"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a576fc72ae164fca6b9db127eaa9a9dda0d61316034f33a0a0d4eda41f02b01d"
+checksum = "1e28d1d997f585e54aebc3f97d39e72338912123a67330d723fdbb564d646c9f"
 dependencies = [
  "futures-core",
  "futures-task",
@@ -3725,9 +3719,9 @@ dependencies = [
 
 [[package]]
 name = "futures-io"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a44623e20b9681a318efdd71c299b6b222ed6f231972bfe2f224ebad6311f0c1"
+checksum = "9e5c1b78ca4aae1ac06c48a526a655760685149f0d465d21f37abfe57ce075c6"
 
 [[package]]
 name = "futures-lite"
@@ -3744,9 +3738,9 @@ dependencies = [
 
 [[package]]
 name = "futures-macro"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
+checksum = "162ee34ebcb7c64a8abebc059ce0fee27c2262618d7b60ed8faf72fef13c3650"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3766,15 +3760,15 @@ dependencies = [
 
 [[package]]
 name = "futures-sink"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fb8e00e87438d937621c1c6269e53f536c14d3fbd6a042bb24879e57d474fb5"
+checksum = "e575fab7d1e0dcb8d0c7bcf9a63ee213816ab51902e6d244a95819acacf1d4f7"
 
 [[package]]
 name = "futures-task"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38d84fa142264698cdce1a9f9172cf383a0c82de1bddcf3092901442c4097004"
+checksum = "f90f7dce0722e95104fcb095585910c0977252f286e354b5e3bd38902cd99988"
 
 [[package]]
 name = "futures-timer"
@@ -3788,9 +3782,9 @@ dependencies = [
 
 [[package]]
 name = "futures-util"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
+checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -4822,9 +4816,9 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.70"
+version = "0.3.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1868808506b929d7b0cfa8f75951347aa71bb21144b7791bae35d9bccfcfe37a"
+checksum = "6a88f1bda2bd75b0452a14784937d796722fdebfe50df998aeb3f0b7603019a9"
 dependencies = [
  "wasm-bindgen",
 ]
@@ -6686,7 +6680,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-attestation"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7129,7 +7123,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-oracle"
-version = "0.2.0-rc.1"
+version = "0.3.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7144,7 +7138,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-parameters"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7180,7 +7174,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-programs"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7198,7 +7192,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-propagation"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7265,7 +7259,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-registry"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "bip32",
  "entropy-shared",
@@ -7358,7 +7352,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-slashing"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -7408,7 +7402,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -7511,7 +7505,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-pause"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 29.0.2",
@@ -7655,7 +7649,7 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
- "bitcoin_hashes 0.13.0",
+ "bitcoin_hashes",
  "rand",
  "rand_core 0.6.4",
  "serde",
@@ -14056,8 +14050,9 @@ dependencies = [
 
 [[package]]
 name = "synedrion"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/synedrion?rev=1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa#1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa"
+version = "0.2.0-beta.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d68ecdc79fc2be671be2abe5391d25b38fca840e18665ef2a177aa925f6740ac"
 dependencies = [
  "base64 0.21.7",
  "bincode 2.0.0-rc.3",
@@ -15031,9 +15026,9 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "uuid"
-version = "1.10.0"
+version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
+checksum = "f8c5f0a0af699448548ad1a2fbf920fb4bee257eae39953ba95cb84891a0446a"
 dependencies = [
  "getrandom 0.2.15",
 ]
@@ -15131,9 +15126,9 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.93"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a82edfc16a6c469f5f44dc7b571814045d60404b55a0ee849f9bcfa2e63dd9b5"
+checksum = "128d1e363af62632b8eb57219c8fd7877144af57558fb2ef0368d0087bddeb2e"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -15142,9 +15137,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-backend"
-version = "0.2.93"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9de396da306523044d3302746f1208fa71d7532227f15e347e2d93e4145dd77b"
+checksum = "cb6dd4d3ca0ddffd1dd1c9c04f94b868c37ff5fac97c30b97cff2d74fce3a358"
 dependencies = [
  "bumpalo",
  "log",
@@ -15179,9 +15174,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.43"
+version = "0.4.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61e9300f63a621e96ed275155c108eb6f843b6a26d053f122ab69724559dc8ed"
+checksum = "cc7ec4f8827a71586374db3e87abdb5a2bb3a15afed140221307c3ec06b1f63b"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -15191,9 +15186,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.93"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "585c4c91a46b072c92e908d99cb1dcdf95c5218eeb6f3bf1efa991ee7a68cccf"
+checksum = "e79384be7f8f5a9dd5d7167216f022090cf1f9ec128e6e6a482a2cb5c5422c56"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -15201,9 +15196,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.93"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc340c74d9005395cf9dd098506f7f44e38f2b4a21c6aaacf9a105ea5e1e836"
+checksum = "26c6ab57572f7a24a4985830b120de1594465e5d500f24afe89e16b4e833ef68"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -15214,9 +15209,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.93"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
+checksum = "65fc09f10666a9f147042251e0dda9c18f166ff7de300607007e96bdebc1068d"
 
 [[package]]
 name = "wasm-encoder"

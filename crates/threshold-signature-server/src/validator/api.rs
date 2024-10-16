@@ -241,7 +241,7 @@ pub async fn rotate_network_key(
     Ok(StatusCode::OK)
 }
 
-// Validates new reshare endpoint
+/// Validates new reshare endpoint
 /// Checks the chain for validity of data and block number of data matches current block
 pub async fn validate_new_reshare(
     api: &OnlineClient<EntropyConfig>,

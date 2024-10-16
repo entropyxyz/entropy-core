@@ -1,6 +1,6 @@
 [package]
 name       ='entropy-protocol'
-version    ='0.2.0'
+version    ='0.3.0-rc.1'
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 description="Entropy Signing and DKG protocol execution and transport logic"
 homepage   ='https://entropy.xyz/'
@@ -10,8 +10,8 @@ edition    ='2021'
 
 [dependencies]
 async-trait        ="0.1.83"
-entropy-shared     ={ version="0.2.0", path="../shared", default-features=false }
-synedrion          ={ git="https://github.com/entropyxyz/synedrion", rev="1d210d149dfeb0dca1dd41d7fac4d0bf03c686fa" }
+entropy-shared     ={ version="0.3.0-rc.1", path="../shared", default-features=false }
+synedrion          ={ version="0.2.0-beta.0" }
 serde              ={ version="1.0", features=["derive"], default-features=false }
 subxt              ={ version="0.35.3", default-features=false }
 sp-core            ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
@@ -39,10 +39,10 @@ tokio-tungstenite={ version="0.24.0", optional=true }
 
 # Used only with the `wasm` feature
 gloo-net            ={ version="0.6.0", default-features=false, features=["websocket"], optional=true }
-wasm-bindgen-futures={ version="0.4.43", optional=true }
+wasm-bindgen-futures={ version="0.4.45", optional=true }
 wasm-bindgen        ={ version="0.2.92", optional=true }
 wasm-bindgen-derive ={ version="0.3", optional=true }
-js-sys              ={ version="0.3.70", optional=true }
+js-sys              ={ version="0.3.72", optional=true }
 base64              ={ version="0.22.1", optional=true }
 schnorrkel          ={ version="0.11.4", default-features=false, features=["std"], optional=true }
 

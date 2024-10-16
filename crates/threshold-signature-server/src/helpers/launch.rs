@@ -46,6 +46,7 @@ pub const DEFAULT_EVE_MNEMONIC: &str =
     "impact federal dish number fun crisp various wedding radio immense whisper glue";
 pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
 pub const LATEST_BLOCK_NUMBER_RESHARE: &str = "LATEST_BLOCK_NUMBER_RESHARE";
+pub const LATEST_BLOCK_NUMBER_ATTEST: &str = "LATEST_BLOCK_NUMBER_ATTEST";
 
 pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
 
@@ -387,6 +388,19 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
         let reservation = kv
             .kv()
             .reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string())
+            .await
+            .expect("Issue reserving latest block number");
+        kv.kv()
+            .put(reservation, 0u32.to_be_bytes().to_vec())
+            .await
+            .expect("failed to update latest block number");
+    }
+    let exists_result_attest =
+        kv.kv().exists(LATEST_BLOCK_NUMBER_ATTEST).await.expect("issue querying DB");
+    if !exists_result_attest {
+        let reservation = kv
+            .kv()
+            .reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string())
             .await
             .expect("Issue reserving latest block number");
         kv.kv()

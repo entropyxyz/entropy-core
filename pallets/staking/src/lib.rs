@@ -100,9 +100,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
-    /// A unique identifier of a subgroup or partition of validators that have the same set of
-    /// threshold shares.
-    pub type SubgroupId = u8;
     /// Endpoint where a threshold server can be reached at
     pub type TssServerURL = Vec<u8>;
 
@@ -602,7 +599,7 @@ pub mod pallet {
         #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
-    }, DispatchClass::Operational))]
+        }, DispatchClass::Operational))]
         pub fn confirm_key_reshare(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let ts_server_account = ensure_signed(origin)?;
             let validator_stash =
@@ -620,23 +617,29 @@ pub mod pallet {
                 Error::<T>::AlreadyConfirmed
             );
 
+            let current_signer_length = signers_info.next_signers.len();
+            let is_last_confirmation =
+                signers_info.confirmations.len() == (current_signer_length - 1);
+
             // TODO (#927): Add another check, such as a signature or a verifying key comparison, to
             // ensure that rotation was indeed successful.
-            let current_signer_length = signers_info.next_signers.len();
-            if signers_info.confirmations.len() == (current_signer_length - 1) {
+            if is_last_confirmation {
                 Signers::<T>::put(signers_info.next_signers.clone());
                 RotateKeyshares::<T>::put(
                     <frame_system::Pallet<T>>::block_number() + sp_runtime::traits::One::one(),
                 );
+
                 Self::deposit_event(Event::SignersRotation(signers_info.next_signers));
-                Ok(Pays::No.into())
             } else {
                 signers_info.confirmations.push(validator_stash.clone());
                 NextSigners::<T>::put(signers_info);
+
                 Self::deposit_event(Event::SignerConfirmed(validator_stash));
-                Ok(Pays::No.into())
             }
-            // TODO: weight is pays no but want a more accurate weight for max signers vs current signers see https://github.com/entropyxyz/entropy-core/issues/985
+
+            // TODO: Weight is `Pays::No` but want a more accurate weight for max signers vs current
+            // signers see https://github.com/entropyxyz/entropy-core/issues/985
+            Ok(Pays::No.into())
         }
     }
 

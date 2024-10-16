@@ -167,7 +167,7 @@ async fn test_reshare_foo() {
     for signer in new_signers {
         let _ = client
             .post(format!(
-                "http://{}/validator/rotate_network_key",
+                "http://{}/rotate_network_key",
                 std::str::from_utf8(&signer.endpoint).unwrap()
             ))
             .send()
@@ -197,7 +197,7 @@ async fn test_reshare_foo() {
         // calling twice doesn't do anything
         let response = client
             .post(format!(
-                "http://{}/validator/rotate_network_key",
+                "http://{}/rotate_network_key",
                 std::str::from_utf8(&signer.endpoint).unwrap()
             ))
             .send()
@@ -227,7 +227,7 @@ async fn test_reshare_foo() {
     run_to_block(&rpc, current_block_number + 3).await;
 
     let response_stale =
-        client.post("http://127.0.0.1:3001/validator/rotate_network_key").send().await.unwrap();
+        client.post("http://127.0.0.1:3001/rotate_network_key").send().await.unwrap();
 
     assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
 
@@ -303,7 +303,7 @@ async fn test_reshare_none_called() {
 
     for i in 0..validator_ports.len() {
         let response = client
-            .post(format!("http://127.0.0.1:{}/validator/rotate_network_key", validator_ports[i]))
+            .post(format!("http://127.0.0.1:{}/rotate_network_key", validator_ports[i]))
             .send()
             .await
             .unwrap();
