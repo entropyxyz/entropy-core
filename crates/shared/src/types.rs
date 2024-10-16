@@ -145,7 +145,11 @@ pub trait AttestationHandler<AccountId> {
         quote: Vec<u8>,
     ) -> Result<(), sp_runtime::DispatchError>;
 
-    fn request_quote(attestee: &AccountId);
+    /// Indicate to the attestation handler that a quote is desired.
+    ///
+    /// The `nonce` should be a piece of data (e.g a random number) which indicates that the quote
+    /// is reasonably fresh and has not been reused.
+    fn request_quote(attestee: &AccountId, nonce: [u8; 32]);
 }
 
 /// A convenience implementation for testing and benchmarking.
@@ -160,5 +164,5 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         Ok(())
     }
 
-    fn request_quote(_attestee: &AccountId) {}
+    fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
 }

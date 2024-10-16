@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::QuoteInputData;
+    use entropy_shared::{AttestationHandler, QuoteInputData};
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
@@ -180,7 +180,7 @@ pub mod pallet {
 
             let mut nonce = [0; 32];
             Self::get_randomness().fill_bytes(&mut nonce[..]);
-            PendingAttestations::<T>::insert(&who, nonce);
+            Self::request_quote(&who, nonce);
 
             let block_number = <frame_system::Pallet<T>>::block_number();
             Self::deposit_event(Event::AttestationIssued(nonce.to_vec(), block_number));
@@ -257,11 +257,8 @@ pub mod pallet {
             Ok(())
         }
 
-        // Pass the nonce in here, will be useful for benchmarking and testing
-        fn request_quote(who: &T::AccountId) {
-            let mut nonce = [0; 32];
-            // Self::get_randomness().fill_bytes(&mut nonce[..]);
-            PendingAttestations::<T>::insert(&who, nonce);
+        fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
+            PendingAttestations::<T>::insert(who, nonce)
         }
     }
 }
