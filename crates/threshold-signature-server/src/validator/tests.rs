@@ -115,10 +115,6 @@ async fn test_reshare_foo() {
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request = OcwMessageReshare {
         new_signers: vec![new_signer.0.to_vec()],
-        old_signers: vec![
-            AccountKeyring::BobStash.public().encode(),
-            AccountKeyring::DaveStash.public().encode(),
-        ],
         block_number: block_number - 1,
     };
 
@@ -329,11 +325,8 @@ async fn test_reshare_validation_fail() {
     let kv = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let mut ocw_message = OcwMessageReshare {
-        new_signers: vec![dave.public().encode()],
-        old_signers: vec![],
-        block_number,
-    };
+    let mut ocw_message =
+        OcwMessageReshare { new_signers: vec![dave.public().encode()], block_number };
 
     let err_stale_data =
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
@@ -371,11 +364,8 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     let kv = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let ocw_message = OcwMessageReshare {
-        new_signers: vec![alice.public().encode()],
-        old_signers: vec![],
-        block_number,
-    };
+    let ocw_message =
+        OcwMessageReshare { new_signers: vec![alice.public().encode()], block_number };
 
     run_to_block(&rpc, block_number + 1).await;
 

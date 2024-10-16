@@ -130,7 +130,6 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct ReshareInfo<BlockNumber> {
         pub new_signers: Vec<Vec<u8>>,
-        pub old_signers: Vec<Vec<u8>>,
         pub block_number: BlockNumber,
     }
 
@@ -321,14 +320,11 @@ pub mod pallet {
                     new_signers.push(new_signer.encode())
                 }
                 let next_signers = next_signers.to_vec();
-                let old_signers: Vec<Vec<u8>> =
-                    self.mock_signer_rotate.3.clone().into_iter().map(|s| s.encode()).collect();
                 NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
                     new_signers,
-                    old_signers,
                 })
             }
         }
@@ -771,8 +767,6 @@ pub mod pallet {
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
                 new_signers,
-                // TODO: fix
-                old_signers: vec![],
             };
 
             ReshareData::<T>::put(reshare_info);

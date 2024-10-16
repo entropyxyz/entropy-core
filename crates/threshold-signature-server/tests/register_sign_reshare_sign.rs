@@ -159,7 +159,6 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
     let onchain_reshare_request = OcwMessageReshare {
         new_signers: reshare_data.new_signers.into_iter().map(|s| s.to_vec()).collect(),
-        old_signers: vec![],
         block_number: block_number - 1,
     };
 

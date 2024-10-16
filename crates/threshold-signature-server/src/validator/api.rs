@@ -68,35 +68,10 @@ pub async fn new_reshare(
         .ok_or_else(|| ValidatorErr::ChainFetch("Error getting next signers"))?
         .next_signers;
 
-    let signers_query = entropy::storage().staking_extension().signers();
-    let old_signers_stash: Vec<AccountId32> = data
-        .old_signers
-        .into_iter()
-        .map(|s| {
-            let address_slice: &[u8; 32] = &s
-                .clone()
-                .try_into()
-                .map_err(|_| ProtocolErr::AddressConversionError("Invalid Length".to_string()))
-                .unwrap();
-            AccountId32(*address_slice)
-        })
-        .collect();
-
-    let old_signers = get_validators_info(&api, &rpc, old_signers_stash)
-        .await
-        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
-
     let validators_info = get_validators_info(&api, &rpc, next_signers)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
-    let mut all_holders = validators_info.clone();
-    for old_signers_info in old_signers.clone() {
-        let contains =
-            all_holders.iter().position(|v| v.tss_account == old_signers_info.tss_account);
-        if contains.is_none() {
-            all_holders.push(old_signers_info);
-        }
-    }
+
     let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
@@ -119,8 +94,9 @@ pub async fn new_reshare(
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
 
-    let is_proper_signer =
-        all_holders.iter().any(|validator_info| validator_info.tss_account == *signer.account_id());
+    let is_proper_signer = validators_info
+        .iter()
+        .any(|validator_info| validator_info.tss_account == *signer.account_id());
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
@@ -144,10 +120,8 @@ pub async fn new_reshare(
     let new_holders: BTreeSet<PartyId> =
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
 
-    let verifiers: BTreeSet<PartyId> =
-        validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
-
-    let old_holders = &prune_old_holders(&api, &rpc, data.new_signers, validators_info).await?;
+    let old_holders =
+        &prune_old_holders(&api, &rpc, data.new_signers, validators_info.clone()).await?;
     let old_holders: BTreeSet<PartyId> =
         old_holders.into_iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
 
@@ -174,7 +148,7 @@ pub async fn new_reshare(
 
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
-    for validator_info in all_holders {
+    for validator_info in validators_info {
         let validator_info = ValidatorInfo {
             x25519_public_key: validator_info.x25519_public_key,
             ip_address: validator_info.ip_address,
@@ -194,7 +168,7 @@ pub async fn new_reshare(
     .await?;
 
     let (new_key_share, aux_info) =
-        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, &verifiers, None)
+        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, &new_holders, None)
             .await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))

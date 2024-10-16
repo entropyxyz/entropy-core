@@ -57,8 +57,6 @@ pub struct OcwMessageDkg {
 pub struct OcwMessageReshare {
     // Stash address of new signers
     pub new_signers: Vec<Vec<u8>>,
-    // Stash address of old signers to take part in the reshare
-    pub old_signers: Vec<Vec<u8>>,
     pub block_number: BlockNumber,
 }
 
