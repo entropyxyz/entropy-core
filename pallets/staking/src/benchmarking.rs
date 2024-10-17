@@ -29,10 +29,12 @@ use frame_support::{
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
 use pallet_staking::{
-    Event as FrameStakingEvent, MaxNominationsOf, Nominations, Pallet as FrameStaking,
-    RewardDestination, ValidatorPrefs,
+    Event as FrameStakingEvent, MaxNominationsOf, MaxValidatorsCount, Nominations,
+    Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
 };
 use sp_std::{vec, vec::Vec};
+
+// type MaxValidators<T> = <<T as Config>::BenchmarkingConfig as BenchmarkingConfig>::MaxValidators;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
@@ -364,13 +366,22 @@ benchmarks! {
   new_session {
     let c in 1 .. MAX_SIGNERS as u32 - 1;
     let l in 0 .. MAX_SIGNERS as u32;
+    let v in 0 .. MAX_SIGNERS as u32;
 
     let caller: T::AccountId = whitelisted_caller();
+    let validator_ids = create_validators::<T>(100, 1);
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+    // let mut signers = //create_validators::<T>((MAX_SIGNERS - 1) as u32, SEED);
+    let mut signers = vec![second_signer_id.clone(); c as usize];
 
     // For the purpose of the bench these values don't actually matter, we just care that there's a
     // storage entry available
     SignersInfo::<T>::put(SignersSize {
-        total_signers: MAX_SIGNERS,
+        total_signers: 5,
         threshold: 3,
         last_session_change: 0,
     });
@@ -379,23 +390,17 @@ benchmarks! {
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
-    let second_signer: T::AccountId = account("second_signer", 0, SEED);
-    let second_signer_id =
-        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
-            .or(Err(Error::<T>::InvalidValidatorId))
-            .unwrap();
-
-    // full signer list leaving room for one extra validator
-    let mut signers = vec![second_signer_id.clone(); c as usize];
-
-    Signers::<T>::put(signers.clone());
-    signers.push(second_signer_id.clone());
-
     // place new signer in the signers struct in different locations to calculate random selection
     // re-run
-    signers[l as usize % c as usize] = validator_id.clone();
+    // as well validators may be dropped before chosen
+    signers[l as usize % c as usize] = validator_ids[l as usize % c as usize].clone();
+
+    for i in 0 .. c {
+      signers[i as usize] = validator_ids[i as usize].clone();
+    }
+    Signers::<T>::put(signers.clone());
   }:  {
-    let _ = Staking::<T>::new_session_handler(&signers);
+    let _ = Staking::<T>::new_session_handler(&validator_ids);
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());

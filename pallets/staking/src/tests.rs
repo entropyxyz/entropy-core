@@ -477,8 +477,8 @@ fn it_tests_new_session_handler() {
         });
 
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
-        // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
-        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
+        // takes signers original (5,6) not in validators pops off both, adds (fake randomness in mock so adds 1 and 3)
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![1, 3]);
 
         assert_eq!(
             Staking::reshare_data().block_number,
@@ -486,9 +486,9 @@ fn it_tests_new_session_handler() {
             "Check reshare block start at 100 + 1"
         );
         assert_eq!(
-            Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
+            Staking::reshare_data().new_signers,
+            vec![1u64.encode(), 3u64.encode()],
+            "Check reshare next signer up is 3"
         );
         assert_eq!(
             Staking::jump_start_progress().parent_key_threshold,
@@ -501,11 +501,6 @@ fn it_tests_new_session_handler() {
             101,
             "Check reshare block start at 100 + 1"
         );
-        assert_eq!(
-            Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
-        );
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
         // takes 3 and leaves 5 and 6 since already in signer group
@@ -514,6 +509,16 @@ fn it_tests_new_session_handler() {
         assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+
+        // reduce threshold to make sure next signers does not drop > then threshold of current signers
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 1,
+            last_session_change: 0,
+        });
+
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 1]);
     });
 }
 
