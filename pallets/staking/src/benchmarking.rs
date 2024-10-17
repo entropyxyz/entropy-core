@@ -370,7 +370,13 @@ benchmarks! {
 
     let caller: T::AccountId = whitelisted_caller();
     let validator_ids = create_validators::<T>(100, 1);
-    let signers_ids = create_validators::<T>((MAX_SIGNERS - 1) as u32, SEED);
+    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let second_signer_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+    // let mut signers = //create_validators::<T>((MAX_SIGNERS - 1) as u32, SEED);
+    let mut signers = vec![second_signer_id.clone(); c as usize];
 
     // For the purpose of the bench these values don't actually matter, we just care that there's a
     // storage entry available
@@ -384,30 +390,15 @@ benchmarks! {
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
-    let second_signer: T::AccountId = account("second_signer", 10000000, SEED);
-    let second_signer_id =
-        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
-            .or(Err(Error::<T>::InvalidValidatorId))
-            .unwrap();
-
-    // full signer list leaving room for one extra validator
-    let mut signers = signers_ids;
     // place new signer in the signers struct in different locations to calculate random selection
     // re-run
     // as well validators may be dropped before chosen
-    signers[l as usize % c as usize] = validator_id.clone();
+    signers[l as usize % c as usize] = validator_ids[l as usize % c as usize].clone();
 
-    // for signer in signers.clone() {
-    //   validator_ids[l as usize % c as usize] = signer
-    // }
-    for i in 0 .. v {
-      if i as usize > signers.len() - 1 {
-        break;
-      }
+    for i in 0 .. c {
       signers[i as usize] = validator_ids[i as usize].clone();
     }
     Signers::<T>::put(signers.clone());
-    signers.push(second_signer_id.clone());
   }:  {
     let _ = Staking::<T>::new_session_handler(&validator_ids);
   }

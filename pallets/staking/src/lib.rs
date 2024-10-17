@@ -779,7 +779,11 @@ pub mod pallet {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
 
-            weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count);
+            weight = <T as Config>::WeightInfo::new_session(
+                current_signers.len() as u32,
+                count,
+                remove_index_len as u32,
+            );
 
             Ok(weight)
         }
