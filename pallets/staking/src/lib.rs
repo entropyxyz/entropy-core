@@ -126,7 +126,7 @@ pub mod pallet {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct ReshareInfo<BlockNumber> {
-        pub new_signer: Vec<u8>,
+        pub new_signers: Vec<Vec<u8>>,
         pub block_number: BlockNumber,
     }
 
@@ -310,14 +310,17 @@ pub mod pallet {
             // mocks a signer rotation for tss new_reshare tests
             if self.mock_signer_rotate.0 {
                 let next_signers = &mut self.mock_signer_rotate.1.clone();
-                next_signers.push(self.mock_signer_rotate.2[0].clone());
+                let mut new_signers = vec![];
+                for new_signer in self.mock_signer_rotate.2.clone() {
+                    next_signers.push(new_signer.clone());
+                    new_signers.push(new_signer.encode())
+                }
                 let next_signers = next_signers.to_vec();
                 NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    new_signer: self.mock_signer_rotate.clone().2[0].encode(),
+                    new_signers,
                 })
             }
         }
@@ -716,15 +719,36 @@ pub mod pallet {
                 return Ok(weight);
             }
 
-            let mut new_signer = vec![];
+            let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
+            let mut remove_index_len = 0;
+            // removes first signer and pushes new signer to back if total signers not increased
+            if current_signers_length >= signers_info.total_signers as usize {
+                let mut remove_indexs = vec![];
+                for (i, current_signer) in current_signers.clone().into_iter().enumerate() {
+                    if !validators.contains(&current_signer) {
+                        remove_indexs.push(i);
+                    }
+                }
+                if remove_indexs.is_empty() {
+                    current_signers.remove(0);
+                } else {
+                    remove_index_len = remove_indexs.len();
+                    let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
+                    let truncated = remove_indexs_reversed
+                        [..(signers_info.total_signers as usize - signers_info.threshold as usize)]
+                        .to_vec();
+                    for remove_index in truncated {
+                        current_signers.remove(*remove_index);
+                    }
+                }
+            }
 
-            if current_signers_length <= signers_info.total_signers as usize {
+            while current_signers.len() < signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
-                let mut next_signer_up = &current_signers[0].clone();
+                let mut next_signer_up = &validators[0].clone();
                 let mut index;
-
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
                     index = randomness.next_u32() % validators.len() as u32;
@@ -733,14 +757,8 @@ pub mod pallet {
                 }
 
                 current_signers.push(next_signer_up.clone());
-                new_signer = next_signer_up.encode();
+                new_signers.push(next_signer_up.encode());
             }
-
-            // removes first signer and pushes new signer to back if total signers not increased
-            if current_signers_length >= signers_info.total_signers as usize {
-                current_signers.remove(0);
-            }
-
             NextSigners::<T>::put(NextSignerInfo {
                 next_signers: current_signers.clone(),
                 confirmations: vec![],
@@ -750,7 +768,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
-                new_signer,
+                new_signers,
             };
 
             ReshareData::<T>::put(reshare_info);
@@ -758,7 +776,11 @@ pub mod pallet {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
 
-            weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count);
+            weight = <T as Config>::WeightInfo::new_session(
+                current_signers.len() as u32,
+                count,
+                remove_index_len as u32,
+            );
 
             Ok(weight)
         }
