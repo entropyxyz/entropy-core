@@ -735,12 +735,9 @@ pub mod pallet {
                 } else {
                     remove_index_len = remove_indexs.len();
                     let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
-                    // TODO: Only remove up to threhsold https://github.com/entropyxyz/entropy-core/issues/1114
-                    let truncated = if remove_index_len > signers_info.threshold as usize {
-                        remove_indexs_reversed[..signers_info.threshold as usize].to_vec()
-                    } else {
-                        remove_indexs_reversed
-                    };
+                    let truncated = remove_indexs_reversed
+                        [..(signers_info.total_signers as usize - signers_info.threshold as usize)]
+                        .to_vec();
                     for remove_index in truncated {
                         current_signers.remove(*remove_index);
                     }

@@ -476,10 +476,9 @@ fn it_tests_new_session_handler() {
             last_session_change: 0,
         });
 
-        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
-        // takes signers original (5,6) not in validators pops off both, adds (fake randomness in mock so adds 1 and 3)
-        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![1, 3]);
-
+        assert_ok!(Staking::new_session_handler(&[1, 5, 6]));
+        // takes signers original (5,6) pops off one and adds in new validator
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
         assert_eq!(
             Staking::reshare_data().block_number,
             101,
@@ -487,7 +486,7 @@ fn it_tests_new_session_handler() {
         );
         assert_eq!(
             Staking::reshare_data().new_signers,
-            vec![1u64.encode(), 3u64.encode()],
+            vec![1u64.encode()],
             "Check reshare next signer up is 3"
         );
         assert_eq!(
@@ -519,6 +518,32 @@ fn it_tests_new_session_handler() {
 
         assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 1]);
+    });
+}
+
+#[test]
+fn it_tests_new_session_handler_truncating() {
+    new_test_ext().execute_with(|| {
+        // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
+        Signers::<Test>::put(vec![7, 8]);
+        System::set_block_number(100);
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+        // test truncates none if t and n = 0
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![7, 8]);
+
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 1,
+            last_session_change: 0,
+        });
+        // test truncates 1 if n - t = 1
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![7, 1]);
     });
 }
 
