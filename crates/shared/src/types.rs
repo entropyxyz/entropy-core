@@ -55,7 +55,7 @@ pub struct OcwMessageDkg {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessageReshare {
-    // Stash address of new signers
+    // Stash addresses of new signers
     pub new_signers: Vec<Vec<u8>>,
     pub block_number: BlockNumber,
 }
