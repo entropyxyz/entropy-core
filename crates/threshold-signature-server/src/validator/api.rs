@@ -28,7 +28,6 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
-use blake2::{Blake2s256, Digest};
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 pub use entropy_protocol::{
     decode_verifying_key,
@@ -275,14 +274,7 @@ pub async fn validate_new_reshare(
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
 
-    let mut hasher_chain_data = Blake2s256::new();
-    hasher_chain_data.update(chain_data.new_signers.encode());
-    let chain_data_hash = hasher_chain_data.finalize();
-    let mut hasher_verifying_data = Blake2s256::new();
-    hasher_verifying_data.update(reshare_data.new_signers.encode());
-    let verifying_data_hash = hasher_verifying_data.finalize();
-
-    if verifying_data_hash != chain_data_hash
+    if chain_data.new_signers != reshare_data.new_signers
         || chain_data.block_number != reshare_data.block_number.saturating_sub(1)
     {
         return Err(ValidatorErr::InvalidData);
