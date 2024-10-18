@@ -13,7 +13,8 @@ At the moment this project **does not** adhere to
 - In [#1104](https://github.com/entropyxyz/entropy-core/pull/1104) the `/validator/rotate_network_key` endpoint was renamed to `rotate_network_key`
 - In [#1109](https://github.com/entropyxyz/entropy-core/pull/1109/), the `MaxPendingAttestations` config type, the `ValidationQueue` storage
   structure, and the `NodeInfoChanged` event were removed from the Staking Extension pallet. The
-  `KeyProvider` and `AttestationQueue` config types were removed from the Attestation pallet.
+  `AttestationHandler` config type was added to the Staking Extension pallet. The `KeyProvider` and
+  `AttestationQueue` config types were removed from the Attestation pallet.
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
