@@ -84,7 +84,7 @@ fn it_takes_in_an_endpoint() {
         let server_info = ServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
-            endpoint: vec![20, 20, 20, 20],
+            endpoint: [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec(),
             provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
         assert_noop!(
@@ -158,6 +158,8 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
 #[test]
 fn it_changes_endpoint() {
     new_test_ext().execute_with(|| {
+        let endpoint = b"http://localhost:3001".to_vec();
+
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(1),
             100u64,
@@ -167,7 +169,7 @@ fn it_changes_endpoint() {
         let server_info = ServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
+            endpoint: endpoint.clone(),
             provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
         assert_ok!(Staking::validate(
@@ -177,14 +179,46 @@ fn it_changes_endpoint() {
             VALID_QUOTE.to_vec(),
         ));
 
-        assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), vec![30]));
-        assert_eq!(Staking::threshold_server(1).unwrap().endpoint, vec![30]);
+        assert_ok!(Staking::change_endpoint(RuntimeOrigin::signed(1), endpoint.clone(), VALID_QUOTE.to_vec()));
+        assert_eq!(Staking::threshold_server(1).unwrap().endpoint, endpoint);
 
         assert_noop!(
-            Staking::change_endpoint(RuntimeOrigin::signed(3), vec![30]),
+            Staking::change_endpoint(RuntimeOrigin::signed(3), endpoint, VALID_QUOTE.to_vec()),
             Error::<Test>::NoBond
         );
     });
+}
+
+#[test]
+fn it_doesnt_change_endpoint_with_invalid_quote() {
+    new_test_ext().execute_with(|| {
+        let endpoint = b"http://localhost:3001".to_vec();
+
+        assert_ok!(FrameStaking::bond(
+            RuntimeOrigin::signed(1),
+            100u64,
+            pallet_staking::RewardDestination::Account(1),
+        ));
+
+        let server_info = ServerInfo {
+            tss_account: 3,
+            x25519_public_key: NULL_ARR,
+            endpoint: endpoint.clone(),
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
+
+        assert_ok!(Staking::validate(
+            RuntimeOrigin::signed(1),
+            pallet_staking::ValidatorPrefs::default(),
+            server_info.clone(),
+            VALID_QUOTE.to_vec(),
+        ));
+
+        assert_noop!(
+            Staking::change_endpoint(RuntimeOrigin::signed(1), endpoint, INVALID_QUOTE.to_vec()),
+            Error::<Test>::FailedAttestationCheck
+        );
+    })
 }
 
 #[test]

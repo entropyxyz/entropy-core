@@ -356,9 +356,22 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Allows a validator to change their endpoint so signers can find them when they are coms
         /// manager `endpoint`: nodes's endpoint
+        ///
+        /// # Expects TDX Quote
+        ///
+        /// A valid TDX quote must be passed along in order to ensure that the validator is running
+        /// TDX hardware. In order for the chain to be aware that a quote is expected from the
+        /// validator `pallet_attestation::request_attestation()` must be called first.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
         #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::change_endpoint())]
-        pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
+        pub fn change_endpoint(
+            origin: OriginFor<T>,
+            endpoint: Vec<u8>,
+            quote: Vec<u8>,
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             ensure!(
                 endpoint.len() as u32 <= T::MaxEndpointLength::get(),
@@ -372,12 +385,26 @@ pub mod pallet {
 
             ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
+                    // Before we modify the `server_info`, we want to check that the validator is
+                    // still running TDX hardware.
+                    ensure!(
+                        <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                            &server_info.tss_account.clone(),
+                            server_info.x25519_public_key,
+                            server_info.provisioning_certification_key.clone(),
+                            quote
+                        )
+                        .is_ok(),
+                        Error::<T>::FailedAttestationCheck
+                    );
+
                     server_info.endpoint.clone_from(&endpoint);
                     Ok(())
                 } else {
                     Err(Error::<T>::NoBond)
                 }
             })?;
+
             Self::deposit_event(Event::EndpointChanged(who, endpoint));
             Ok(())
         }
@@ -498,9 +525,11 @@ pub mod pallet {
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
         /// information about a validator's threshold server is provided.
         ///
+        /// # Expects TDX Quote
+        ///
         /// A valid TDX quote must be passed along in order to ensure that the validator candidate
         /// is running TDX hardware. In order for the chain to be aware that a quote is expected
-        /// from the candidate, `pallet_attestation::request_attestation()` must be called first.
+        /// from the candidate `pallet_attestation::request_attestation()` must be called first.
         ///
         /// The quote format is specified in:
         /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
