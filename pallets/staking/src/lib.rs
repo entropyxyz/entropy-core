@@ -373,6 +373,7 @@ pub mod pallet {
             quote: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+
             ensure!(
                 endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
@@ -399,6 +400,7 @@ pub mod pallet {
                     );
 
                     server_info.endpoint.clone_from(&endpoint);
+
                     Ok(())
                 } else {
                     Err(Error::<T>::NoBond)
@@ -409,21 +411,34 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Allows a validator to change their threshold key so can confirm done when coms manager
-        /// `new_account`: nodes's threshold account
+        /// Allows a validator to change their assocated threshold server AccountID and X25519
+        /// public key.
+        ///
+        /// # Expects TDX Quote
+        ///
+        /// A valid TDX quote must be passed along in order to ensure that the validator is running
+        /// TDX hardware. In order for the chain to be aware that a quote is expected from the
+        /// validator `pallet_attestation::request_attestation()` must be called first.
+        ///
+        /// The **new** TSS AccountID must be used when requesting this quote.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
         #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts(MAX_SIGNERS as u32))]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
+            quote: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
             ensure!(
                 !ThresholdToStash::<T>::contains_key(&tss_account),
                 Error::<T>::TssAccountAlreadyExists
             );
 
-            let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
@@ -437,17 +452,33 @@ pub mod pallet {
             let new_server_info: ServerInfo<T::AccountId> =
                 ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
+                        // Before we modify the `server_info`, we want to check that the validator is
+                        // still running TDX hardware.
+                        ensure!(
+                            <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                                &tss_account.clone(),
+                                x25519_public_key,
+                                server_info.provisioning_certification_key.clone(),
+                                quote
+                            )
+                            .is_ok(),
+                            Error::<T>::FailedAttestationCheck
+                        );
+
                         server_info.tss_account = tss_account.clone();
                         server_info.x25519_public_key = x25519_public_key;
                         ThresholdToStash::<T>::insert(&tss_account, &validator_id);
+
                         Ok(server_info.clone())
                     } else {
                         Err(Error::<T>::NoBond)
                     }
                 })?;
+
             Self::deposit_event(Event::ThresholdAccountChanged(validator_id, new_server_info));
-            Ok(Some(<T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32))
-                .into())
+
+            let actual_weight = <T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32);
+            Ok(Some(actual_weight).into())
         }
 
         /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
