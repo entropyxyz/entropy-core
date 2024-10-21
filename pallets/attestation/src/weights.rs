@@ -44,7 +44,7 @@ use core::marker::PhantomData;
 
 pub trait WeightInfo {
     fn attest() -> Weight;
-	fn on_initialize(s: u32, ) -> Weight;
+	fn request_attestation() -> Weight;
 }
 
 /// Weight functions for `pallet_attestation`.
@@ -66,27 +66,21 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:0)
-	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::AttestationRequests` (r:1 w:1)
-	/// Proof: `Attestation::AttestationRequests` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::PendingAttestations` (r:0 w:250)
+	/// Storage: `Attestation::PendingAttestations` (r:1 w:1)
 	/// Proof: `Attestation::PendingAttestations` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `s` is `[1, 250]`.
-	fn on_initialize(s: u32, ) -> Weight {
+	/// Storage: `Babe::NextRandomness` (r:1 w:0)
+	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Babe::EpochStart` (r:1 w:0)
+	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	fn request_attestation() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `476 + s * (174 ±0)`
-		//  Estimated: `3938 + s * (2650 ±0)`
-		// Minimum execution time: 23_000_000 picoseconds.
-		Weight::from_parts(5_800_748, 0)
-			.saturating_add(Weight::from_parts(0, 3938))
-			// Standard Error: 68_033
-			.saturating_add(Weight::from_parts(6_715_648, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(s.into())))
+		//  Measured:  `385`
+		//  Estimated: `3850`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(17_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3850))
+			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
-			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))
-			.saturating_add(Weight::from_parts(0, 2650).saturating_mul(s.into()))
 	}
 }
 
@@ -107,26 +101,20 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-	/// Storage: `StakingExtension::ValidationQueue` (r:251 w:0)
-	/// Proof: `StakingExtension::ValidationQueue` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::AttestationRequests` (r:1 w:1)
-	/// Proof: `Attestation::AttestationRequests` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Attestation::PendingAttestations` (r:0 w:250)
+	/// Storage: `Attestation::PendingAttestations` (r:1 w:1)
 	/// Proof: `Attestation::PendingAttestations` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `s` is `[1, 250]`.
-	fn on_initialize(s: u32, ) -> Weight {
+	/// Storage: `Babe::NextRandomness` (r:1 w:0)
+	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Babe::EpochStart` (r:1 w:0)
+	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	fn request_attestation() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `476 + s * (174 ±0)`
-		//  Estimated: `3938 + s * (2650 ±0)`
-		// Minimum execution time: 23_000_000 picoseconds.
-		Weight::from_parts(5_800_748, 0)
-			.saturating_add(Weight::from_parts(0, 3938))
-			// Standard Error: 68_033
-			.saturating_add(Weight::from_parts(6_715_648, 0).saturating_mul(s.into()))
-			.saturating_add(RocksDbWeight::get().reads(2))
-			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(s.into())))
+		//  Measured:  `385`
+		//  Estimated: `3850`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(17_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3850))
+			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(1))
-			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(s.into())))
-			.saturating_add(Weight::from_parts(0, 2650).saturating_mul(s.into()))
 	}
 }

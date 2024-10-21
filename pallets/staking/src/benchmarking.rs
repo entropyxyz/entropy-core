@@ -18,7 +18,7 @@
 use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::MAX_SIGNERS;
+use entropy_shared::{AttestationHandler, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -92,18 +92,24 @@ fn prep_bond_and_validate<T: Config>(
         reward_destination,
     ));
 
-    let server_info = ServerInfo {
-        tss_account: threshold,
-        x25519_public_key,
-        endpoint: vec![20, 20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
-    };
-
     if validate_also {
+        let server_info = ServerInfo {
+            tss_account: threshold,
+            x25519_public_key,
+            endpoint: vec![20, 20],
+            provisioning_certification_key: BoundedVec::with_max_capacity(),
+        };
+
+        // Note: This isn't a valid quote, but for testing benches this will pass.
+        //
+        // For actually running benches a valid quote will be required in the future.
+        let quote = [0; 32].to_vec();
+
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
             server_info.clone(),
+            quote,
         ));
 
         let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(bonder)
@@ -258,21 +264,78 @@ benchmarks! {
   validate {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
-    let threshold: T::AccountId = account("threshold", 0, SEED);
-    let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(false, caller.clone(), bonder.clone(), threshold.clone(), NULL_ARR);
-    let validator_preference = ValidatorPrefs::default();
+    let threshold_account: T::AccountId = account("threshold", 0, SEED);
 
-    let server_info = ServerInfo {
-        tss_account: threshold.clone(),
-        x25519_public_key: NULL_ARR,
-        endpoint: vec![20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+    let validator_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(bonder.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    let block_number = 1;
+    let nonce = NULL_ARR;
+    let x25519_public_key = NULL_ARR;
+    let endpoint = b"http://localhost:3001".to_vec();
+    let validate_also = false;
+
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        bonder.clone(),
+        threshold_account.clone(),
+        x25519_public_key.clone()
+    );
+
+    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
+    /// key
+    const PCK: [u8; 32] = [
+        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
+        168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
+    ];
+
+    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+    let provisioning_certification_key = BoundedVec::try_from(pck_encoded.to_vec()).unwrap();
+
+    let quote = {
+        /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
+        const ATTESTATION_KEY: [u8; 32] = [
+            167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
+            27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+        ];
+
+        let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
+
+        let input_data = entropy_shared::QuoteInputData::new(
+            &threshold_account,
+            x25519_public_key,
+            nonce,
+            block_number,
+        );
+
+        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
     };
 
-  }:  _(RawOrigin::Signed(bonder.clone()), validator_preference, server_info)
+    let server_info = ServerInfo {
+        tss_account: threshold_account.clone(),
+        x25519_public_key,
+        endpoint: endpoint.clone(),
+        provisioning_certification_key,
+    };
+
+    // We need to tell the attestation handler that we want a quote. This will let the system to
+    // know to expect one back when we call `validate()`.
+    T::AttestationHandler::request_quote(&threshold_account, nonce);
+
+  }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), server_info, quote)
   verify {
-    assert_last_event::<T>(Event::<T>::AttestationCheckQueued(bonder).into());
+    assert_last_event::<T>(
+        Event::<T>::ValidatorCandidateAccepted(
+            bonder,
+            validator_id,
+            threshold_account,
+            endpoint
+        ).into()
+    );
   }
 
   declare_synced {
@@ -404,57 +467,6 @@ benchmarks! {
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());
-  }
-
-  on_initialize {
-      let s in 1 .. T::MaxPendingAttestations::get() as u32;
-
-    let caller: T::AccountId = whitelisted_caller();
-    let threshold_account_id: T::AccountId = account("threshold", 0, SEED);
-
-    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
-    /// key
-    const PCK: [u8; 32] = [
-        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232,
-        207, 100, 168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
-    ];
-    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-
-    let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(caller)
-        .or(Err(Error::<T>::InvalidValidatorId))
-        .unwrap();
-
-    for i in 0..s {
-        let threshold_account_id: T::AccountId = account("threshold", 0, i);
-        let server_info = ServerInfo {
-            tss_account: threshold_account_id.clone(),
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![0],
-            provisioning_certification_key: BoundedVec::try_from(
-                pck_encoded.to_vec(),
-            )
-            .unwrap(),
-        };
-
-        ValidationQueue::<T>::insert(
-            (Status::Confirmed, threshold_account_id),
-            (validator_id.clone(), server_info),
-        );
-    }
-  }: {
-      use frame_support::traits::Hooks;
-      let _ = Staking::<T>::on_initialize(Default::default());
-  } verify {
-        // Here we'll just spot check one account instead of `s` accounts since if one was written
-        // all were
-        let threshold_account_id: T::AccountId = account("threshold", 0, 0);
-        assert!(ThresholdToStash::<T>::contains_key(threshold_account_id));
-        assert!(ThresholdServers::<T>::contains_key(validator_id));
-
-        // We'll also want to ensure that our queue was indeed emptied out during `on_initialize`
-        let confirmed = ValidationQueue::<T>::iter_prefix((Status::Confirmed,)).collect::<Vec<_>>();
-        assert!(confirmed.len() == 0);
   }
 }
 

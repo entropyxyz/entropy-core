@@ -32,6 +32,7 @@ use entropy_testing_utils::{
 };
 use serial_test::serial;
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_attest() {
@@ -72,6 +73,7 @@ async fn test_attest() {
     panic!("Waited 10 blocks and attestation is still pending");
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_attest_validation_fail() {

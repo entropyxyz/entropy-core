@@ -215,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.89"
+version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86fdf8605db99b54d3cd748a44c6d04df638eb5dafb219b135d0149bd0db01f6"
+checksum = "37bf3594c4c988a53154954629820791dde498571819ae4ca50ca811e060cc95"
 
 [[package]]
 name = "approx"
@@ -2748,7 +2748,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote 0.0.1",
+ "tdx-quote",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.18",
@@ -2807,7 +2807,7 @@ dependencies = [
  "subxt",
  "subxt-signer",
  "synedrion",
- "tdx-quote 0.0.1",
+ "tdx-quote",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -6706,7 +6706,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote 0.0.1",
+ "tdx-quote",
 ]
 
 [[package]]
@@ -7410,7 +7410,6 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
- "pallet-attestation",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",
@@ -7430,7 +7429,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote 0.1.0",
+ "tdx-quote",
 ]
 
 [[package]]
@@ -11521,9 +11520,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.128"
+version = "1.0.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ff5456707a1de34e7e37f2a6fd3d3f808c318259cbd01ab6377795054b483d8"
+checksum = "d726bfaff4b320266d395898905d0eba0345aae23b54aee3a737e260fd46db03"
 dependencies = [
  "itoa",
  "memchr",
@@ -14144,16 +14143,6 @@ name = "tdx-quote"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e10fe3140395153ccb4050f6eb51fe621a3b6d76da489601aec9fabe2fb1c3e0"
-dependencies = [
- "nom",
- "p256",
- "sha2 0.10.8",
-]
-
-[[package]]
-name = "tdx-quote"
-version = "0.1.0"
-source = "git+https://github.com/entropyxyz/tdx-quote?rev=cb167f2#cb167f2aef1c7539c91082ee21c764eac60f6bef"
 dependencies = [
  "nom",
  "p256",

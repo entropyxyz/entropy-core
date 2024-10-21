@@ -712,15 +712,14 @@ impl pallet_staking::Config for Runtime {
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 100;
-  pub const MaxPendingAttestations: u32 = 250;
 }
 
 impl pallet_staking_extension::Config for Runtime {
+    type AttestationHandler = Attestation;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
-    type MaxPendingAttestations = MaxPendingAttestations;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
 }
 
@@ -1502,8 +1501,6 @@ impl pallet_attestation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
-    type KeyProvider = StakingExtension;
-    type AttestationQueue = StakingExtension;
 }
 
 parameter_types! {
