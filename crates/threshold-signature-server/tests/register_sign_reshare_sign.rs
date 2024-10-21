@@ -51,13 +51,19 @@ async fn integration_test_register_sign_reshare_sign() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
+    let substrate_context = &test_node_process_testing_state(force_authoring).await;
 
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let api = get_api(&substrate_context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();
+
+    let mut other_rpcs = vec![];
+    for context in substrate_context {
+        let next_rpc = get_rpc(&context.ws_url).await.unwrap();
+        other_rpcs.push(next_rpc)
+    }
 
     // First jumpstart the network
-    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair(), &other_rpcs).await;
 
     // Now register an account
     let account_owner = AccountKeyring::Ferdie.pair();
