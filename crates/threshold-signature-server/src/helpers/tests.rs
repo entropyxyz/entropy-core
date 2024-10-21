@@ -363,7 +363,7 @@ pub async fn do_jump_start(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     pair: sr25519::Pair,
-    other_chains: &Vec<LegacyRpcMethods<EntropyConfig>>,
+    other_chains: &[LegacyRpcMethods<EntropyConfig>],
 ) {
     run_to_block(rpc, 2).await;
     log_all_block_numbers(other_chains).await;
@@ -383,6 +383,7 @@ pub async fn do_jump_start(
     let client = reqwest::Client::new();
 
     let mut results = vec![];
+    log_all_block_numbers(other_chains).await;
     for validator_info in validators_info {
         let url = format!(
             "http://{}/generate_network_key",
@@ -392,6 +393,7 @@ pub async fn do_jump_start(
             results.push(client.post(url).body(onchain_user_request.clone().encode()).send())
         }
     }
+    log_all_block_numbers(other_chains).await;
 
     let response_results = join_all(results).await;
 
@@ -422,8 +424,8 @@ pub async fn do_jump_start(
     assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
 }
 
-async fn log_all_block_numbers(other_chains: &Vec<LegacyRpcMethods<EntropyConfig>>) {
-    for (i, other_chain) in other_chains.into_iter().enumerate() {
+async fn log_all_block_numbers(other_chains: &[LegacyRpcMethods<EntropyConfig>]) {
+    for (i, other_chain) in other_chains.iter().enumerate() {
         let block_number = other_chain.chain_get_header(None).await.unwrap().unwrap().number;
         tracing::info!("Block number for rpc `{}`: `{}`", i, block_number);
     }
