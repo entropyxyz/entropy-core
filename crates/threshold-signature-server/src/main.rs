@@ -70,8 +70,8 @@ async fn main() {
         setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
     } else if !has_mnemonic(&kv_store).await {
         let mut rng = rand::thread_rng();
-        let mnemonic =
-            bip39::Mnemonic::generate_in_with(&mut rng, bip39::Language::English, 24).unwrap();
+        let mnemonic = bip39::Mnemonic::generate_in_with(&mut rng, bip39::Language::English, 24)
+            .expect("Failed to generate mnemonic");
         setup_mnemonic(&kv_store, mnemonic).await
     }
 
