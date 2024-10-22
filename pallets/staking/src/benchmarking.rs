@@ -34,8 +34,6 @@ use pallet_staking::{
 };
 use sp_std::{vec, vec::Vec};
 
-// type MaxValidators<T> = <<T as Config>::BenchmarkingConfig as BenchmarkingConfig>::MaxValidators;
-
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
 
@@ -438,7 +436,6 @@ benchmarks! {
         <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
-    // let mut signers = //create_validators::<T>((MAX_SIGNERS - 1) as u32, SEED);
     let mut signers = vec![second_signer_id.clone(); c as usize];
 
     // For the purpose of the bench these values don't actually matter, we just care that there's a

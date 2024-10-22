@@ -703,7 +703,7 @@ pub mod pallet {
             let mut remove_index_len = 0;
             // removes first signer and pushes new signer to back if total signers not increased
             if current_signers_length >= signers_info.total_signers as usize {
-                let mut remove_indexs = vec![];
+                let mut remove_indicies = vec![];
                 for (i, current_signer) in current_signers.clone().into_iter().enumerate() {
                     if !validators.contains(&current_signer) {
                         remove_indexs.push(i);

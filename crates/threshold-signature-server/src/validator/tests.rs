@@ -67,7 +67,7 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
-async fn test_reshare_foo() {
+async fn test_reshare() {
     initialize_test_logger().await;
     clean_tests();
 

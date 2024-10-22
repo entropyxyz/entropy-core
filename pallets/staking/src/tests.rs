@@ -510,7 +510,7 @@ fn it_tests_new_session_handler() {
 #[test]
 fn it_tests_new_session_handler_truncating() {
     new_test_ext().execute_with(|| {
-        // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
+        // Start with current validators as 7 and 8 based off the Mock `GenesisConfig`.
         Signers::<Test>::put(vec![7, 8]);
         System::set_block_number(100);
         pallet_parameters::SignersInfo::<Test>::put(SignersSize {
