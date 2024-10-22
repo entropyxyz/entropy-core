@@ -272,7 +272,7 @@ benchmarks! {
     let block_number = 1;
     let nonce = NULL_ARR;
     let x25519_public_key = NULL_ARR;
-    let endpoint = b"http://localhost:3001".to_vec();
+    let endpoint = vec![];
     let validate_also = false;
 
     prep_bond_and_validate::<T>(
@@ -427,11 +427,17 @@ benchmarks! {
   new_session {
     let c in 1 .. MAX_SIGNERS as u32 - 1;
     let l in 0 .. MAX_SIGNERS as u32;
-    let v in 0 .. MAX_SIGNERS as u32;
+    let v in 50 .. 100 as u32;
+    let r in 0 .. MAX_SIGNERS as u32;
+    
+    // c -> current signer size 
+    // l -> Add in new_signer rounds so next signer is in current signer re-run checks
+    // v -> number of validators, 100 is fine as a bounder, can add more
+    // r -> adds remove indexes in
 
     let caller: T::AccountId = whitelisted_caller();
-    let validator_ids = create_validators::<T>(100, 1);
-    let second_signer: T::AccountId = account("second_signer", 0, SEED);
+    let validator_ids = create_validators::<T>(v, 1);
+    let second_signer: T::AccountId = account("second_signer", 0, 10);
     let second_signer_id =
         <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
@@ -455,8 +461,10 @@ benchmarks! {
     // as well validators may be dropped before chosen
     signers[l as usize % c as usize] = validator_ids[l as usize % c as usize].clone();
 
-    for i in 0 .. c {
-      signers[i as usize] = validator_ids[i as usize].clone();
+    for i in 0 .. r {
+      if i > signers.len() as u32 && i > validator_ids.len() as u32 {
+        signers[i as usize] = validator_ids[i as usize].clone();
+      }
     }
     Signers::<T>::put(signers.clone());
   }:  {

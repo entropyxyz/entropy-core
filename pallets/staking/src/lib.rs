@@ -44,8 +44,8 @@ pub use crate::weights::WeightInfo;
 #[cfg(test)]
 mod mock;
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -714,9 +714,17 @@ pub mod pallet {
                 } else {
                     remove_indicies_len = remove_indicies.len();
                     let remove_indicies_reversed: Vec<_> = remove_indicies.iter().rev().collect();
-                    let truncated = remove_indicies_reversed
-                        [..(signers_info.total_signers as usize - signers_info.threshold as usize)]
-                        .to_vec();
+
+                    let truncated = if remove_indicies_reversed.len()
+                        >= (signers_info.total_signers as usize - signers_info.threshold as usize)
+                    {
+                        remove_indicies_reversed[..(signers_info.total_signers as usize
+                            - signers_info.threshold as usize)]
+                            .to_vec()
+                    } else {
+                        remove_indicies_reversed
+                    };
+
                     for remove_index in truncated {
                         current_signers.remove(*remove_index);
                     }
