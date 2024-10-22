@@ -9,14 +9,14 @@ At the moment this project **does not** adhere to
 
 ## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0-rc.1...master)
 
-## [0.3.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0-rc.1) - 2024-10-04
+## [0.3.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0) - 2024-10-22
 
 ### Breaking Changes
 - In [#799](https://github.com/entropyxyz/entropy-core/pull/799) the concept of subgroups was
   removed in favour of a single pool of signers.
 - In [#801](https://github.com/entropyxyz/entropy-core/pull/801) permissioned access mode was
   removed.
-- In [#879](https://github.com/entropyxyz/entropy-core/pull/879) the network migrated from t-of-N
+- In [#879](https://github.com/entropyxyz/entropy-core/pull/879) the network migrated from N-of-N
   cryptography to `t-of-N` cryptography.
 - In [#938](https://github.com/entropyxyz/entropy-core/pull/938), the chainspec got a couple of new
   fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
@@ -37,7 +37,10 @@ At the moment this project **does not** adhere to
   As such, `UserSignatureRequest` no longer requires the `validators_info` field since the the
   relayer adds that in after. The response received from the validator is now a `Vec<Responses>`
   from the signers.
-- In ([#1063](https://github.com/entropyxyz/entropy-core/pull/1063)) the
+- In [#1051](https://github.com/entropyxyz/entropy-core/pull/1051) an extra field representing a provisioning certification key (PCK)
+  was added to the Staking Extension's `threshold_server` genesis configuration in the network
+  chainspecs.
+- In [#1063](https://github.com/entropyxyz/entropy-core/pull/1063) the
   `pallet_staking_extension::validate()` extrinsic was changed so that in order to populate certain
   data structures related to a candidates state (namely `ThresholdToStash` and `ThresholdServer`) an
   attestation from the Attestation pallet must have been received. Success of the `validate()`
