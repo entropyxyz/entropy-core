@@ -15,6 +15,9 @@ At the moment this project **does not** adhere to
   structure, and the `NodeInfoChanged` event were removed from the Staking Extension pallet. The
   `AttestationHandler` config type was added to the Staking Extension pallet. The `KeyProvider` and
   `AttestationQueue` config types were removed from the Attestation pallet.
+- In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) mnemonics can no longer be passed
+  in via a command line argument, file, or environment variable. Instead they are randomly generated
+  internally.
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
