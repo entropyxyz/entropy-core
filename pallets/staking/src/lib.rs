@@ -700,21 +700,21 @@ pub mod pallet {
 
             let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
-            let mut remove_index_len = 0;
+            let mut remove_indicies_len = 0;
             // removes first signer and pushes new signer to back if total signers not increased
             if current_signers_length >= signers_info.total_signers as usize {
                 let mut remove_indicies = vec![];
                 for (i, current_signer) in current_signers.clone().into_iter().enumerate() {
                     if !validators.contains(&current_signer) {
-                        remove_indexs.push(i);
+                        remove_indicies.push(i);
                     }
                 }
-                if remove_indexs.is_empty() {
+                if remove_indicies.is_empty() {
                     current_signers.remove(0);
                 } else {
-                    remove_index_len = remove_indexs.len();
-                    let remove_indexs_reversed: Vec<_> = remove_indexs.iter().rev().collect();
-                    let truncated = remove_indexs_reversed
+                    remove_indicies_len = remove_indicies.len();
+                    let remove_indicies_reversed: Vec<_> = remove_indicies.iter().rev().collect();
+                    let truncated = remove_indicies_reversed
                         [..(signers_info.total_signers as usize - signers_info.threshold as usize)]
                         .to_vec();
                     for remove_index in truncated {
@@ -758,7 +758,7 @@ pub mod pallet {
             weight = <T as Config>::WeightInfo::new_session(
                 current_signers.len() as u32,
                 count,
-                remove_index_len as u32,
+                remove_indicies_len as u32,
             );
 
             Ok(weight)
