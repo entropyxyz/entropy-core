@@ -726,7 +726,7 @@ pub mod pallet {
             while current_signers.len() < signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
-                let mut next_signer_up = &validators[0].clone();
+                let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
