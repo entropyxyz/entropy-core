@@ -436,7 +436,7 @@ benchmarks! {
     // r -> adds remove indexes in
 
     let caller: T::AccountId = whitelisted_caller();
-    let validator_ids = create_validators::<T>(v, 1);
+    let mut validator_ids = create_validators::<T>(v, 1);
     let second_signer: T::AccountId = account("second_signer", 0, 10);
     let second_signer_id =
         <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
@@ -461,9 +461,10 @@ benchmarks! {
     // as well validators may be dropped before chosen
     signers[l as usize % c as usize] = validator_ids[l as usize % c as usize].clone();
 
+    // place signers into validators so they won't get dropped
     for i in 0 .. r {
       if i > signers.len() as u32 && i > validator_ids.len() as u32 {
-        signers[i as usize] = validator_ids[i as usize].clone();
+        validator_ids[i as usize] = signers[i as usize].clone();
       }
     }
     Signers::<T>::put(signers.clone());

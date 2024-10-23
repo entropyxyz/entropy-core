@@ -766,6 +766,7 @@ pub mod pallet {
             weight = <T as Config>::WeightInfo::new_session(
                 current_signers.len() as u32,
                 count,
+                validators.len() as u32, 
                 remove_indicies_len as u32,
             );
 

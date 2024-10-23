@@ -62,7 +62,7 @@ pub trait WeightInfo {
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
 	fn confirm_key_reshare_completed() -> Weight;
 	fn new_session_base_weight(s: u32) -> Weight;
-	fn new_session(c: u32, l: u32, v: u32) -> Weight;
+	fn new_session(c: u32, l: u32, v: u32, r: u32) -> Weight;
 }
 
 /// Weights for pallet_staking_extension using the Substrate node and recommended hardware.
@@ -313,7 +313,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
 	}
-	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+		/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
 	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
@@ -329,19 +329,22 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `c` is `[1, 14]`.
 	/// The range of component `l` is `[0, 15]`.
-	/// The range of component `v` is `[0, 15]`.
-	fn new_session(c: u32, l: u32, v: u32, ) -> Weight {
+	/// The range of component `v` is `[50, 100]`.
+	/// The range of component `r` is `[0, 15]`.
+	fn new_session(c: u32, _l: u32, v: u32, r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `508 + c * (16 ±0)`
-		//  Estimated: `2027 + c * (16 ±1) + l * (50 ±0) + v * (50 ±0)`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(17_877_994, 0)
-			.saturating_add(Weight::from_parts(0, 2027))
-			.saturating_add(T::DbWeight::get().reads(5))
+		//  Measured:  `509 + c * (15 ±0)`
+		//  Estimated: `2096 + c * (15 ±0) + r * (11364552184692736 ±340_282_366_920_938_463_463_374_607_431_768_211_455) + v * (18 ±2_466_463_158_054_763_722_435_771_498_496)`
+		// Minimum execution time: 10_000_000 picoseconds.
+		Weight::from_parts(16_699_930, 0)
+			.saturating_add(Weight::from_parts(0, 2096))
+			// Standard Error: 2_130
+			.saturating_add(Weight::from_parts(7_887, 0).saturating_mul(v.into()))
+			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
-			.saturating_add(Weight::from_parts(0, 16).saturating_mul(c.into()))
-			.saturating_add(Weight::from_parts(0, 50).saturating_mul(l.into()))
-			.saturating_add(Weight::from_parts(0, 50).saturating_mul(v.into()))
+			.saturating_add(Weight::from_parts(0, 15).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(0, 11364552184692736).saturating_mul(r.into()))
+			.saturating_add(Weight::from_parts(0, 18).saturating_mul(v.into()))
 	}
 }
 
@@ -592,7 +595,7 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
 	}
-	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+		/// Storage: `StakingExtension::Signers` (r:1 w:0)
 	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Parameters::SignersInfo` (r:1 w:0)
 	/// Proof: `Parameters::SignersInfo` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
@@ -608,18 +611,21 @@ impl WeightInfo for () {
 	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `c` is `[1, 14]`.
 	/// The range of component `l` is `[0, 15]`.
-	/// The range of component `v` is `[0, 15]`.
-	fn new_session(c: u32, l: u32, v: u32, ) -> Weight {
+	/// The range of component `v` is `[50, 100]`.
+	/// The range of component `r` is `[0, 15]`.
+	fn new_session(c: u32, _l: u32, v: u32, r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `508 + c * (16 ±0)`
-		//  Estimated: `2027 + c * (16 ±1) + l * (50 ±0) + v * (50 ±0)`
-		// Minimum execution time: 9_000_000 picoseconds.
-		Weight::from_parts(17_877_994, 0)
-			.saturating_add(Weight::from_parts(0, 2027))
-			.saturating_add(RocksDbWeight::get().reads(5))
+		//  Measured:  `509 + c * (15 ±0)`
+		//  Estimated: `2096 + c * (15 ±0) + r * (11364552184692736 ±340_282_366_920_938_463_463_374_607_431_768_211_455) + v * (18 ±2_466_463_158_054_763_722_435_771_498_496)`
+		// Minimum execution time: 10_000_000 picoseconds.
+		Weight::from_parts(16_699_930, 0)
+			.saturating_add(Weight::from_parts(0, 2096))
+			// Standard Error: 2_130
+			.saturating_add(Weight::from_parts(7_887, 0).saturating_mul(v.into()))
+			.saturating_add(RocksDbWeight::get().reads(6))
 			.saturating_add(RocksDbWeight::get().writes(3))
-			.saturating_add(Weight::from_parts(0, 16).saturating_mul(c.into()))
-			.saturating_add(Weight::from_parts(0, 50).saturating_mul(l.into()))
-			.saturating_add(Weight::from_parts(0, 50).saturating_mul(v.into()))
+			.saturating_add(Weight::from_parts(0, 15).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(0, 11364552184692736).saturating_mul(r.into()))
+			.saturating_add(Weight::from_parts(0, 18).saturating_mul(v.into()))
 	}
 }
