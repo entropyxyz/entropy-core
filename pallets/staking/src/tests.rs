@@ -81,7 +81,7 @@ fn it_takes_in_an_endpoint() {
         let server_info = ServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
-            endpoint: vec![20, 20, 20, 20],
+            endpoint: vec![20; 26],
             provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
         assert_noop!(
