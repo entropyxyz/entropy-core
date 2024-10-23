@@ -272,7 +272,7 @@ benchmarks! {
     let block_number = 1;
     let nonce = NULL_ARR;
     let x25519_public_key = NULL_ARR;
-    let endpoint = b"http://localhost:3001".to_vec();
+    let endpoint = vec![];
     let validate_also = false;
 
     prep_bond_and_validate::<T>(
@@ -334,16 +334,6 @@ benchmarks! {
             endpoint
         ).into()
     );
-  }
-
-  declare_synced {
-    let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
-
-  }:  _(RawOrigin::Signed(caller.clone()), true)
-  verify {
-    assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
   }
 
   confirm_key_reshare_confirmed {
