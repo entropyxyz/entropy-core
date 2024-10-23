@@ -9,7 +9,7 @@ Our blockchain node is written with [Substrate](https://substrate.io/) using [Su
 ## Documentation
 
 - High level introduction to Entropy: [docs.entropy.xyz](https://docs.entropy.xyz)
-- API documentation for this crate: [docs.rs/entroyp-ts](https://docs.rs/entropy-tss/latest/entropy_tss/index.html)
+- API documentation for the `entropy-tss` crate: [docs.rs/entropy-tss](https://docs.rs/entropy-tss/latest/entropy_tss/index.html)
 
 You can also build the API docs yourself:
 1. [Install the dependencies](#building-from-source)
