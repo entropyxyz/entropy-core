@@ -13,9 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::helpers::tests::{initialize_test_logger, setup_client};
+use crate::{
+    helpers::tests::{initialize_test_logger, setup_client},
+    node_info::api::TssPublicKeys,
+};
 use entropy_kvdb::clean_tests;
 use entropy_shared::types::HashingAlgorithm;
+use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
 use serial_test::serial;
 
 #[tokio::test]
@@ -52,6 +56,25 @@ async fn hashes_test() {
             HashingAlgorithm::Blake2_256,
             HashingAlgorithm::Custom(0),
         ]
+    );
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn info_test() {
+    clean_tests();
+    initialize_test_logger().await;
+    setup_client().await;
+    let client = reqwest::Client::new();
+    let response = client.get("http://127.0.0.1:3001/info").send().await.unwrap();
+    let public_keys: TssPublicKeys = response.json().await.unwrap();
+    assert_eq!(
+        public_keys,
+        TssPublicKeys {
+            tss_account: TSS_ACCOUNTS[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+        }
     );
     clean_tests();
 }
