@@ -429,8 +429,8 @@ benchmarks! {
     let l in 0 .. MAX_SIGNERS as u32;
     let v in 50 .. 100 as u32;
     let r in 0 .. MAX_SIGNERS as u32;
-    
-    // c -> current signer size 
+
+    // c -> current signer size
     // l -> Add in new_signer rounds so next signer is in current signer re-run checks
     // v -> number of validators, 100 is fine as a bounder, can add more
     // r -> adds remove indexes in
