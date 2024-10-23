@@ -546,7 +546,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(7)]
+        #[pallet::call_index(6)]
         #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())

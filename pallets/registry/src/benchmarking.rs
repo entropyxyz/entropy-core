@@ -46,7 +46,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-pub fn add_non_syncing_validators<T: Config>(
+pub fn add_validators<T: Config>(
     validator_amount: u32,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let validators = create_validators::<T>(validator_amount, SEED);
@@ -86,7 +86,7 @@ benchmarks! {
         accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
     }
 
-    let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32);
+    let validators = add_validators::<T>(MAX_SIGNERS as u32);
     <Validators<T>>::set(validators.clone());
 
     for i in 0..MAX_SIGNERS {
@@ -125,7 +125,7 @@ benchmarks! {
 
     // add validators
     for i in 0..MAX_SIGNERS {
-        let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32);
+        let validators = add_validators::<T>(MAX_SIGNERS as u32);
         <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
     }
