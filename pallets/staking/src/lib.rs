@@ -704,6 +704,7 @@ pub mod pallet {
             // removes first signer and pushes new signer to back if total signers not increased
             if current_signers_length >= signers_info.total_signers as usize {
                 let mut remove_indicies = vec![];
+                // Finds signers that are no longer validators to remove
                 for (i, current_signer) in current_signers.clone().into_iter().enumerate() {
                     if !validators.contains(&current_signer) {
                         remove_indicies.push(i);
@@ -713,8 +714,9 @@ pub mod pallet {
                     current_signers.remove(0);
                 } else {
                     remove_indicies_len = remove_indicies.len();
+                    // reverses vec so as signers removed it does not change location
                     let remove_indicies_reversed: Vec<_> = remove_indicies.iter().rev().collect();
-
+                    // truncated as a current limitation see issue: https://github.com/entropyxyz/entropy-core/issues/1114
                     let truncated = if remove_indicies_reversed.len()
                         >= (signers_info.total_signers as usize - signers_info.threshold as usize)
                     {
