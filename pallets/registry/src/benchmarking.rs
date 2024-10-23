@@ -57,7 +57,7 @@ pub fn add_non_syncing_validators<T: Config>(
         endpoint: vec![20],
         provisioning_certification_key: BoundedVec::with_max_capacity(),
     };
-    for (c, validator) in validators.iter().enumerate() {
+    for validator in validators {
         <ThresholdServers<T>>::insert(validator, server_info.clone());
     }
     validators
@@ -86,7 +86,7 @@ benchmarks! {
         accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
     }
 
-    let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
+    let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32);
     <Validators<T>>::set(validators.clone());
 
     for i in 0..MAX_SIGNERS {
@@ -125,7 +125,7 @@ benchmarks! {
 
     // add validators
     for i in 0..MAX_SIGNERS {
-        let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
+        let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32);
         <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
     }
