@@ -45,7 +45,7 @@ pub struct TssPublicKeys {
 pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let tss_account = AccountId32(signer.signer().public().0);
-    let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret).as_bytes().clone();
+    let x25519_public_key = *x25519_dalek::PublicKey::from(&x25519_secret).as_bytes();
 
     Ok(Json(TssPublicKeys { x25519_public_key, tss_account }))
 }
