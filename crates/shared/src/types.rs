@@ -37,8 +37,8 @@ pub type BlockNumber = u32;
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
-    pub ip_address: codec::alloc::vec::Vec<u8>,
-    pub tss_account: codec::alloc::vec::Vec<u8>,
+    pub ip_address: Vec<u8>,
+    pub tss_account: Vec<u8>,
 }
 
 /// Offchain worker message for initiating the initial jumpstart DKG
