@@ -18,7 +18,6 @@ You can also build the API docs yourself:
     cargo doc --no-deps --open`
     ```
 
-There is also [high level documentation for Entropy available here](https://docs.entropy.xyz).
 
 ## Getting Started
 
