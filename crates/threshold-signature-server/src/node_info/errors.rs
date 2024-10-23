@@ -12,10 +12,23 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use thiserror::Error;
 
-//! Provides information about this instance of `entropy-tss`
-pub mod api;
-mod errors;
+/// Errors for protocol execution
+#[derive(Debug, Error)]
+pub enum GetInfoError {
+    #[error("Could not get public keys: {0}")]
+    User(#[from] crate::user::errors::UserErr),
+}
 
-#[cfg(test)]
-mod tests;
+impl IntoResponse for GetInfoError {
+    fn into_response(self) -> Response {
+        tracing::error!("{:?}", format!("{self}"));
+        let body = format!("{self}").into_bytes();
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}
