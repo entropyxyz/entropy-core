@@ -57,7 +57,7 @@ pub fn add_non_syncing_validators<T: Config>(
         endpoint: vec![20],
         provisioning_certification_key: BoundedVec::with_max_capacity(),
     };
-    for validator in validators {
+    for validator in &validators {
         <ThresholdServers<T>>::insert(validator, server_info.clone());
     }
     validators
