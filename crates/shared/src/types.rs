@@ -88,6 +88,8 @@ pub struct OcwMessageProactiveRefresh {
 pub struct OcwMessageAttestationRequest {
     /// The account ids of all TSS servers who must submit an attestation this block
     pub tss_account_ids: Vec<[u8; 32]>,
+    /// The block height at which this attestation request was made.
+    pub block_number: BlockNumber,
 }
 
 /// 256-bit hashing algorithms for deriving the point to be signed.
@@ -132,33 +134,35 @@ impl QuoteInputData {
     }
 }
 
-/// A trait used to get different stored keys for a given account ID.
-///
-/// Not every account ID will have an given key, in which case the implementer is expected to
-/// return `None`.
-pub trait KeyProvider<T> {
-    /// Get an X25519 public key, if any, for the given account ID.
-    fn x25519_public_key(account_id: &T) -> Option<X25519PublicKey>;
+/// A trait for types which can handle attestation requests.
+#[cfg(not(feature = "wasm"))]
+pub trait AttestationHandler<AccountId> {
+    /// Verify that the given quote is valid and matches the given information about the attestee.
+    fn verify_quote(
+        attestee: &AccountId,
+        x25519_public_key: X25519PublicKey,
+        provisioning_certification_key: BoundedVecEncodedVerifyingKey,
+        quote: Vec<u8>,
+    ) -> Result<(), sp_runtime::DispatchError>;
 
-    /// Get a provisioning certification key, if any, for the given account ID.
-    fn provisioning_key(account_id: &T) -> Option<EncodedVerifyingKey>;
+    /// Indicate to the attestation handler that a quote is desired.
+    ///
+    /// The `nonce` should be a piece of data (e.g a random number) which indicates that the quote
+    /// is reasonably fresh and has not been reused.
+    fn request_quote(attestee: &AccountId, nonce: [u8; 32]);
 }
 
-/// A trait used to describe a queue of attestations.
-pub trait AttestationQueue<T> {
-    /// Indicate that a given attestation is ready to be moved from a pending state to a confirmed
-    /// state.
-    fn confirm_attestation(account_id: &T);
+/// A convenience implementation for testing and benchmarking.
+#[cfg(not(feature = "wasm"))]
+impl<AccountId> AttestationHandler<AccountId> for () {
+    fn verify_quote(
+        _attestee: &AccountId,
+        _x25519_public_key: X25519PublicKey,
+        _provisioning_certification_key: BoundedVecEncodedVerifyingKey,
+        _quote: Vec<u8>,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        Ok(())
+    }
 
-    /// Request that an attestation get added to the queue for later processing.
-    fn push_pending_attestation(
-        signer: T,
-        tss_account: T,
-        x25519_public_key: X25519PublicKey,
-        endpoint: Vec<u8>,
-        provisioning_certification_key: EncodedVerifyingKey,
-    );
-
-    /// The list of pending (not processed) attestations.
-    fn pending_attestations() -> Vec<T>;
+    fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
 }

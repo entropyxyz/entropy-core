@@ -33,7 +33,11 @@ fn knows_how_to_mock_several_http_calls() {
             uri: "http://localhost:3001/generate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
-            body: [0, 0, 0, 0, 0].to_vec(),
+            body: [
+                0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 16, 116, 101, 115, 116, 20, 16, 116, 101, 115, 116,
+            ]
+            .to_vec(),
             ..Default::default()
         });
 
@@ -60,7 +64,7 @@ fn knows_how_to_mock_several_http_calls() {
         });
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/validator/rotate_keyshares".into(),
+            uri: "http://localhost:3001/rotate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [10, 0, 0, 0].to_vec(),
@@ -69,17 +73,18 @@ fn knows_how_to_mock_several_http_calls() {
     });
 
     t.execute_with(|| {
+        let validators_info = vec![ValidatorInfo {
+            x25519_public_key: [0u8; 32],
+            ip_address: "test".encode(),
+            tss_account: "test".encode(),
+        }];
+        pallet_registry::JumpstartDkg::<Test>::insert(0, validators_info.clone());
+
         Propagation::post_dkg(1).unwrap();
 
         Propagation::post_proactive_refresh(6).unwrap();
-        let ocw_message = RefreshInfo {
-            validators_info: vec![ValidatorInfo {
-                x25519_public_key: [0u8; 32],
-                ip_address: "test".encode(),
-                tss_account: "test".encode(),
-            }],
-            proactive_refresh_keys: vec![1.encode(), 2.encode()],
-        };
+        let ocw_message =
+            RefreshInfo { validators_info, proactive_refresh_keys: vec![1.encode(), 2.encode()] };
         pallet_staking_extension::ProactiveRefresh::<Test>::put(ocw_message);
         Propagation::post_proactive_refresh(6).unwrap();
         Propagation::on_initialize(6);
@@ -95,7 +100,7 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_reshare(7).unwrap();
 
         pallet_staking_extension::RotateKeyshares::<Test>::put(10);
-        Propagation::post_rotate_keyshare(10).unwrap();
+        Propagation::post_rotate_network_key(10).unwrap();
     })
 }
 

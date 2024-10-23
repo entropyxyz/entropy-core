@@ -208,7 +208,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // We update this if the runtime behaviour has changed. When this happens we set the
     // `impl_version` to `0`.
     #[allow(clippy::zero_prefixed_literal)]
-    spec_version: 00_02_00,
+    spec_version: 00_03_00,
 
     // We only bump this if the runtime behaviour remains unchanged, but the implementations details
     // have changed.
@@ -222,7 +222,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // call index, parameter changes, etc.).
     //
     // The `spec_version` also needs to be bumped in this case.
-    transaction_version: 7,
+    transaction_version: 8,
 
     // Version of the state implementation to use.
     //
@@ -712,15 +712,14 @@ impl pallet_staking::Config for Runtime {
 
 parameter_types! {
   pub const MaxEndpointLength: u32 = 100;
-  pub const MaxPendingAttestations: u32 = 250;
 }
 
 impl pallet_staking_extension::Config for Runtime {
+    type AttestationHandler = Attestation;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
-    type MaxPendingAttestations = MaxPendingAttestations;
     type WeightInfo = weights::pallet_staking_extension::WeightInfo<Runtime>;
     type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifyer;
 }
@@ -1503,8 +1502,6 @@ impl pallet_attestation::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_attestation::WeightInfo<Runtime>;
     type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
-    type KeyProvider = StakingExtension;
-    type AttestationQueue = StakingExtension;
 }
 
 parameter_types! {

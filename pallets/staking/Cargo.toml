@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-staking-extension'
-version   ='0.2.0'
+version   ='0.3.0-rc.1'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -15,7 +15,7 @@ targets=['x86_64-unknown-linux-gnu']
 codec      ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info ={ version="2.11", default-features=false, features=["derive"] }
 log        ={ version="0.4.22", default-features=false }
-serde      ={ version="1.0.210", default-features=false }
+serde      ={ version="1.0.213", default-features=false }
 rand_chacha={ version="0.3", default-features=false }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
@@ -33,16 +33,14 @@ spki              ="0.7.3"
 p256              ={ version="0.13.2", default-features=false, features=["ecdsa"] }
 rand              ={ version="0.8.5", default-features=false, features=["alloc"] }
 
-pallet-parameters={ version="0.2.0", path="../parameters", default-features=false }
-entropy-shared={ version="0.2.0", path="../../crates/shared", features=[
+pallet-parameters={ version="0.3.0-rc.1", path="../parameters", default-features=false }
+entropy-shared={ version="0.3.0-rc.1", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
 
 # We only use this in benchmarks and tests. Since the benches don't run with the `test` feature we need to
 # import it here _and_ as a `dev-dependency`.
-tdx-quote={ git="https://github.com/entropyxyz/tdx-quote", rev="cb167f2", features=[
-  "mock",
-], optional=true }
+tdx-quote={ version="0.0.1", features=["mock"], optional=true }
 
 [dev-dependencies]
 frame-election-provider-support={ version="29.0.0", default-features=false }
@@ -53,9 +51,8 @@ pallet-timestamp               ={ version="28.0.0", default-features=false }
 sp-io                          ={ version="31.0.0", default-features=false }
 sp-npos-elections              ={ version="27.0.0", default-features=false }
 
-rand_core         ="0.6.4"
-tdx-quote         ={ git="https://github.com/entropyxyz/tdx-quote", rev="cb167f2", features=["mock"] }
-pallet-attestation={ version="0.2.0", path="../attestation" }
+rand_core="0.6.4"
+tdx-quote={ version="0.0.1", features=["mock"] }
 
 [features]
 default=['std']

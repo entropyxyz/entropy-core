@@ -7,9 +7,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0-rc.1...master)
 
 ### Breaking Changes
+- In [#1104](https://github.com/entropyxyz/entropy-core/pull/1104) the `/validator/rotate_network_key` endpoint was renamed to `rotate_network_key`
+- In [#1109](https://github.com/entropyxyz/entropy-core/pull/1109/), the `MaxPendingAttestations` config type, the `ValidationQueue` storage
+  structure, and the `NodeInfoChanged` event were removed from the Staking Extension pallet. The
+  `AttestationHandler` config type was added to the Staking Extension pallet. The `KeyProvider` and
+  `AttestationQueue` config types were removed from the Attestation pallet.
+
+### Changed
+- Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
+- Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
+
+## [0.3.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0-rc.1) - 2024-10-04
+
+### Breaking Changes
+- In [#799](https://github.com/entropyxyz/entropy-core/pull/799) the concept of subgroups was
+  removed in favour of a single pool of signers.
+- In [#801](https://github.com/entropyxyz/entropy-core/pull/801) permissioned access mode was
+  removed.
+- In [#879](https://github.com/entropyxyz/entropy-core/pull/879) the network migrated from t-of-N
+  cryptography to `t-of-N` cryptography.
 - In [#938](https://github.com/entropyxyz/entropy-core/pull/938), the chainspec got a couple of new
   fields, `pallet_staking_extension::initial_signers`, `pallet_parameters::total_signers`, and
   `pallet_parameters::threshold`, which are used to set up the initial threshold signing
@@ -22,7 +41,8 @@ At the moment this project **does not** adhere to
   to go through the `staking_extention` pallet. This makes sure no funds can be unbonded from a
   validator if they are currently in the signing comittee. This was applied to `unbond`, `chill`,
   and `withdraw_unbonded`
-- In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes `version_number` to maintain backwards compatibility if programs runtime is updated
+- In [#1045](https://github.com/entropyxyz/entropy-core/pull/1045), `ProgramsInfo` now takes
+  `version_number` to maintain backwards compatibility if programs runtime is updated
 - In [#1050](https://github.com/entropyxyz/entropy-core/pull/1050), the flow for signing has changed.
   A user now sends their request to any validator that is not a signer. This will act as a relayer.
   As such, `UserSignatureRequest` no longer requires the `validators_info` field since the the
@@ -46,16 +66,18 @@ At the moment this project **does not** adhere to
 - Add parent key threshold dynamically ([#974](https://github.com/entropyxyz/entropy-core/pull/974))
 - Signing flow with derived accounts ([#990](https://github.com/entropyxyz/entropy-core/pull/990))
 - TSS attestation endpoint ([#1001](https://github.com/entropyxyz/entropy-core/pull/1001))
-- Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
 - Attestation pallet ([#1003](https://github.com/entropyxyz/entropy-core/pull/1003))
+- Add `network-jumpstart` command to `entropy-test-cli` ([#1004](https://github.com/entropyxyz/entropy-core/pull/1004))
 - Update test CLI for new registration and signing flows ([#1008](https://github.com/entropyxyz/entropy-core/pull/1008))
 - Add remove program function to entropy-client ([#1023](https://github.com/entropyxyz/entropy-core/pull/1023))
 - Select validators for jumpstart DKG [#1053](https://github.com/entropyxyz/entropy-core/pull/1053))
 - Add a programs version ([#1045](https://github.com/entropyxyz/entropy-core/pull/1045))
 - Handle Provisioning Certification Keys (PCKs) ([#1051](https://github.com/entropyxyz/entropy-core/pull/1051))
-- Block tss chain when signer  ([#1078](https://github.com/entropyxyz/entropy-core/pull/1078))
+- Block tss chain when signer ([#1078](https://github.com/entropyxyz/entropy-core/pull/1078))
 
 ### Changed
+- Migrate to threshold signing ([#800](https://github.com/entropyxyz/entropy-core/pull/800))
+- Use t of n signing in `entropy-tss` ([#879](https://github.com/entropyxyz/entropy-core/pull/879))
 - Fix TSS `AccountId` keys in chainspec ([#993](https://github.com/entropyxyz/entropy-core/pull/993))
 - No unbonding when signer or next signer ([#1031](https://github.com/entropyxyz/entropy-core/pull/1031))
 - Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
@@ -64,6 +86,8 @@ At the moment this project **does not** adhere to
 - Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 
 ### Removed
+- Remove subgroups ([#799](https://github.com/entropyxyz/entropy-core/pull/799))
+- Remove permission from chain ([#801](https://github.com/entropyxyz/entropy-core/pull/801))
 - Remove `prune_registration` extrinsic ([#1022](https://github.com/entropyxyz/entropy-core/pull/1022))
 - Remove `confirm_registered` extrinsic ([#1025](https://github.com/entropyxyz/entropy-core/pull/1025))
 - Remove old registration flow ([#1030](https://github.com/entropyxyz/entropy-core/pull/1030))
