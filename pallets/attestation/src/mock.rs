@@ -315,7 +315,7 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = ();
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifyer;
+    type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifier;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();

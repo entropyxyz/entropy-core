@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 mod mock;
-pub use mock::{signing_key_from_seed, MockPckCertChainVerifyer, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
+pub use mock::{signing_key_from_seed, MockPckCertChainVerifier, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 mod production;
 use super::VerifyingKey as CompressedVerifyingKey;
 use core::array::TryFromSliceError;
