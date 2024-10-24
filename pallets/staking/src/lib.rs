@@ -97,7 +97,7 @@ pub mod pallet {
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
 
-        /// Something that verifies a PCK certificate chain
+        /// A type that verifies a provisioning certification key (PCK) certificate chain.
         type PckCertChainVerifier: PckCertChainVerifier;
 
         /// Something that provides randomness in the runtime.
