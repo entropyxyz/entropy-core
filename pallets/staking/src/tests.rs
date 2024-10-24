@@ -438,19 +438,18 @@ fn it_tests_new_session_handler() {
             last_session_change: 0,
         });
 
-        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
-        // takes signers original (5,6) pops off first 5, adds (fake randomness in mock so adds 1)
+        assert_ok!(Staking::new_session_handler(&[1, 5, 6]));
+        // takes signers original (5,6) pops off one and adds in new validator
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
-
         assert_eq!(
             Staking::reshare_data().block_number,
             101,
             "Check reshare block start at 100 + 1"
         );
         assert_eq!(
-            Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
+            Staking::reshare_data().new_signers,
+            vec![1u64.encode()],
+            "Check reshare next signer up is 3"
         );
         assert_eq!(
             Staking::jump_start_progress().parent_key_threshold,
@@ -463,11 +462,6 @@ fn it_tests_new_session_handler() {
             101,
             "Check reshare block start at 100 + 1"
         );
-        assert_eq!(
-            Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
-        );
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
         // takes 3 and leaves 5 and 6 since already in signer group
@@ -476,6 +470,42 @@ fn it_tests_new_session_handler() {
         assert_ok!(Staking::new_session_handler(&[1]));
         // does nothing as not enough validators
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 3]);
+
+        // reduce threshold to make sure next signers does not drop > then threshold of current signers
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 1,
+            last_session_change: 0,
+        });
+
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![5, 1]);
+    });
+}
+
+#[test]
+fn it_tests_new_session_handler_truncating() {
+    new_test_ext().execute_with(|| {
+        // Start with current validators as 7 and 8 based off the Mock `GenesisConfig`.
+        Signers::<Test>::put(vec![7, 8]);
+        System::set_block_number(100);
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 2,
+            last_session_change: 0,
+        });
+        // test truncates none if t and n = 0
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![7, 8]);
+
+        pallet_parameters::SignersInfo::<Test>::put(SignersSize {
+            total_signers: 2,
+            threshold: 1,
+            last_session_change: 0,
+        });
+        // test truncates 1 if n - t = 1
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+        assert_eq!(Staking::next_signers().unwrap().next_signers, vec![7, 1]);
     });
 }
 

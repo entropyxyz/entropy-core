@@ -59,7 +59,7 @@ fn knows_how_to_mock_several_http_calls() {
             uri: "http://localhost:3001/validator/reshare".into(),
             sent: true,
             response: Some([].to_vec()),
-            body: [32, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0].to_vec(),
+            body: [4, 32, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0].to_vec(),
             ..Default::default()
         });
         state.expect_request(testing::PendingRequest {
@@ -94,7 +94,7 @@ fn knows_how_to_mock_several_http_calls() {
         Propagation::post_reshare(7).unwrap();
         pallet_staking_extension::ReshareData::<Test>::put(ReshareInfo {
             block_number: 7,
-            new_signer: 1u64.encode(),
+            new_signers: vec![1u64.encode()],
         });
         // now triggers
         Propagation::post_reshare(7).unwrap();
