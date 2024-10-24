@@ -76,7 +76,7 @@ async fn test_reshare() {
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(ChainSpecType::Integration).await;
 
-    let validator_ports = vec![3001, 3002, 3003, 3004];
+    let validator_ports = vec![3002, 3003, 3004];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
@@ -113,13 +113,15 @@ async fn test_reshare() {
     let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    let onchain_reshare_request =
-        OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
+    let onchain_reshare_request = OcwMessageReshare {
+        new_signers: vec![new_signer.0.to_vec()],
+        block_number: block_number - 1,
+    };
 
-    run_to_block(&rpc, block_number + 1).await;
+    run_to_block(&rpc, block_number).await;
     // Send the OCW message to all TS servers who don't have a chain node
     let response_results = join_all(
-        validator_ports[1..]
+        validator_ports
             .iter()
             .map(|port| {
                 client
@@ -323,7 +325,8 @@ async fn test_reshare_validation_fail() {
     let kv = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let mut ocw_message = OcwMessageReshare { new_signer: dave.public().encode(), block_number };
+    let mut ocw_message =
+        OcwMessageReshare { new_signers: vec![dave.public().encode()], block_number };
 
     let err_stale_data =
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
@@ -361,7 +364,8 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     let kv = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let ocw_message = OcwMessageReshare { new_signer: alice.public().encode(), block_number };
+    let ocw_message =
+        OcwMessageReshare { new_signers: vec![alice.public().encode()], block_number };
 
     run_to_block(&rpc, block_number + 1).await;
 
