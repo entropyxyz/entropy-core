@@ -336,16 +336,6 @@ benchmarks! {
     );
   }
 
-  declare_synced {
-    let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
-
-  }:  _(RawOrigin::Signed(caller.clone()), true)
-  verify {
-    assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
-  }
-
   confirm_key_reshare_confirmed {
     let c in 0 .. MAX_SIGNERS as u32;
     // leave a space for two as not to rotate and only confirm rotation

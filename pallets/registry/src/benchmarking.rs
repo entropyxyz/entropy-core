@@ -25,8 +25,8 @@ use frame_system::{EventRecord, RawOrigin};
 use pallet_programs::{ProgramInfo, Programs};
 use pallet_session::Validators;
 use pallet_staking_extension::{
-    benchmarking::create_validators, IsValidatorSynced, JumpStartDetails, JumpStartProgress,
-    JumpStartStatus, ServerInfo, ThresholdServers, ThresholdToStash,
+    benchmarking::create_validators, JumpStartDetails, JumpStartProgress, JumpStartStatus,
+    ServerInfo, ThresholdServers, ThresholdToStash,
 };
 use sp_runtime::traits::Hash;
 use sp_std::{vec, vec::Vec};
@@ -46,9 +46,8 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-pub fn add_non_syncing_validators<T: Config>(
+pub fn add_validators<T: Config>(
     validator_amount: u32,
-    syncing_validators: u32,
 ) -> Vec<<T as pallet_session::Config>::ValidatorId> {
     let validators = create_validators::<T>(validator_amount, SEED);
     let account = account::<T::AccountId>("ts_account", 1, SEED);
@@ -58,14 +57,8 @@ pub fn add_non_syncing_validators<T: Config>(
         endpoint: vec![20],
         provisioning_certification_key: BoundedVec::with_max_capacity(),
     };
-    for (c, validator) in validators.iter().enumerate() {
+    for validator in &validators {
         <ThresholdServers<T>>::insert(validator, server_info.clone());
-        if c >= syncing_validators.try_into().unwrap() {
-            <IsValidatorSynced<T>>::insert(validator, true);
-        }
-    }
-    if syncing_validators == validator_amount {
-        <IsValidatorSynced<T>>::insert(&validators[0], true);
     }
     validators
 }
@@ -93,7 +86,7 @@ benchmarks! {
         accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
     }
 
-    let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
+    let validators = add_validators::<T>(MAX_SIGNERS as u32);
     <Validators<T>>::set(validators.clone());
 
     for i in 0..MAX_SIGNERS {
@@ -132,7 +125,7 @@ benchmarks! {
 
     // add validators
     for i in 0..MAX_SIGNERS {
-        let validators = add_non_syncing_validators::<T>(MAX_SIGNERS as u32, 0);
+        let validators = add_validators::<T>(MAX_SIGNERS as u32);
         <Validators<T>>::set(validators.clone());
         <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
     }

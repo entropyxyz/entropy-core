@@ -14,8 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    mock::*, tests::RuntimeEvent, Error, IsValidatorSynced, NextSignerInfo, NextSigners,
-    ServerInfo, Signers, ThresholdToStash,
+    mock::*, tests::RuntimeEvent, Error, NextSignerInfo, NextSigners, ServerInfo, Signers,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -49,8 +48,6 @@ fn basic_setup_works() {
         );
         assert_eq!(Staking::threshold_to_stash(7).unwrap(), 5);
         assert_eq!(Staking::threshold_to_stash(8).unwrap(), 6);
-        assert!(Staking::is_validator_synced(5));
-        assert!(Staking::is_validator_synced(6));
     });
 }
 
@@ -84,7 +81,7 @@ fn it_takes_in_an_endpoint() {
         let server_info = ServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
-            endpoint: vec![20, 20, 20, 20],
+            endpoint: vec![20; 26],
             provisioning_certification_key: BoundedVec::with_max_capacity(),
         };
         assert_noop!(
@@ -325,8 +322,6 @@ fn it_deletes_when_no_bond_left() {
             VALID_QUOTE.to_vec(),
         ));
 
-        IsValidatorSynced::<Test>::insert(2, true);
-
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
         assert_eq!(tss_account, 3);
@@ -359,8 +354,6 @@ fn it_deletes_when_no_bond_left() {
         lock = Balances::locks(2);
         assert_eq!(lock[0].amount, 50);
         assert_eq!(lock.len(), 1);
-        // validator still synced
-        assert_eq!(Staking::is_validator_synced(2), true);
 
         let ServerInfo { tss_account, endpoint, .. } = Staking::threshold_server(2).unwrap();
         assert_eq!(endpoint, vec![20]);
@@ -377,8 +370,6 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);
         assert_eq!(Staking::threshold_to_stash(3), None);
-        // validator no longer synced
-        assert_eq!(Staking::is_validator_synced(2), false);
 
         assert_ok!(FrameStaking::bond(
             RuntimeOrigin::signed(7),
@@ -422,21 +413,6 @@ fn it_deletes_when_no_bond_left() {
             Staking::withdraw_unbonded(RuntimeOrigin::signed(9), 0),
             Error::<Test>::NoUnnominatingWhenNextSigner
         );
-    });
-}
-
-#[test]
-fn it_declares_synced() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            Staking::declare_synced(RuntimeOrigin::signed(5), true),
-            Error::<Test>::NoThresholdKey
-        );
-
-        ThresholdToStash::<Test>::insert(5, 5);
-
-        assert_ok!(Staking::declare_synced(RuntimeOrigin::signed(5), true));
-        assert!(Staking::is_validator_synced(5));
     });
 }
 
