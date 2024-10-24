@@ -15,10 +15,13 @@ At the moment this project **does not** adhere to
   structure, and the `NodeInfoChanged` event were removed from the Staking Extension pallet. The
   `AttestationHandler` config type was added to the Staking Extension pallet. The `KeyProvider` and
   `AttestationQueue` config types were removed from the Attestation pallet.
+- In [#1068](https://github.com/entropyxyz/entropy-core/pull/1068) an extra type `PckCertChainVerifier`
+  was added to the staking extension pallet's `Config` trait.
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
 - Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
+- Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 
 ## [0.3.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0-rc.1) - 2024-10-04
 
@@ -83,7 +86,6 @@ At the moment this project **does not** adhere to
 - Add relay tx endpoint ([#1050](https://github.com/entropyxyz/entropy-core/pull/1050))
 - Trigger attestation check during validate ([#1063](https://github.com/entropyxyz/entropy-core/pull/1063))
 - Add fourth node to `devnet-local` configuration ([#1086](https://github.com/entropyxyz/entropy-core/pull/1086))
-- Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 
 ### Removed
 - Remove subgroups ([#799](https://github.com/entropyxyz/entropy-core/pull/799))
