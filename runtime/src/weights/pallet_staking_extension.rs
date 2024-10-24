@@ -239,20 +239,6 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::IsValidatorSynced` (r:0 w:1)
-	/// Proof: `StakingExtension::IsValidatorSynced` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn declare_synced() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `353`
-		//  Estimated: `3818`
-		// Minimum execution time: 10_000_000 picoseconds.
-		Weight::from_parts(11_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3818))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `StakingExtension::NextSigners` (r:1 w:1)
 	/// Proof: `StakingExtension::NextSigners` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `c` is `[0, 15]`.

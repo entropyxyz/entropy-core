@@ -58,7 +58,6 @@ pub trait WeightInfo {
 	fn unbond(c: u32, n: u32) -> Weight;
 	fn withdraw_unbonded(c: u32, n: u32) -> Weight;
 	fn validate() -> Weight;
-	fn declare_synced() -> Weight;
 	fn confirm_key_reshare_confirmed(c: u32) -> Weight;
 	fn confirm_key_reshare_completed() -> Weight;
 	fn new_session_base_weight(s: u32) -> Weight;
@@ -251,19 +250,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(60_000_000, 4556)
 			.saturating_add(T::DbWeight::get().reads(11_u64))
 			.saturating_add(T::DbWeight::get().writes(7_u64))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::IsValidatorSynced` (r:0 w:1)
-	/// Proof: `StakingExtension::IsValidatorSynced` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn declare_synced() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `285`
-		//  Estimated: `3750`
-		// Minimum execution time: 12_000_000 picoseconds.
-		Weight::from_parts(13_000_000, 3750)
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
@@ -533,19 +519,6 @@ impl WeightInfo for () {
 		Weight::from_parts(60_000_000, 4556)
 			.saturating_add(RocksDbWeight::get().reads(11_u64))
 			.saturating_add(RocksDbWeight::get().writes(7_u64))
-	}
-	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
-	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `StakingExtension::IsValidatorSynced` (r:0 w:1)
-	/// Proof: `StakingExtension::IsValidatorSynced` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn declare_synced() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `285`
-		//  Estimated: `3750`
-		// Minimum execution time: 12_000_000 picoseconds.
-		Weight::from_parts(13_000_000, 3750)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	/// Storage: `StakingExtension::ThresholdToStash` (r:1 w:0)
 	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)

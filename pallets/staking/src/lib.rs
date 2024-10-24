@@ -172,17 +172,6 @@ pub mod pallet {
     pub type ThresholdToStash<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
-    /// Tracks wether the validator's kvdb is synced using a stash key as an identifier
-    #[pallet::storage]
-    #[pallet::getter(fn is_validator_synced)]
-    pub type IsValidatorSynced<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        <T as pallet_session::Config>::ValidatorId,
-        bool,
-        ValueQuery,
-    >;
-
     #[derive(
         Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
     )]
@@ -278,7 +267,6 @@ pub mod pallet {
 
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
-                IsValidatorSynced::<T>::insert(validator_stash, true);
             }
 
             let refresh_info = RefreshInfo {
@@ -488,7 +476,6 @@ pub mod pallet {
                 let server_info =
                     ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
                 ThresholdToStash::<T>::remove(&server_info.tss_account);
-                IsValidatorSynced::<T>::remove(&validator_id);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
             Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(
@@ -562,19 +549,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Let a validator declare if their kvdb is synced or not synced
-        /// `synced`: State of validator's kvdb
         #[pallet::call_index(6)]
-        #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
-        pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
-            let who = ensure_signed(origin.clone())?;
-            let stash = Self::threshold_to_stash(who).ok_or(Error::<T>::NoThresholdKey)?;
-            IsValidatorSynced::<T>::insert(&stash, synced);
-            Self::deposit_event(Event::ValidatorSyncStatus(stash, synced));
-            Ok(())
-        }
-
-        #[pallet::call_index(7)]
         #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())

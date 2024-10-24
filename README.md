@@ -8,8 +8,16 @@ Our blockchain node is written with [Substrate](https://substrate.io/) using [Su
 
 ## Documentation
 
-You can build the API documentation for Entropy by invoking `cargo doc --no-deps --open`.
-There is also [high level documentation for Entropy available here](https://docs.entropy.xyz).
+- High level introduction to Entropy: [docs.entropy.xyz](https://docs.entropy.xyz)
+- API documentation for the `entropy-tss` crate: [docs.rs/entropy-tss](https://docs.rs/entropy-tss/latest/entropy_tss/index.html)
+
+You can also build the API docs yourself:
+1. [Install the dependencies](#building-from-source)
+2. Invoke
+    ```bash
+    cargo doc --no-deps --open`
+    ```
+
 
 ## Getting Started
 
@@ -45,15 +53,24 @@ This repository provides a [Docker Compose](https://docs.docker.com/compose/) co
 
 ### Building from source
 
-To build from source, you will need some development tooling installed on your local machine.
-
-**Do this** to build Entropy from source.
-
-1. [Install Rust](https://www.rust-lang.org/tools/install) and [Substrate dependencies for your Operating System](https://docs.substrate.io/install/).
-1. Building the chain node and threshold signature scheme (TSS) server binaries can be done by running:
+Dependencies you will need to build locally:
+1. [Install Rust](https://www.rust-lang.org/tools/install)
+1. [Install Substrate dependencies](https://docs.substrate.io/install/)
+1. Add Rust components
     ```sh
-    cargo build --release
+    rustup target add wasm32-unknown-unknown
+    rustup component add rust-src
     ```
+1. Install `wasm-pack`
+    ```sh
+    curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+    ```
+
+Build the chain node and threshold signature scheme (TSS) server binaries by running:
+
+```sh
+cargo build --release
+```
 
 ### Run: Single-Node Development Chain
 
