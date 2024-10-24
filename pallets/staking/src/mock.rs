@@ -420,10 +420,10 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type PckCertChainVerifier = MockPckCertChainVerifyer;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
-    type PckCertChainVerifier = MockPckCertChainVerifyer;
 }
 
 // Build genesis storage according to the mock runtime.
