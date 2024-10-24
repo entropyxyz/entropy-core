@@ -95,8 +95,11 @@ fn verify_pck_cert_chain(certificates_der: Vec<Vec<u8>>) -> Result<[u8; 65], Pck
 /// Given a cerificate and a public key, verify the certificate
 fn verify_cert(subject: &Certificate, issuer_pk: &VerifyingKey) -> Result<(), PckParseVerifyError> {
     let verify_info = VerifyInfo::new(
-        subject.tbs_certificate.to_der().unwrap().into(),
-        Signature::new(&subject.signature_algorithm, subject.signature.as_bytes().unwrap()),
+        subject.tbs_certificate.to_der()?.into(),
+        Signature::new(
+            &subject.signature_algorithm,
+            subject.signature.as_bytes().ok_or(PckParseVerifyError::Parse)?,
+        ),
     );
     Ok(issuer_pk.verify(&verify_info)?)
 }
