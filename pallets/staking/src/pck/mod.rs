@@ -19,7 +19,12 @@ use super::VerifyingKey as CompressedVerifyingKey;
 use core::array::TryFromSliceError;
 use sp_std::vec::Vec;
 
+/// Provides a way of verifying a chain of certificates to give a chain of trust between the
+/// provisioning certification key used to sign a TDX quote to the Intel route certificate authority
 pub trait PckCertChainVerifier {
+    /// Verify an arbitrary chain of DER-encoded x509 certificates against Intel's root CA.
+    /// Typically this is two certificates, the PCK certificate and an intermediary provider
+    /// certificate
     fn verify_pck_certificate_chain(
         pck_certificate_chain: Vec<Vec<u8>>,
     ) -> Result<CompressedVerifyingKey, PckParseVerifyError>;
