@@ -16,6 +16,7 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
 use super::*;
+use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
 use entropy_shared::{AttestationHandler, MAX_SIGNERS};
@@ -91,11 +92,11 @@ fn prep_bond_and_validate<T: Config>(
     ));
 
     if validate_also {
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: threshold,
             x25519_public_key,
             endpoint: vec![20, 20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
 
         // Note: This isn't a valid quote, but for testing benches this will pass.
@@ -106,7 +107,7 @@ fn prep_bond_and_validate<T: Config>(
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
-            server_info.clone(),
+            joining_server_info.clone(),
             quote,
         ));
 
@@ -114,7 +115,17 @@ fn prep_bond_and_validate<T: Config>(
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
 
-        ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+        ThresholdToStash::<T>::insert(&joining_server_info.tss_account, &validator_id);
+
+        let server_info = ServerInfo {
+            tss_account: joining_server_info.tss_account,
+            x25519_public_key: joining_server_info.x25519_public_key,
+            endpoint: joining_server_info.endpoint,
+            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
+                .to_vec()
+                .try_into()
+                .unwrap(),
+        };
         ThresholdServers::<T>::insert(&validator_id, server_info);
     }
 }
@@ -152,7 +163,7 @@ benchmarks! {
       endpoint: vec![20, 20],
       tss_account: _bonder.clone(),
       x25519_public_key: NULL_ARR,
-      provisioning_certification_key: BoundedVec::with_max_capacity(),
+      provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
     };
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
@@ -283,18 +294,8 @@ benchmarks! {
         x25519_public_key.clone()
     );
 
-    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
-    /// key
-    const PCK: [u8; 32] = [
-        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
-        168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
-    ];
-
-    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-    let provisioning_certification_key = BoundedVec::try_from(pck_encoded.to_vec()).unwrap();
-
     let quote = {
+        let pck = signing_key_from_seed([0; 32]);
         /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
         const ATTESTATION_KEY: [u8; 32] = [
             167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
@@ -313,18 +314,18 @@ benchmarks! {
         tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
     };
 
-    let server_info = ServerInfo {
+    let joining_server_info = JoiningServerInfo {
         tss_account: threshold_account.clone(),
         x25519_public_key,
         endpoint: endpoint.clone(),
-        provisioning_certification_key,
+        pck_certificate_chain: vec![[0u8; 32].to_vec()],
     };
 
     // We need to tell the attestation handler that we want a quote. This will let the system to
     // know to expect one back when we call `validate()`.
     T::AttestationHandler::request_quote(&threshold_account, nonce);
 
-  }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), server_info, quote)
+  }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), joining_server_info, quote)
   verify {
     assert_last_event::<T>(
         Event::<T>::ValidatorCandidateAccepted(

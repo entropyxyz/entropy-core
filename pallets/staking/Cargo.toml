@@ -28,6 +28,10 @@ sp-runtime        ={ version="32.0.0", default-features=false }
 sp-staking        ={ version="27.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 sp-consensus-babe ={ version="0.33.0", default-features=false }
+x509-verify       ={ version="0.4.6", features=["x509"] }
+spki              ="0.7.3"
+p256              ={ version="0.13.2", default-features=false, features=["ecdsa"] }
+rand              ={ version="0.8.5", default-features=false, features=["alloc"] }
 
 pallet-parameters={ version="0.3.0-rc.1", path="../parameters", default-features=false }
 entropy-shared={ version="0.3.0-rc.1", path="../../crates/shared", features=[
