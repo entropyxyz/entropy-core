@@ -131,7 +131,10 @@ pub mod pallet {
         pub provisioning_certification_key: VerifyingKey,
     }
 
+    /// Information about a threshold server in the process of joining
+    /// This becomes a [ServerInfo] when the Pck certificate chain has been validated
     #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct JoiningServerInfo<AccountId> {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
