@@ -36,9 +36,9 @@ const INTEL_ROOT_CA_PK_DER: [u8; 91] = [
 
 /// A PCK certificate chain verifier for use in production where entropy-tss is running on TDX
 /// hardware and we have a PCK certificate chain
-pub struct ProductionPckCertChainVerifyer {}
+pub struct ProductionPckCertChainVerifier {}
 
-impl PckCertChainVerifier for ProductionPckCertChainVerifyer {
+impl PckCertChainVerifier for ProductionPckCertChainVerifier {
     fn verify_pck_certificate_chain(
         pck_certificate_chain: Vec<Vec<u8>>,
     ) -> Result<CompressedVerifyingKey, PckParseVerifyError> {
@@ -109,8 +109,7 @@ mod tests {
     fn test_verify_pck_cert_chain() {
         let pck = include_bytes!("../../test_pck_certs/pck_cert.der").to_vec();
         let platform = include_bytes!("../../test_pck_certs/platform_pcs_cert.der").to_vec();
-        let _key =
-            ProductionPckCertChainVerifyer::verify_pck_certificate_chain(vec![pck, platform])
-                .unwrap();
+        assert!(ProductionPckCertChainVerifier::verify_pck_certificate_chain(vec![pck, platform])
+            .is_ok());
     }
 }
