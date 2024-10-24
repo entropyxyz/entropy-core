@@ -27,28 +27,6 @@ use sp_runtime::BoundedVec;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
-/// Once `validate()` is called we need to wait for an attestation to happen before populating
-/// certain data structures.
-///
-/// For our tests we don't always want to go through that flow, so here we manually populate those
-/// data structures.
-fn mock_attest_validate(
-    validator_id: AccountId,
-    joining_server_info: JoiningServerInfo<AccountId>,
-) {
-    let server_info = ServerInfo::<AccountId> {
-        tss_account: joining_server_info.tss_account,
-        x25519_public_key: joining_server_info.x25519_public_key,
-        endpoint: joining_server_info.endpoint,
-        provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
-            .to_vec()
-            .try_into()
-            .unwrap(),
-    };
-    ThresholdToStash::<Test>::insert(&server_info.tss_account, validator_id);
-    ThresholdServers::<Test>::insert(validator_id, server_info);
-}
-
 #[test]
 fn basic_setup_works() {
     new_test_ext().execute_with(|| {
