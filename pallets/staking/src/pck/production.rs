@@ -34,7 +34,7 @@ const INTEL_ROOT_CA_PK_DER: [u8; 91] = [
     4, 174, 115, 148,
 ];
 
-/// A PCK certificate chain verifyer for use in production where entropy-tss is running on TDX
+/// A PCK certificate chain verifier for use in production where entropy-tss is running on TDX
 /// hardware and we have a PCK certificate chain
 pub struct ProductionPckCertChainVerifyer {}
 
