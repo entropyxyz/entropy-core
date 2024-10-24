@@ -66,7 +66,7 @@ fn verify_pck_cert_chain(certificates_der: Vec<Vec<u8>>) -> Result<[u8; 65], Pck
         certificates.push(Certificate::from_der(&certificate)?);
     }
 
-    // Get the rook public key
+    // Get the root public key
     let root_pk: SubjectPublicKeyInfo<Any, BitString> =
         SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER)?;
     let root_pk: VerifyingKey = root_pk.try_into()?;
