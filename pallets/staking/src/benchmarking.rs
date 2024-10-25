@@ -295,7 +295,7 @@ benchmarks! {
     );
 
     let quote = {
-        let pck = signing_key_from_seed([0; 32]);
+        let pck = signing_key_from_seed(NULL_ARR);
         /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
         const ATTESTATION_KEY: [u8; 32] = [
             167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
@@ -318,7 +318,9 @@ benchmarks! {
         tss_account: threshold_account.clone(),
         x25519_public_key,
         endpoint: endpoint.clone(),
-        pck_certificate_chain: vec![[0u8; 32].to_vec()],
+        // Since we are using the mock PckCertChainVerifier, this needs to be the same seed for
+        // generating the PCK as we used to sign the quote above
+        pck_certificate_chain: vec![NULL_ARR.to_vec()],
     };
 
     // We need to tell the attestation handler that we want a quote. This will let the system to
