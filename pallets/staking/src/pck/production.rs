@@ -13,10 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use sp_std::vec::Vec;
-use spki::{
-    der::{asn1::BitString, Any},
-    SubjectPublicKeyInfo,
-};
 use x509_verify::{
     der::{Decode, Encode},
     x509_cert::Certificate,
@@ -25,14 +21,11 @@ use x509_verify::{
 
 use super::{CompressedVerifyingKey, PckCertChainVerifier, PckParseVerifyError};
 
-/// Intel's root public key together with metadata, encoded as der
-const INTEL_ROOT_CA_PK_DER: [u8; 91] = [
-    48, 89, 48, 19, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 8, 42, 134, 72, 206, 61, 3, 1, 7, 3, 66,
-    0, 4, 11, 169, 196, 192, 192, 200, 97, 147, 163, 254, 35, 214, 176, 44, 218, 16, 168, 187, 212,
-    232, 142, 72, 180, 69, 133, 97, 163, 110, 112, 85, 37, 245, 103, 145, 142, 46, 220, 136, 228,
-    13, 134, 11, 208, 204, 78, 226, 106, 172, 201, 136, 229, 5, 169, 83, 85, 140, 69, 63, 107, 9,
-    4, 174, 115, 148,
-];
+/// Intels root CA certificate in DER format available from here:
+/// https://certificates.trustedservices.intel.com/Intel_SGX_Provisioning_Certification_RootCA.cer
+/// Valid until December 31 2049
+const INTEL_ROOT_CA_DER: &[u8; 659] =
+    include_bytes!("Intel_SGX_Provisioning_Certification_RootCA.cer");
 
 /// A PCK certificate chain verifier for use in production where entropy-tss is running on TDX
 /// hardware and we have a PCK certificate chain
@@ -60,21 +53,20 @@ fn verify_pck_cert_chain(certificates_der: Vec<Vec<u8>>) -> Result<[u8; 65], Pck
     if certificates_der.is_empty() {
         return Err(PckParseVerifyError::NoCertificate);
     }
+
     // Parse the certificates
     let mut certificates = Vec::new();
     for certificate in certificates_der {
         certificates.push(Certificate::from_der(&certificate)?);
     }
-
-    // Get the root public key
-    let root_pk: SubjectPublicKeyInfo<Any, BitString> =
-        SubjectPublicKeyInfo::from_der(&INTEL_ROOT_CA_PK_DER)?;
-    let root_pk: VerifyingKey = root_pk.try_into()?;
+    // Add the root certificate to the end of the chain. Since the root cert is self-signed, this
+    // will work regardless of whether the user has included this certicate in the chain or not
+    certificates.push(Certificate::from_der(INTEL_ROOT_CA_DER)?);
 
     // Verify the certificate chain
     for i in 0..certificates.len() {
         let verifying_key: &VerifyingKey = if i + 1 == certificates.len() {
-            &root_pk
+            &certificates[i].tbs_certificate.subject_public_key_info.clone().try_into()?
         } else {
             &certificates[i + 1].tbs_certificate.subject_public_key_info.clone().try_into()?
         };
