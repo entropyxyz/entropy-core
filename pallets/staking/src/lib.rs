@@ -345,6 +345,17 @@ pub mod pallet {
         FailedAttestationCheck,
     }
 
+    impl<T> From<pck::PckParseVerifyError> for Error<T> {
+        fn from(error: pck::PckParseVerifyError) -> Self {
+            match error {
+                pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
+                pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
+                pck::PckParseVerifyError::BadPublicKey => Error::<T>::PckCertificateBadPublicKey,
+                pck::PckParseVerifyError::NoCertificate => Error::<T>::PckCertificateNoCertificate,
+            }
+        }
+    }
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
@@ -545,16 +556,11 @@ pub mod pallet {
                 T::PckCertChainVerifier::verify_pck_certificate_chain(
                     joining_server_info.pck_certificate_chain,
                 )
-                .map_err(|error| match error {
-                    pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
-                    pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
-                    pck::PckParseVerifyError::BadPublicKey => {
-                        Error::<T>::PckCertificateBadPublicKey
-                    },
-                    pck::PckParseVerifyError::NoCertificate => {
-                        Error::<T>::PckCertificateNoCertificate
-                    },
+                .map_err(|error| {
+                    let e: Error<T> = error.into();
+                    e
                 })?;
+
             let server_info = ServerInfo::<T::AccountId> {
                 tss_account: joining_server_info.tss_account,
                 x25519_public_key: joining_server_info.x25519_public_key,
