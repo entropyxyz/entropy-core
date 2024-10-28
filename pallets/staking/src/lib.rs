@@ -41,6 +41,8 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
+pub mod pck;
+
 #[cfg(test)]
 mod mock;
 
@@ -68,6 +70,7 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -93,6 +96,9 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+
+        /// A type that verifies a provisioning certification key (PCK) certificate chain.
+        type PckCertChainVerifier: PckCertChainVerifier;
 
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
@@ -124,6 +130,18 @@ pub mod pallet {
         pub endpoint: TssServerURL,
         pub provisioning_certification_key: VerifyingKey,
     }
+
+    /// Information about a threshold server in the process of joining
+    /// This becomes a [ServerInfo] when the Pck certificate chain has been validated
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct JoiningServerInfo<AccountId> {
+        pub tss_account: AccountId,
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: TssServerURL,
+        pub pck_certificate_chain: Vec<Vec<u8>>,
+    }
+
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
@@ -311,7 +329,22 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        PckCertificateParse,
+        PckCertificateVerify,
+        PckCertificateBadPublicKey,
+        PckCertificateNoCertificate,
         FailedAttestationCheck,
+    }
+
+    impl<T> From<pck::PckParseVerifyError> for Error<T> {
+        fn from(error: pck::PckParseVerifyError) -> Self {
+            match error {
+                pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
+                pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
+                pck::PckParseVerifyError::BadPublicKey => Error::<T>::PckCertificateBadPublicKey,
+                pck::PckParseVerifyError::NoCertificate => Error::<T>::PckCertificateNoCertificate,
+            }
+        }
     }
 
     #[pallet::event]
@@ -504,11 +537,26 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            server_info: ServerInfo<T::AccountId>,
+            joining_server_info: JoiningServerInfo<T::AccountId>,
             quote: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(
+                    joining_server_info.pck_certificate_chain,
+                )
+                .map_err(|error| {
+                    let e: Error<T> = error.into();
+                    e
+                })?;
+
+            let server_info = ServerInfo::<T::AccountId> {
+                tss_account: joining_server_info.tss_account,
+                x25519_public_key: joining_server_info.x25519_public_key,
+                endpoint: joining_server_info.endpoint,
+                provisioning_certification_key,
+            };
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
