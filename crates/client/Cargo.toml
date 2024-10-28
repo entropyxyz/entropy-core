@@ -40,7 +40,7 @@ tokio ={ version="1.41", features=["time"] }
 serial_test          ="3.1.1"
 sp-keyring           ="34.0.0"
 entropy-testing-utils={ path="../testing-utils" }
-tdx-quote = { version = "0.0.1", features = ["mock"]}
+tdx-quote            ={ version="0.0.1", features=["mock"] }
 
 [features]
 default=["native", "full-client-native"]
