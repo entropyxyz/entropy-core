@@ -378,8 +378,8 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Allows a validator to change their endpoint so signers can find them when they are coms
-        /// manager `endpoint`: nodes's endpoint
+        /// Allows a validator to change the endpoint used by their Threshold Siganture Scheme
+        /// (TSS) server.
         ///
         /// # Expects TDX Quote
         ///

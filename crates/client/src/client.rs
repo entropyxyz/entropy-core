@@ -341,8 +341,9 @@ pub async fn change_endpoint(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_keypair: sr25519::Pair,
     new_endpoint: String,
+    quote: Vec<u8>
 ) -> anyhow::Result<EndpointChanged> {
-    let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into());
+    let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into(), quote);
     let in_block =
         submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
     let result_event = in_block
@@ -358,6 +359,7 @@ pub async fn change_threshold_accounts(
     user_keypair: sr25519::Pair,
     new_tss_account: String,
     new_x25519_public_key: String,
+    quote: Vec<u8>,
 ) -> anyhow::Result<ThresholdAccountChanged> {
     let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
     let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
@@ -365,6 +367,7 @@ pub async fn change_threshold_accounts(
         hex::decode(new_x25519_public_key)?
             .try_into()
             .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
+        quote,
     );
     let in_block =
         submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)

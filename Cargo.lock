@@ -2533,6 +2533,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
+ "tdx-quote",
  "thiserror",
  "tokio",
  "tracing",
