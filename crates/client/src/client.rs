@@ -341,9 +341,10 @@ pub async fn change_endpoint(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_keypair: sr25519::Pair,
     new_endpoint: String,
-    quote: Vec<u8>
+    quote: Vec<u8>,
 ) -> anyhow::Result<EndpointChanged> {
-    let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into(), quote);
+    let change_endpoint_tx =
+        entropy::tx().staking_extension().change_endpoint(new_endpoint.into(), quote);
     let in_block =
         submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
     let result_event = in_block
@@ -427,8 +428,7 @@ pub async fn request_attestation(
 
     let result =
         submit_transaction_with_pair(api, rpc, &signer, &request_attestation, None).await?;
-    let result_event = result
-        .find_first::<entropy::attestation::events::AttestationIssued>()?;
+    let result_event = result.find_first::<entropy::attestation::events::AttestationIssued>()?;
 
     let nonce = result_event.unwrap().0;
     dbg!(&nonce);

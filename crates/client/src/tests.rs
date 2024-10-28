@@ -104,8 +104,8 @@ async fn test_change_threshold_accounts() {
     let public_key = tss_signer_pair.signer().public();
     let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
 
-    // Build a balance transfer extrinsic.
-    let dest = public_key; // dev::bob().public_key().into();
+    // We need to give our new TSS account some funds before it can request an attestation.
+    let dest = public_key;
     let balance_transfer_tx = entropy::tx()
         .balances()
         .transfer_allow_death((tss_signer_pair.account_id().clone()).into(), 100_000_000_000);
@@ -119,13 +119,8 @@ async fn test_change_threshold_accounts() {
     .await;
     dbg!(&result);
 
-    // let balance_transfer_tx =
-    //     entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
-
     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
-
-    // This nonce is what was used in the genesis config for `Alice`.
-    let nonce:[u8; 32] = nonce.try_into().unwrap();
+    let nonce: [u8; 32] = nonce.try_into().unwrap();
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
