@@ -473,8 +473,9 @@ pub mod pallet {
                 Error::<T>::NoChangingThresholdAccountWhenSigner
             );
 
-            let new_server_info: ServerInfo<T::AccountId> =
-                ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
+            let new_server_info: ServerInfo<T::AccountId> = ThresholdServers::<T>::try_mutate(
+                &validator_id,
+                |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
                         // Before we modify the `server_info`, we want to check that the validator is
                         // still running TDX hardware.
@@ -497,11 +498,13 @@ pub mod pallet {
                     } else {
                         Err(Error::<T>::NoBond)
                     }
-                })?;
+                },
+            )?;
 
             Self::deposit_event(Event::ThresholdAccountChanged(validator_id, new_server_info));
 
-            let actual_weight = <T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32);
+            let actual_weight =
+                <T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32);
             Ok(Some(actual_weight).into())
         }
 
