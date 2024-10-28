@@ -417,3 +417,21 @@ async fn jumpstart_inner(
 
     Ok(())
 }
+
+pub async fn request_attestation(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+) -> Result<Vec<u8>, ClientError> {
+    let request_attestation = entropy::tx().attestation().request_attestation();
+
+    let result =
+        submit_transaction_with_pair(api, rpc, &signer, &request_attestation, None).await?;
+    let result_event = result
+        .find_first::<entropy::attestation::events::AttestationIssued>()?;
+
+    let nonce = result_event.unwrap().0;
+    dbg!(&nonce);
+
+    Ok(nonce)
+}

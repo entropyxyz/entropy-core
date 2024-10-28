@@ -11,7 +11,8 @@ use crate::{
         },
         get_api, get_rpc, EntropyConfig,
     },
-    change_endpoint, change_threshold_accounts, register, remove_program, store_program,
+    change_endpoint, change_threshold_accounts, register, remove_program, request_attestation,
+    store_program,
     substrate::query_chain,
     update_programs,
 };
@@ -103,8 +104,28 @@ async fn test_change_threshold_accounts() {
     let public_key = tss_signer_pair.signer().public();
     let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
 
+    // Build a balance transfer extrinsic.
+    let dest = public_key; // dev::bob().public_key().into();
+    let balance_transfer_tx = entropy::tx()
+        .balances()
+        .transfer_allow_death((tss_signer_pair.account_id().clone()).into(), 100_000_000_000);
+    let result = crate::substrate::submit_transaction_with_pair(
+        &api,
+        &rpc,
+        &one.pair(),
+        &balance_transfer_tx,
+        None,
+    )
+    .await;
+    dbg!(&result);
+
+    // let balance_transfer_tx =
+    //     entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
+
+    let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
+
     // This nonce is what was used in the genesis config for `Alice`.
-    let nonce = [0; 32];
+    let nonce:[u8; 32] = nonce.try_into().unwrap();
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
@@ -149,7 +170,7 @@ async fn test_change_threshold_accounts() {
             events::ThresholdAccountChanged(
                 AccountId32(one.pair().public().0),
                 ServerInfo {
-                    tss_account: AccountId32(one.pair().public().0),
+                    tss_account: AccountId32(public_key.0), // AccountId32(one.pair().public().0),
                     x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
                     provisioning_certification_key,
