@@ -18,7 +18,7 @@
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use subxt::utils::AccountId32;
 use synedrion::{
     ecdsa::VerifyingKey,
@@ -108,12 +108,12 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
         // Channel for receiving results of processing messages
         let (process_tx, mut process_rx) = mpsc::unbounded_channel();
         let current_round = session.current_round();
-        let session_arc = Arc::new(RwLock::new(session));
+        let session_arc = Arc::new(session);
 
         loop {
             {
-                let session = session_arc.read().unwrap();
-                if session.can_finalize(&accum)? {
+                // let session = session_arc.read().unwrap();
+                if session_arc.can_finalize(&accum)? {
                     break;
                 }
             }
@@ -127,17 +127,17 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
                     if let ProtocolMessagePayload::MessageBundle(payload) = message.payload.clone() {
                         if payload.session_id() == &session_id {
                             let preprocessed = {
-                                let session = session_arc.read().unwrap();
+                                // let session = session_arc.read().unwrap();
                                 // Perform quick checks before proceeding with the verification.
-                                session.preprocess_message(&mut accum, &message.from, *payload)?
+                                session_arc.preprocess_message(&mut accum, &message.from, *payload)?
                             };
 
                             if let Some(preprocessed) = preprocessed {
                                 let session_clone = session_arc.clone();
                                 let tx_clone = process_tx.clone();
                                 tokio::spawn(async move {
-                                    let session = session_clone.read().unwrap();
-                                    let result = session.process_message(&mut OsRng, preprocessed).unwrap();
+                                    // let session = session_clone.read().unwrap();
+                                    let result = session_clone.process_message(&mut OsRng, preprocessed).unwrap();
                                     tx_clone.send(result).unwrap();
                                 });
                             }
@@ -167,8 +167,9 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
 
         // Get session back out of Arc and Mutex
         if let Ok(session_inner) = Arc::try_unwrap(session_arc) {
-            let session_inner = session_inner.into_inner().unwrap();
+            // let session_inner = session_inner.into_inner().unwrap();
             match session_inner.finalize_round(&mut OsRng, accum)? {
+                // match session_arc.finalize_round(&mut OsRng, accum)? {
                 FinalizeOutcome::Success(res) => break Ok((res, chans)),
                 FinalizeOutcome::AnotherRound {
                     session: new_session,
