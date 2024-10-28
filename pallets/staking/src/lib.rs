@@ -41,6 +41,8 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
+pub mod pck;
+
 #[cfg(test)]
 mod mock;
 
@@ -68,6 +70,7 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -93,6 +96,9 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+
+        /// A type that verifies a provisioning certification key (PCK) certificate chain.
+        type PckCertChainVerifier: PckCertChainVerifier;
 
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
@@ -124,6 +130,18 @@ pub mod pallet {
         pub endpoint: TssServerURL,
         pub provisioning_certification_key: VerifyingKey,
     }
+
+    /// Information about a threshold server in the process of joining
+    /// This becomes a [ServerInfo] when the Pck certificate chain has been validated
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct JoiningServerInfo<AccountId> {
+        pub tss_account: AccountId,
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: TssServerURL,
+        pub pck_certificate_chain: Vec<Vec<u8>>,
+    }
+
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
@@ -133,7 +151,7 @@ pub mod pallet {
 
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct ReshareInfo<BlockNumber> {
-        pub new_signer: Vec<u8>,
+        pub new_signers: Vec<Vec<u8>>,
         pub block_number: BlockNumber,
     }
 
@@ -171,17 +189,6 @@ pub mod pallet {
     #[pallet::getter(fn threshold_to_stash)]
     pub type ThresholdToStash<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
-
-    /// Tracks wether the validator's kvdb is synced using a stash key as an identifier
-    #[pallet::storage]
-    #[pallet::getter(fn is_validator_synced)]
-    pub type IsValidatorSynced<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        <T as pallet_session::Config>::ValidatorId,
-        bool,
-        ValueQuery,
-    >;
 
     #[derive(
         Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
@@ -278,7 +285,6 @@ pub mod pallet {
 
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
                 ThresholdToStash::<T>::insert(&server_info.tss_account, validator_stash);
-                IsValidatorSynced::<T>::insert(validator_stash, true);
             }
 
             let refresh_info = RefreshInfo {
@@ -289,14 +295,17 @@ pub mod pallet {
             // mocks a signer rotation for tss new_reshare tests
             if self.mock_signer_rotate.0 {
                 let next_signers = &mut self.mock_signer_rotate.1.clone();
-                next_signers.push(self.mock_signer_rotate.2[0].clone());
+                let mut new_signers = vec![];
+                for new_signer in self.mock_signer_rotate.2.clone() {
+                    next_signers.push(new_signer.clone());
+                    new_signers.push(new_signer.encode())
+                }
                 let next_signers = next_signers.to_vec();
                 NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-
                 ReshareData::<T>::put(ReshareInfo {
                     // To give enough time for test_reshare setup
                     block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    new_signer: self.mock_signer_rotate.clone().2[0].encode(),
+                    new_signers,
                 })
             }
         }
@@ -320,7 +329,22 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        PckCertificateParse,
+        PckCertificateVerify,
+        PckCertificateBadPublicKey,
+        PckCertificateNoCertificate,
         FailedAttestationCheck,
+    }
+
+    impl<T> From<pck::PckParseVerifyError> for Error<T> {
+        fn from(error: pck::PckParseVerifyError) -> Self {
+            match error {
+                pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
+                pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
+                pck::PckParseVerifyError::BadPublicKey => Error::<T>::PckCertificateBadPublicKey,
+                pck::PckParseVerifyError::NoCertificate => Error::<T>::PckCertificateNoCertificate,
+            }
+        }
     }
 
     #[pallet::event]
@@ -543,7 +567,6 @@ pub mod pallet {
                 let server_info =
                     ThresholdServers::<T>::take(&validator_id).ok_or(Error::<T>::NoThresholdKey)?;
                 ThresholdToStash::<T>::remove(&server_info.tss_account);
-                IsValidatorSynced::<T>::remove(&validator_id);
                 Self::deposit_event(Event::NodeInfoRemoved(controller));
             }
             Ok(Some(<T as Config>::WeightInfo::withdraw_unbonded(
@@ -574,11 +597,26 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            server_info: ServerInfo<T::AccountId>,
+            joining_server_info: JoiningServerInfo<T::AccountId>,
             quote: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(
+                    joining_server_info.pck_certificate_chain,
+                )
+                .map_err(|error| {
+                    let e: Error<T> = error.into();
+                    e
+                })?;
+
+            let server_info = ServerInfo::<T::AccountId> {
+                tss_account: joining_server_info.tss_account,
+                x25519_public_key: joining_server_info.x25519_public_key,
+                endpoint: joining_server_info.endpoint,
+                provisioning_certification_key,
+            };
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
@@ -619,19 +657,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Let a validator declare if their kvdb is synced or not synced
-        /// `synced`: State of validator's kvdb
         #[pallet::call_index(6)]
-        #[pallet::weight(<T as Config>::WeightInfo::declare_synced())]
-        pub fn declare_synced(origin: OriginFor<T>, synced: bool) -> DispatchResult {
-            let who = ensure_signed(origin.clone())?;
-            let stash = Self::threshold_to_stash(who).ok_or(Error::<T>::NoThresholdKey)?;
-            IsValidatorSynced::<T>::insert(&stash, synced);
-            Self::deposit_event(Event::ValidatorSyncStatus(stash, synced));
-            Ok(())
-        }
-
-        #[pallet::call_index(7)]
         #[pallet::weight(({
             <T as Config>::WeightInfo::confirm_key_reshare_confirmed(MAX_SIGNERS as u32)
             .max(<T as Config>::WeightInfo::confirm_key_reshare_completed())
@@ -755,15 +781,46 @@ pub mod pallet {
                 return Ok(weight);
             }
 
-            let mut new_signer = vec![];
+            let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
+            let mut remove_indicies_len = 0;
+            // removes first signer and pushes new signer to back if total signers not increased
+            if current_signers_length >= signers_info.total_signers as usize {
+                let mut remove_indicies = vec![];
+                // Finds signers that are no longer validators to remove
+                for (i, current_signer) in current_signers.clone().into_iter().enumerate() {
+                    if !validators.contains(&current_signer) {
+                        remove_indicies.push(i);
+                    }
+                }
+                if remove_indicies.is_empty() {
+                    current_signers.remove(0);
+                } else {
+                    remove_indicies_len = remove_indicies.len();
+                    // reverses vec so as signers removed it does not change location
+                    let remove_indicies_reversed: Vec<_> = remove_indicies.iter().rev().collect();
+                    // truncated as a current limitation see issue: https://github.com/entropyxyz/entropy-core/issues/1114
+                    let truncated = if remove_indicies_reversed.len()
+                        >= (signers_info.total_signers as usize - signers_info.threshold as usize)
+                    {
+                        remove_indicies_reversed[..(signers_info.total_signers as usize
+                            - signers_info.threshold as usize)]
+                            .to_vec()
+                    } else {
+                        remove_indicies_reversed
+                    };
 
-            if current_signers_length <= signers_info.total_signers as usize {
+                    for remove_index in truncated {
+                        current_signers.remove(*remove_index);
+                    }
+                }
+            }
+
+            while current_signers.len() < signers_info.total_signers as usize {
                 let mut randomness = Self::get_randomness();
                 // grab a current signer to initiate value
                 let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
-
                 // loops to find signer in validator that is not already signer
                 while current_signers.contains(next_signer_up) {
                     index = randomness.next_u32() % validators.len() as u32;
@@ -772,14 +829,8 @@ pub mod pallet {
                 }
 
                 current_signers.push(next_signer_up.clone());
-                new_signer = next_signer_up.encode();
+                new_signers.push(next_signer_up.encode());
             }
-
-            // removes first signer and pushes new signer to back if total signers not increased
-            if current_signers_length >= signers_info.total_signers as usize {
-                current_signers.remove(0);
-            }
-
             NextSigners::<T>::put(NextSignerInfo {
                 next_signers: current_signers.clone(),
                 confirmations: vec![],
@@ -789,7 +840,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
                 block_number: current_block_number + sp_runtime::traits::One::one(),
-                new_signer,
+                new_signers,
             };
 
             ReshareData::<T>::put(reshare_info);
@@ -797,7 +848,12 @@ pub mod pallet {
                 jump_start_details.parent_key_threshold = signers_info.threshold
             });
 
-            weight = <T as Config>::WeightInfo::new_session(current_signers.len() as u32, count);
+            weight = <T as Config>::WeightInfo::new_session(
+                current_signers.len() as u32,
+                count,
+                validators.len() as u32,
+                remove_indicies_len as u32,
+            );
 
             Ok(weight)
         }
