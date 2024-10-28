@@ -386,7 +386,7 @@ impl pallet_parameters::Config for Test {
 }
 
 parameter_types! {
-  pub const MaxEndpointLength: u32 = 3;
+  pub const MaxEndpointLength: u32 = 25;
 }
 
 pub(crate) const VALID_QUOTE: [u8; 32] = [0; 32];

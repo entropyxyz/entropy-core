@@ -153,19 +153,16 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
         signers.push(server_info);
     }
 
-    // Get all validators
-    let validators_query = entropy::storage().session().validators();
-    let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
-
-    // Get stash account of a non-signer, to become the new signer
-    // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses
-    let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
+    let reshare_data_query = entropy::storage().staking_extension().reshare_data();
+    let reshare_data = query_chain(&api, &rpc, reshare_data_query, None).await.unwrap().unwrap();
 
     let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    let onchain_reshare_request =
-        OcwMessageReshare { new_signer: new_signer.0.to_vec(), block_number };
+    let onchain_reshare_request = OcwMessageReshare {
+        new_signers: reshare_data.new_signers.into_iter().map(|s| s.to_vec()).collect(),
+        block_number: block_number - 1,
+    };
 
-    run_to_block(&rpc, block_number + 1).await;
+    run_to_block(&rpc, block_number).await;
     // Send the OCW message to all TS servers who don't have a chain node
     let client = reqwest::Client::new();
     let response_results = join_all(

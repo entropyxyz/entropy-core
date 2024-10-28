@@ -17,11 +17,13 @@ At the moment this project **does not** adhere to
   `AttestationQueue` config types were removed from the Attestation pallet.
 - In [#1068](https://github.com/entropyxyz/entropy-core/pull/1068) an extra type `PckCertChainVerifier`
   was added to the staking extension pallet's `Config` trait.
+- In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the ```no-sync``` option was removed
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
 - Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
 - Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
+- Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 
 ## [0.3.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0-rc.1) - 2024-10-04
 

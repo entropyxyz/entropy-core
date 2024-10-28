@@ -37,8 +37,8 @@ pub type BlockNumber = u32;
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
-    pub ip_address: codec::alloc::vec::Vec<u8>,
-    pub tss_account: codec::alloc::vec::Vec<u8>,
+    pub ip_address: Vec<u8>,
+    pub tss_account: Vec<u8>,
 }
 
 /// Offchain worker message for initiating the initial jumpstart DKG
@@ -55,8 +55,8 @@ pub struct OcwMessageDkg {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
 pub struct OcwMessageReshare {
-    // Stash address of new signer
-    pub new_signer: Vec<u8>,
+    // Stash addresses of new signers
+    pub new_signers: Vec<Vec<u8>>,
     pub block_number: BlockNumber,
 }
 
