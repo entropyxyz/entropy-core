@@ -15,12 +15,17 @@ use crate::{
     substrate::query_chain,
     update_programs,
 };
+
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
     jump_start_network, spawn_testing_validators,
     substrate_context::test_context_stationary,
     test_node_process_testing_state, ChainSpecType,
+};
+use rand::{
+    rngs::{OsRng, StdRng},
+    SeedableRng,
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
@@ -30,11 +35,6 @@ use subxt::{tx::PairSigner, utils::AccountId32};
 #[tokio::test]
 #[serial]
 async fn test_change_endpoint() {
-    use rand::{
-        rngs::{OsRng, StdRng},
-        SeedableRng,
-    };
-
     let one = AccountKeyring::AliceStash;
     let substrate_context = test_context_stationary().await;
 
@@ -56,12 +56,8 @@ async fn test_change_endpoint() {
         // We need to add `1` here since the quote is being checked in the next block
         let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
-        let input_data = entropy_shared::QuoteInputData::new(
-            public_key,
-            x25519_public_key,
-            nonce,
-            block_number,
-        );
+        let input_data =
+            entropy_shared::QuoteInputData::new(public_key, x25519_public_key, nonce, block_number);
 
         let mut pck_seeder = StdRng::from_seed(public_key.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
@@ -92,13 +88,51 @@ async fn test_change_threshold_accounts() {
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let x25519_public_key = [0u8; 32];
+
+    // By using this `Alice` account we can skip the `request_attestation` step since this is
+    // already set up at genesis.
+    // let tss_account_id = &TSS_ACCOUNTS[0];
+    // let x25519_public_key = X25519_PUBLIC_KEYS[0];
+
+    use entropy_testing_utils::get_signer_and_x25519_secret_from_mnemonic;
+    let (tss_signer_pair, x25519_secret) = get_signer_and_x25519_secret_from_mnemonic(
+        "gospel prosper cactus remember snap enact refuse review bind rescue guard sock",
+    )
+    .unwrap();
+
+    let public_key = tss_signer_pair.signer().public();
+    let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
+
+    // This nonce is what was used in the genesis config for `Alice`.
+    let nonce = [0; 32];
+
+    let quote = {
+        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
+        // let public_key = sr25519::Public(tss_account_id.0);
+
+        // We need to add `1` here since the quote is being checked in the next block
+        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+
+        let input_data = entropy_shared::QuoteInputData::new(
+            public_key,
+            *x25519_public_key.as_bytes(),
+            nonce,
+            block_number,
+        );
+
+        let mut pck_seeder = StdRng::from_seed(public_key.0);
+        let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+
+        tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec()
+    };
+
     let result = change_threshold_accounts(
         &api,
         &rpc,
         one.into(),
-        AccountId32(one.pair().public().0.into()).to_string(),
-        hex::encode(x25519_public_key),
+        public_key.to_string(), // AccountId32(one.pair().public().0.into()).to_string(), // Nando: Change this account?
+        hex::encode(*x25519_public_key.as_bytes()),
+        quote,
     )
     .await
     .unwrap();
@@ -116,7 +150,7 @@ async fn test_change_threshold_accounts() {
                 AccountId32(one.pair().public().0),
                 ServerInfo {
                     tss_account: AccountId32(one.pair().public().0),
-                    x25519_public_key,
+                    x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
                     provisioning_certification_key,
                 }
