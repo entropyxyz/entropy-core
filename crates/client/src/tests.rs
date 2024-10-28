@@ -101,11 +101,11 @@ async fn test_change_threshold_accounts() {
     )
     .unwrap();
 
-    let public_key = tss_signer_pair.signer().public();
+    let tss_public_key = tss_signer_pair.signer().public();
     let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
 
     // We need to give our new TSS account some funds before it can request an attestation.
-    let dest = public_key;
+    let dest = tss_public_key;
     let balance_transfer_tx = entropy::tx()
         .balances()
         .transfer_allow_death((tss_signer_pair.account_id().clone()).into(), 100_000_000_000);
@@ -130,13 +130,13 @@ async fn test_change_threshold_accounts() {
         let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
         let input_data = entropy_shared::QuoteInputData::new(
-            public_key,
+            tss_public_key,
             *x25519_public_key.as_bytes(),
             nonce,
             block_number,
         );
 
-        let mut pck_seeder = StdRng::from_seed(public_key.0);
+        let mut pck_seeder = StdRng::from_seed(tss_public_key.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
 
         tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec()
@@ -146,7 +146,7 @@ async fn test_change_threshold_accounts() {
         &api,
         &rpc,
         one.into(),
-        public_key.to_string(), // AccountId32(one.pair().public().0.into()).to_string(), // Nando: Change this account?
+        tss_public_key.to_string(),
         hex::encode(*x25519_public_key.as_bytes()),
         quote,
     )
@@ -165,7 +165,7 @@ async fn test_change_threshold_accounts() {
             events::ThresholdAccountChanged(
                 AccountId32(one.pair().public().0),
                 ServerInfo {
-                    tss_account: AccountId32(public_key.0), // AccountId32(one.pair().public().0),
+                    tss_account: AccountId32(tss_public_key.0),
                     x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
                     provisioning_certification_key,
