@@ -139,7 +139,9 @@ where
                                 let tx_clone = process_tx.clone();
                                 tokio::spawn(async move {
                                     let result = session_clone.process_message(&mut OsRng, preprocessed);
-                                    tx_clone.send(result).await.unwrap();
+                                    if tx_clone.send(result).await.is_err() {
+                                        tracing::error!("Protocol finished before message processing result sent");
+                                    }
                                 });
                             }
                         } else {
@@ -166,22 +168,18 @@ where
         //     tx.incoming_sender.send(message).await?;
         // }
 
-        // Get session back out of Arc and Mutex
-        if let Ok(session_inner) = Arc::try_unwrap(session_arc) {
-            // let session_inner = session_inner.into_inner().unwrap();
-            match session_inner.finalize_round(&mut OsRng, accum)? {
-                // match session_arc.finalize_round(&mut OsRng, accum)? {
-                FinalizeOutcome::Success(res) => break Ok((res, chans)),
-                FinalizeOutcome::AnotherRound {
-                    session: new_session,
-                    cached_messages: new_cached_messages,
-                } => {
-                    session = new_session;
-                    cached_messages = new_cached_messages;
-                },
-            }
-        } else {
-            panic!("Cannot get session out of Arc");
+        // Get session back out of Arc
+        let session_inner =
+            Arc::try_unwrap(session_arc).map_err(|_| GenericProtocolError::ArcUnwrapError)?;
+        match session_inner.finalize_round(&mut OsRng, accum)? {
+            FinalizeOutcome::Success(res) => break Ok((res, chans)),
+            FinalizeOutcome::AnotherRound {
+                session: new_session,
+                cached_messages: new_cached_messages,
+            } => {
+                session = new_session;
+                cached_messages = new_cached_messages;
+            },
         }
     }
 }
