@@ -42,14 +42,19 @@ use futures::prelude::*;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
-use sc_network::{event::Event, NetworkEventStream, NetworkService};
-use sc_network_sync::{strategy::warp::WarpSyncParams, SyncingService};
+use sc_network::{
+    event::Event, service::traits::NetworkService, NetworkBackend, NetworkEventStream,
+};
+use sc_network_sync::{service::network::Network, SyncingService};
 use sc_offchain::OffchainDb;
-use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
+use sc_service::{
+    config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager, WarpSyncConfig,
+};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_core::offchain::DbExternalities;
 use sp_runtime::traits::Block as BlockT;
+use std::path::Path;
 
 use crate::cli::Cli;
 /// The full client type definition.
@@ -100,7 +105,6 @@ pub fn new_partial(
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             impl Fn(
-                sc_rpc_api::DenyUnsafe,
                 sc_rpc::SubscriptionTaskExecutor,
             ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
@@ -214,13 +218,12 @@ pub fn new_partial(
         let chain_spec = config.chain_spec.cloned_box();
         let backend = backend.clone();
 
-        let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
+        let rpc_extensions_builder = move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 select_chain: select_chain.clone(),
                 chain_spec: chain_spec.cloned_box(),
-                deny_unsafe,
                 babe: crate::rpc::BabeDeps {
                     keystore: keystore.clone(),
                     babe_worker_handle: babe_worker_handle.clone(),
@@ -261,7 +264,7 @@ pub struct NewFullBase {
     /// The client instance of the node.
     pub client: Arc<FullClient>,
     /// The networking service of the node.
-    pub network: Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+    pub network: Arc<dyn NetworkService>,
     /// The syncing service of the node.
     pub sync: Arc<SyncingService<Block>>,
     /// The transaction pool of the node.
@@ -271,8 +274,9 @@ pub struct NewFullBase {
 }
 
 /// Creates a full service from the configuration.
-pub fn new_full_base(
+pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
     config: Configuration,
+    mixnet_config: Option<sc_mixnet::Config>,
     disable_hardware_benchmarks: bool,
     with_startup_data: impl FnOnce(
         &sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
@@ -283,7 +287,7 @@ pub fn new_full_base(
     let hwbench = (!disable_hardware_benchmarks)
         .then_some(config.database.path().map(|database_path| {
             let _ = std::fs::create_dir_all(database_path);
-            sc_sysinfo::gather_hwbench(Some(database_path))
+            sc_sysinfo::gather_hwbench(Some(database_path), &SUBSTRATE_REFERENCE_HARDWARE)
         }))
         .flatten();
 
@@ -298,14 +302,26 @@ pub fn new_full_base(
         other: (rpc_builder, import_setup, rpc_setup, mut telemetry),
     } = new_partial(&config)?;
 
+    let metrics = N::register_notification_metrics(
+        config.prometheus_config.as_ref().map(|cfg| &cfg.registry),
+    );
     let shared_voter_state = rpc_setup;
     let auth_disc_publish_non_global_ips = config.network.allow_non_globals_in_dht;
-    let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
 
+    let mut net_config = sc_network::config::FullNetworkConfiguration::<_, _, N>::new(
+        &config.network,
+        config.prometheus_config.as_ref().map(|cfg| cfg.registry.clone()),
+    );
+
+    let peer_store_handle = net_config.peer_store_handle();
     let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
     let grandpa_protocol_name = grandpa::protocol_standard_name(&genesis_hash, &config.chain_spec);
     let (grandpa_protocol_config, grandpa_notification_service) =
-        grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone());
+        grandpa::grandpa_peers_set_config::<_, N>(
+            grandpa_protocol_name.clone(),
+            metrics.clone(),
+            Arc::clone(&peer_store_handle),
+        );
     net_config.add_notification_protocol(grandpa_protocol_config);
 
     let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
@@ -323,8 +339,9 @@ pub fn new_full_base(
             spawn_handle: task_manager.spawn_handle(),
             import_queue,
             block_announce_validator_builder: None,
-            warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
+            warp_sync_config: Some(WarpSyncConfig::WithProvider(warp_sync)),
             block_relay: None,
+            metrics,
         })?;
 
     if config.offchain_worker.enabled {
@@ -340,7 +357,7 @@ pub fn new_full_base(
                 transaction_pool: Some(OffchainTransactionPoolFactory::new(
                     transaction_pool.clone(),
                 )),
-                network_provider: network.clone(),
+                network_provider: Arc::new(network.clone()),
                 is_validator: config.role.is_authority(),
                 enable_http_requests: true,
                 custom_extensions: move |_| vec![],
@@ -406,7 +423,7 @@ pub fn new_full_base(
 
     if let Some(hwbench) = hwbench {
         sc_sysinfo::print_hwbench(&hwbench);
-        match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench) {
+        match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench, role.is_authority()) {
             Err(err) if role.is_authority() => {
                 log::warn!(
 				"⚠️  The hardware does not meet the minimal requirements {} for role 'Authority' find out more at:\n\
@@ -504,7 +521,7 @@ pub fn new_full_base(
                     ..Default::default()
                 },
                 client.clone(),
-                network.clone(),
+                Arc::new(network.clone()),
                 Box::pin(dht_event_stream),
                 authority_discovery_role,
                 prometheus_registry.clone(),
@@ -575,14 +592,38 @@ pub fn new_full_base(
 
 /// Builds a new service for a full client.
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
-    let database_source = config.database.clone();
-    let task_manager =
-        new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.tss_server_endpoint)
+    let mixnet_config = cli.mixnet_params.config(config.role.is_authority());
+    let database_path = config.database.path().map(Path::to_path_buf);
+
+    let task_manager = match config.network.network_backend {
+        sc_network::config::NetworkBackendType::Libp2p => {
+            let task_manager = new_full_base::<sc_network::NetworkWorker<_, _>>(
+                config,
+                mixnet_config,
+                cli.no_hardware_benchmarks,
+                |_, _| (),
+                cli.tss_server_endpoint,
+            )
             .map(|NewFullBase { task_manager, .. }| task_manager)?;
-    if let Some(path) = database_source.path() {
+            task_manager
+        },
+        sc_network::config::NetworkBackendType::Litep2p => {
+            let task_manager = new_full_base::<sc_network::Litep2pNetworkBackend>(
+                config,
+                mixnet_config,
+                cli.no_hardware_benchmarks,
+                |_, _| (),
+                cli.tss_server_endpoint,
+            )
+            .map(|NewFullBase { task_manager, .. }| task_manager)?;
+            task_manager
+        },
+    };
+
+    if let Some(database_path) = database_path {
         sc_storage_monitor::StorageMonitorService::try_spawn(
             cli.storage_monitor,
-            path.to_path_buf(),
+            database_path,
             &task_manager.spawn_essential_handle(),
         )
         .map_err(|e| ServiceError::Application(e.into()))?;

@@ -12,11 +12,12 @@ repository ='https://github.com/entropyxyz/entropy-core'
 sha3          ="0.10.8"
 serde         ={ version="1.0", default-features=false, features=["derive"] }
 entropy-shared={ version="0.3.0-rc.1", path="../shared", default-features=false }
-subxt         ={ version="0.35.3", default-features=false, features=["jsonrpsee"] }
+subxt         ={ version="0.38.0", default-features=false, features=["jsonrpsee"] }
+subxt-core         ={ version="0.38.0", default-features=false}
 num           ="0.4.3"
 thiserror     ="1.0.65"
 futures       ="0.3"
-sp-core       ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
+sp-core       = { version = "34.0.0", default-features = false, features = ["full_crypto", "serde"] }
 tracing       ="0.1.37"
 rand          ={ version="0.8", default-features=false }
 
@@ -38,7 +39,7 @@ tokio ={ version="1.41", features=["time"] }
 
 [dev-dependencies]
 serial_test          ="3.1.1"
-sp-keyring           ="34.0.0"
+sp-keyring           = "39.0.0"
 entropy-testing-utils={ path="../testing-utils" }
 
 [features]
@@ -49,7 +50,7 @@ native=[
   "subxt/native",
   "subxt/substrate-compat",
 ]
-wasm=["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web"]
+wasm=["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web",]
 
 # This adds full client functionality. It is behind a feature flag because it is not needed by
 # entropy-tss

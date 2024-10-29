@@ -12,18 +12,18 @@ publish   =false
 codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info={ version="2.11", default-features=false, features=["derive"] }
 
-frame-benchmarking= { version = "29.0.0", default-features = false, optional = true }
-frame-support     = { version = "29.0.2", default-features = false }
-frame-system      = { version = "29.0.0", default-features = false }
-sp-runtime        = { version = "32.0.0", default-features = false }
+frame-benchmarking= { version = "38.0.0", default-features = false, optional = true }
+frame-support     = { version = "38.0.0", default-features = false }
+frame-system      = { version = "38.0.0", default-features = false }
+sp-runtime        = { version = "39.0.1", default-features = false }
 sp-std            = { version = "14.0.0", default-features = false }
 
 [dev-dependencies]
 smallvec="1.13.2"
 
-pallet-balances= { version = "29.0.2" }
-sp-core        = { version = "29.0.0" }
-sp-io          = { version = "31.0.0" }
+pallet-balances= { version = "39.0.0" }
+sp-core        = { version = "34.0.0" }
+sp-io          = { version = "38.0.0" }
 
 pallet-programs={ version="0.3.0-rc.1", default-features=false, path="../programs" }
 
@@ -35,11 +35,13 @@ runtime-benchmarks=[
   'frame-system/runtime-benchmarks',
 ]
 std=[
+  'frame-benchmarking/std',
   "frame-support/std",
   "frame-system/std",
   "pallet-programs/std",
   "scale-info/std",
   "sp-runtime/std",
   "sp-std/std",
+  "sp-io/std",
 ]
 try-runtime=["frame-support/try-runtime"]

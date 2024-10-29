@@ -29,18 +29,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use entropy_runtime::{Block, EXISTENTIAL_DEPOSIT};
-use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
-use sc_cli::SubstrateCli;
-use sc_service::PartialComponents;
-use sp_keyring::Sr25519Keyring;
-
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec,
     cli::{Cli, Subcommand},
     service,
 };
+use entropy_runtime::{Block, EXISTENTIAL_DEPOSIT};
+use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
+use sc_cli::SubstrateCli;
+use sc_service::PartialComponents;
+use sp_keyring::Sr25519Keyring;
+use sp_runtime::traits::HashingFor;
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -161,7 +161,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 .into());
                         }
 
-                        cmd.run::<Block, ()>(config)
+						cmd.run_with_spec::<HashingFor<Block>, sp_statement_store::runtime_api::HostFunctions>(Some(config.chain_spec))
                     },
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;

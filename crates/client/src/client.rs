@@ -175,7 +175,7 @@ pub async fn sign(
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signature_of_signature,
             decoded_sig.clone(),
-            &sr25519::Public(signer_info.tss_account.0),
+            &sr25519::Public::from(signer_info.tss_account.0),
         );
         sig_recovery_results.push(sig_recovery)
     }

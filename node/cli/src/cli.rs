@@ -42,6 +42,10 @@ pub struct Cli {
     #[clap(flatten)]
     pub run: sc_cli::RunCmd,
 
+    #[allow(missing_docs)]
+    #[clap(flatten)]
+    pub mixnet_params: sc_cli::MixnetParams,
+
     /// Sets the URL of the Threshold Signing Server (TSS) to use.
     ///
     /// The format should be in the form of `scheme://hostname:port`.

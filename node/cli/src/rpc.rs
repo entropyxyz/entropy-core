@@ -99,8 +99,6 @@ pub struct FullDeps<C, P, SC, B> {
     pub select_chain: SC,
     /// A copy of the chain spec.
     pub chain_spec: Box<dyn sc_chain_spec::ChainSpec>,
-    /// Whether to deny unsafe calls
-    pub deny_unsafe: DenyUnsafe,
     /// BABE specific dependencies.
     pub babe: BabeDeps,
     /// GRANDPA specific dependencies.
@@ -111,12 +109,7 @@ pub struct FullDeps<C, P, SC, B> {
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-    FullDeps { client, pool, select_chain, chain_spec, deny_unsafe, babe, grandpa, .. }: FullDeps<
-        C,
-        P,
-        SC,
-        B,
-    >,
+    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, .. }: FullDeps<C, P, SC, B>,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
@@ -160,14 +153,13 @@ where
     let properties = chain_spec.properties();
 
     io.merge(ChainSpec::new(chain_name, genesis_hash, properties).into_rpc())?;
-    io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    io.merge(System::new(client.clone(), pool).into_rpc())?;
     // Making synchronous calls in light client freezes the browser currently,
     // more context: https://github.com/paritytech/substrate/pull/3480
     // These RPCs should use an asynchronous caller instead.
     io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     io.merge(
-        Babe::new(client.clone(), babe_worker_handle.clone(), keystore, select_chain, deny_unsafe)
-            .into_rpc(),
+        Babe::new(client.clone(), babe_worker_handle.clone(), keystore, select_chain).into_rpc(),
     )?;
     io.merge(
         Grandpa::new(
@@ -183,6 +175,6 @@ where
         SyncState::new(chain_spec, client.clone(), shared_authority_set, babe_worker_handle)?
             .into_rpc(),
     )?;
-    io.merge(Dev::new(client, deny_unsafe).into_rpc())?;
+    io.merge(Dev::new(client).into_rpc())?;
     Ok(io)
 }

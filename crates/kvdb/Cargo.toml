@@ -16,7 +16,7 @@ thiserror="1.0.65"
 hex      ="0.4.3"
 
 # Substrate
-sp-core={ version="31.0.0", default-features=false }
+sp-core= { version = "34.0.0", default-features = false }
 
 # Crypto
 zeroize         ={ version="1.8", features=["zeroize_derive"], default-features=false }
