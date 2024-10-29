@@ -73,7 +73,11 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
     mut chans: Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
-) -> Result<(Res::Success, Channels), GenericProtocolError<Res>> {
+) -> Result<(Res::Success, Channels), GenericProtocolError<Res>>
+where
+    <Res as synedrion::ProtocolResult>::ProvableError: std::marker::Send,
+    <Res as synedrion::ProtocolResult>::CorrectnessProof: std::marker::Send,
+{
     let session_id = synedrion::SessionId::from_seed(&session_id_hash);
     let tx = &chans.0;
     let rx = &mut chans.1;
@@ -106,7 +110,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
         }
 
         // Channel for receiving results of processing messages
-        let (process_tx, mut process_rx) = mpsc::unbounded_channel();
+        let (process_tx, mut process_rx) = mpsc::channel(1024);
         let current_round = session.current_round();
         let session_arc = Arc::new(session);
 
@@ -126,19 +130,16 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
 
                     if let ProtocolMessagePayload::MessageBundle(payload) = message.payload.clone() {
                         if payload.session_id() == &session_id {
-                            let preprocessed = {
-                                // let session = session_arc.read().unwrap();
-                                // Perform quick checks before proceeding with the verification.
-                                session_arc.preprocess_message(&mut accum, &message.from, *payload)?
-                            };
+                            // Perform quick checks before proceeding with the verification.
+                            let preprocessed =
+                                session_arc.preprocess_message(&mut accum, &message.from, *payload)?;
 
                             if let Some(preprocessed) = preprocessed {
                                 let session_clone = session_arc.clone();
                                 let tx_clone = process_tx.clone();
                                 tokio::spawn(async move {
-                                    // let session = session_clone.read().unwrap();
-                                    let result = session_clone.process_message(&mut OsRng, preprocessed).unwrap();
-                                    tx_clone.send(result).unwrap();
+                                    let result = session_clone.process_message(&mut OsRng, preprocessed);
+                                    tx_clone.send(result).await.unwrap();
                                 });
                             }
                         } else {
@@ -154,7 +155,7 @@ pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
                 // Result from processing a message
                 maybe_result = process_rx.recv() => {
                     if let Some(result) = maybe_result {
-                        accum.add_processed_message(result)??;
+                        accum.add_processed_message(result?)??;
                     }
                 }
             }
