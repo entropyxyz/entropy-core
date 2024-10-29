@@ -114,13 +114,7 @@ where
         let current_round = session.current_round();
         let session_arc = Arc::new(session);
 
-        loop {
-            {
-                // let session = session_arc.read().unwrap();
-                if session_arc.can_finalize(&accum)? {
-                    break;
-                }
-            }
+        while !session_arc.can_finalize(&accum)? {
             tokio::select! {
                 // Incoming message from remote peer
                 maybe_message = rx.recv() => {
