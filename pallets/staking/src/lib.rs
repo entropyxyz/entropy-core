@@ -491,11 +491,11 @@ pub mod pallet {
                             Error::<T>::FailedAttestationCheck
                         );
 
-                        server_info.tss_account = tss_account.clone();
+                        server_info.tss_account = tss_account;
                         server_info.x25519_public_key = x25519_public_key;
                         server_info.provisioning_certification_key = provisioning_certification_key;
 
-                        ThresholdToStash::<T>::insert(&tss_account, &validator_id);
+                        ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
 
                         Ok(server_info.clone())
                     } else {
@@ -513,7 +513,8 @@ pub mod pallet {
 
         /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
         #[pallet::call_index(2)]
-        #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get()))]
+        #[pallet::weight(<T as Config>::WeightInfo::unbond(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get())
+        )]
         pub fn unbond(
             origin: OriginFor<T>,
             #[pallet::compact] value: BalanceOf<T>,
@@ -533,7 +534,8 @@ pub mod pallet {
 
         /// Wraps's Substrate's `chill` extrinsic but checks to make sure the targeted account is not a signer or next signer
         #[pallet::call_index(3)]
-        #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get()))]
+        #[pallet::weight(<T as Config>::WeightInfo::chill(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get())
+        )]
         pub fn chill(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let controller = ensure_signed(origin.clone())?;
             let ledger =
@@ -550,7 +552,8 @@ pub mod pallet {
 
         /// Wraps's Substrate's `withdraw_unbonded` extrinsic but clears extra state if fully unbonded
         #[pallet::call_index(4)]
-        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get()))]
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded(MAX_SIGNERS as u32, MaxNominationsOf::<T>::get())
+        )]
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
             num_slashing_spans: u32,
