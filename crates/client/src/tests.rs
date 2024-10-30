@@ -99,7 +99,7 @@ async fn test_change_threshold_accounts() {
     let (tss_signer_pair, x25519_secret) = get_signer_and_x25519_secret_from_mnemonic(
         "gospel prosper cactus remember snap enact refuse review bind rescue guard sock",
     )
-    .unwrap();
+        .unwrap();
 
     let tss_public_key = tss_signer_pair.signer().public();
     let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
@@ -116,11 +116,15 @@ async fn test_change_threshold_accounts() {
         &balance_transfer_tx,
         None,
     )
-    .await;
+        .await;
     dbg!(&result);
 
     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
     let nonce: [u8; 32] = nonce.try_into().unwrap();
+
+    let mut pck_seeder = StdRng::from_seed(tss_public_key.0);
+    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+    dbg!(&pck);
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
@@ -136,11 +140,10 @@ async fn test_change_threshold_accounts() {
             block_number,
         );
 
-        let mut pck_seeder = StdRng::from_seed(tss_public_key.0);
-        let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
-
-        tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec()
+        tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0).as_bytes().to_vec()
     };
+
+    let pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
 
     let result = change_threshold_accounts(
         &api,
@@ -148,15 +151,16 @@ async fn test_change_threshold_accounts() {
         one.into(),
         tss_public_key.to_string(),
         hex::encode(*x25519_public_key.as_bytes()),
+        pck.clone(),
         quote,
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
-    let provisioning_certification_key = {
-        let key = derive_mock_pck_verifying_key(&TSS_ACCOUNTS[0]);
-        BoundedVec(encode_verifying_key(&key).unwrap().to_vec())
-    };
+    // let provisioning_certification_key = {
+    //     let key = derive_mock_pck_verifying_key(&TSS_ACCOUNTS[0]);
+    //     BoundedVec(encode_verifying_key(&key).unwrap().to_vec())
+    // };
 
     assert_eq!(
         format!("{:?}", result),
@@ -168,7 +172,7 @@ async fn test_change_threshold_accounts() {
                     tss_account: AccountId32(tss_public_key.0),
                     x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
-                    provisioning_certification_key,
+                    provisioning_certification_key: BoundedVec(pck),
                 }
             )
         )
@@ -195,8 +199,8 @@ async fn test_store_and_remove_program() {
         vec![],
         0u8,
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
     // Check that the program was stored
     let program_query = entropy::storage().programs().programs(program_hash);
@@ -243,8 +247,8 @@ async fn test_remove_program_reference_counter() {
         vec![],
         0u8,
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
     // Register, using that program
     let (verifying_key, _registered_info) = register(
@@ -254,8 +258,8 @@ async fn test_remove_program_reference_counter() {
         AccountId32(program_owner.public().0),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
     // Removing program fails because program is being used
     assert!(remove_program(&api, &rpc, &program_owner, program_pointer).await.is_err());
@@ -271,8 +275,8 @@ async fn test_remove_program_reference_counter() {
             program_config: vec![],
         }]),
     )
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
     // We can now remove the program because no-one is using it
     remove_program(&api, &rpc, &program_owner, program_pointer).await.unwrap();

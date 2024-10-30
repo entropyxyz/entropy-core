@@ -87,9 +87,9 @@ pub async fn register(
         program_account,
         programs_data,
     )
-    .await?;
+        .await?;
 
-    let verifying_key = registration_event.1 .0;
+    let verifying_key = registration_event.1.0;
     let registered_info = get_registered_details(api, rpc, verifying_key.clone()).await?;
     let verifying_key = verifying_key.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
 
@@ -360,14 +360,18 @@ pub async fn change_threshold_accounts(
     user_keypair: sr25519::Pair,
     new_tss_account: String,
     new_x25519_public_key: String,
+    new_pck: Vec<u8>,
     quote: Vec<u8>,
 ) -> anyhow::Result<ThresholdAccountChanged> {
+    dbg!(new_pck.len());
+
     let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
     let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
         tss_account,
         hex::decode(new_x25519_public_key)?
             .try_into()
             .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
+        BoundedVec(new_pck),
         quote,
     );
     let in_block =

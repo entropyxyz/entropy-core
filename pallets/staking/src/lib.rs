@@ -454,6 +454,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
+            provisioning_certification_key: VerifyingKey,
             quote: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -483,7 +484,7 @@ pub mod pallet {
                             <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
                                 &tss_account.clone(),
                                 x25519_public_key,
-                                server_info.provisioning_certification_key.clone(),
+                                provisioning_certification_key.clone(),
                                 quote
                             )
                             .is_ok(),
@@ -492,6 +493,8 @@ pub mod pallet {
 
                         server_info.tss_account = tss_account.clone();
                         server_info.x25519_public_key = x25519_public_key;
+                        server_info.provisioning_certification_key = provisioning_certification_key;
+
                         ThresholdToStash::<T>::insert(&tss_account, &validator_id);
 
                         Ok(server_info.clone())
