@@ -91,28 +91,30 @@ where
         let mut accum = session.make_accumulator();
         let current_round = session.current_round();
         let session_arc = Arc::new(session);
+
+        // Send outgoing messages
         let destinations = session_arc.message_destinations();
+        if !destinations.is_empty() {
+            // Channel for receiving message artifacts
+            let (artifact_tx, mut artifact_rx) = mpsc::channel(destinations.len());
+            for destination in destinations.iter() {
+                let session_arc = session_arc.clone();
+                let tx = tx.clone();
+                let my_id = my_id.clone();
+                let artifact_tx = artifact_tx.clone();
+                let destination = destination.clone();
+                tokio::spawn(async move {
+                    let (message, artifact) =
+                        session_arc.make_message(&mut OsRng, &destination).unwrap();
+                    tx.send(ProtocolMessage::new(&my_id, &destination, message)).unwrap();
+                    artifact_tx.send(artifact).await.unwrap();
+                });
+            }
 
-        // Channel for receiving message artifacts
-        let (artifact_tx, mut artifact_rx) = mpsc::channel(destinations.len());
-        // Send out messages
-        for destination in destinations.iter() {
-            let session_arc = session_arc.clone();
-            let tx = tx.clone();
-            let my_id = my_id.clone();
-            let artifact_tx = artifact_tx.clone();
-            let destination = destination.clone();
-            tokio::spawn(async move {
-                let (message, artifact) =
-                    session_arc.make_message(&mut OsRng, &destination).unwrap();
-                tx.send(ProtocolMessage::new(&my_id, &destination, message)).unwrap();
-                artifact_tx.send(artifact).await.unwrap();
-            });
-        }
-
-        for _ in 0..destinations.len() {
-            if let Some(artifact) = artifact_rx.recv().await {
-                accum.add_artifact(artifact)?;
+            for _ in 0..destinations.len() {
+                if let Some(artifact) = artifact_rx.recv().await {
+                    accum.add_artifact(artifact)?;
+                }
             }
         }
 
