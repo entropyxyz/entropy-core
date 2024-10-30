@@ -56,7 +56,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    config::PolkadotExtrinsicParamsBuilder as Params,
+    config::DefaultExtrinsicParamsBuilder as Params,
     ext::{
         sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
         sp_runtime::AccountId32,
@@ -260,8 +260,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance { program_pointer: subxt::utils::H256(program_hash.into()), program_config: vec![] },
+            OtherProgramInstance { program_pointer: subxt::utils::H256(program_hash.into()), program_config: vec![] },
         ]),
     )
     .await
@@ -1200,7 +1200,7 @@ async fn test_device_key_proxy() {
     };
 
     // check to make sure config data stored properly
-    let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
+    let program_query = entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));    
     let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
     let schema_config_device_key_proxy = schema_for!(UserConfig);
     let schema_aux_data_device_key_proxy = schema_for!(AuxData);
@@ -1222,7 +1222,7 @@ async fn test_device_key_proxy() {
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: *DEVICE_KEY_HASH,
+            program_pointer: subxt::utils::H256(DEVICE_KEY_HASH.0),
             program_config: serde_json::to_vec(&device_key_user_config).unwrap(),
         }]),
     )

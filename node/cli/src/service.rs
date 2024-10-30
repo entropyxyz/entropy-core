@@ -403,7 +403,6 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
         import_setup.1.shared_authority_set().clone(),
         Vec::default(),
     ));
-    println!("test here 1");
     let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_service) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
@@ -434,11 +433,9 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
             task_manager.spawn_handle().spawn("mixnet", None, mixnet);
         }
 
-        println!("test here 3");
 
     if config.offchain_worker.enabled {
         use futures::FutureExt;
-        println!("test here 4");
 
         task_manager.spawn_handle().spawn(
             "offchain-workers-runner",
@@ -489,7 +486,6 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
             );
             log::info!("Threshold Signing Sever (TSS) location changed to {}", endpoint);
         }
-        println!("test here 5");
 
     }
 
@@ -500,7 +496,6 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
     let name = config.network.node_name.clone();
     let enable_grandpa = !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
-    println!("test here 6");
 
     let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         config,
@@ -516,7 +511,6 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
         sync_service: sync_service.clone(),
         telemetry: telemetry.as_mut(),
     })?;
-    println!("test here 7");
 
     if let Some(hwbench) = hwbench {
         sc_sysinfo::print_hwbench(&hwbench);
