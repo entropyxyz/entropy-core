@@ -102,14 +102,14 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn pending_attestations)]
     pub type PendingAttestations<T: Config> =
-    StorageMap<_, Blake2_128Concat, T::AccountId, Nonce, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, Nonce, OptionQuery>;
 
     /// A mapping between block numbers and TSS nodes for who we want to make a request for
     /// attestation, used to make attestation requests via an offchain worker
     #[pallet::storage]
     #[pallet::getter(fn attestation_requests)]
     pub type AttestationRequests<T: Config> =
-    StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -241,7 +241,7 @@ pub mod pallet {
                     .try_into()
                     .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
             )
-                .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
+            .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
 
             quote
                 .verify_with_pck(provisioning_certification_key)

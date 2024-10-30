@@ -111,8 +111,8 @@ async fn test_change_threshold_accounts() {
         &balance_transfer_tx,
         None,
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     // When we request an attestation we get a nonce back that we must use when generating our quote.
     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
@@ -146,8 +146,8 @@ async fn test_change_threshold_accounts() {
         encoded_pck.clone(),
         quote,
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(
         format!("{:?}", result),
@@ -186,8 +186,8 @@ async fn test_store_and_remove_program() {
         vec![],
         0u8,
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     // Check that the program was stored
     let program_query = entropy::storage().programs().programs(program_hash);
@@ -234,8 +234,8 @@ async fn test_remove_program_reference_counter() {
         vec![],
         0u8,
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     // Register, using that program
     let (verifying_key, _registered_info) = register(
@@ -245,8 +245,8 @@ async fn test_remove_program_reference_counter() {
         AccountId32(program_owner.public().0),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     // Removing program fails because program is being used
     assert!(remove_program(&api, &rpc, &program_owner, program_pointer).await.is_err());
@@ -262,8 +262,8 @@ async fn test_remove_program_reference_counter() {
             program_config: vec![],
         }]),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     // We can now remove the program because no-one is using it
     remove_program(&api, &rpc, &program_owner, program_pointer).await.unwrap();

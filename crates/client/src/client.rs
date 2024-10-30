@@ -87,9 +87,9 @@ pub async fn register(
         program_account,
         programs_data,
     )
-        .await?;
+    .await?;
 
-    let verifying_key = registration_event.1.0;
+    let verifying_key = registration_event.1 .0;
     let registered_info = get_registered_details(api, rpc, verifying_key.clone()).await?;
     let verifying_key = verifying_key.try_into().map_err(|_| ClientError::BadVerifyingKeyLength)?;
 
@@ -422,18 +422,32 @@ async fn jumpstart_inner(
     Ok(())
 }
 
+/// An extrinsic to indicate to the chain that it should expect an attestation from the `signer` at
+/// some point in the near future.
+///
+/// The returned `nonce` must be used when generating a `quote` for the chain.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        attestee = ?attestee.public(),
+    )
+)]
 pub async fn request_attestation(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: sr25519::Pair,
+    attestee: sr25519::Pair,
 ) -> Result<Vec<u8>, ClientError> {
+    tracing::debug!("{} is requesting an attestation.", attestee.public());
+
     let request_attestation = entropy::tx().attestation().request_attestation();
 
     let result =
-        submit_transaction_with_pair(api, rpc, &signer, &request_attestation, None).await?;
-    let result_event = result.find_first::<entropy::attestation::events::AttestationIssued>()?;
+        submit_transaction_with_pair(api, rpc, &attestee, &request_attestation, None).await?;
+    let result_event = result
+        .find_first::<entropy::attestation::events::AttestationIssued>()?
+        .ok_or(crate::errors::SubstrateError::NoEvent)?;
 
-    let nonce = result_event.unwrap().0;
+    let nonce = result_event.0;
 
     Ok(nonce)
 }
