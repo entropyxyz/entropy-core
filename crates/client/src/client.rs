@@ -363,14 +363,13 @@ pub async fn change_threshold_accounts(
     new_pck: Vec<u8>,
     quote: Vec<u8>,
 ) -> anyhow::Result<ThresholdAccountChanged> {
-    dbg!(new_pck.len());
-
     let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
+    let x25519_public_key = hex::decode(new_x25519_public_key)?
+        .try_into()
+        .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
     let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
         tss_account,
-        hex::decode(new_x25519_public_key)?
-            .try_into()
-            .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
+        x25519_public_key,
         BoundedVec(new_pck),
         quote,
     );
@@ -435,7 +434,6 @@ pub async fn request_attestation(
     let result_event = result.find_first::<entropy::attestation::events::AttestationIssued>()?;
 
     let nonce = result_event.unwrap().0;
-    dbg!(&nonce);
 
     Ok(nonce)
 }

@@ -19,7 +19,7 @@ use crate::{
 
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    helpers::{derive_mock_pck_verifying_key, encode_verifying_key},
+    helpers::encode_verifying_key,
     jump_start_network, spawn_testing_validators,
     substrate_context::test_context_stationary,
     test_node_process_testing_state, ChainSpecType,
@@ -90,46 +90,39 @@ async fn test_change_threshold_accounts() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    // By using this `Alice` account we can skip the `request_attestation` step since this is
-    // already set up at genesis.
-    // let tss_account_id = &TSS_ACCOUNTS[0];
-    // let x25519_public_key = X25519_PUBLIC_KEYS[0];
-
-    use entropy_testing_utils::get_signer_and_x25519_secret_from_mnemonic;
-    let (tss_signer_pair, x25519_secret) = get_signer_and_x25519_secret_from_mnemonic(
-        "gospel prosper cactus remember snap enact refuse review bind rescue guard sock",
-    )
-        .unwrap();
+    // We need to use an account that's not a validator (so not our default development/test accounts)
+    // otherwise we're not able to update the TSS and X25519 keys for our existing validator.
+    let non_validator_seed =
+        "gospel prosper cactus remember snap enact refuse review bind rescue guard sock";
+    let (tss_signer_pair, x25519_secret) =
+        entropy_testing_utils::get_signer_and_x25519_secret_from_mnemonic(non_validator_seed)
+            .unwrap();
 
     let tss_public_key = tss_signer_pair.signer().public();
     let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
 
     // We need to give our new TSS account some funds before it can request an attestation.
-    let dest = tss_public_key;
-    let balance_transfer_tx = entropy::tx()
-        .balances()
-        .transfer_allow_death((tss_signer_pair.account_id().clone()).into(), 100_000_000_000);
-    let result = crate::substrate::submit_transaction_with_pair(
+    let dest = tss_signer_pair.account_id().clone().into();
+    let balance_transfer_tx = entropy::tx().balances().transfer_allow_death(dest, 100_000_000_000);
+    let _transfer_result = crate::substrate::submit_transaction_with_pair(
         &api,
         &rpc,
         &one.pair(),
         &balance_transfer_tx,
         None,
     )
-        .await;
-    dbg!(&result);
+        .await
+        .unwrap();
 
+    // When we request an attestation we get a nonce back that we must use when generating our quote.
     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
     let nonce: [u8; 32] = nonce.try_into().unwrap();
 
     let mut pck_seeder = StdRng::from_seed(tss_public_key.0);
     let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
-    dbg!(&pck);
+    let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
 
     let quote = {
-        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        // let public_key = sr25519::Public(tss_account_id.0);
-
         // We need to add `1` here since the quote is being checked in the next block
         let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
 
@@ -140,10 +133,9 @@ async fn test_change_threshold_accounts() {
             block_number,
         );
 
+        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
         tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0).as_bytes().to_vec()
     };
-
-    let pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
 
     let result = change_threshold_accounts(
         &api,
@@ -151,16 +143,11 @@ async fn test_change_threshold_accounts() {
         one.into(),
         tss_public_key.to_string(),
         hex::encode(*x25519_public_key.as_bytes()),
-        pck.clone(),
+        encoded_pck.clone(),
         quote,
     )
         .await
         .unwrap();
-
-    // let provisioning_certification_key = {
-    //     let key = derive_mock_pck_verifying_key(&TSS_ACCOUNTS[0]);
-    //     BoundedVec(encode_verifying_key(&key).unwrap().to_vec())
-    // };
 
     assert_eq!(
         format!("{:?}", result),
@@ -172,7 +159,7 @@ async fn test_change_threshold_accounts() {
                     tss_account: AccountId32(tss_public_key.0),
                     x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
-                    provisioning_certification_key: BoundedVec(pck),
+                    provisioning_certification_key: BoundedVec(encoded_pck),
                 }
             )
         )
