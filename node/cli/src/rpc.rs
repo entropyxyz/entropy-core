@@ -105,11 +105,15 @@ pub struct FullDeps<C, P, SC, B> {
     pub grandpa: GrandpaDeps<B>,
     /// Backend used by the node.
     pub backend: Arc<B>,
+    /// Mixnet API.
+	pub mixnet_api: Option<sc_mixnet::Api>,
+    /// Shared statement store reference.
+	pub statement_store: Arc<dyn sp_statement_store::StatementStore>,
 }
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, .. }: FullDeps<C, P, SC, B>,
+    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, statement_store, mixnet_api, backend, .. }: FullDeps<C, P, SC, B>,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
@@ -124,7 +128,7 @@ where
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BabeApi<Block>,
     C::Api: BlockBuilder<Block>,
-    P: TransactionPool + Sync + Send + 'static,
+    P: TransactionPool + 'static,
     SC: SelectChain<Block> + 'static,
     B: sc_client_api::Backend<Block> + Send + Sync + 'static,
     B::State: sc_client_api::StateBackend<sp_runtime::traits::HashingFor<Block>>,
@@ -132,13 +136,16 @@ where
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_consensus_grandpa_rpc::{Grandpa, GrandpaApiServer};
-    use sc_rpc::dev::{Dev, DevApiServer};
+    use sc_rpc::{
+		dev::{Dev, DevApiServer},
+		mixnet::MixnetApiServer,
+		statement::StatementApiServer,
+	};
     use sc_rpc_spec_v2::chain_spec::{ChainSpec, ChainSpecApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
 
     let mut io = RpcModule::new(());
-
     let BabeDeps { keystore, babe_worker_handle } = babe;
     let GrandpaDeps {
         shared_voter_state,
@@ -152,11 +159,14 @@ where
     let genesis_hash = client.hash(0).ok().flatten().expect("Genesis block exists; qed");
     let properties = chain_spec.properties();
 
-    io.merge(ChainSpec::new(chain_name, genesis_hash, properties).into_rpc())?;
     io.merge(System::new(client.clone(), pool).into_rpc())?;
-    // Making synchronous calls in light client freezes the browser currently,
-    // more context: https://github.com/paritytech/substrate/pull/3480
-    // These RPCs should use an asynchronous caller instead.
+    let statement_store = sc_rpc::statement::StatementStore::new(statement_store).into_rpc();
+	io.merge(statement_store)?;
+
+	if let Some(mixnet_api) = mixnet_api {
+		let mixnet = sc_rpc::mixnet::Mixnet::new(mixnet_api).into_rpc();
+		io.merge(mixnet)?;
+	}
     io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     io.merge(
         Babe::new(client.clone(), babe_worker_handle.clone(), keystore, select_chain).into_rpc(),

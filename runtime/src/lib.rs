@@ -1518,6 +1518,49 @@ impl pallet_nomination_pools::Config for Runtime {
 }
 
 parameter_types! {
+	pub StatementCost: Balance = 1 * DOLLARS;
+	pub StatementByteCost: Balance = 100 * MILLICENTS;
+	pub const MinAllowedStatements: u32 = 4;
+	pub const MaxAllowedStatements: u32 = 10;
+	pub const MinAllowedBytes: u32 = 1024;
+	pub const MaxAllowedBytes: u32 = 4096;
+}
+
+impl pallet_statement::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type StatementCost = StatementCost;
+	type ByteCost = StatementByteCost;
+	type MinAllowedStatements = MinAllowedStatements;
+	type MaxAllowedStatements = MaxAllowedStatements;
+	type MinAllowedBytes = MinAllowedBytes;
+	type MaxAllowedBytes = MaxAllowedBytes;
+}
+
+parameter_types! {
+	pub const MixnetNumCoverToCurrentBlocks: BlockNumber = 3;
+	pub const MixnetNumRequestsToCurrentBlocks: BlockNumber = 3;
+	pub const MixnetNumCoverToPrevBlocks: BlockNumber = 3;
+	pub const MixnetNumRegisterStartSlackBlocks: BlockNumber = 3;
+	pub const MixnetNumRegisterEndSlackBlocks: BlockNumber = 3;
+	pub const MixnetRegistrationPriority: TransactionPriority = ImOnlineUnsignedPriority::get() - 1;
+}
+
+impl pallet_mixnet::Config for Runtime {
+	type MaxAuthorities = MaxAuthorities;
+	type MaxExternalAddressSize = ConstU32<128>;
+	type MaxExternalAddressesPerMixnode = ConstU32<16>;
+	type NextSessionRotation = Babe;
+	type NumCoverToCurrentBlocks = MixnetNumCoverToCurrentBlocks;
+	type NumRequestsToCurrentBlocks = MixnetNumRequestsToCurrentBlocks;
+	type NumCoverToPrevBlocks = MixnetNumCoverToPrevBlocks;
+	type NumRegisterStartSlackBlocks = MixnetNumRegisterStartSlackBlocks;
+	type NumRegisterEndSlackBlocks = MixnetNumRegisterEndSlackBlocks;
+	type RegistrationPriority = MixnetRegistrationPriority;
+	type MinMixnodes = ConstU32<7>; // Low to allow small testing networks
+}
+
+parameter_types! {
     /// This is intentionally low for testing.
     ///
     /// I'm not entirely sure what a good ballpark for this would be in production though.
@@ -1652,6 +1695,11 @@ construct_runtime!(
     Parameters: pallet_parameters = 56,
     Oracle: pallet_oracle = 57,
     Attestation: pallet_attestation = 58,
+
+
+    Statement: pallet_statement = 60,
+    Mixnet: pallet_mixnet = 61,
+
   }
 );
 
@@ -1807,6 +1855,15 @@ impl_runtime_apis! {
     }
   }
 
+  impl sp_statement_store::runtime_api::ValidateStatement<Block> for Runtime {
+    fn validate_statement(
+        source: sp_statement_store::runtime_api::StatementSource,
+        statement: sp_statement_store::Statement,
+    ) -> Result<sp_statement_store::runtime_api::ValidStatement, sp_statement_store::runtime_api::InvalidStatement> {
+        Statement::validate_statement(source, statement)
+    }
+}
+
   impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
       fn offchain_worker(header: &<Block as BlockT>::Header) {
           Executive::offchain_worker(header)
@@ -1916,7 +1973,7 @@ impl_runtime_apis! {
     }
 
     fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-      None
+        get_preset::<RuntimeGenesisConfig>(id, |_| None)
     }
 
     fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
@@ -1940,6 +1997,24 @@ impl_runtime_apis! {
     }
     fn query_length_to_fee(length: u32) -> Balance {
         TransactionPayment::length_to_fee(length)
+    }
+}
+
+impl sp_mixnet::runtime_api::MixnetApi<Block> for Runtime {
+    fn session_status() -> sp_mixnet::types::SessionStatus {
+        Mixnet::session_status()
+    }
+
+    fn prev_mixnodes() -> Result<Vec<sp_mixnet::types::Mixnode>, sp_mixnet::types::MixnodesErr> {
+        Mixnet::prev_mixnodes()
+    }
+
+    fn current_mixnodes() -> Result<Vec<sp_mixnet::types::Mixnode>, sp_mixnet::types::MixnodesErr> {
+        Mixnet::current_mixnodes()
+    }
+
+    fn maybe_register(session_index: sp_mixnet::types::SessionIndex, mixnode: sp_mixnet::types::Mixnode) -> bool {
+        Mixnet::maybe_register(session_index, mixnode)
     }
 }
 

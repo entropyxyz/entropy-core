@@ -62,6 +62,8 @@ sc-transaction-pool     = { version = "37.0.0" }
 sc-transaction-pool-api = { version = "37.0.0" }
 sc-rpc-spec-v2          = { version = "0.45.0" }
 sc-mixnet        = { version = "0.15.0" }
+sc-statement-store = { version = "19.0.1" }
+sc-network-statement = { version = "0.27.0" }
 
 # Substrate Primitives
 grandpa-primitives          = { version = "21.0.0", package = "sp-consensus-grandpa" }
@@ -80,6 +82,7 @@ sp-timestamp                = { version = "34.0.0" }
 sp-transaction-storage-proof= { version = "34.0.0" }
 substrate-frame-rpc-system  = { version = "39.0.0" }
 sp-statement-store  = { version = "18.0.0" }
+sp-io  = { version = "38.0.0" }
 
 # FRAME Dependencies
 frame-benchmarking          = { version = "38.0.0", default-features = false, optional = true, features = ["std"] }
