@@ -443,7 +443,10 @@ pub async fn run_command(
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("User account for current call: {}", user_keypair.public());
 
-            let result_event = change_endpoint(&api, &rpc, user_keypair, new_endpoint).await?;
+            // TODO (Nando)
+            let quote = vec![0];
+            let result_event =
+                change_endpoint(&api, &rpc, user_keypair, new_endpoint, quote).await?;
             println!("Event result: {:?}", result_event);
             Ok("Endpoint changed".to_string())
         },
@@ -460,12 +463,17 @@ pub async fn run_command(
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("User account for current call: {}", user_keypair.public());
 
+            // TODO (Nando)
+            let quote = vec![0];
+            let new_pck = vec![0];
             let result_event = change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
+                new_pck,
+                quote,
             )
             .await?;
             println!("Event result: {:?}", result_event);
