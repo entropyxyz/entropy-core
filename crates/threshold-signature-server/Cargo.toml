@@ -37,7 +37,7 @@ axum   ={ version="0.7.7", features=["ws"] }
 # Substrate
 subxt             ="0.38.0"
 parity-scale-codec="3.6.12"
-sp-core           = { version = "34.0.0", default-features = false }
+sp-core           ={ version="34.0.0", default-features=false }
 
 # Entropy
 entropy-shared={ version="0.3.0-rc.1", path="../shared" }
@@ -81,7 +81,7 @@ configfs-tsm     ={ version="0.0.1", optional=true }
 serial_test ="3.1.1"
 hex-literal ="0.4.1"
 project-root="0.2.2"
-sp-keyring  = "39.0.0"
+sp-keyring  ="39.0.0"
 more-asserts="0.3.1"
 lazy_static ="1.5.0"
 blake3      ="1.5.4"

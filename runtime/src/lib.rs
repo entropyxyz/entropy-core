@@ -36,7 +36,7 @@
 #![recursion_limit = "512"]
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_election_provider_support::{
-    bounds::ElectionBoundsBuilder, onchain, BalancingConfig, ElectionDataProvider, NposSolution,
+    bounds::ElectionBoundsBuilder, onchain, BalancingConfig, ElectionDataProvider,
     SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
@@ -48,10 +48,7 @@ use frame_support::{
     sp_runtime::RuntimeDebug,
     traits::{
         fungible::{self, HoldConsideration},
-        tokens::{
-            nonfungibles_v2::Inspect, GetSalary, Pay, PaymentStatus, Preservation,
-            UnityAssetBalanceConversion,
-        },
+        tokens::{Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion},
         ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
         WithdrawReasons,

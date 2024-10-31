@@ -41,11 +41,10 @@ use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use futures::prelude::*;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
-use sc_executor::NativeElseWasmExecutor;
 use sc_network::{
     event::Event, service::traits::NetworkService, NetworkBackend, NetworkEventStream,
 };
-use sc_network_sync::{service::network::Network, SyncingService};
+use sc_network_sync::SyncingService;
 use sc_offchain::OffchainDb;
 use sc_service::{
     config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager, WarpSyncConfig,
@@ -87,26 +86,6 @@ pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
-
-// Our native executor instance.
-pub struct ExecutorDispatch;
-
-impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
-    /// Only enable the benchmarking host functions when we actually want to benchmark.
-    #[cfg(feature = "runtime-benchmarks")]
-    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-    /// Otherwise we only use the default Substrate host functions.
-    #[cfg(not(feature = "runtime-benchmarks"))]
-    type ExtendHostFunctions = ();
-
-    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-        entropy_runtime::api::dispatch(method, data)
-    }
-
-    fn native_version() -> sc_executor::NativeVersion {
-        entropy_runtime::native_version()
-    }
-}
 
 /// Creates a new partial node.
 pub fn new_partial(
@@ -296,16 +275,6 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
     ),
     tss_server_endpoint: Option<String>,
 ) -> Result<NewFullBase, ServiceError> {
-    let is_offchain_indexing_enabled = config.offchain_worker.indexing_enabled;
-    let role = config.role;
-    let force_authoring = config.force_authoring;
-    // let backoff_authoring_blocks: =
-    // 	Some(sc_consensus_slots::BackoffAuthoringOnFinalizedHeadLagging::default());
-    let name = config.network.node_name.clone();
-    let enable_grandpa = !config.disable_grandpa;
-    let prometheus_registry = config.prometheus_registry().cloned();
-    let enable_offchain_worker = config.offchain_worker.enabled;
-
     let hwbench = (!disable_hardware_benchmarks)
         .then_some(config.database.path().map(|database_path| {
             let _ = std::fs::create_dir_all(database_path);
@@ -328,14 +297,12 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
         config.prometheus_config.as_ref().map(|cfg| &cfg.registry),
     );
     let shared_voter_state = rpc_setup;
-    let auth_disc_publish_non_global_ips = config.network.allow_non_globals_in_dht;
     let mut net_config = sc_network::config::FullNetworkConfiguration::<_, _, N>::new(
         &config.network,
         config.prometheus_config.as_ref().map(|cfg| cfg.registry.clone()),
     );
 
     let auth_disc_publish_non_global_ips = config.network.allow_non_globals_in_dht;
-    let auth_disc_public_addresses = config.network.public_addresses.clone();
 
     let peer_store_handle = net_config.peer_store_handle();
     let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");

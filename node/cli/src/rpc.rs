@@ -53,7 +53,6 @@ use jsonrpsee::RpcModule;
 use sc_client_api::AuxStore;
 use sc_consensus_babe::BabeWorkerHandle;
 use sc_rpc::SubscriptionTaskExecutor;
-pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
@@ -109,12 +108,7 @@ pub struct FullDeps<C, P, SC, B> {
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, backend, .. }: FullDeps<
-        C,
-        P,
-        SC,
-        B,
-    >,
+    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, .. }: FullDeps<C, P, SC, B>,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
@@ -138,7 +132,6 @@ where
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_consensus_grandpa_rpc::{Grandpa, GrandpaApiServer};
     use sc_rpc::dev::{Dev, DevApiServer};
-    use sc_rpc_spec_v2::chain_spec::{ChainSpec, ChainSpecApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
 
@@ -151,10 +144,6 @@ where
         subscription_executor,
         finality_provider,
     } = grandpa;
-
-    let chain_name = chain_spec.name().to_string();
-    let genesis_hash = client.hash(0).ok().flatten().expect("Genesis block exists; qed");
-    let properties = chain_spec.properties();
 
     io.merge(System::new(client.clone(), pool).into_rpc())?;
 

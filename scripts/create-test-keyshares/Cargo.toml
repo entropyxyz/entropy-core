@@ -14,7 +14,7 @@ entropy-testing-utils={ version="0.3.0-rc.1", path="../../crates/testing-utils" 
 tokio                ={ version="1.41", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 entropy-shared       ={ version="0.3.0-rc.1", path="../../crates/shared" }
 entropy-kvdb         ={ version="0.3.0-rc.1", path="../../crates/kvdb", default-features=false }
-sp-core              = "34.0.0"
+sp-core              ="34.0.0"
 
 # Unreleased version of Synedrion with support for child key derivations.
 synedrion={ version="0.2.0-beta.0" }
