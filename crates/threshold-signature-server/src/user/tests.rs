@@ -260,8 +260,14 @@ async fn test_signature_requests_fail_on_different_conditions() {
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: subxt::utils::H256(program_hash.into()), program_config: vec![] },
-            OtherProgramInstance { program_pointer: subxt::utils::H256(program_hash.into()), program_config: vec![] },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: vec![],
+            },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: vec![],
+            },
         ]),
     )
     .await
@@ -1200,7 +1206,8 @@ async fn test_device_key_proxy() {
     };
 
     // check to make sure config data stored properly
-    let program_query = entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));    
+    let program_query =
+        entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));
     let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
     let schema_config_device_key_proxy = schema_for!(UserConfig);
     let schema_aux_data_device_key_proxy = schema_for!(AuxData);

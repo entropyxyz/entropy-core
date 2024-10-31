@@ -327,13 +327,13 @@ fn it_deletes_when_no_bond_left() {
         assert_eq!(tss_account, 3);
         assert_eq!(Staking::threshold_to_stash(3).unwrap(), 2);
 
-        let mut lock = Balances::locks(2);
+        let mut lock = Balances::locks(&2u64);
         assert_eq!(lock[0].amount, 100);
         assert_eq!(lock.len(), 1);
 
         assert_ok!(FrameStaking::unbond(RuntimeOrigin::signed(2), 50u64,));
 
-        lock = Balances::locks(2);
+        lock = Balances::locks(&2u64);
         assert_eq!(lock[0].amount, 100);
         assert_eq!(lock.len(), 1);
         println!(":{:?}", FrameStaking::ledger(1.into()));
@@ -351,7 +351,7 @@ fn it_deletes_when_no_bond_left() {
             amount: 50,
         }));
 
-        lock = Balances::locks(2);
+        lock = Balances::locks(&2u64);
         assert_eq!(lock[0].amount, 50);
         assert_eq!(lock.len(), 1);
 
@@ -366,7 +366,7 @@ fn it_deletes_when_no_bond_left() {
         // make sure node info removed event happens
         System::assert_last_event(RuntimeEvent::Staking(crate::Event::NodeInfoRemoved(2)));
 
-        lock = Balances::locks(2);
+        lock = Balances::locks(&2u64);
         assert_eq!(lock.len(), 0);
         assert_eq!(Staking::threshold_server(2), None);
         assert_eq!(Staking::threshold_to_stash(3), None);

@@ -36,8 +36,8 @@
 #![recursion_limit = "512"]
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_election_provider_support::{
-    bounds::ElectionBoundsBuilder, generate_solution_type, onchain, BalancingConfig,
-    ElectionDataProvider, ExtendedBalance, NposSolution, SequentialPhragmen, VoteWeight,
+    bounds::ElectionBoundsBuilder, onchain, BalancingConfig, ElectionDataProvider, NposSolution,
+    SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
     construct_runtime,
@@ -47,14 +47,14 @@ use frame_support::{
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
-        fungible::{self, Credit, HoldConsideration},
+        fungible::{self, HoldConsideration},
         tokens::{
-            imbalance::ResolveTo, nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary,
-            Pay, PayFromAccount, PaymentStatus, Preservation, UnityAssetBalanceConversion,
+            nonfungibles_v2::Inspect, GetSalary, Pay, PaymentStatus, Preservation,
+            UnityAssetBalanceConversion,
         },
-        ConstU16, ConstU32, Contains, Currency, EitherOf, EitherOfDiverse, EqualPrivilegeOnly,
-        Imbalance, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier,
-        OnUnbalanced, WithdrawReasons,
+        ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
+        InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
+        WithdrawReasons,
     },
     weights::{
         constants::{
@@ -89,7 +89,6 @@ use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 pub use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_genesis_builder::PresetId;
 use sp_inherents::{CheckInherentsResult, InherentData};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -105,11 +104,7 @@ use sp_runtime::{
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
     Perquintill,
 };
-use sp_std::{
-    cmp::Ordering,
-    collections::{btree_map::BTreeMap, vec_deque::VecDeque},
-    prelude::*,
-};
+use sp_std::prelude::*;
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;

@@ -327,6 +327,7 @@ impl pallet_staking::Config for Test {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
     type VoterList = BagsList;
+    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
     type WeightInfo = ();
 }
 

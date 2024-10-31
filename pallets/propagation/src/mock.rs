@@ -263,6 +263,7 @@ impl pallet_staking::Config for Test {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
     type VoterList = BagsList;
+    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
     type WeightInfo = ();
 }
 
@@ -397,7 +398,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let stakers = vec![1, 2];
     let keys: Vec<_> = stakers.iter().cloned().map(|i| (i, i, UintAuthorityId(i).into())).collect();
 
-    pallet_session::GenesisConfig::<Test> { keys }.assimilate_storage(&mut t).unwrap();
+    pallet_session::GenesisConfig::<Test> { keys, non_authority_keys: vec![] }
+        .assimilate_storage(&mut t)
+        .unwrap();
 
     t.into()
 }

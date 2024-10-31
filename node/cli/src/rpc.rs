@@ -109,7 +109,12 @@ pub struct FullDeps<C, P, SC, B> {
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, backend, .. }: FullDeps<C, P, SC, B>,
+    FullDeps { client, pool, select_chain, chain_spec, babe, grandpa, backend, .. }: FullDeps<
+        C,
+        P,
+        SC,
+        B,
+    >,
 ) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>
@@ -132,9 +137,7 @@ where
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use sc_consensus_babe_rpc::{Babe, BabeApiServer};
     use sc_consensus_grandpa_rpc::{Grandpa, GrandpaApiServer};
-    use sc_rpc::{
-		dev::{Dev, DevApiServer},
-	};
+    use sc_rpc::dev::{Dev, DevApiServer};
     use sc_rpc_spec_v2::chain_spec::{ChainSpec, ChainSpecApiServer};
     use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
