@@ -61,8 +61,6 @@ sc-telemetry            = { version = "25.0.0" }
 sc-transaction-pool     = { version = "37.0.0" }
 sc-transaction-pool-api = { version = "37.0.0" }
 sc-rpc-spec-v2          = { version = "0.45.0" }
-sc-mixnet        = { version = "0.15.0" }
-sc-statement-store = { version = "19.0.1" }
 sc-network-statement = { version = "0.27.0" }
 
 # Substrate Primitives

@@ -43,8 +43,6 @@ sp-storage            = { version = "21.0.0", default-features = false, optional
 sp-transaction-pool   = { version = "34.0.0", default-features = false }
 sp-version            = { version = "37.0.0", default-features = false }
 sp-genesis-builder    = { version = "0.15.1", default-features = false }
-sp-statement-store  = { version = "18.0.0", default-features = false}
-sp-mixnet  = { version = "0.12.0", default-features = false}
 
 # FRAME Dependencies
 frame-benchmarking             = { version = "38.0.0", default-features = false, optional = true }
@@ -95,8 +93,6 @@ pallet-transaction-storage                   = { version = "37.0.0", default-fea
 pallet-treasury                              = { version = "37.0.0", default-features = false }
 pallet-utility                               = { version = "38.0.0", default-features = false }
 pallet-vesting                               = { version = "38.0.0", default-features = false }
-pallet-statement                               = { version = "20.0.0", default-features = false }
-pallet-mixnet                               = { version = "0.14.0", default-features = false }
 
 # Entropy Pallets
 pallet-programs         ={ version='0.3.0-rc.1', path='../pallets/programs', default-features=false }
@@ -164,8 +160,6 @@ std=[
   "pallet-slashing/std",
   "pallet-staking-extension/std",
   "pallet-staking/std",
-  "pallet-statement/std",
-  "pallet-mixnet/std",
   "pallet-sudo/std",
   "pallet-timestamp/std",
   "pallet-tips/std",
@@ -187,12 +181,10 @@ std=[
   "sp-io/std",
   "sp-npos-elections/std",
   "sp-offchain/std",
-  "sp-mixnet/std",
   "sp-runtime/std",
   "sp-session/std",
   "sp-staking/std",
   "sp-std/std",
-  "sp-statement-store/std",
   "sp-transaction-pool/std",
   "sp-version/std",
   "substrate-wasm-builder",

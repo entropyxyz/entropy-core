@@ -3411,7 +3411,6 @@ dependencies = [
  "sc-consensus-grandpa-rpc",
  "sc-consensus-slots",
  "sc-executor 0.40.1",
- "sc-mixnet 0.15.0",
  "sc-network 0.45.0",
  "sc-network-common 0.44.0",
  "sc-network-statement",
@@ -3421,7 +3420,6 @@ dependencies = [
  "sc-rpc-api 0.44.0",
  "sc-rpc-spec-v2 0.45.0",
  "sc-service 0.46.0",
- "sc-statement-store",
  "sc-storage-monitor",
  "sc-sync-state-rpc",
  "sc-sysinfo 38.0.0",
@@ -3604,7 +3602,6 @@ dependencies = [
  "pallet-im-online",
  "pallet-indices",
  "pallet-membership",
- "pallet-mixnet",
  "pallet-multisig",
  "pallet-nomination-pools",
  "pallet-nomination-pools-benchmarking",
@@ -3625,7 +3622,6 @@ dependencies = [
  "pallet-staking",
  "pallet-staking-extension",
  "pallet-staking-reward-curve",
- "pallet-statement",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-tips",
@@ -3646,13 +3642,11 @@ dependencies = [
  "sp-genesis-builder 0.15.1",
  "sp-inherents 34.0.0",
  "sp-io 38.0.0",
- "sp-mixnet 0.12.0",
  "sp-npos-elections",
  "sp-offchain 34.0.0",
  "sp-runtime 39.0.2",
  "sp-session 36.0.0",
  "sp-staking 36.0.0",
- "sp-statement-store 18.0.0",
  "sp-std",
  "sp-storage",
  "sp-transaction-pool 34.0.0",
@@ -14810,26 +14804,6 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.3",
  "sp-core 34.0.0",
-]
-
-[[package]]
-name = "sc-statement-store"
-version = "19.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8cc47300d1179d412a64c57962968a52734c9df140dc898d608c1828a71159f"
-dependencies = [
- "log",
- "parity-db",
- "parking_lot 0.12.3",
- "sc-client-api 37.0.0",
- "sc-keystore 33.0.0",
- "sp-api 34.0.0",
- "sp-blockchain 37.0.1",
- "sp-core 34.0.0",
- "sp-runtime 39.0.2",
- "sp-statement-store 18.0.0",
- "substrate-prometheus-endpoint",
- "tokio",
 ]
 
 [[package]]
