@@ -87,6 +87,7 @@ pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
+#[allow(clippy::type_complexity)]
 /// Creates a new partial node.
 pub fn new_partial(
     config: &Configuration,
@@ -388,7 +389,7 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
         }
     }
 
-    let role = config.role.clone();
+    let role = config.role;
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks =
         Some(sc_consensus_slots::BackoffAuthoringOnFinalizedHeadLagging::default());
@@ -586,24 +587,22 @@ pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceE
 
     let task_manager = match config.network.network_backend {
         sc_network::config::NetworkBackendType::Libp2p => {
-            let task_manager = new_full_base::<sc_network::NetworkWorker<_, _>>(
+            new_full_base::<sc_network::NetworkWorker<_, _>>(
                 config,
                 cli.no_hardware_benchmarks,
                 |_, _| (),
                 cli.tss_server_endpoint,
             )
-            .map(|NewFullBase { task_manager, .. }| task_manager)?;
-            task_manager
+            .map(|NewFullBase { task_manager, .. }| task_manager)?
         },
         sc_network::config::NetworkBackendType::Litep2p => {
-            let task_manager = new_full_base::<sc_network::Litep2pNetworkBackend>(
+            new_full_base::<sc_network::Litep2pNetworkBackend>(
                 config,
                 cli.no_hardware_benchmarks,
                 |_, _| (),
                 cli.tss_server_endpoint,
             )
-            .map(|NewFullBase { task_manager, .. }| task_manager)?;
-            task_manager
+            .map(|NewFullBase { task_manager, .. }| task_manager)?
         },
     };
 

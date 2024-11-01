@@ -79,6 +79,7 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
+#[allow(deprecated)]
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use scale_info::TypeInfo;
