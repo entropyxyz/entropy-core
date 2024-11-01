@@ -172,13 +172,18 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
+
+    let endpoint = b"http://localhost:3001";
     let x25519_public_key = NULL_ARR;
+    let quote = vec![0];
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
+    let validate_also = true;
+    prep_bond_and_validate::<T>(validate_also, caller.clone(), bonder.clone(), threshold,
+            x25519_public_key.clone());
 
-  }:  _(RawOrigin::Signed(bonder.clone()), vec![30])
+  }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
   verify {
-    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, vec![30]).into());
+    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, endpoint.to_vec()).into());
   }
 
   change_threshold_accounts {
@@ -189,12 +194,18 @@ benchmarks! {
     let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
     let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
     let threshold: T::AccountId = account("threshold", 0, SEED);
+
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold, NULL_ARR);
+    let pck = BoundedVec::try_from(MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec()).unwrap();
+    let quote = vec![0];
+
+    let validate_also = true;
+    prep_bond_and_validate::<T>(validate_also, caller.clone(), _bonder.clone(), threshold, x25519_public_key.clone());
+
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
 
-  }:  _(RawOrigin::Signed(_bonder.clone()), _bonder.clone(), NULL_ARR)
+  }:  _(RawOrigin::Signed(_bonder.clone()), _bonder.clone(), x25519_public_key.clone(), pck, quote)
   verify {
     let server_info = ServerInfo {
       endpoint: vec![20, 20],
