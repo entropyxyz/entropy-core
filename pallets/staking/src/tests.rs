@@ -202,17 +202,17 @@ fn it_doesnt_change_endpoint_with_invalid_quote() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: endpoint.clone(),
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
 
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info.clone(),
+            joining_server_info.clone(),
             VALID_QUOTE.to_vec(),
         ));
 
@@ -249,6 +249,7 @@ fn it_changes_threshold_account() {
             RuntimeOrigin::signed(1),
             4,
             NULL_ARR,
+            MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
             VALID_QUOTE.to_vec()
         ));
         assert_eq!(Staking::threshold_server(1).unwrap().tss_account, 4);
@@ -259,6 +260,7 @@ fn it_changes_threshold_account() {
                 RuntimeOrigin::signed(4),
                 5,
                 NULL_ARR,
+                MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::NotController
@@ -289,6 +291,7 @@ fn it_changes_threshold_account() {
                 RuntimeOrigin::signed(1),
                 5,
                 NULL_ARR,
+                MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::TssAccountAlreadyExists
@@ -300,6 +303,7 @@ fn it_changes_threshold_account() {
                 RuntimeOrigin::signed(1),
                 9,
                 NULL_ARR,
+                MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::NoChangingThresholdAccountWhenSigner
@@ -316,16 +320,16 @@ fn it_doesnt_allow_changing_threshold_account_with_invalid_quote() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let server_info = ServerInfo {
+        let joining_server_info = JoiningServerInfo {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
-            server_info.clone(),
+            joining_server_info.clone(),
             VALID_QUOTE.to_vec(),
         ));
 
@@ -334,6 +338,7 @@ fn it_doesnt_allow_changing_threshold_account_with_invalid_quote() {
                 RuntimeOrigin::signed(1),
                 4,
                 NULL_ARR,
+                MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
                 INVALID_QUOTE.to_vec()
             ),
             Error::<Test>::FailedAttestationCheck
@@ -388,6 +393,7 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
                 RuntimeOrigin::signed(1),
                 5,
                 NULL_ARR,
+                MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::TssAccountAlreadyExists
