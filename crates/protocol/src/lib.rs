@@ -46,6 +46,9 @@ use synedrion::{
     AuxInfo, ThresholdKeyShare,
 };
 
+pub const PROTOCOL_MESSAGE_VERSION: u32 = 1;
+pub const SUPPORTED_PROTOCOL_MESSAGE_VERSIONS: [u32; 1] = [1];
+
 /// Identifies a party participating in a protocol session
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartyId(AccountId32);

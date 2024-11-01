@@ -84,6 +84,9 @@ pub async fn open_protocol_connections(
                 .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
             let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
             if let Err(error_message) = subscribe_response {
+                // In future versions, we can check here if the error is
+                // SubscribeError::VersionTooNew(version)
+                // and if possible the downgrade protocol messages used to be backward compatible
                 return Err(ProtocolErr::BadSubscribeMessage(error_message));
             }
 
@@ -157,6 +160,10 @@ async fn handle_initial_incoming_ws_message(
 ) -> Result<(WsChannels, PartyId), SubscribeErr> {
     let msg: SubscribeMessage = bincode::deserialize(&serialized_subscribe_message)?;
     tracing::info!("Got ws connection, with message: {msg:?}");
+
+    // In future versions we may have backwards compatibility with the
+    // old version and be able to recover here
+    msg.check_supported()?;
 
     if !msg.verify()? {
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
