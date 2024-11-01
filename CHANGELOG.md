@@ -19,6 +19,9 @@ At the moment this project **does not** adhere to
   was added to the staking extension pallet's `Config` trait.
 - In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the ```no-sync``` option was removed
 
+### Added
+- Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
+
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
 - Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
