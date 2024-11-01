@@ -84,8 +84,7 @@ pub async fn open_protocol_connections(
                 .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
             let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
             if let Err(error_message) = subscribe_response {
-                // In future versions, we can check here if the error is
-                // SubscribeError::VersionTooNew(version)
+                // In future versions, we can check here if the error is VersionTooNew(version)
                 // and if possible the downgrade protocol messages used to be backward compatible
                 return Err(ProtocolErr::BadSubscribeMessage(error_message));
             }
