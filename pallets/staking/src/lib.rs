@@ -435,7 +435,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Allows a validator to change their assocated threshold server AccountID and X25519
+        /// Allows a validator to change their associated threshold server AccountID and X25519
         /// public key.
         ///
         /// # Expects TDX Quote

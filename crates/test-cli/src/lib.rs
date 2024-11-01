@@ -145,6 +145,11 @@ enum CliCommand {
     ChangeEndpoint {
         /// New endpoint to change to (ex. "127.0.0.1:3001")
         new_endpoint: String,
+        /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
+        quote: String,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -155,6 +160,13 @@ enum CliCommand {
         new_tss_account: String,
         /// New x25519 public key
         new_x25519_public_key: String,
+        /// The new Provisioning Certifiction Key (PCK) to be used for the TSS.
+        new_provisioning_certification_key: String,
+        /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
+        quote: String,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -433,7 +445,7 @@ pub async fn run_command(
 
             Ok("Got status".to_string())
         },
-        CliCommand::ChangeEndpoint { new_endpoint, mnemonic_option } => {
+        CliCommand::ChangeEndpoint { new_endpoint, quote, mnemonic_option } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
@@ -443,16 +455,16 @@ pub async fn run_command(
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("User account for current call: {}", user_keypair.public());
 
-            // TODO (Nando)
-            let quote = vec![0];
             let result_event =
-                change_endpoint(&api, &rpc, user_keypair, new_endpoint, quote).await?;
+                change_endpoint(&api, &rpc, user_keypair, new_endpoint, quote.into()).await?;
             println!("Event result: {:?}", result_event);
             Ok("Endpoint changed".to_string())
         },
         CliCommand::ChangeThresholdAccounts {
             new_tss_account,
             new_x25519_public_key,
+            new_provisioning_certification_key,
+            quote,
             mnemonic_option,
         } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
@@ -463,17 +475,14 @@ pub async fn run_command(
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("User account for current call: {}", user_keypair.public());
 
-            // TODO (Nando)
-            let quote = vec![0];
-            let new_pck = vec![0];
             let result_event = change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
-                new_pck,
-                quote,
+                new_provisioning_certification_key.into(),
+                quote.into(),
             )
             .await?;
             println!("Event result: {:?}", result_event);
