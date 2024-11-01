@@ -23,7 +23,7 @@ use entropy_testing_utils::{
     test_node_process_testing_state, ChainSpecType,
 };
 use serial_test::serial;
-use sp_core::{sr25519, Pair, H256};
+use sp_core::{sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use subxt::{tx::PairSigner, utils::AccountId32};
 
