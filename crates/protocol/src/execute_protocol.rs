@@ -15,6 +15,7 @@
 
 //! A wrapper for the threshold signing library to handle sending and receiving messages.
 
+use futures::future::try_join_all;
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
@@ -95,15 +96,13 @@ where
         // Send outgoing messages
         let destinations = session_arc.message_destinations();
         if !destinations.is_empty() {
-            // Channel for receiving message artifacts
-            let (artifact_tx, mut artifact_rx) = mpsc::channel(destinations.len());
+            let mut handles = Vec::new();
             for destination in destinations.iter() {
                 let session_arc = session_arc.clone();
                 let tx = tx.clone();
                 let my_id = my_id.clone();
-                let artifact_tx = artifact_tx.clone();
                 let destination = destination.clone();
-                tokio::spawn(async move {
+                let join_handle = tokio::spawn(async move {
                     let result = match session_arc.make_message(&mut OsRng, &destination) {
                         Ok((message, artifact)) => {
                             match tx.send(ProtocolMessage::new(&my_id, &destination, message)) {
@@ -116,16 +115,13 @@ where
                         },
                         Err(err) => Err(err.into()),
                     };
-                    if artifact_tx.send(result).await.is_err() {
-                        tracing::error!("Protocol finished before outgoing message artifact sent");
-                    }
+                    result
                 });
+                handles.push(join_handle)
             }
 
-            for _ in 0..destinations.len() {
-                if let Some(result) = artifact_rx.recv().await {
-                    accum.add_artifact(result?)?;
-                }
+            for result in try_join_all(handles).await? {
+                accum.add_artifact(result?)?;
             }
         }
 
