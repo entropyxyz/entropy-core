@@ -175,12 +175,23 @@ benchmarks! {
 
     let endpoint = b"http://localhost:3001";
     let x25519_public_key = NULL_ARR;
-    let quote = vec![0];
 
     let validate_also = true;
-    prep_bond_and_validate::<T>(validate_also, caller.clone(), bonder.clone(), threshold,
-            x25519_public_key.clone());
+    prep_bond_and_validate::<T>(
+            validate_also,caller.clone(),
+            bonder.clone(),
+            threshold.clone(),
+            x25519_public_key.clone()
+        );
 
+    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
+    let block_number = 1;
+    let quote = prepare_attestation_for_validate::<T>(
+            threshold,
+            x25519_public_key,
+            endpoint.clone().to_vec(),
+            block_number,
+        ).0;
   }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
   verify {
     assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, endpoint.to_vec()).into());
@@ -341,6 +352,7 @@ benchmarks! {
         x25519_public_key.clone()
     );
 
+    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
     let block_number = 1;
     let (quote, joining_server_info) =
         prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone(), block_number);
