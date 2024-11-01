@@ -95,58 +95,41 @@ where
 
         // Send outgoing messages
         let destinations = session_arc.message_destinations();
-        if !destinations.is_empty() {
-            let mut handles = Vec::new();
-            for destination in destinations.iter() {
-                let session_arc = session_arc.clone();
-                let tx = tx.clone();
-                let my_id = my_id.clone();
-                let destination = destination.clone();
-                let join_handle = tokio::spawn(async move {
-                    let result = match session_arc.make_message(&mut OsRng, &destination) {
-                        Ok((message, artifact)) => {
-                            match tx.send(ProtocolMessage::new(&my_id, &destination, message)) {
-                                Ok(_) => Ok(artifact),
-                                Err(err) => {
-                                    let err: GenericProtocolError<Res> = err.into();
-                                    Err(err)
-                                },
-                            }
-                        },
-                        Err(err) => Err(err.into()),
-                    };
-                    result
-                });
-                handles.push(join_handle)
-            }
+        let join_handles = destinations.iter().map(|destination| {
+            let session_arc = session_arc.clone();
+            let tx = tx.clone();
+            let my_id = my_id.clone();
+            let destination = destination.clone();
+            tokio::spawn(async move {
+                session_arc
+                    .make_message(&mut OsRng, &destination)
+                    .map(|(message, artifact)| {
+                        tx.send(ProtocolMessage::new(&my_id, &destination, message))
+                            .map(|_| artifact)
+                            .map_err(|err| {
+                                let err: GenericProtocolError<Res> = err.into();
+                                err
+                            })
+                    })
+                    .map_err(|err| {
+                        let err: GenericProtocolError<Res> = err.into();
+                        err
+                    })
+            })
+        });
 
-            for result in try_join_all(handles).await? {
-                accum.add_artifact(result?)?;
-            }
+        for result in try_join_all(join_handles).await? {
+            accum.add_artifact(result??)?;
         }
 
         // Process cached messages
-        if !cached_messages.is_empty() {
-            let cached_messages_len = cached_messages.len();
-            let (process_tx, mut process_rx) = mpsc::channel(cached_messages_len);
-            for preprocessed in cached_messages {
-                let session_arc = session_arc.clone();
-                let process_tx = process_tx.clone();
-                tokio::spawn(async move {
-                    let result = session_arc.process_message(&mut OsRng, preprocessed);
-                    if process_tx.send(result).await.is_err() {
-                        tracing::error!(
-                            "Protocol finished before cached message processing result sent"
-                        );
-                    }
-                });
-            }
+        let join_handles = cached_messages.into_iter().map(|preprocessed| {
+            let session_arc = session_arc.clone();
+            tokio::spawn(async move { session_arc.process_message(&mut OsRng, preprocessed) })
+        });
 
-            for _ in 0..cached_messages_len {
-                if let Some(result) = process_rx.recv().await {
-                    accum.add_processed_message(result?)??;
-                }
-            }
+        for result in try_join_all(join_handles).await? {
+            accum.add_processed_message(result?)??;
         }
 
         // Receive and process incoming messages
