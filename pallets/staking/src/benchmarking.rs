@@ -178,20 +178,22 @@ benchmarks! {
 
     let validate_also = true;
     prep_bond_and_validate::<T>(
-            validate_also,caller.clone(),
-            bonder.clone(),
-            threshold.clone(),
-            x25519_public_key.clone()
-        );
+        validate_also,
+        caller.clone(),
+        bonder.clone(),
+        threshold.clone(),
+        x25519_public_key.clone(),
+    );
 
     // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
     let block_number = 1;
     let quote = prepare_attestation_for_validate::<T>(
-            threshold,
-            x25519_public_key,
-            endpoint.clone().to_vec(),
-            block_number,
-        ).0;
+        threshold,
+        x25519_public_key,
+        endpoint.clone().to_vec(),
+        block_number,
+    )
+    .0;
   }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
   verify {
     assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, endpoint.to_vec()).into());
@@ -199,12 +201,17 @@ benchmarks! {
 
   change_threshold_accounts {
     let s in 0 .. MAX_SIGNERS as u32;
+
     let caller: T::AccountId = whitelisted_caller();
     let _bonder: T::AccountId = account("bond", 0, SEED);
 
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone()).or(Err(Error::<T>::InvalidValidatorId));
-    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone())
+        .or(Err(Error::<T>::InvalidValidatorId));
+    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+    let bonder: T::ValidatorId =
+        validator_id_res.expect("Issue converting account id into validator id");
 
     let threshold: T::AccountId = account("threshold", 0, SEED);
     let new_threshold: T::AccountId = account("new_threshold", 0, SEED);
@@ -214,21 +221,26 @@ benchmarks! {
     let pck = BoundedVec::try_from(MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec()).unwrap();
 
     let validate_also = true;
-    prep_bond_and_validate::<T>(validate_also, caller.clone(), _bonder.clone(), threshold.clone(),
-            x25519_public_key.clone());
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        _bonder.clone(),
+        threshold.clone(),
+        x25519_public_key.clone(),
+    );
 
     // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
     let block_number = 1;
     let quote = prepare_attestation_for_validate::<T>(
-            new_threshold.clone(),
-            x25519_public_key,
-            endpoint.clone().to_vec(),
-            block_number,
-        ).0;
+        new_threshold.clone(),
+        x25519_public_key,
+        endpoint.clone().to_vec(),
+        block_number,
+    )
+    .0;
 
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
-
   }:  _(RawOrigin::Signed(_bonder.clone()), new_threshold.clone(), x25519_public_key.clone(), pck,
         quote)
   verify {
