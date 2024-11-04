@@ -160,8 +160,8 @@ enum CliCommand {
         new_tss_account: String,
         /// New x25519 public key
         new_x25519_public_key: String,
-        /// The new Provisioning Certifiction Key (PCK) to be used for the TSS.
-        new_provisioning_certification_key: String,
+        /// The new Provisioning Certification Key (PCK) certificate chain to be used for the TSS.
+        new_pck_certificate_chain: Vec<String>,
         /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
         ///
         /// The quote format is specified in:
@@ -463,7 +463,7 @@ pub async fn run_command(
         CliCommand::ChangeThresholdAccounts {
             new_tss_account,
             new_x25519_public_key,
-            new_provisioning_certification_key,
+            new_pck_certificate_chain,
             quote,
             mnemonic_option,
         } => {
@@ -475,13 +475,15 @@ pub async fn run_command(
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             println!("User account for current call: {}", user_keypair.public());
 
+            let new_pck_certificate_chain =
+                new_pck_certificate_chain.iter().cloned().map(|i| i.into()).collect::<_>();
             let result_event = change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
-                new_provisioning_certification_key.into(),
+                new_pck_certificate_chain,
                 quote.into(),
             )
             .await?;
