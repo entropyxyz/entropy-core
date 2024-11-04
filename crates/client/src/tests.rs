@@ -118,9 +118,14 @@ async fn test_change_threshold_accounts() {
     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
     let nonce: [u8; 32] = nonce.try_into().unwrap();
 
-    let mut pck_seeder = StdRng::from_seed(tss_public_key.0);
+    let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
     let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
     let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
+
+    // Our runtime is using the mock `PckCertChainVerifier`, which means that the expected
+    // "certificate" basically is just our TSS account ID. This account needs to match the one
+    // used to sign the following `quote`.
+    let pck_certificate_chain = vec![tss_public_key.0.to_vec()];
 
     let quote = {
         // We need to add `1` here since the quote is being checked in the next block
@@ -143,7 +148,7 @@ async fn test_change_threshold_accounts() {
         one.into(),
         tss_public_key.to_string(),
         hex::encode(*x25519_public_key.as_bytes()),
-        encoded_pck.clone(),
+        pck_certificate_chain,
         quote,
     )
     .await
