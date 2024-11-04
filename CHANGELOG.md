@@ -15,12 +15,15 @@ At the moment this project **does not** adhere to
   structure, and the `NodeInfoChanged` event were removed from the Staking Extension pallet. The
   `AttestationHandler` config type was added to the Staking Extension pallet. The `KeyProvider` and
   `AttestationQueue` config types were removed from the Attestation pallet.
+- In [#1068](https://github.com/entropyxyz/entropy-core/pull/1068) an extra type `PckCertChainVerifier`
+  was added to the staking extension pallet's `Config` trait.
 - In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the ```no-sync``` option was removed
 - In [#1138](https://github.com/entropyxyz/entropy-core/pull/1138/) the substreate version was updated, this could cause changes to the chainspec file as well requires a stratagery for command line argument ```--public-addr``` and for handling ```node-key-generation```
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
 - Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
+- Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 - Update substrate version ([#1138](https://github.com/entropyxyz/entropy-core/pull/1138/))
 
