@@ -26,8 +26,8 @@ subxt      ={ version="0.38.0", default-features=false, optional=true }
 
 [features]
 default    =["std"]
-std        =["codec/std", "scale-info/std", "serde/std", "sp-runtime/std", "sp-std/std"]
-wasm       =["codec/std", "scale-info/std", "serde/std", "sp-std/std"]
+std        =["codec/std", "scale-info/std", "serde/std", "sp-runtime/std", "sp-std/std", "sp-core/std"]
+wasm       =["codec/std", "scale-info/std", "serde/std", "sp-std/std", "sp-core/std"]
 wasm-no-std=["sp-runtime"]
 user-native=["dep:subxt", "subxt/native"]
 user-wasm  =["dep:subxt", "subxt/web"]
