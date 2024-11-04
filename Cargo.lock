@@ -3497,6 +3497,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-create-test-keyshares"
+version = "0.3.0-rc.1"
+dependencies = [
+ "entropy-kvdb",
+ "entropy-shared",
+ "entropy-testing-utils",
+ "entropy-tss",
+ "sp-core 34.0.0",
+ "synedrion",
+ "tokio",
+]
+
+[[package]]
 name = "entropy-kvdb"
 version = "0.3.0-rc.1"
 dependencies = [
