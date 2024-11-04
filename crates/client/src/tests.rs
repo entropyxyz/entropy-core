@@ -103,7 +103,8 @@ async fn test_change_threshold_accounts() {
 
     // We need to give our new TSS account some funds before it can request an attestation.
     let dest = tss_signer_pair.account_id().clone().into();
-    let balance_transfer_tx = entropy::tx().balances().transfer_allow_death(dest, 100_000_000_000);
+    let amount = 10 * entropy_shared::MIN_BALANCE;
+    let balance_transfer_tx = entropy::tx().balances().transfer_allow_death(dest, amount);
     let _transfer_result = crate::substrate::submit_transaction_with_pair(
         &api,
         &rpc,
