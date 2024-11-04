@@ -133,7 +133,7 @@ fn prep_bond_and_validate<T: Config>(
 
     if validate_also {
         let block_number = 0;
-        let endpoint = vec![20, 20];
+        let endpoint = b"http://localhost:3001".to_vec();
         let (quote, joining_server_info) = prepare_attestation_for_validate::<T>(
             threshold,
             x25519_public_key,
@@ -217,7 +217,7 @@ benchmarks! {
     let new_threshold: T::AccountId = account("new_threshold", 0, SEED);
 
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    let endpoint = vec![20, 20]; // TODO: b"http://localhost:3001";
+    let endpoint = b"http://localhost:3001".to_vec();
     let pck = BoundedVec::try_from(MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec()).unwrap();
 
     let validate_also = true;
@@ -245,7 +245,7 @@ benchmarks! {
         quote)
   verify {
     let server_info = ServerInfo {
-      endpoint: vec![20, 20],
+      endpoint: b"http://localhost:3001".to_vec(),
       tss_account: new_threshold.clone(),
       x25519_public_key: NULL_ARR,
       provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
