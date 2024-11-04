@@ -218,7 +218,6 @@ benchmarks! {
 
     let x25519_public_key: [u8; 32] = NULL_ARR;
     let endpoint = b"http://localhost:3001".to_vec();
-    let pck = BoundedVec::try_from(MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec()).unwrap();
 
     let validate_also = true;
     prep_bond_and_validate::<T>(
@@ -231,18 +230,24 @@ benchmarks! {
 
     // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
     let block_number = 1;
-    let quote = prepare_attestation_for_validate::<T>(
+    let (quote , joining_server_info) = prepare_attestation_for_validate::<T>(
         new_threshold.clone(),
         x25519_public_key,
         endpoint.clone().to_vec(),
         block_number,
-    )
-    .0;
+    );
+
+    let pck_certificate_chain = joining_server_info.pck_certificate_chain;
 
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
-  }:  _(RawOrigin::Signed(_bonder.clone()), new_threshold.clone(), x25519_public_key.clone(), pck,
-        quote)
+  }:  _(
+        RawOrigin::Signed(_bonder.clone()),
+        new_threshold.clone(),
+        x25519_public_key.clone(),
+        pck_certificate_chain,
+        quote
+    )
   verify {
     let server_info = ServerInfo {
       endpoint: b"http://localhost:3001".to_vec(),

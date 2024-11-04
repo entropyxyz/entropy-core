@@ -454,7 +454,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
-            provisioning_certification_key: VerifyingKey,
+            pck_certificate_chain: Vec<Vec<u8>>,
             quote: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -473,6 +473,13 @@ pub mod pallet {
                 !signers.contains(&validator_id),
                 Error::<T>::NoChangingThresholdAccountWhenSigner
             );
+
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(pck_certificate_chain)
+                    .map_err(|error| {
+                        let e: Error<T> = error.into();
+                        e
+                    })?;
 
             let new_server_info: ServerInfo<T::AccountId> = ThresholdServers::<T>::try_mutate(
                 &validator_id,
