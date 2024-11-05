@@ -57,7 +57,6 @@ use entropy_testing_utils::{
     substrate_context::{test_node_process_testing_state, testing_context},
     test_context_stationary,
 };
-use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
@@ -105,8 +104,8 @@ async fn test_reshare_basic() {
     }
 
     // Get all validators
-    let validators_query = entropy::storage().session().validators();
-    let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
+    // let validators_query = entropy::storage().session().validators();
+    // let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
 
     // Get stash account of a non-signer, to become the new signer
     // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses

@@ -47,9 +47,7 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvMa
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
-use entropy_shared::{OcwMessageDkg, EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
-use futures::future::join_all;
-use parity_scale_codec::Encode;
+use entropy_shared::{EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
 use std::time::Duration;
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
@@ -371,28 +369,6 @@ pub async fn do_jump_start(
 
     run_to_block(rpc, block_number + 1).await;
 
-    // let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
-    // let validators_info =
-    //     query_chain(api, rpc, selected_validators_query, None).await.unwrap().unwrap();
-    // let validators_info: Vec<_> = validators_info.into_iter().map(|v| v.0).collect();
-    // let onchain_user_request =
-    //     OcwMessageDkg { block_number, validators_info: validators_info.clone() };
-
-    // let client = reqwest::Client::new();
-
-    // let mut results = vec![];
-    // for validator_info in validators_info {
-    //     let url = format!(
-    //         "http://{}/generate_network_key",
-    //         std::str::from_utf8(&validator_info.ip_address.clone()).unwrap()
-    //     );
-    // if url != *"http://127.0.0.1:3001/generate_network_key" {
-    //     results.push(client.post(url).body(onchain_user_request.clone().encode()).send())
-    // }
-    // }
-
-    // let response_results = join_all(results).await;
-
     let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
     let mut jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
         .await
@@ -414,9 +390,6 @@ pub async fn do_jump_start(
     }
 
     assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
-    // for response_result in response_results {
-    //     assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    // }
 }
 
 /// Submit a jumpstart extrinsic

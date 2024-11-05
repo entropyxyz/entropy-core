@@ -26,7 +26,7 @@ use entropy_client::{
     Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::{OcwMessageReshare, TEST_RESHARE_BLOCK_NUMBER};
+use entropy_shared::TEST_RESHARE_BLOCK_NUMBER;
 use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
@@ -34,9 +34,8 @@ use entropy_testing_utils::{
     spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
 use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger, run_to_block};
-use futures::future::join_all;
 use serial_test::serial;
-use sp_core::{Encode, Pair};
+use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use synedrion::k256::ecdsa::VerifyingKey;
@@ -58,6 +57,14 @@ async fn integration_test_register_sign_reshare_sign() {
 
     // First jumpstart the network
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+
+    let initial_signers = {
+        let signer_query = entropy::storage().staking_extension().signers();
+        query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap()
+    };
+
+    // Do a reshare
+    wait_for_reshare(&api, &rpc, initial_signers).await;
 
     // Now register an account
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -113,9 +120,6 @@ async fn integration_test_register_sign_reshare_sign() {
         recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
     );
 
-    // Do a reshare
-    do_reshare(&api, &rpc).await;
-
     // Sign a message again
     let recoverable_signature = test_client::sign(
         &api,
@@ -142,76 +146,51 @@ async fn integration_test_register_sign_reshare_sign() {
     );
 }
 
-async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<EntropyConfig>) {
-    // Get current signers
-    let signer_query = entropy::storage().staking_extension().signers();
-    let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-    let mut signers = Vec::new();
-    for signer in signer_stash_accounts.iter() {
-        let query = entropy::storage().staking_extension().threshold_servers(signer);
-        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-        signers.push(server_info);
-    }
-
+async fn wait_for_reshare(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    initial_signers: Vec<AccountId32>,
+) {
     let reshare_data_query = entropy::storage().staking_extension().reshare_data();
     let reshare_data = query_chain(&api, &rpc, reshare_data_query, None).await.unwrap().unwrap();
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    dbg!(block_number);
+    println!("reshare_data {reshare_data:?}");
 
-    let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    let onchain_reshare_request = OcwMessageReshare {
-        new_signers: reshare_data.new_signers.into_iter().map(|s| s.to_vec()).collect(),
-        block_number: block_number - 1,
-    };
-
+    let block_number = TEST_RESHARE_BLOCK_NUMBER + 20;
     run_to_block(&rpc, block_number).await;
-    // Send the OCW message to all TS servers who don't have a chain node
-    let client = reqwest::Client::new();
-    let response_results = join_all(
-        [3002, 3003, 3004]
-            .iter()
-            .map(|port| {
-                client
-                    .post(format!("http://127.0.0.1:{}/validator/reshare", port))
-                    .body(onchain_reshare_request.clone().encode())
-                    .send()
-            })
-            .collect::<Vec<_>>(),
-    )
-    .await;
-    for response_result in response_results {
-        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    }
 
-    let new_signers = {
-        let signer_query = entropy::storage().staking_extension().signers();
-        let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-        let mut signers = Vec::new();
-        for signer in signer_ids {
-            let query = entropy::storage().staking_extension().threshold_servers(signer);
-            let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-            signers.push(server_info);
-        }
-        signers
-    };
+    // let new_signers = {
+    //     let signer_query = entropy::storage().staking_extension().signers();
+    //     let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    //     let mut signers = Vec::new();
+    //     for signer in signer_ids {
+    //         let query = entropy::storage().staking_extension().threshold_servers(signer);
+    //         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+    //         signers.push(server_info);
+    //     }
+    //     signers
+    // };
 
     // Tell TS servers who do not have an associated chain node to rotate their keyshare.
     // This is called by the chain on getting confirmation of the reshare from all of the new
     // signing group.
-    for signer in new_signers {
-        let _ = client
-            .post(format!(
-                "http://{}/rotate_network_key",
-                std::str::from_utf8(&signer.endpoint).unwrap()
-            ))
-            .send()
-            .await
-            .unwrap();
-    }
+    // for signer in new_signers {
+    //     let _ = client
+    //         .post(format!(
+    //             "http://{}/rotate_network_key",
+    //             std::str::from_utf8(&signer.endpoint).unwrap()
+    //         ))
+    //         .send()
+    //         .await
+    //         .unwrap();
+    // }
 
     // Check that the signers have changed since before the reshare
     let signer_query = entropy::storage().staking_extension().signers();
     let new_signer_stash_accounts =
         query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-    let old: HashSet<[u8; 32]> = signer_stash_accounts.iter().map(|s| s.0).collect();
+    let old: HashSet<[u8; 32]> = initial_signers.iter().map(|s| s.0).collect();
     let new: HashSet<[u8; 32]> = new_signer_stash_accounts.iter().map(|s| s.0).collect();
     assert_ne!(old, new);
 }
