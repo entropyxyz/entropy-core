@@ -139,6 +139,10 @@ pub enum SubscribeErr {
     UserError(String),
     #[error("Listener: {0}")]
     Listener(#[from] entropy_protocol::errors::ListenerErr),
+    #[error("Protocol version mismatch: {0}")]
+    VersionMismatch(
+        #[from] entropy_protocol::protocol_transport::errors::ProtocolVersionMismatchError,
+    ),
 }
 
 impl IntoResponse for SubscribeErr {

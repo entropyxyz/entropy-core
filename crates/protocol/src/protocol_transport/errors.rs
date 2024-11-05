@@ -65,3 +65,12 @@ pub enum EncryptedConnectionErr {
     #[error("Could not get remote public key")]
     RemotePublicKey,
 }
+
+/// Error when checking supported protocol versions
+#[derive(Debug, Error, PartialEq)]
+pub enum ProtocolVersionMismatchError {
+    #[error("This version of the protocol is newer than ours - we are on version {0}")]
+    VersionTooNew(u32),
+    #[error("This version of the protocol is no longer supported - the oldest we support is {0}")]
+    VersionTooOld(u32),
+}
