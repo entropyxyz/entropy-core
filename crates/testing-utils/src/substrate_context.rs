@@ -116,8 +116,6 @@ pub async fn test_node_process_testing_state(
         "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38"
             .to_string(),
     );
-    // reduses message from chain to same TSS cleaning up a lot of logging
-    let fuck_off_tss_ip = Some("127.0.0.1:4010".to_string());
     let result = test_node(
         AccountKeyring::Alice,
         "--chain=integration-tests".to_string(),
@@ -130,7 +128,7 @@ pub async fn test_node_process_testing_state(
         "--chain=integration-tests".to_string(),
         force_authoring,
         alice_bootnode.clone(),
-        fuck_off_tss_ip.clone(),
+        Some("http://127.0.0.1:3002".into()),
     )
     .await;
     let result_charlie = test_node_process_with(
@@ -138,7 +136,7 @@ pub async fn test_node_process_testing_state(
         "--chain=integration-tests".to_string(),
         force_authoring,
         alice_bootnode.clone(),
-        fuck_off_tss_ip.clone(),
+        Some("http://127.0.0.1:3003".into()),
     )
     .await;
     let result_dave = test_node_process_with(
@@ -146,7 +144,7 @@ pub async fn test_node_process_testing_state(
         "--chain=integration-tests".to_string(),
         force_authoring,
         alice_bootnode.clone(),
-        fuck_off_tss_ip.clone(),
+        Some("http://127.0.0.1:3004".into()),
     )
     .await;
 
