@@ -38,8 +38,9 @@ use entropy_testing_utils::{
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY,
-        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE, TEST_ORACLE_BYTECODE,
-        TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, X25519_PUBLIC_KEYS,
+        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
+        TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
+        X25519_PUBLIC_KEYS,
     },
     substrate_context::{
         test_context_stationary, test_node_process_testing_state, testing_context,
@@ -1172,13 +1173,12 @@ async fn test_oracle_program() {
     let test_user_res =
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
-    
+
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
-            decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+        decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
     let all_signers_info = get_all_signers_from_chain(&api, &rpc).await.unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
-
 }
 
 #[tokio::test]
