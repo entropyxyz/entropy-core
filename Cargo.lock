@@ -2577,8 +2577,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b5d04ed1473cf2ddf65364adfa473f4f4127132525342e85ca15adf97f2cb9"
+source = "git+https://github.com/entropyxyz/programs.git?branch=Allow-multiple-oracle-inputs#840ea0ec0adef942a4452eec7542c8d486dc3e83"
 dependencies = [
  "getrandom 0.2.15",
  "serde",
@@ -2589,8 +2588,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-runtime"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a50c0e3e7224af04d8bebc6994f7428796de5f88861c89291644f2a85a44d3c"
+source = "git+https://github.com/entropyxyz/programs.git?branch=Allow-multiple-oracle-inputs#840ea0ec0adef942a4452eec7542c8d486dc3e83"
 dependencies = [
  "entropy-programs-core",
  "thiserror",

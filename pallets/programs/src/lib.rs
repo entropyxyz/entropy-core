@@ -108,7 +108,7 @@ pub mod pallet {
                         configuration_schema: program_info.2.clone(),
                         auxiliary_data_schema: program_info.3.clone(),
                         deployer: program_info.4.clone(),
-                        oracle_data_pointer: vec![],
+                        oracle_data_pointers: vec![],
                         ref_counter: program_info.5,
                         version_number: 0,
                     },
@@ -138,8 +138,8 @@ pub mod pallet {
         /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
         /// actors.
         pub auxiliary_data_schema: Vec<u8>,
-        /// The location of the oracle data needed for this program
-        pub oracle_data_pointer: Vec<u8>,
+        /// The locations of the oracle data needed for this program
+        pub oracle_data_pointers: Vec<Vec<u8>>,
         /// Deployer of the program
         pub deployer: AccountId,
         /// Accounts that use this program
@@ -184,8 +184,8 @@ pub mod pallet {
             /// The new program auxiliary data schema.
             auxiliary_data_schema: Vec<u8>,
 
-            /// The oracle data location needed for the program
-            oracle_data_pointer: Vec<u8>,
+            /// The oracle data locations needed for the program
+            oracle_data_pointers: Vec<Vec<u8>>,
 
             /// The version number of runtime for which the program was written
             version_number: u8,
@@ -230,7 +230,7 @@ pub mod pallet {
             new_program: Vec<u8>,
             configuration_schema: Vec<u8>,
             auxiliary_data_schema: Vec<u8>,
-            oracle_data_pointer: Vec<u8>,
+            oracle_data_pointers: Vec<Vec<u8>>,
             version_number: u8,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
@@ -238,16 +238,18 @@ pub mod pallet {
             hash_input.extend(&new_program);
             hash_input.extend(&configuration_schema);
             hash_input.extend(&auxiliary_data_schema);
-            hash_input.extend(&oracle_data_pointer);
+            // TODO: fix
+            // hash_input.extend(&oracle_data_pointers);
             hash_input.extend(&vec![version_number]);
             let program_hash = T::Hashing::hash(&hash_input);
+            // TODO: handle length check here better
             let new_program_length = new_program
                 .len()
                 .checked_add(configuration_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
                 .checked_add(auxiliary_data_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
-                .checked_add(oracle_data_pointer.len())
+                .checked_add(oracle_data_pointers.len())
                 .ok_or(Error::<T>::ArithmeticError)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
@@ -263,7 +265,7 @@ pub mod pallet {
                     bytecode: new_program.clone(),
                     configuration_schema: configuration_schema.clone(),
                     auxiliary_data_schema: auxiliary_data_schema.clone(),
-                    oracle_data_pointer: oracle_data_pointer.clone(),
+                    oracle_data_pointers: oracle_data_pointers.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
                     version_number,
@@ -283,7 +285,7 @@ pub mod pallet {
                 program_hash,
                 configuration_schema,
                 auxiliary_data_schema,
-                oracle_data_pointer,
+                oracle_data_pointers,
                 version_number,
             });
             Ok(())
@@ -303,12 +305,13 @@ pub mod pallet {
                 Self::programs(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
             ensure!(old_program_info.deployer == deployer, Error::<T>::NotAuthorized);
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
+            // TODO: handle length check here better
             Self::unreserve_program_deposit(
                 &old_program_info.deployer,
                 old_program_info.bytecode.len()
                     + old_program_info.configuration_schema.len()
                     + old_program_info.auxiliary_data_schema.len()
-                    + old_program_info.oracle_data_pointer.len(),
+                    + old_program_info.oracle_data_pointers.len(),
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
