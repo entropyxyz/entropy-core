@@ -75,6 +75,9 @@ pub mod pallet {
         /// The maximum amount of owned programs.
         type MaxOwnedPrograms: Get<u32>;
 
+        /// The maximum amount of oracle lookups allowed.
+        type MaxOracleLookups: Get<u32>;
+
         /// The amount to charge, per byte, for storing a program on-chain.
         type ProgramDepositPerByte: Get<BalanceOf<Self>>;
 
@@ -84,6 +87,8 @@ pub mod pallet {
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
+
+    pub type OraclePointers<T> = BoundedVec<Vec<u8>, <T as Config>::MaxOracleLookups>;
 
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
@@ -108,7 +113,7 @@ pub mod pallet {
                         configuration_schema: program_info.2.clone(),
                         auxiliary_data_schema: program_info.3.clone(),
                         deployer: program_info.4.clone(),
-                        oracle_data_pointers: vec![],
+                        oracle_data_pointers: BoundedVec::try_from([].to_vec()).unwrap(),
                         ref_counter: program_info.5,
                         version_number: 0,
                     },
@@ -123,7 +128,8 @@ pub mod pallet {
 
     /// Information on the program
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-    pub struct ProgramInfo<AccountId> {
+    #[scale_info(skip_type_params(T))]
+    pub struct ProgramInfo<T: Config> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
         /// The schema for the Program's configuration parameters.
@@ -139,9 +145,9 @@ pub mod pallet {
         /// actors.
         pub auxiliary_data_schema: Vec<u8>,
         /// The locations of the oracle data needed for this program
-        pub oracle_data_pointers: Vec<Vec<u8>>,
+        pub oracle_data_pointers: OraclePointers<T>,
         /// Deployer of the program
-        pub deployer: AccountId,
+        pub deployer: T::AccountId,
         /// Accounts that use this program
         pub ref_counter: u128,
         /// The user submitted version number of the program's runtime
@@ -154,7 +160,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T::AccountId>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T>, OptionQuery>;
 
     /// Maps an account to all the programs it owns
     #[pallet::storage]
@@ -185,7 +191,7 @@ pub mod pallet {
             auxiliary_data_schema: Vec<u8>,
 
             /// The oracle data locations needed for the program
-            oracle_data_pointers: Vec<Vec<u8>>,
+            oracle_data_pointers: OraclePointers<T>,
 
             /// The version number of runtime for which the program was written
             version_number: u8,
@@ -230,7 +236,7 @@ pub mod pallet {
             new_program: Vec<u8>,
             configuration_schema: Vec<u8>,
             auxiliary_data_schema: Vec<u8>,
-            oracle_data_pointers: Vec<Vec<u8>>,
+            oracle_data_pointers: OraclePointers<T>,
             version_number: u8,
         ) -> DispatchResult {
             let deployer = ensure_signed(origin)?;
@@ -384,7 +390,7 @@ pub mod pallet {
 
         /// Gets hash input and length of each oracle data pointer
         pub fn get_length_and_hash_of_oracle(
-            oracle_datas: &Vec<Vec<u8>>,
+            oracle_datas: &OraclePointers<T>,
             mut hash_input: Vec<u8>,
         ) -> Result<(usize, Vec<u8>), Error<T>> {
             let mut length: usize = 0;
