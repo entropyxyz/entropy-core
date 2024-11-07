@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_support::{assert_noop, assert_ok, traits::Currency};
+use frame_support::{assert_noop, assert_ok, traits::Currency, BoundedVec};
 use pallet_balances::Error as BalancesError;
 use sp_runtime::traits::Hash;
 
@@ -29,7 +29,7 @@ fn set_program() {
         let program_2 = vec![12u8, 13u8];
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
-        let oracle_data_pointers = vec![vec![16u8]];
+        let oracle_data_pointers = BoundedVec::try_from([vec![16u8]].to_vec()).unwrap();
         let version_number = 0u8;
         let too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
         let mut hash_input: Vec<u8> = vec![];
@@ -133,7 +133,7 @@ fn remove_program() {
         let program = vec![10u8, 11u8];
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
-        let oracle_data_pointers = vec![vec![16u8]];
+        let oracle_data_pointers = BoundedVec::try_from([vec![16u8]].to_vec()).unwrap();
         let version_number = 0u8;
         let mut hash_input: Vec<u8> = vec![];
         hash_input.extend(&program);
@@ -211,7 +211,7 @@ fn remove_program_fails_ref_count() {
         let program_hash = <Test as frame_system::Config>::Hashing::hash(&program);
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
-        let oracle_data_pointers = vec![vec![16u8]];
+        let oracle_data_pointers = BoundedVec::try_from([vec![16u8]].to_vec()).unwrap();
         let version_number = 0u8;
 
         Programs::<Test>::insert(

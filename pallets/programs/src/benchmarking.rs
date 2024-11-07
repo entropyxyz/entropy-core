@@ -44,16 +44,17 @@ benchmarks! {
     let program = vec![10];
     let configuration_schema = vec![11];
     let auxiliary_data_schema = vec![12];
-    let oracle_data_pointers = vec![vec![13]];
+    let oracle_data_pointers = BoundedVec::try_from([vec![13u8]].to_vec()).unwrap();
     let version_number = 0u8;
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
     hash_input.extend(&configuration_schema);
     hash_input.extend(&auxiliary_data_schema);
-    // hash_input.extend(&oracle_data_pointers);
     hash_input.extend(&vec![version_number]);
+    let (_oracle_length, hash_input_with_oracle) =
+    ProgramsPallet::<T>::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input).unwrap();
 
-    let program_hash = T::Hashing::hash(&hash_input);
+    let program_hash = T::Hashing::hash(&hash_input_with_oracle);
     let deployer: T::AccountId = whitelisted_caller();
     let sig_req_account: T::AccountId = whitelisted_caller();
 
@@ -86,16 +87,17 @@ benchmarks! {
     let program = vec![10];
     let configuration_schema = vec![11];
     let auxiliary_data_schema = vec![12];
-    let oracle_data_pointers = vec![vec![13]];
+    let oracle_data_pointers = BoundedVec::try_from([vec![13u8]].to_vec()).unwrap();
     let version_number = 0u8;
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
     hash_input.extend(&configuration_schema);
     hash_input.extend(&auxiliary_data_schema);
-    // hash_input.extend(&oracle_data_pointers);
     hash_input.extend(&vec![version_number]);
+    let (_oracle_length, hash_input_with_oracle) =
+    ProgramsPallet::<T>::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input).unwrap();
 
-    let program_hash = T::Hashing::hash(&hash_input);
+    let program_hash = T::Hashing::hash(&hash_input_with_oracle);
     let random_program = vec![11];
     let random_hash =  T::Hashing::hash(&random_program);
     let deployer: T::AccountId = whitelisted_caller();
