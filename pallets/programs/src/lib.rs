@@ -238,18 +238,19 @@ pub mod pallet {
             hash_input.extend(&new_program);
             hash_input.extend(&configuration_schema);
             hash_input.extend(&auxiliary_data_schema);
-            // TODO: fix
-            // hash_input.extend(&oracle_data_pointers);
+
             hash_input.extend(&vec![version_number]);
-            let program_hash = T::Hashing::hash(&hash_input);
-            // TODO: handle length check here better
+            let (oracle_length, hash_input_with_oracle) =
+                Self::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)?;
+            let program_hash = T::Hashing::hash(&hash_input_with_oracle);
+
             let new_program_length = new_program
                 .len()
                 .checked_add(configuration_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
                 .checked_add(auxiliary_data_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
-                .checked_add(oracle_data_pointers.len())
+                .checked_add(oracle_length)
                 .ok_or(Error::<T>::ArithmeticError)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
@@ -305,13 +306,18 @@ pub mod pallet {
                 Self::programs(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
             ensure!(old_program_info.deployer == deployer, Error::<T>::NotAuthorized);
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
-            // TODO: handle length check here better
+
+            let mut oracle_length: usize = 0;
+            for oracle_data_pointer in old_program_info.oracle_data_pointers {
+                oracle_length = oracle_length + oracle_data_pointer.len();
+            }
+
             Self::unreserve_program_deposit(
                 &old_program_info.deployer,
                 old_program_info.bytecode.len()
                     + old_program_info.configuration_schema.len()
                     + old_program_info.auxiliary_data_schema.len()
-                    + old_program_info.oracle_data_pointers.len(),
+                    + oracle_length,
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
@@ -374,6 +380,20 @@ pub mod pallet {
             }
 
             Ok(())
+        }
+
+        /// Gets hash input and length of each oracle data pointer
+        pub fn get_length_and_hash_of_oracle(
+            oracle_datas: &Vec<Vec<u8>>,
+            mut hash_input: Vec<u8>,
+        ) -> Result<(usize, Vec<u8>), Error<T>> {
+            let mut length: usize = 0;
+            for oracle_data in oracle_datas {
+                hash_input.extend(oracle_data);
+                length =
+                    length.checked_add(oracle_data.len()).ok_or(Error::<T>::ArithmeticError)?;
+            }
+            Ok((length, hash_input))
         }
     }
 }

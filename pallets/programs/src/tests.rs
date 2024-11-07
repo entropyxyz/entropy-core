@@ -36,10 +36,12 @@ fn set_program() {
         hash_input.extend(&program);
         hash_input.extend(&configuration_schema);
         hash_input.extend(&auxiliary_data_schema);
-        // hash_input.extend(&oracle_data_pointers);
         hash_input.extend(&vec![version_number]);
+        let (_oracle_length, hash_input_with_oracle) =
+            ProgramsPallet::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)
+                .unwrap();
 
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input);
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input_with_oracle);
         // can't pay deposit
         assert_noop!(
             ProgramsPallet::set_program(
@@ -137,9 +139,12 @@ fn remove_program() {
         hash_input.extend(&program);
         hash_input.extend(&configuration_schema);
         hash_input.extend(&auxiliary_data_schema);
-        // hash_input.extend(&oracle_data_pointers);
         hash_input.extend(&vec![version_number]);
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input);
+
+        let (_oracle_length, hash_input_with_oracle) =
+            ProgramsPallet::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)
+                .unwrap();
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input_with_oracle);
 
         // no program
         assert_noop!(
