@@ -44,13 +44,13 @@ benchmarks! {
     let program = vec![10];
     let configuration_schema = vec![11];
     let auxiliary_data_schema = vec![12];
-    let oracle_data_pointer = vec![13];
+    let oracle_data_pointers = vec![vec![13]];
     let version_number = 0u8;
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
     hash_input.extend(&configuration_schema);
     hash_input.extend(&auxiliary_data_schema);
-    hash_input.extend(&oracle_data_pointer);
+    // hash_input.extend(&oracle_data_pointers);
     hash_input.extend(&vec![version_number]);
 
     let program_hash = T::Hashing::hash(&hash_input);
@@ -65,7 +65,7 @@ benchmarks! {
       program.clone(),
       configuration_schema.clone(),
       auxiliary_data_schema.clone(),
-      oracle_data_pointer.clone(),
+      oracle_data_pointers.clone(),
       version_number
   )
   verify {
@@ -75,7 +75,7 @@ benchmarks! {
             program_hash,
             configuration_schema,
             auxiliary_data_schema,
-            oracle_data_pointer,
+            oracle_data_pointers,
             version_number
         }.into()
     );
@@ -86,13 +86,13 @@ benchmarks! {
     let program = vec![10];
     let configuration_schema = vec![11];
     let auxiliary_data_schema = vec![12];
-    let oracle_data_pointer = vec![13];
+    let oracle_data_pointers = vec![vec![13]];
     let version_number = 0u8;
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
     hash_input.extend(&configuration_schema);
     hash_input.extend(&auxiliary_data_schema);
-    hash_input.extend(&oracle_data_pointer);
+    // hash_input.extend(&oracle_data_pointers);
     hash_input.extend(&vec![version_number]);
 
     let program_hash = T::Hashing::hash(&hash_input);
@@ -102,7 +102,7 @@ benchmarks! {
 
     let value = CurrencyOf::<T>::minimum_balance().saturating_mul(1_000_000_000u32.into());
     let _ = CurrencyOf::<T>::make_free_balance_be(&deployer, value);
-    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, oracle_data_pointer, deployer: deployer.clone(), ref_counter: 0u128, version_number});
+    <Programs<T>>::insert(program_hash.clone(), ProgramInfo {bytecode: program, configuration_schema, auxiliary_data_schema, oracle_data_pointers, deployer: deployer.clone(), ref_counter: 0u128, version_number});
     let mut program_hashes = vec![random_hash.clone(); p as usize];
     // remove one to make room for the targetted removal program hash
     program_hashes.pop();
