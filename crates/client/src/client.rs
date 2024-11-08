@@ -217,7 +217,7 @@ pub async fn store_program(
         program,
         configuration_interface,
         auxiliary_data_interface,
-        oracle_data_pointer,
+        BoundedVec(oracle_data_pointer),
         version_number,
     );
     let in_block =
@@ -290,7 +290,7 @@ pub async fn get_accounts(
 pub async fn get_programs(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<Vec<(H256, ProgramInfo<<EntropyConfig as Config>::AccountId>)>, ClientError> {
+) -> Result<Vec<(H256, ProgramInfo)>, ClientError> {
     let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
 
     let storage_address = entropy::storage().programs().programs_iter();

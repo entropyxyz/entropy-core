@@ -41,10 +41,11 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 benchmarks! {
 
   set_program {
+    let o in 0 .. T::MaxOracleLookups::get();
     let program = vec![10];
     let configuration_schema = vec![11];
     let auxiliary_data_schema = vec![12];
-    let oracle_data_pointers = BoundedVec::try_from([vec![13u8]].to_vec()).unwrap();
+    let oracle_data_pointers = BoundedVec::try_from([vec![13u8; o as usize]].to_vec()).unwrap();
     let version_number = 0u8;
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);
@@ -84,10 +85,12 @@ benchmarks! {
 
   remove_program {
     let p in 0..T::MaxOwnedPrograms::get();
+    let o in 0 .. T::MaxOracleLookups::get();
+
     let program = vec![10];
     let configuration_schema = vec![11];
     let auxiliary_data_schema = vec![12];
-    let oracle_data_pointers = BoundedVec::try_from([vec![13u8]].to_vec()).unwrap();
+    let oracle_data_pointers = BoundedVec::try_from([vec![13u8; o as usize]].to_vec()).unwrap();
     let version_number = 0u8;
     let mut hash_input: Vec<u8> = vec![];
     hash_input.extend(&program);

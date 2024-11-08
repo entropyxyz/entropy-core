@@ -52,7 +52,7 @@ pub async fn get_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     program_pointer: &<EntropyConfig as Config>::Hash,
-) -> Result<ProgramInfo<AccountId32>, UserErr> {
+) -> Result<ProgramInfo, UserErr> {
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
     let program_info = query_chain(api, rpc, bytecode_address, None)
         .await?

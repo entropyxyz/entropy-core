@@ -230,7 +230,7 @@ pub mod pallet {
         ///
         /// Note that the caller becomes the deployer account.
         #[pallet::call_index(0)]
-        #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
+        #[pallet::weight({<T as Config>::WeightInfo::set_program(<T as Config>::MaxOracleLookups::get())})]
         pub fn set_program(
             origin: OriginFor<T>,
             new_program: Vec<u8>,
@@ -238,7 +238,7 @@ pub mod pallet {
             auxiliary_data_schema: Vec<u8>,
             oracle_data_pointers: OraclePointers<T>,
             version_number: u8,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
@@ -292,17 +292,18 @@ pub mod pallet {
                 program_hash,
                 configuration_schema,
                 auxiliary_data_schema,
-                oracle_data_pointers,
+                oracle_data_pointers: oracle_data_pointers.clone(),
                 version_number,
             });
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::set_program(oracle_data_pointers.len() as u32))
+                .into())
         }
 
         /// Removes a program at a specific hash
         ///
         /// Caller must be the deployer account for said program.
         #[pallet::call_index(1)]
-        #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOwnedPrograms::get())})]
+        #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOracleLookups::get(), <T as Config>::MaxOwnedPrograms::get())})]
         pub fn remove_program(
             origin: OriginFor<T>,
             program_hash: T::Hash,
@@ -314,8 +315,8 @@ pub mod pallet {
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
 
             let mut oracle_length: usize = 0;
-            for oracle_data_pointer in old_program_info.oracle_data_pointers {
-                oracle_length = oracle_length + oracle_data_pointer.len();
+            for oracle_data_pointer in &old_program_info.oracle_data_pointers {
+                oracle_length += oracle_data_pointer.len();
             }
 
             Self::unreserve_program_deposit(
@@ -340,7 +341,11 @@ pub mod pallet {
             )?;
             Programs::<T>::remove(program_hash);
             Self::deposit_event(Event::ProgramRemoved { deployer, old_program_hash: program_hash });
-            Ok(Some(<T as Config>::WeightInfo::remove_program(owned_programs_length as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::remove_program(
+                old_program_info.oracle_data_pointers.len() as u32,
+                owned_programs_length as u32,
+            ))
+            .into())
         }
     }
 

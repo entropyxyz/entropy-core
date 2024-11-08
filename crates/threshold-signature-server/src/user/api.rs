@@ -689,7 +689,7 @@ pub async fn pre_sign_checks(
 
     for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
         let program_info = get_program(api, rpc, &program_data.program_pointer).await?;
-        let oracle_data = get_oracle_data(api, rpc, program_info.oracle_data_pointers).await?;
+        let oracle_data = get_oracle_data(api, rpc, program_info.oracle_data_pointers.0).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
         runtime.evaluate(
