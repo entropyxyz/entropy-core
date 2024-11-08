@@ -88,7 +88,7 @@ fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, User
     Ok(static_secret)
 }
 
-/// For testing where we sometimes don't have access to the kvdb, derive directly from the mnemnic
+/// For testing where we sometimes don't have access to the kvdb, derive directly from the mnemonic
 #[cfg(any(test, feature = "test_helpers"))]
 pub fn get_signer_and_x25519_secret_from_mnemonic(
     mnemonic: &str,
