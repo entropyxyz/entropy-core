@@ -31,6 +31,10 @@ pub enum GenericProtocolError<Res: ProtocolResult> {
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Mpsc send error: {0}")]
     Mpsc(#[from] tokio::sync::mpsc::error::SendError<ProtocolMessage>),
+    #[error("Could not get session out of Arc - session has finalized before message processing finished")]
+    ArcUnwrapError,
+    #[error("Message processing task panic or cancellation: {0}")]
+    JoinHandle(#[from] tokio::task::JoinError),
 }
 
 impl<Res: ProtocolResult> From<sessions::LocalError> for GenericProtocolError<Res> {
@@ -61,6 +65,8 @@ impl From<GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>>
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
             GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
         }
     }
 }
@@ -73,6 +79,8 @@ impl From<GenericProtocolError<KeyInitResult<KeyParams, PartyId>>> for ProtocolE
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
             GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
         }
     }
 }
@@ -85,6 +93,8 @@ impl From<GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>> for Prot
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
             GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
         }
     }
 }
@@ -97,6 +107,8 @@ impl From<GenericProtocolError<AuxGenResult<KeyParams, PartyId>>> for ProtocolEx
             GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
             GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
             GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
         }
     }
 }
@@ -136,6 +148,10 @@ pub enum ProtocolExecutionErr {
     BadVerifyingKey(String),
     #[error("Expected verifying key but got a protocol message")]
     UnexpectedMessage,
+    #[error("Could not get session out of Arc")]
+    ArcUnwrapError,
+    #[error("Message processing task panic or cancellation: {0}")]
+    JoinHandle(#[from] tokio::task::JoinError),
 }
 
 #[derive(Debug, Error)]
