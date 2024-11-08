@@ -341,8 +341,10 @@ pub async fn change_endpoint(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_keypair: sr25519::Pair,
     new_endpoint: String,
+    quote: Vec<u8>,
 ) -> anyhow::Result<EndpointChanged> {
-    let change_endpoint_tx = entropy::tx().staking_extension().change_endpoint(new_endpoint.into());
+    let change_endpoint_tx =
+        entropy::tx().staking_extension().change_endpoint(new_endpoint.into(), quote);
     let in_block =
         submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
     let result_event = in_block
@@ -358,13 +360,18 @@ pub async fn change_threshold_accounts(
     user_keypair: sr25519::Pair,
     new_tss_account: String,
     new_x25519_public_key: String,
+    new_pck_certificate_chain: Vec<Vec<u8>>,
+    quote: Vec<u8>,
 ) -> anyhow::Result<ThresholdAccountChanged> {
     let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
+    let x25519_public_key = hex::decode(new_x25519_public_key)?
+        .try_into()
+        .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
     let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
         tss_account,
-        hex::decode(new_x25519_public_key)?
-            .try_into()
-            .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?,
+        x25519_public_key,
+        new_pck_certificate_chain,
+        quote,
     );
     let in_block =
         submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)
@@ -413,4 +420,34 @@ async fn jumpstart_inner(
     }
 
     Ok(())
+}
+
+/// An extrinsic to indicate to the chain that it should expect an attestation from the `signer` at
+/// some point in the near future.
+///
+/// The returned `nonce` must be used when generating a `quote` for the chain.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        attestee = ?attestee.public(),
+    )
+)]
+pub async fn request_attestation(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    attestee: sr25519::Pair,
+) -> Result<Vec<u8>, ClientError> {
+    tracing::debug!("{} is requesting an attestation.", attestee.public());
+
+    let request_attestation = entropy::tx().attestation().request_attestation();
+
+    let result =
+        submit_transaction_with_pair(api, rpc, &attestee, &request_attestation, None).await?;
+    let result_event = result
+        .find_first::<entropy::attestation::events::AttestationIssued>()?
+        .ok_or(crate::errors::SubstrateError::NoEvent)?;
+
+    let nonce = result_event.0;
+
+    Ok(nonce)
 }
