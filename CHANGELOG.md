@@ -17,7 +17,10 @@ At the moment this project **does not** adhere to
   `AttestationQueue` config types were removed from the Attestation pallet.
 - In [#1068](https://github.com/entropyxyz/entropy-core/pull/1068) an extra type `PckCertChainVerifier`
   was added to the staking extension pallet's `Config` trait.
-- In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the ```no-sync``` option was removed
+- In [#1123](https://github.com/entropyxyz/entropy-core/pull/1123/) the `change_endpoint()` and
+  `change_threshold_accounts()` extrinsics got new TDX `quote` related parameters added.
+- In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the `--no-sync` option was
+  removed.
 - In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept 
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
@@ -29,6 +32,7 @@ runtime
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
 - Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
 - Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
+- Add quote guards to `ServerInfo` related extrinsics ([#1123](https://github.com/entropyxyz/entropy-core/pull/1123/))
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 

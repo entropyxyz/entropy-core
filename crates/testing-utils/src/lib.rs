@@ -27,3 +27,5 @@ pub use entropy_tss::helpers::tests::{
 };
 pub use node_proc::TestNodeProcess;
 pub use substrate_context::*;
+
+pub use entropy_tss::helpers::validator::get_signer_and_x25519_secret_from_mnemonic;
