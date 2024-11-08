@@ -46,6 +46,13 @@ use synedrion::{
     AuxInfo, ThresholdKeyShare,
 };
 
+/// The current version number of the protocol message format or protocols themselves
+pub const PROTOCOL_MESSAGE_VERSION: u32 = 1;
+
+/// Currently supported protocol message versions for backward compatibility
+/// This must contain the current version
+pub const SUPPORTED_PROTOCOL_MESSAGE_VERSIONS: [u32; 1] = [PROTOCOL_MESSAGE_VERSION];
+
 /// Identifies a party participating in a protocol session
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartyId(AccountId32);

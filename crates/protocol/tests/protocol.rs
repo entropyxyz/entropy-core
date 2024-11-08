@@ -22,7 +22,7 @@ use futures::future;
 use rand_core::OsRng;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
-use std::time::Instant;
+use std::{cmp::min, time::Instant};
 use subxt::utils::AccountId32;
 use synedrion::{ecdsa::VerifyingKey, AuxInfo, KeyShare, ThresholdKeyShare};
 use tokio::{net::TcpListener, runtime::Runtime, sync::oneshot};
@@ -33,37 +33,40 @@ use helpers::{server, ProtocolOutput};
 
 use std::collections::BTreeSet;
 
+/// The maximum number of worker threads that tokio should use
+const MAX_THREADS: usize = 16;
+
 #[test]
 #[serial]
 fn sign_protocol_with_time_logged() {
-    let cpus = num_cpus::get();
-    get_tokio_runtime(cpus).block_on(async {
-        test_sign_with_parties(cpus).await;
+    let num_parties = min(num_cpus::get(), MAX_THREADS);
+    get_tokio_runtime(num_parties).block_on(async {
+        test_sign_with_parties(num_parties).await;
     })
 }
 
 #[test]
 #[serial]
 fn refresh_protocol_with_time_logged() {
-    let cpus = num_cpus::get();
-    get_tokio_runtime(cpus).block_on(async {
-        test_refresh_with_parties(cpus).await;
+    let num_parties = min(num_cpus::get(), MAX_THREADS);
+    get_tokio_runtime(num_parties).block_on(async {
+        test_refresh_with_parties(num_parties).await;
     })
 }
 
 #[test]
 #[serial]
 fn dkg_protocol_with_time_logged() {
-    let cpus = num_cpus::get();
-    get_tokio_runtime(cpus).block_on(async {
-        test_dkg_with_parties(cpus).await;
+    let num_parties = min(num_cpus::get(), MAX_THREADS);
+    get_tokio_runtime(num_parties).block_on(async {
+        test_dkg_with_parties(num_parties).await;
     })
 }
 
 #[test]
 #[serial]
 fn t_of_n_dkg_and_sign() {
-    let cpus = num_cpus::get();
+    let cpus = min(num_cpus::get(), MAX_THREADS);
     // For this test we need at least 3 parties
     let parties = 3;
     get_tokio_runtime(cpus).block_on(async {

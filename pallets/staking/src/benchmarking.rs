@@ -16,6 +16,7 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
 use super::*;
+use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
 use entropy_shared::{AttestationHandler, MAX_SIGNERS};
@@ -29,8 +30,8 @@ use frame_support::{
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
 use pallet_staking::{
-    Event as FrameStakingEvent, MaxNominationsOf, Nominations, Pallet as FrameStaking,
-    RewardDestination, ValidatorPrefs,
+    Event as FrameStakingEvent, MaxNominationsOf, MaxValidatorsCount, Nominations,
+    Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
 };
 use sp_std::{vec, vec::Vec};
 
@@ -71,6 +72,46 @@ pub fn create_validators<T: Config>(
     validators
 }
 
+/// Sets up a mock quote and requests an attestation in preparation for calling the `validate`
+/// extrinsic
+fn prepare_attestation_for_validate<T: Config>(
+    threshold: T::AccountId,
+    x25519_public_key: [u8; 32],
+    endpoint: Vec<u8>,
+    block_number: u32,
+) -> (Vec<u8>, JoiningServerInfo<T::AccountId>) {
+    let nonce = NULL_ARR;
+    let quote = {
+        let pck = signing_key_from_seed(NULL_ARR);
+        /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
+        const ATTESTATION_KEY: [u8; 32] = [
+            167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59,
+            73, 31, 27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
+        ];
+
+        let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
+
+        let input_data =
+            entropy_shared::QuoteInputData::new(&threshold, x25519_public_key, nonce, block_number);
+
+        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
+    };
+
+    let joining_server_info = JoiningServerInfo {
+        tss_account: threshold.clone(),
+        x25519_public_key,
+        endpoint,
+        // Since we are using the mock PckCertChainVerifier, this needs to be the same seed for
+        // generating the PCK as we used to sign the quote above
+        pck_certificate_chain: vec![NULL_ARR.to_vec()],
+    };
+
+    // We need to tell the attestation handler that we want a quote. This will let the system to
+    // know to expect one back when we call `validate()`.
+    T::AttestationHandler::request_quote(&threshold, nonce);
+    (quote, joining_server_info)
+}
+
 fn prep_bond_and_validate<T: Config>(
     validate_also: bool,
     caller: T::AccountId,
@@ -91,22 +132,19 @@ fn prep_bond_and_validate<T: Config>(
     ));
 
     if validate_also {
-        let server_info = ServerInfo {
-            tss_account: threshold,
+        let block_number = 0;
+        let endpoint = b"http://localhost:3001".to_vec();
+        let (quote, joining_server_info) = prepare_attestation_for_validate::<T>(
+            threshold,
             x25519_public_key,
-            endpoint: vec![20, 20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
-        };
-
-        // Note: This isn't a valid quote, but for testing benches this will pass.
-        //
-        // For actually running benches a valid quote will be required in the future.
-        let quote = [0; 32].to_vec();
+            endpoint,
+            block_number,
+        );
 
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
             ValidatorPrefs::default(),
-            server_info.clone(),
+            joining_server_info.clone(),
             quote,
         ));
 
@@ -114,7 +152,17 @@ fn prep_bond_and_validate<T: Config>(
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
 
-        ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+        ThresholdToStash::<T>::insert(&joining_server_info.tss_account, &validator_id);
+
+        let server_info = ServerInfo {
+            tss_account: joining_server_info.tss_account,
+            x25519_public_key: joining_server_info.x25519_public_key,
+            endpoint: joining_server_info.endpoint,
+            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
+                .to_vec()
+                .try_into()
+                .unwrap(),
+        };
         ThresholdServers::<T>::insert(&validator_id, server_info);
     }
 }
@@ -124,35 +172,88 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
+
+    let endpoint = b"http://localhost:3001";
     let x25519_public_key = NULL_ARR;
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
+    let validate_also = true;
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        bonder.clone(),
+        threshold.clone(),
+        x25519_public_key.clone(),
+    );
 
-  }:  _(RawOrigin::Signed(bonder.clone()), vec![30])
+    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
+    let block_number = 1;
+    let quote = prepare_attestation_for_validate::<T>(
+        threshold,
+        x25519_public_key,
+        endpoint.clone().to_vec(),
+        block_number,
+    )
+    .0;
+  }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
   verify {
-    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, vec![30]).into());
+    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, endpoint.to_vec()).into());
   }
 
   change_threshold_accounts {
     let s in 0 .. MAX_SIGNERS as u32;
+
     let caller: T::AccountId = whitelisted_caller();
     let _bonder: T::AccountId = account("bond", 0, SEED);
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone()).or(Err(Error::<T>::InvalidValidatorId));
-    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
+
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone())
+        .or(Err(Error::<T>::InvalidValidatorId));
+    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+    let bonder: T::ValidatorId =
+        validator_id_res.expect("Issue converting account id into validator id");
+
     let threshold: T::AccountId = account("threshold", 0, SEED);
+    let new_threshold: T::AccountId = account("new_threshold", 0, SEED);
+
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold, NULL_ARR);
+    let endpoint = b"http://localhost:3001".to_vec();
+
+    let validate_also = true;
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        _bonder.clone(),
+        threshold.clone(),
+        x25519_public_key.clone(),
+    );
+
+    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
+    let block_number = 1;
+    let (quote , joining_server_info) = prepare_attestation_for_validate::<T>(
+        new_threshold.clone(),
+        x25519_public_key,
+        endpoint.clone().to_vec(),
+        block_number,
+    );
+
+    let pck_certificate_chain = joining_server_info.pck_certificate_chain;
+
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
-
-  }:  _(RawOrigin::Signed(_bonder.clone()), _bonder.clone(), NULL_ARR)
+  }:  _(
+        RawOrigin::Signed(_bonder.clone()),
+        new_threshold.clone(),
+        x25519_public_key.clone(),
+        pck_certificate_chain,
+        quote
+    )
   verify {
     let server_info = ServerInfo {
-      endpoint: vec![20, 20],
-      tss_account: _bonder.clone(),
+      endpoint: b"http://localhost:3001".to_vec(),
+      tss_account: new_threshold.clone(),
       x25519_public_key: NULL_ARR,
-      provisioning_certification_key: BoundedVec::with_max_capacity(),
+      provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
     };
     assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
   }
@@ -269,10 +370,9 @@ benchmarks! {
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
-    let block_number = 1;
     let nonce = NULL_ARR;
     let x25519_public_key = NULL_ARR;
-    let endpoint = b"http://localhost:3001".to_vec();
+    let endpoint = vec![];
     let validate_also = false;
 
     prep_bond_and_validate::<T>(
@@ -283,48 +383,11 @@ benchmarks! {
         x25519_public_key.clone()
     );
 
-    /// This is a randomly generated secret p256 ECDSA key - for mocking the provisioning certification
-    /// key
-    const PCK: [u8; 32] = [
-        117, 153, 212, 7, 220, 16, 181, 32, 110, 138, 4, 68, 208, 37, 104, 54, 1, 110, 232, 207, 100,
-        168, 16, 99, 66, 83, 21, 178, 81, 155, 132, 37,
-    ];
-
-    let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
-    let provisioning_certification_key = BoundedVec::try_from(pck_encoded.to_vec()).unwrap();
-
-    let quote = {
-        /// This is a randomly generated secret p256 ECDSA key - for mocking attestation
-        const ATTESTATION_KEY: [u8; 32] = [
-            167, 184, 203, 130, 240, 249, 191, 129, 206, 9, 200, 29, 99, 197, 64, 81, 135, 166, 59, 73, 31,
-            27, 206, 207, 69, 248, 56, 195, 64, 92, 109, 46,
-        ];
-
-        let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
-
-        let input_data = entropy_shared::QuoteInputData::new(
-            &threshold_account,
-            x25519_public_key,
-            nonce,
-            block_number,
-        );
-
-        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
-    };
-
-    let server_info = ServerInfo {
-        tss_account: threshold_account.clone(),
-        x25519_public_key,
-        endpoint: endpoint.clone(),
-        provisioning_certification_key,
-    };
-
-    // We need to tell the attestation handler that we want a quote. This will let the system to
-    // know to expect one back when we call `validate()`.
-    T::AttestationHandler::request_quote(&threshold_account, nonce);
-
-  }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), server_info, quote)
+    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
+    let block_number = 1;
+    let (quote, joining_server_info) =
+        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone(), block_number);
+  }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), joining_server_info, quote)
   verify {
     assert_last_event::<T>(
         Event::<T>::ValidatorCandidateAccepted(
@@ -334,16 +397,6 @@ benchmarks! {
             endpoint
         ).into()
     );
-  }
-
-  declare_synced {
-    let caller: T::AccountId = whitelisted_caller();
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    ThresholdToStash::<T>::insert(caller.clone(), validator_id_res.clone());
-
-  }:  _(RawOrigin::Signed(caller.clone()), true)
-  verify {
-    assert_last_event::<T>(Event::<T>::ValidatorSyncStatus(validator_id_res,  true).into());
   }
 
   confirm_key_reshare_confirmed {
@@ -427,13 +480,27 @@ benchmarks! {
   new_session {
     let c in 1 .. MAX_SIGNERS as u32 - 1;
     let l in 0 .. MAX_SIGNERS as u32;
+    let v in 50 .. 100 as u32;
+    let r in 0 .. MAX_SIGNERS as u32;
+
+    // c -> current signer size
+    // l -> Add in new_signer rounds so next signer is in current signer re-run checks
+    // v -> number of validators, 100 is fine as a bounder, can add more
+    // r -> adds remove indexes in
 
     let caller: T::AccountId = whitelisted_caller();
+    let mut validator_ids = create_validators::<T>(v, 1);
+    let second_signer: T::AccountId = account("second_signer", 0, 10);
+    let second_signer_id =
+        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
+            .or(Err(Error::<T>::InvalidValidatorId))
+            .unwrap();
+    let mut signers = vec![second_signer_id.clone(); c as usize];
 
     // For the purpose of the bench these values don't actually matter, we just care that there's a
     // storage entry available
     SignersInfo::<T>::put(SignersSize {
-        total_signers: MAX_SIGNERS,
+        total_signers: 5,
         threshold: 3,
         last_session_change: 0,
     });
@@ -442,23 +509,20 @@ benchmarks! {
         .or(Err(Error::<T>::InvalidValidatorId))
         .unwrap();
 
-    let second_signer: T::AccountId = account("second_signer", 0, SEED);
-    let second_signer_id =
-        <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
-            .or(Err(Error::<T>::InvalidValidatorId))
-            .unwrap();
-
-    // full signer list leaving room for one extra validator
-    let mut signers = vec![second_signer_id.clone(); c as usize];
-
-    Signers::<T>::put(signers.clone());
-    signers.push(second_signer_id.clone());
-
     // place new signer in the signers struct in different locations to calculate random selection
     // re-run
-    signers[l as usize % c as usize] = validator_id.clone();
+    // as well validators may be dropped before chosen
+    signers[l as usize % c as usize] = validator_ids[l as usize % c as usize].clone();
+
+    // place signers into validators so they won't get dropped
+    for i in 0 .. r {
+      if i > signers.len() as u32 && i > validator_ids.len() as u32 {
+        validator_ids[i as usize] = signers[i as usize].clone();
+      }
+    }
+    Signers::<T>::put(signers.clone());
   }:  {
-    let _ = Staking::<T>::new_session_handler(&signers);
+    let _ = Staking::<T>::new_session_handler(&validator_ids);
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());

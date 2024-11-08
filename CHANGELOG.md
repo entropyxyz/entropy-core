@@ -22,10 +22,21 @@ At the moment this project **does not** adhere to
 ### Added
 - [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) adds an `/info` route to `entropy-tss`
   which can be used to get the TSS account ID and x25519 public key.
+- In [#1068](https://github.com/entropyxyz/entropy-core/pull/1068) an extra type `PckCertChainVerifier`
+  was added to the staking extension pallet's `Config` trait.
+- In [#1123](https://github.com/entropyxyz/entropy-core/pull/1123/) the `change_endpoint()` and
+  `change_threshold_accounts()` extrinsics got new TDX `quote` related parameters added.
+- In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the `--no-sync` option was
+  removed.
+- Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
+
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
 - Change attestation flow to be pull based ([#1109](https://github.com/entropyxyz/entropy-core/pull/1109/))
+- Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
+- Add quote guards to `ServerInfo` related extrinsics ([#1123](https://github.com/entropyxyz/entropy-core/pull/1123/))
+- Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 
 ## [0.3.0-rc.1](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0-rc.1) - 2024-10-04
 

@@ -37,6 +37,7 @@ use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec;
 
 use crate as pallet_staking_extension;
+use pallet_staking_extension::pck::MockPckCertChainVerifier;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -385,7 +386,7 @@ impl pallet_parameters::Config for Test {
 }
 
 parameter_types! {
-  pub const MaxEndpointLength: u32 = 3;
+  pub const MaxEndpointLength: u32 = 25;
 }
 
 pub(crate) const VALID_QUOTE: [u8; 32] = [0; 32];
@@ -419,6 +420,7 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type PckCertChainVerifier = MockPckCertChainVerifier;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
