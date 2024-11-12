@@ -48,7 +48,7 @@ use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::{EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
-use std::time::Duration;
+use std::{fmt, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -132,6 +132,22 @@ pub enum ChainSpecType {
     Development,
     /// The integration test chainspec, which has 4 TSS nodes
     Integration,
+    /// The integration test chainspec, starting in a pre-jumpstarted state
+    IntegrationJumpStarted,
+}
+
+impl fmt::Display for ChainSpecType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ChainSpecType::Development => "dev",
+                ChainSpecType::Integration => "integration-tests",
+                ChainSpecType::IntegrationJumpStarted => "integration-tests-jumpstarted",
+            },
+        )
+    }
 }
 
 /// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if

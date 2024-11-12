@@ -81,6 +81,9 @@ impl SubstrateCli for Cli {
             "integration-tests" => {
                 Box::new(chain_spec::integration_tests::integration_tests_config())
             },
+            "integration-tests-jumpstarted" => {
+                Box::new(chain_spec::integration_tests::integration_tests_jumpstarted_config())
+            },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
             "testnet" => Box::new(chain_spec::testnet::testnet_config()),
             path => {

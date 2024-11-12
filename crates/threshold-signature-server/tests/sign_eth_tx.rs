@@ -16,7 +16,7 @@
 use entropy_client::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     client as test_client, Hasher,
 };
@@ -24,7 +24,8 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{decode_verifying_key, RecoverableSignature};
 use entropy_testing_utils::{
     constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
-    spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
+    helpers::spawn_tss_nodes_and_start_chain,
+    ChainSpecType,
 };
 use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
 use ethers_core::{
@@ -49,14 +50,8 @@ async fn integration_test_sign_eth_tx() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
-
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let (api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // First jumpstart the network
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;

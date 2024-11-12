@@ -36,7 +36,7 @@ use core::convert::TryInto;
 
 pub use pallet::*;
 use pallet_staking::{MaxNominationsOf, ValidatorPrefs};
-#[cfg(feature = "std")]
+// #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
@@ -191,7 +191,17 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::AccountId, T::ValidatorId, OptionQuery>;
 
     #[derive(
-        Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default,
+        Encode,
+        Decode,
+        Clone,
+        PartialEq,
+        Eq,
+        RuntimeDebug,
+        TypeInfo,
+        MaxEncodedLen,
+        Default,
+        Serialize,
+        Deserialize,
     )]
     pub enum JumpStartStatus {
         #[default]
@@ -211,6 +221,8 @@ pub mod pallet {
         RuntimeDebug,
         TypeInfo,
         frame_support::DefaultNoBound,
+        Serialize,
+        Deserialize,
     )]
     #[scale_info(skip_type_params(T))]
     pub struct JumpStartDetails<T: Config> {
@@ -264,6 +276,9 @@ pub mod pallet {
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
         /// validator info and account new signer to take part in a reshare
         pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
+        /// Whether to begin in an already jumpstarted state in order to be able to test signing
+        /// using pre-generated keyshares
+        pub jump_start_state: Option<JumpStartDetails<T>>,
     }
 
     #[pallet::genesis_build]
@@ -308,8 +323,14 @@ pub mod pallet {
                     new_signers,
                 })
             }
+
+            if let Some(jump_start_details) = &self.jump_start_state {
+                Signers::<T>::put(jump_start_details.confirmations.clone());
+                JumpStartProgress::<T>::put(jump_start_details);
+            }
         }
     }
+
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {

@@ -20,7 +20,7 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get, ChainSpecType,
+            unsafe_get,
         },
     },
 };
@@ -32,6 +32,7 @@ use entropy_shared::{
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_context_stationary, test_node_process_testing_state},
+    ChainSpecType,
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
@@ -44,9 +45,10 @@ use sp_keyring::AccountKeyring;
 async fn test_proactive_refresh() {
     initialize_test_logger().await;
     clean_tests();
-    let _cxt = &test_node_process_testing_state(false).await[0];
+    let _cxt = &test_node_process_testing_state(ChainSpecType::Integration, false).await[0];
 
-    let (validator_ips, _ids) = spawn_testing_validators(ChainSpecType::Integration).await;
+    let (validator_ips, _ids) =
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
     let signing_committee_ips = &validator_ips[..3].to_vec();
 
     let client = reqwest::Client::new();

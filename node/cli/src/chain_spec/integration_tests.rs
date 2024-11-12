@@ -31,6 +31,7 @@ use entropy_shared::{
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_staking_extension::{JumpStartDetails, JumpStartStatus};
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -61,6 +62,39 @@ pub fn integration_tests_config() -> ChainSpec {
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                 get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
             ],
+            None,
+        ))
+        .build()
+}
+
+pub fn integration_tests_jumpstarted_config() -> ChainSpec {
+    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+        .with_name("Integration Test")
+        .with_id("integration_tests")
+        .with_chain_type(ChainType::Development)
+        .with_genesis_config_patch(integration_tests_genesis_config(
+            vec![
+                crate::chain_spec::authority_keys_from_seed("Alice"),
+                crate::chain_spec::authority_keys_from_seed("Bob"),
+                crate::chain_spec::authority_keys_from_seed("Charlie"),
+                crate::chain_spec::authority_keys_from_seed("Dave"),
+            ],
+            vec![],
+            get_account_id_from_seed::<sr25519::Public>("Alice"),
+            vec![
+                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+            ],
+            Some(JumpStartDetails {
+                jump_start_status: JumpStartStatus::Done,
+                confirmations: vec![
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                ],
+                verifying_key: Some(BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap()),
+                parent_key_threshold: 2, // TODO use constant
+            }),
         ))
         .build()
 }
@@ -78,6 +112,7 @@ pub fn integration_tests_genesis_config(
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
     mock_signer_rotate_data: Vec<AccountId>,
+    jump_start_state: Option<JumpStartDetails<entropy_runtime::Runtime>>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -219,6 +254,7 @@ pub fn integration_tests_genesis_config(
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
             mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Charlie//stash")]),
+            jump_start_state,
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
