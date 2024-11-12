@@ -157,8 +157,8 @@ async fn wait_for_reshare(
     dbg!(block_number);
     println!("reshare_data {reshare_data:?}");
 
-    let block_number = TEST_RESHARE_BLOCK_NUMBER + 20;
-    run_to_block(&rpc, block_number).await;
+    // let block_number = TEST_RESHARE_BLOCK_NUMBER + 20;
+    // run_to_block(&rpc, block_number).await;
 
     // let new_signers = {
     //     let signer_query = entropy::storage().staking_extension().signers();
@@ -186,11 +186,18 @@ async fn wait_for_reshare(
     //         .unwrap();
     // }
 
-    // Check that the signers have changed since before the reshare
-    let signer_query = entropy::storage().staking_extension().signers();
-    let new_signer_stash_accounts =
-        query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-    let old: HashSet<[u8; 32]> = initial_signers.iter().map(|s| s.0).collect();
-    let new: HashSet<[u8; 32]> = new_signer_stash_accounts.iter().map(|s| s.0).collect();
-    assert_ne!(old, new);
+    let initial_signers_set: HashSet<[u8; 32]> = initial_signers.iter().map(|s| s.0).collect();
+    loop {
+        // Check that the signers have changed since before the reshare
+        let signer_query = entropy::storage().staking_extension().signers();
+        let new_signer_stash_accounts =
+            query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+        let new_signers_set: HashSet<[u8; 32]> =
+            new_signer_stash_accounts.iter().map(|s| s.0).collect();
+        // assert_ne!(initial_signers_set, new);
+        if initial_signers_set != new_signers_set {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
 }
