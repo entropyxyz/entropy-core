@@ -2578,7 +2578,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=Allow-multiple-oracle-inputs#840ea0ec0adef942a4452eec7542c8d486dc3e83"
+source = "git+https://github.com/entropyxyz/programs.git?branch=master#c689ad3d8114eff88bc646d9b200c71f6e14f436"
 dependencies = [
  "getrandom 0.2.15",
  "serde",
@@ -2589,7 +2589,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-runtime"
 version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=Allow-multiple-oracle-inputs#840ea0ec0adef942a4452eec7542c8d486dc3e83"
+source = "git+https://github.com/entropyxyz/programs.git?branch=master#c689ad3d8114eff88bc646d9b200c71f6e14f436"
 dependencies = [
  "entropy-programs-core",
  "thiserror 1.0.68",

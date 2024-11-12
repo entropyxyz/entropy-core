@@ -48,7 +48,7 @@ entropy-client={ version="0.3.0-rc.1", path="../client", default-features=false,
 ] }
 
 # Programs
-entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", branch="Allow-multiple-oracle-inputs" }
+entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", branch="master" }
 
 # Logging
 tracing                 ="0.1.37"
