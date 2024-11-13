@@ -428,7 +428,7 @@ pub fn testnet_genesis_config(
                 .collect::<Vec<_>>(),
             proactive_refresh_data: (vec![], vec![]),
             mock_signer_rotate: (false, vec![], vec![]),
-            jump_start_state: None,
+            jump_started_signers: None,
         },
         "elections": ElectionsConfig {
             members: endowed_accounts
