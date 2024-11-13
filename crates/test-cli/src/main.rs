@@ -35,7 +35,9 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         },
         Err(err) => {
-            eprintln!("{}", "Failed!".red());
+            if !json_ouput {
+                eprintln!("{}", "Failed!".red());
+            }
             Err(err)
         },
     }
