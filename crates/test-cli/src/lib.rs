@@ -371,7 +371,7 @@ pub async fn run_command(
             remove_program(&api, &rpc, &keypair, H256(hash)).await?;
 
             if cli.json {
-                Ok(serde_json::to_string_pretty(&())?)
+                Ok("{}".to_string())
             } else {
                 Ok("Program removed".to_string())
             }
@@ -416,7 +416,7 @@ pub async fn run_command(
                 .await?;
 
             if cli.json {
-                Ok(serde_json::to_string_pretty(&())?)
+                Ok("{}".to_string())
             } else {
                 Ok("Programs updated".to_string())
             }
@@ -504,7 +504,7 @@ pub async fn run_command(
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
-                Ok(serde_json::to_string_pretty(&())?)
+                Ok("{}".to_string())
             } else {
                 Ok("Endpoint changed".to_string())
             }
@@ -539,7 +539,7 @@ pub async fn run_command(
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
-                Ok(serde_json::to_string_pretty(&())?)
+                Ok("{}".to_string())
             } else {
                 Ok("Threshold accounts changed".to_string())
             }
@@ -557,7 +557,7 @@ pub async fn run_command(
             jumpstart_network(&api, &rpc, signer).await?;
 
             if cli.json {
-                Ok(serde_json::to_string_pretty(&())?)
+                Ok("{}".to_string())
             } else {
                 Ok("Succesfully jumpstarted network.".to_string())
             }
@@ -673,7 +673,7 @@ impl Program {
 /// Output from the status command
 struct StatusOutput {
     accounts: Vec<String>,
-    programs: Vec<H256>,
+    programs: Vec<String>,
 }
 
 impl StatusOutput {
@@ -683,9 +683,10 @@ impl StatusOutput {
     ) -> Self {
         let accounts = accounts
             .into_iter()
-            .map(|(verifying_key, registered_info)| hex::encode(verifying_key))
+            .map(|(verifying_key, _registered_info)| hex::encode(verifying_key))
             .collect();
-        let programs = programs.into_iter().map(|(hash, program_info)| hash).collect();
+        let programs =
+            programs.into_iter().map(|(hash, _program_info)| hex::encode(hash.0)).collect();
         Self { accounts, programs }
     }
 }
