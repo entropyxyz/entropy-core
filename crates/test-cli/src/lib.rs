@@ -258,7 +258,7 @@ pub async fn run_command(
             if cli.json {
                 Ok(serde_json::to_string_pretty(&verifying_key)?)
             } else {
-                Ok(format!("Verifying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
+                Ok(format!("Verifying key: {},\n{:?}", verifying_key, registered_info))
             }
         },
         CliCommand::Sign { signature_verifying_key, message, auxilary_data, mnemonic_option } => {
