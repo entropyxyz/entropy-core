@@ -431,11 +431,7 @@ pub async fn run_command(
                     accounts.len().to_string().green()
                 );
                 if !accounts.is_empty() {
-                    println!(
-                        "{:<64} {:<12} Programs:",
-                        "Verifying key:".green(),
-                        "Visibility:".purple(),
-                    );
+                    println!("{:<66} Programs:", "Verifying key:".green());
                     for (account_id, info) in accounts.iter() {
                         println!(
                             "{} {}",
