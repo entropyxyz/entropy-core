@@ -40,8 +40,8 @@ pub async fn spawn_tss_nodes_and_start_chain(
             )
         },
         _ => {
-            // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-            // able to get our chain in the right state to be jump started.
+            // Here we need to force authoring otherwise we won't be able to get our chain in the right
+            // state to be jump started.
             let force_authoring = true;
             let substrate_context =
                 &&test_node_process_testing_state(chain_spec_type, force_authoring).await[0];

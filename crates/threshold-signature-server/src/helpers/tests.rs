@@ -137,6 +137,8 @@ pub enum ChainSpecType {
 }
 
 impl fmt::Display for ChainSpecType {
+    /// This is used when specifying the chainspec type as a command line argument when starting the
+    /// Entropy chain for testing
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
