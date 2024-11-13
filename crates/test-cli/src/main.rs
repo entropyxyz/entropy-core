@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple CLI to test registering, updating programs and signing
-use clap::Parser;
+pub use clap::Parser;
 use colored::Colorize;
 use entropy_test_cli::{run_command, Cli};
 use std::time::Instant;
