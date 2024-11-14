@@ -210,7 +210,7 @@ pub async fn store_program(
     program: Vec<u8>,
     configuration_interface: Vec<u8>,
     auxiliary_data_interface: Vec<u8>,
-    oracle_data_pointer: Vec<Vec<u8>>,
+    oracle_data_pointers: Vec<Vec<u8>>,
     version_number: u8,
 ) -> Result<<EntropyConfig as Config>::Hash, ClientError> {
     let set_program_tx = entropy::tx().programs().set_program(
