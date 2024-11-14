@@ -29,7 +29,9 @@ use crate::{
 };
 use entropy_client::{
     self as test_client,
-    chain_api::entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo,
+    chain_api::{
+        entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo, EntropyConfig,
+    },
 };
 use entropy_client::{
     chain_api::{
@@ -43,7 +45,7 @@ use entropy_kvdb::{
     clean_tests,
     kv_manager::helpers::{deserialize, serialize},
 };
-use entropy_protocol::KeyShareWithAuxInfo;
+use entropy_protocol::{KeyShareWithAuxInfo, PartyId};
 use entropy_shared::{
     OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_RESHARE_BLOCK_NUMBER,
 };
@@ -54,7 +56,7 @@ use entropy_testing_utils::{
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_node_process_testing_state, testing_context},
-    test_context_stationary, ChainSpecType,
+    test_context_stationary, ChainSpecType, TestNodeProcess,
 };
 use parity_scale_codec::Encode;
 use serial_test::serial;
@@ -70,11 +72,9 @@ async fn test_reshare_basic() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
-    let current_block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    println!("Block number {}", current_block_number);
     let client = reqwest::Client::new();
 
     // Get current signers

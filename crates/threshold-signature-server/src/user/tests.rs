@@ -130,7 +130,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (entropy_api, rpc, validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
@@ -359,7 +359,7 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
@@ -432,7 +432,7 @@ async fn signature_request_with_derived_account_works() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // We first need to jump start the network and grab the resulting network wide verifying key
@@ -472,7 +472,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let one = AccountKeyring::Dave;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
@@ -584,7 +584,7 @@ async fn test_request_limit_are_updated_during_signing() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
@@ -683,7 +683,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
@@ -777,7 +777,7 @@ async fn test_program_with_config() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
@@ -857,7 +857,7 @@ async fn test_jumpstart_network() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
@@ -1001,7 +1001,7 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
@@ -1092,7 +1092,7 @@ async fn test_device_key_proxy() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // We first need to jump start the network and grab the resulting network wide verifying key
@@ -1223,7 +1223,7 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
@@ -1386,7 +1386,7 @@ async fn test_registration_flow() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (entropy_api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // We first need to jump start the network and grab the resulting network wide verifying key

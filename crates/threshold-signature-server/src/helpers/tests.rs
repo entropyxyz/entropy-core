@@ -128,8 +128,6 @@ pub async fn create_clients(
 /// A way to specify which chainspec to use in testing
 #[derive(Copy, Clone, PartialEq)]
 pub enum ChainSpecType {
-    /// The development chainspec, which has 3 TSS nodes
-    Development,
     /// The integration test chainspec, which has 4 TSS nodes
     Integration,
     /// The integration test chainspec, starting in a pre-jumpstarted state
@@ -144,7 +142,6 @@ impl fmt::Display for ChainSpecType {
             f,
             "{}",
             match self {
-                ChainSpecType::Development => "dev",
                 ChainSpecType::Integration => "integration-tests",
                 ChainSpecType::IntegrationJumpStarted => "integration-tests-jumpstarted",
             },

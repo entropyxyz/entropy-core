@@ -46,7 +46,7 @@ async fn integration_test_register_sign_reshare_sign() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (api, rpc, _validator_ips, _validator_ids) =
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // First jumpstart the network

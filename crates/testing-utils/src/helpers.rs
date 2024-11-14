@@ -16,8 +16,8 @@
 use crate::{
     chain_api::{get_api, get_rpc, EntropyConfig},
     spawn_testing_validators,
-    substrate_context::{test_context_stationary, test_node_process_testing_state},
-    ChainSpecType,
+    substrate_context::test_node_process_testing_state,
+    ChainSpecType, TestNodeProcess,
 };
 use entropy_protocol::PartyId;
 use rand::{rngs::StdRng, SeedableRng};
@@ -28,30 +28,22 @@ pub use tdx_quote::encode_verifying_key;
 /// the chain API as well as IP addresses and PartyId of the started validators
 pub async fn spawn_tss_nodes_and_start_chain(
     chain_spec_type: ChainSpecType,
-) -> (OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>, Vec<String>, Vec<PartyId>) {
+) -> (
+    Vec<TestNodeProcess<EntropyConfig>>,
+    OnlineClient<EntropyConfig>,
+    LegacyRpcMethods<EntropyConfig>,
+    Vec<String>,
+    Vec<PartyId>,
+) {
     let (validator_ips, validator_ids) = spawn_testing_validators(chain_spec_type).await;
 
-    let (api, rpc) = match chain_spec_type {
-        ChainSpecType::Development => {
-            let substrate_context = test_context_stationary().await;
-            (
-                get_api(&substrate_context.node_proc.ws_url).await.unwrap(),
-                get_rpc(&substrate_context.node_proc.ws_url).await.unwrap(),
-            )
-        },
-        _ => {
-            // Here we need to force authoring otherwise we won't be able to get our chain in the right
-            // state to be jump started.
-            let force_authoring = true;
-            let substrate_context =
-                &&test_node_process_testing_state(chain_spec_type, force_authoring).await[0];
-            (
-                get_api(&substrate_context.ws_url).await.unwrap(),
-                get_rpc(&substrate_context.ws_url).await.unwrap(),
-            )
-        },
-    };
-    (api, rpc, validator_ips, validator_ids)
+    // Here we need to force authoring otherwise we won't be able to get our chain in the right
+    // state to be jump started.
+    let force_authoring = true;
+    let substrate_context = test_node_process_testing_state(chain_spec_type, force_authoring).await;
+    let api = get_api(&substrate_context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();
+    (substrate_context, api, rpc, validator_ips, validator_ids)
 }
 
 /// Get the mock PCK that will be used for a given TSS account ID
