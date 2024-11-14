@@ -217,7 +217,7 @@ pub async fn store_program(
         program,
         configuration_interface,
         auxiliary_data_interface,
-        BoundedVec(oracle_data_pointer),
+        BoundedVec(oracle_data_pointers),
         version_number,
     );
     let in_block =
