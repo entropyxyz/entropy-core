@@ -80,6 +80,7 @@ pub async fn unsafe_get(
 )]
 pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>) -> StatusCode {
     tracing::trace!("Attempting to write value {:?} to database", &key.value);
+    println!("WRITING VALUE {:?}", key.value);
     match app_state.kv_store.kv().exists(&key.key.to_owned()).await {
         Ok(v) => {
             if v {

@@ -37,7 +37,6 @@ use crate::{
         substrate::submit_transaction,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
     AppState,
 };
@@ -149,19 +148,12 @@ impl fmt::Display for ChainSpecType {
     }
 }
 
-/// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
+/// Spawn 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
 /// desired
 pub async fn spawn_testing_validators(
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
-    let add_fourth_server = chain_spec_type == ChainSpecType::Integration;
-
-    // spawn threshold servers
-    let mut ports = vec![3001i64, 3002, 3003];
-
-    if add_fourth_server {
-        ports.push(3004);
-    }
+    let ports = vec![3001i64, 3002, 3003, 3004];
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
@@ -205,21 +197,24 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    if add_fourth_server {
-        let (dave_axum, dave_kv) =
-            create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave))
-                .await;
+    let (dave_axum, dave_kv) =
+        create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
 
-        let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
-            .await
-            .expect("Unable to bind to given server address.");
-        tokio::spawn(async move {
-            axum::serve(listener_dave, dave_axum).await.unwrap();
-        });
-        let dave_id = PartyId::new(SubxtAccountId32(
-            *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
-        ));
-        ids.push(dave_id);
+    let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_dave, dave_axum).await.unwrap();
+    });
+    let dave_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+    ids.push(dave_id);
+
+    if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
+        put_keyshares_in_db(ValidatorName::Dave, ValidatorName::Alice, alice_kv).await;
+        put_keyshares_in_db(ValidatorName::Dave, ValidatorName::Bob, bob_kv).await;
+        put_keyshares_in_db(ValidatorName::Dave, ValidatorName::Charlie, charlie_kv).await;
     }
 
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -229,7 +224,11 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(non_signer_name: ValidatorName, validator_name: ValidatorName) {
+pub async fn put_keyshares_in_db(
+    non_signer_name: ValidatorName,
+    validator_name: ValidatorName,
+    kvdb: KvManager,
+) {
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
@@ -240,18 +239,22 @@ async fn put_keyshares_in_db(non_signer_name: ValidatorName, validator_name: Val
         std::fs::read(file_path).unwrap()
     };
 
-    let unsafe_put = UnsafeQuery { key: hex::encode(NETWORK_PARENT_KEY), value: keyshare_bytes };
-    let unsafe_put = serde_json::to_string(&unsafe_put).unwrap();
+    let reservation = kvdb.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+    kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
 
-    let port = 3001 + (validator_name as usize);
-    let http_client = reqwest::Client::new();
-    http_client
-        .post(format!("http://127.0.0.1:{port}/unsafe/put"))
-        .header("Content-Type", "application/json")
-        .body(unsafe_put.clone())
-        .send()
-        .await
-        .unwrap();
+    // let unsafe_put = UnsafeQuery { key: hex::encode(NETWORK_PARENT_KEY), value: keyshare_bytes };
+    // let unsafe_put = serde_json::to_string(&unsafe_put).unwrap();
+    //
+    // let port = 3001 + (validator_name as usize);
+    // let http_client = reqwest::Client::new();
+    // let response = http_client
+    //     .post(format!("http://127.0.0.1:{port}/unsafe/put"))
+    //     .header("Content-Type", "application/json")
+    //     .body(unsafe_put.clone())
+    //     .send()
+    //     .await
+    //     .unwrap();
+    // println!("Response: {:?}", response);
 }
 
 /// Removes the program at the program hash
@@ -318,15 +321,15 @@ pub async fn jump_start_network_with_signer(
             non_signer = Some(validator_name);
         }
     }
-    if let Some(non_signer) = non_signer {
-        for validator_name in validators_names {
-            if non_signer != validator_name {
-                put_keyshares_in_db(non_signer, validator_name).await;
-            }
-        }
-    } else {
-        tracing::error!("Missing non-signer - not storing pre-generated keyshares");
-    }
+    // if let Some(non_signer) = non_signer {
+    //     for validator_name in validators_names {
+    //         if non_signer != validator_name {
+    //             put_keyshares_in_db(non_signer, validator_name).await;
+    //         }
+    //     }
+    // } else {
+    //     tracing::error!("Missing non-signer - not storing pre-generated keyshares");
+    // }
 
     non_signer
 }

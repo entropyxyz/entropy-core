@@ -20,6 +20,7 @@ use crate::{
     ChainSpecType, TestNodeProcess,
 };
 use entropy_protocol::PartyId;
+use entropy_tss::{helpers::tests::put_keyshares_in_db, launch::ValidatorName};
 use rand::{rngs::StdRng, SeedableRng};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 pub use tdx_quote::encode_verifying_key;
@@ -43,6 +44,7 @@ pub async fn spawn_tss_nodes_and_start_chain(
     let substrate_context = test_node_process_testing_state(chain_spec_type, force_authoring).await;
     let api = get_api(&substrate_context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();
+
     (substrate_context, api, rpc, validator_ips, validator_ids)
 }
 

@@ -45,7 +45,7 @@ use entropy_kvdb::{
     clean_tests,
     kv_manager::helpers::{deserialize, serialize},
 };
-use entropy_protocol::{KeyShareWithAuxInfo, PartyId};
+use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::{
     OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_RESHARE_BLOCK_NUMBER,
 };
@@ -73,7 +73,7 @@ async fn test_reshare_basic() {
     clean_tests();
 
     let (_ctx, api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let client = reqwest::Client::new();
 
@@ -86,17 +86,18 @@ async fn test_reshare_basic() {
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
     }
+    println!("Signers {:?}", signers);
 
     // A map of account IDs to serialized keyshares before the reshare
     let mut key_shares_before = HashMap::new();
     for signer in signers.iter() {
         let port = get_port(signer);
-        key_shares_before.insert(
-            signer.tss_account.0,
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await,
-        );
+        let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
+        assert!(!key_share.is_empty());
+        key_shares_before.insert(signer.tss_account.0, key_share);
     }
 
+    println!("Keyshares before {:?}", key_shares_before);
     // Get all validators
     // let validators_query = entropy::storage().session().validators();
     // let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();

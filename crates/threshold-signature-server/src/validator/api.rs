@@ -109,6 +109,7 @@ pub async fn new_reshare(
         if data.new_signers.contains(&my_stash_address.encode()) {
             None
         } else {
+            println!("Loading keyshare");
             let kvdb_result = app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await?;
             let key_share: KeyShareWithAuxInfo =
                 entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result)
