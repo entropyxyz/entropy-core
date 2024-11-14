@@ -1665,13 +1665,17 @@ async fn test_get_oracle_data() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     run_to_block(&rpc, 1).await;
 
-    let oracle_data = get_oracle_data(&api, &rpc, "block_number_entropy".encode()).await.unwrap();
+    let oracle_data =
+        get_oracle_data(&api, &rpc, vec!["block_number_entropy".encode()]).await.unwrap();
     let current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    assert_eq!(current_block.encode(), oracle_data);
+    assert_eq!(oracle_data.len(), 1);
+    assert_eq!(current_block.encode(), oracle_data[0]);
 
     // fails gracefully
-    let oracle_data_fail = get_oracle_data(&api, &rpc, "random_heading".encode()).await.unwrap();
-    assert_eq!(oracle_data_fail.len(), 0);
+    let oracle_data_fail =
+        get_oracle_data(&api, &rpc, vec!["random_heading".encode()]).await.unwrap();
+    assert_eq!(oracle_data_fail.len(), 1);
+    assert_eq!(oracle_data_fail[0].len(), 0);
 }
 
 pub async fn submit_transaction_request(
