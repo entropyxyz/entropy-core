@@ -20,7 +20,9 @@ use colored::Colorize;
 use entropy_client::{
     chain_api::{
         entropy::runtime_types::{
-            bounded_collections::bounded_vec::BoundedVec, pallet_registry::pallet::ProgramInstance,
+            bounded_collections::bounded_vec::BoundedVec,
+            pallet_programs::pallet::ProgramInfo,
+            pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
         },
         EntropyConfig,
     },
@@ -32,7 +34,7 @@ use entropy_client::{
 };
 pub use entropy_shared::PROGRAM_VERSION_NUMBER;
 use sp_core::{sr25519, Hasher, Pair};
-use sp_runtime::traits::BlakeTwo256;
+use sp_runtime::{traits::BlakeTwo256, Serialize};
 use std::{fs, path::PathBuf};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -46,7 +48,7 @@ use subxt::{
     about = "CLI tool for testing Entropy",
     long_about = "This is a CLI test client.\nIt requires a running deployment of Entropy with at least two chain nodes and two TSS servers."
 )]
-struct Cli {
+pub struct Cli {
     #[clap(subcommand)]
     command: CliCommand,
     /// The chain endpoint to use.
@@ -57,6 +59,9 @@ struct Cli {
     /// priority.
     #[arg(short, long)]
     chain_endpoint: Option<String>,
+    /// Whether to give command output as JSON. Defaults to false.
+    #[arg(short, long)]
+    pub json: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -186,15 +191,22 @@ enum CliCommand {
     },
 }
 
+impl Cli {
+    fn log(&self, text: String) {
+        if !self.json {
+            println!("{text}");
+        }
+    }
+}
+
 pub async fn run_command(
+    cli: Cli,
     program_file_option: Option<PathBuf>,
     config_interface_file_option: Option<PathBuf>,
     aux_data_interface_file_option: Option<PathBuf>,
     program_version_number_option: Option<u8>,
 ) -> anyhow::Result<String> {
-    let cli = Cli::parse();
-
-    let endpoint_addr = cli.chain_endpoint.unwrap_or_else(|| {
+    let endpoint_addr = cli.chain_endpoint.clone().unwrap_or_else(|| {
         std::env::var("ENTROPY_DEVNET").unwrap_or("ws://localhost:9944".to_string())
     });
 
@@ -203,7 +215,7 @@ pub async fn run_command(
     let api = get_api(&endpoint_addr).await?;
     let rpc = get_rpc(&endpoint_addr).await?;
 
-    match cli.command {
+    match cli.command.clone() {
         CliCommand::Register { mnemonic_option, programs, program_version_numbers } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
@@ -213,7 +225,7 @@ pub async fn run_command(
 
             let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
-            println!("Program account: {}", program_keypair.public());
+            cli.log(format!("Program account: {}", program_keypair.public()));
 
             let mut programs_info = vec![];
 
@@ -242,7 +254,12 @@ pub async fn run_command(
             )
             .await?;
 
-            Ok(format!("Verifying key: {},\n{:?}", hex::encode(verifying_key), registered_info))
+            let verifying_key = hex::encode(verifying_key);
+            if cli.json {
+                Ok(serde_json::to_string_pretty(&verifying_key)?)
+            } else {
+                Ok(format!("Verifying key: {},\n{:?}", verifying_key, registered_info))
+            }
         },
         CliCommand::Sign { signature_verifying_key, message, auxilary_data, mnemonic_option } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
@@ -253,7 +270,7 @@ pub async fn run_command(
             // If an account name is not provided, use the Alice key
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
 
-            println!("User account for current call: {}", user_keypair.public());
+            cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let auxilary_data =
                 if let Some(data) = auxilary_data { Some(hex::decode(data)?) } else { None };
@@ -272,7 +289,12 @@ pub async fn run_command(
                 auxilary_data,
             )
             .await?;
-            Ok(format!("Message signed: {:?}", recoverable_signature))
+
+            if cli.json {
+                Ok(serde_json::to_string_pretty(&recoverable_signature)?)
+            } else {
+                Ok(format!("Message signed: {:?}", recoverable_signature))
+            }
         },
         CliCommand::StoreProgram {
             mnemonic_option,
@@ -287,7 +309,7 @@ pub async fn run_command(
                 passed_mnemonic.expect("No Mnemonic set")
             };
             let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-            println!("Storing program using account: {}", keypair.public());
+            cli.log(format!("Storing program using account: {}", keypair.public()));
 
             let program = match program_file {
                 Some(file_name) => fs::read(file_name)?,
@@ -324,7 +346,14 @@ pub async fn run_command(
                 program_version_number,
             )
             .await?;
-            Ok(format!("Program stored: {}", hex::encode(hash)))
+
+            let hash = hex::encode(hash);
+
+            if cli.json {
+                Ok(serde_json::to_string_pretty(&hash)?)
+            } else {
+                Ok(format!("Program stored: {}", hex::encode(hash)))
+            }
         },
         CliCommand::RemoveProgram { mnemonic_option, hash } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
@@ -333,7 +362,7 @@ pub async fn run_command(
                 passed_mnemonic.expect("No Mnemonic set")
             };
             let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-            println!("Removing program using account: {}", keypair.public());
+            cli.log(format!("Removing program using account: {}", keypair.public()));
 
             let hash: [u8; 32] = hex::decode(hash)?
                 .try_into()
@@ -341,7 +370,11 @@ pub async fn run_command(
 
             remove_program(&api, &rpc, &keypair, H256(hash)).await?;
 
-            Ok("Program removed".to_string())
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Program removed".to_string())
+            }
         },
         CliCommand::UpdatePrograms {
             signature_verifying_key,
@@ -355,7 +388,7 @@ pub async fn run_command(
                 passed_mnemonic.expect("No Mnemonic set")
             };
             let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-            println!("Program account: {}", program_keypair.public());
+            cli.log(format!("Program account: {}", program_keypair.public()));
 
             let mut programs_info = Vec::new();
 
@@ -382,68 +415,75 @@ pub async fn run_command(
             update_programs(&api, &rpc, verifying_key, &program_keypair, BoundedVec(programs_info))
                 .await?;
 
-            Ok("Programs updated".to_string())
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Programs updated".to_string())
+            }
         },
         CliCommand::Status => {
             let accounts = get_accounts(&api, &rpc).await?;
-            println!(
-                "There are {} registered Entropy accounts.\n",
-                accounts.len().to_string().green()
-            );
-            if !accounts.is_empty() {
-                println!(
-                    "{:<64} {:<12} Programs:",
-                    "Verifying key:".green(),
-                    "Visibility:".purple(),
-                );
-                for (account_id, info) in accounts {
-                    println!(
-                        "{} {}",
-                        hex::encode(account_id).green(),
-                        format!(
-                            "{:?}",
-                            info.programs_data
-                                .0
-                                .iter()
-                                .map(|program_instance| format!(
-                                    "{}",
-                                    program_instance.program_pointer
-                                ))
-                                .collect::<Vec<_>>()
-                        )
-                        .white(),
-                    );
-                }
-            }
-
             let programs = get_programs(&api, &rpc).await?;
 
-            println!("\nThere are {} stored programs\n", programs.len().to_string().green());
-
-            if !programs.is_empty() {
+            if !cli.json {
                 println!(
-                    "{:<64} {:<48} {:<11} {:<14} {} {}",
-                    "Hash".blue(),
-                    "Stored by:".green(),
-                    "Times used:".purple(),
-                    "Size in bytes:".cyan(),
-                    "Configurable?".yellow(),
-                    "Has auxiliary?".yellow(),
+                    "There are {} registered Entropy accounts.\n",
+                    accounts.len().to_string().green()
                 );
-                for (hash, program_info) in programs {
+                if !accounts.is_empty() {
+                    println!("{:<66} Programs:", "Verifying key:".green());
+                    for (account_id, info) in accounts.iter() {
+                        println!(
+                            "{} {}",
+                            hex::encode(account_id).green(),
+                            format!(
+                                "{:?}",
+                                info.programs_data
+                                    .0
+                                    .iter()
+                                    .map(|program_instance| format!(
+                                        "{}",
+                                        program_instance.program_pointer
+                                    ))
+                                    .collect::<Vec<_>>()
+                            )
+                            .white(),
+                        );
+                    }
+                }
+
+                println!("\nThere are {} stored programs\n", programs.len().to_string().green());
+
+                if !programs.is_empty() {
                     println!(
-                        "{} {} {:>11} {:>14} {:<13} {}",
-                        hex::encode(hash),
-                        program_info.deployer,
-                        program_info.ref_counter,
-                        program_info.bytecode.len(),
-                        !program_info.configuration_schema.is_empty(),
-                        !program_info.auxiliary_data_schema.is_empty(),
+                        "{:<64} {:<48} {:<11} {:<14} {} {}",
+                        "Hash".blue(),
+                        "Stored by:".green(),
+                        "Times used:".purple(),
+                        "Size in bytes:".cyan(),
+                        "Configurable?".yellow(),
+                        "Has auxiliary?".yellow(),
                     );
+                    for (hash, program_info) in programs.iter() {
+                        println!(
+                            "{} {} {:>11} {:>14} {:<13} {}",
+                            hex::encode(hash),
+                            program_info.deployer,
+                            program_info.ref_counter,
+                            program_info.bytecode.len(),
+                            !program_info.configuration_schema.is_empty(),
+                            !program_info.auxiliary_data_schema.is_empty(),
+                        );
+                    }
                 }
             }
 
-            Ok("Got status".to_string())
+            if cli.json {
+                let output = StatusOutput::new(accounts, programs);
+                Ok(serde_json::to_string_pretty(&output)?)
+            } else {
+                Ok("Got status".to_string())
+            }
         },
         CliCommand::ChangeEndpoint { new_endpoint, quote, mnemonic_option } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
@@ -453,12 +493,17 @@ pub async fn run_command(
             };
 
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-            println!("User account for current call: {}", user_keypair.public());
+            cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let result_event =
                 change_endpoint(&api, &rpc, user_keypair, new_endpoint, quote.into()).await?;
-            println!("Event result: {:?}", result_event);
-            Ok("Endpoint changed".to_string())
+            cli.log(format!("Event result: {:?}", result_event));
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Endpoint changed".to_string())
+            }
         },
         CliCommand::ChangeThresholdAccounts {
             new_tss_account,
@@ -473,7 +518,7 @@ pub async fn run_command(
                 passed_mnemonic.expect("No Mnemonic set")
             };
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-            println!("User account for current call: {}", user_keypair.public());
+            cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let new_pck_certificate_chain =
                 new_pck_certificate_chain.iter().cloned().map(|i| i.into()).collect::<_>();
@@ -487,9 +532,13 @@ pub async fn run_command(
                 quote.into(),
             )
             .await?;
-            println!("Event result: {:?}", result_event);
+            cli.log(format!("Event result: {:?}", result_event));
 
-            Ok("Threshold accounts changed".to_string())
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Threshold accounts changed".to_string())
+            }
         },
         CliCommand::JumpstartNetwork { mnemonic_option } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
@@ -499,11 +548,15 @@ pub async fn run_command(
             };
 
             let signer = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
-            println!("Account being used for jumpstart: {}", signer.public());
+            cli.log(format!("Account being used for jumpstart: {}", signer.public()));
 
             jumpstart_network(&api, &rpc, signer).await?;
 
-            Ok("Succesfully jumpstarted network.".to_string())
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Succesfully jumpstarted network.".to_string())
+            }
         },
     }
 }
@@ -601,7 +654,7 @@ impl Program {
             Ok(hash) => Ok(Self::new(hash, configuration)),
             Err(error) => {
                 if error.to_string().ends_with("ProgramAlreadySet") {
-                    println!("Program is already stored - using existing one");
+                    // Use existing program as it is already stored
                     let hash = BlakeTwo256::hash(&program_bytecode);
                     Ok(Self::new(H256(hash.into()), configuration))
                 } else {
@@ -609,5 +662,27 @@ impl Program {
                 }
             },
         }
+    }
+}
+
+#[derive(Serialize)]
+/// Output from the status command
+struct StatusOutput {
+    accounts: Vec<String>,
+    programs: Vec<String>,
+}
+
+impl StatusOutput {
+    fn new(
+        accounts: Vec<([u8; 33], RegisteredInfo)>,
+        programs: Vec<(H256, ProgramInfo<SubxtAccountId32>)>,
+    ) -> Self {
+        let accounts = accounts
+            .into_iter()
+            .map(|(verifying_key, _registered_info)| hex::encode(verifying_key))
+            .collect();
+        let programs =
+            programs.into_iter().map(|(hash, _program_info)| hex::encode(hash.0)).collect();
+        Self { accounts, programs }
     }
 }
