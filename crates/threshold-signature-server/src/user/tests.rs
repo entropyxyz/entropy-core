@@ -1131,7 +1131,7 @@ async fn test_oracle_program() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
-    let (tss_signer, _static_secret) =
+    let (_tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let force_authoring = true;
@@ -1150,7 +1150,7 @@ async fn test_oracle_program() {
         TEST_ORACLE_BYTECODE.to_owned(),
         vec![],
         vec![],
-        "block_number_entropy".encode(),
+        vec!["block_number_entropy".encode()],
         0u8,
     )
     .await

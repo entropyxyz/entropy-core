@@ -675,7 +675,7 @@ struct StatusOutput {
 impl StatusOutput {
     fn new(
         accounts: Vec<([u8; 33], RegisteredInfo)>,
-        programs: Vec<(H256, ProgramInfo<SubxtAccountId32>)>,
+        programs: Vec<(H256, ProgramInfo)>,
     ) -> Self {
         let accounts = accounts
             .into_iter()
