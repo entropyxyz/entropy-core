@@ -152,7 +152,7 @@ fn paused_transaction_filter_work() {
                 new_program: vec![],
                 configuration_schema: vec![],
                 auxiliary_data_schema: vec![],
-                oracle_data_pointer: vec![],
+                oracle_data_pointers: BoundedVec::try_from(vec![vec![]].to_vec()).unwrap(),
                 version_number: 0u8,
             });
         assert!(!PausedTransactionFilter::<Runtime>::contains(BALANCE_TRANSFER));

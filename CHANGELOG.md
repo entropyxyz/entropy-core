@@ -21,6 +21,9 @@ At the moment this project **does not** adhere to
   `change_threshold_accounts()` extrinsics got new TDX `quote` related parameters added.
 - In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the `--no-sync` option was
   removed.
+- In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept 
+multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
+runtime
 
 ### Added
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
@@ -31,6 +34,7 @@ At the moment this project **does not** adhere to
 - Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 - Add quote guards to `ServerInfo` related extrinsics ([#1123](https://github.com/entropyxyz/entropy-core/pull/1123/))
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
+- Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 
 ## [0.3.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0) - 2024-10-22
 
