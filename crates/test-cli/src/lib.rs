@@ -673,10 +673,7 @@ struct StatusOutput {
 }
 
 impl StatusOutput {
-    fn new(
-        accounts: Vec<([u8; 33], RegisteredInfo)>,
-        programs: Vec<(H256, ProgramInfo<SubxtAccountId32>)>,
-    ) -> Self {
+    fn new(accounts: Vec<([u8; 33], RegisteredInfo)>, programs: Vec<(H256, ProgramInfo)>) -> Self {
         let accounts = accounts
             .into_iter()
             .map(|(verifying_key, _registered_info)| hex::encode(verifying_key))
