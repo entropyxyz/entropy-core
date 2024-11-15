@@ -83,7 +83,7 @@ impl SubstrateCli for Cli {
                 Box::new(chain_spec::integration_tests::integration_tests_config(jumpstarted))
             },
             "integration-tests-jumpstarted" => {
-                let jumpstarted = true
+                let jumpstarted = true;
                 Box::new(chain_spec::integration_tests::integration_tests_config(jumpstarted))
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
