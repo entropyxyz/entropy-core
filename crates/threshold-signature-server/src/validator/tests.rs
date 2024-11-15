@@ -21,7 +21,6 @@ use crate::{
             unsafe_get,
         },
     },
-    user::tests::jump_start_network,
     validator::{
         api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
         errors::ValidatorErr,
@@ -54,9 +53,8 @@ use entropy_testing_utils::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, RANDOM_ACCOUNT,
         TEST_PROGRAM_WASM_BYTECODE,
     },
-    helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_node_process_testing_state, testing_context},
-    test_context_stationary, ChainSpecType, TestNodeProcess,
+    test_context_stationary, ChainSpecType,
 };
 use parity_scale_codec::Encode;
 use serial_test::serial;
@@ -72,8 +70,17 @@ async fn test_reshare_basic() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+    let chain_spec_type = ChainSpecType::IntegrationJumpStarted;
+    let (validator_ips, validator_ids) =
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
+            .await;
+
+    let force_authoring = true;
+    let context =
+        test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+            .await;
+    let api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
 

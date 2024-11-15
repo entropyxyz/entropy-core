@@ -377,7 +377,7 @@ pub async fn execute_reshare(
     (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>),
     ProtocolExecutionErr,
 > {
-    tracing::debug!("Executing proactive refresh");
+    tracing::info!("Executing reshare");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
     let pair = PairWrapper(threshold_pair.clone());
@@ -397,6 +397,7 @@ pub async fn execute_reshare(
     let aux_info = if let Some(aux_info) = aux_info_option {
         aux_info
     } else {
+        tracing::info!("Executing aux gen session as part of reshare");
         // Now run an aux gen session
         let session_id_hash_aux_data = session_id.blake2(Some(Subsession::AuxGen))?;
         let session = make_aux_gen_session(

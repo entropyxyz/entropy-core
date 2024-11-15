@@ -20,13 +20,15 @@ use crate::{
     ChainSpecType, TestNodeProcess,
 };
 use entropy_protocol::PartyId;
-use entropy_tss::{helpers::tests::put_keyshares_in_db, launch::ValidatorName};
 use rand::{rngs::StdRng, SeedableRng};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 pub use tdx_quote::encode_verifying_key;
 
 /// A helper for setting up tests which starts both a set of TS servers and a chain node and returns
 /// the chain API as well as IP addresses and PartyId of the started validators
+///
+/// Note that since this function does not reside in entropy-tss, cfg(test) will be false when the
+/// TSS nodes are set up, meaning the unsafe API will not be enabled
 pub async fn spawn_tss_nodes_and_start_chain(
     chain_spec_type: ChainSpecType,
 ) -> (

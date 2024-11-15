@@ -79,10 +79,12 @@ impl SubstrateCli for Cli {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
             "devnet-local" => Box::new(chain_spec::dev::devnet_local_four_node_config()),
             "integration-tests" => {
-                Box::new(chain_spec::integration_tests::integration_tests_config())
+                let jumpstarted = false;
+                Box::new(chain_spec::integration_tests::integration_tests_config(jumpstarted))
             },
             "integration-tests-jumpstarted" => {
-                Box::new(chain_spec::integration_tests::integration_tests_jumpstarted_config())
+                let jumpstarted = true
+                Box::new(chain_spec::integration_tests::integration_tests_config(jumpstarted))
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
             "testnet" => Box::new(chain_spec::testnet::testnet_config()),

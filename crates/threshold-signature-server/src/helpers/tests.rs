@@ -212,9 +212,9 @@ pub async fn spawn_testing_validators(
     ids.push(dave_id);
 
     if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
-        put_keyshares_in_db(ValidatorName::Dave, ValidatorName::Alice, alice_kv).await;
-        put_keyshares_in_db(ValidatorName::Dave, ValidatorName::Bob, bob_kv).await;
-        put_keyshares_in_db(ValidatorName::Dave, ValidatorName::Charlie, charlie_kv).await;
+        put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;
+        put_keyshares_in_db(ValidatorName::Bob, bob_kv).await;
+        put_keyshares_in_db(ValidatorName::Charlie, charlie_kv).await;
     }
 
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -224,37 +224,19 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-pub async fn put_keyshares_in_db(
-    non_signer_name: ValidatorName,
-    validator_name: ValidatorName,
-    kvdb: KvManager,
-) {
+pub async fn put_keyshares_in_db(validator_name: ValidatorName, kvdb: KvManager) {
+    let non_signer_name = ValidatorName::Dave;
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
             "crates/testing-utils/keyshares/production/{}/keyshare-held-by-{}.keyshare",
             non_signer_name, validator_name
         ));
-        println!("File path {:?}", file_path);
         std::fs::read(file_path).unwrap()
     };
 
     let reservation = kvdb.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
     kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
-
-    // let unsafe_put = UnsafeQuery { key: hex::encode(NETWORK_PARENT_KEY), value: keyshare_bytes };
-    // let unsafe_put = serde_json::to_string(&unsafe_put).unwrap();
-    //
-    // let port = 3001 + (validator_name as usize);
-    // let http_client = reqwest::Client::new();
-    // let response = http_client
-    //     .post(format!("http://127.0.0.1:{port}/unsafe/put"))
-    //     .header("Content-Type", "application/json")
-    //     .body(unsafe_put.clone())
-    //     .send()
-    //     .await
-    //     .unwrap();
-    // println!("Response: {:?}", response);
 }
 
 /// Removes the program at the program hash
@@ -291,47 +273,6 @@ pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) 
         .unwrap();
 
     get_result.bytes().await.unwrap().into()
-}
-
-/// Mock the network being jump started by confirming a jump start even though no DKG took place,
-/// so that we can use pre-store parent keyshares for testing
-pub async fn jump_start_network_with_signer(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Option<ValidatorName> {
-    let jump_start_request = entropy::tx().registry().jump_start_network();
-    let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
-
-    let validators_names =
-        vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
-    let mut non_signer = None;
-    for validator_name in validators_names.clone() {
-        let mnemonic = development_mnemonic(&Some(validator_name));
-        let (tss_signer, _static_secret) =
-            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
-        let jump_start_confirm_request =
-            entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
-
-        // Ignore the error as one confirmation will fail
-        if submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None)
-            .await
-            .is_err()
-        {
-            non_signer = Some(validator_name);
-        }
-    }
-    // if let Some(non_signer) = non_signer {
-    //     for validator_name in validators_names {
-    //         if non_signer != validator_name {
-    //             put_keyshares_in_db(non_signer, validator_name).await;
-    //         }
-    //     }
-    // } else {
-    //     tracing::error!("Missing non-signer - not storing pre-generated keyshares");
-    // }
-
-    non_signer
 }
 
 /// Helper to store a program and register a user. Returns the verify key and program hash.

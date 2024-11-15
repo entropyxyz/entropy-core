@@ -39,11 +39,20 @@ use sp_runtime::{BoundedVec, Perbill};
 
 /// The configuration used for the Threshold Signature Scheme server integration tests.
 ///
-/// Since Entropy requires at least two signing groups to work properly we spin up this network with
-/// two validators, Alice and Bob.
+/// Since Entropy requires at least four nodes to work properly we spin up this network with
+/// four validators, Alice, Bob, Charlie, and Dave.
 ///
-/// There are also some changes around the proactive refresh validators.
-pub fn integration_tests_config() -> ChainSpec {
+/// There are also some changes around the reshare validators.
+pub fn integration_tests_config(jumpstarted: bool) -> ChainSpec {
+    let jump_started_signers = if jumpstarted {
+        Some(vec![
+            get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+        ])
+    } else {
+        None
+    };
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Integration Test")
         .with_id("integration_tests")
@@ -61,34 +70,7 @@ pub fn integration_tests_config() -> ChainSpec {
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                 get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
             ],
-            None,
-        ))
-        .build()
-}
-
-pub fn integration_tests_jumpstarted_config() -> ChainSpec {
-    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
-        .with_name("Integration Test")
-        .with_id("integration_tests")
-        .with_chain_type(ChainType::Development)
-        .with_genesis_config_patch(integration_tests_genesis_config(
-            vec![
-                crate::chain_spec::authority_keys_from_seed("Alice"),
-                crate::chain_spec::authority_keys_from_seed("Bob"),
-                crate::chain_spec::authority_keys_from_seed("Charlie"),
-                crate::chain_spec::authority_keys_from_seed("Dave"),
-            ],
-            vec![],
-            get_account_id_from_seed::<sr25519::Public>("Alice"),
-            vec![
-                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-            ],
-            Some(vec![
-                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-            ]),
+            jump_started_signers,
         ))
         .build()
 }
