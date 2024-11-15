@@ -20,7 +20,6 @@ use entropy_testing_utils::{
     helpers::{
         derive_mock_pck_verifying_key, encode_verifying_key, spawn_tss_nodes_and_start_chain,
     },
-    jump_start_network,
     substrate_context::test_context_stationary,
     ChainSpecType,
 };
@@ -137,12 +136,7 @@ async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
 
     let (_ctx, api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
-
-    // Jumpstart the network
-    let alice = AccountKeyring::Alice;
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-    jump_start_network(&api, &rpc, &signer).await;
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Store a program
     let program_pointer = store_program(
