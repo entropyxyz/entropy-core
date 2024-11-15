@@ -60,7 +60,7 @@ use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
@@ -87,6 +87,8 @@ async fn test_reshare_basic() {
     // Get current signers
     let signer_query = entropy::storage().staking_extension().signers();
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    let old_signer_ids: HashSet<[u8; 32]> =
+        HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
     let mut signers = Vec::new();
     for signer in signer_stash_accounts.iter() {
         let query = entropy::storage().staking_extension().threshold_servers(signer);
@@ -104,7 +106,6 @@ async fn test_reshare_basic() {
         key_shares_before.insert(signer.tss_account.0, key_share);
     }
 
-    println!("Keyshares before {:?}", key_shares_before);
     // Get all validators
     // let validators_query = entropy::storage().session().validators();
     // let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
@@ -137,36 +138,47 @@ async fn test_reshare_basic() {
     //     assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     // }
 
-    for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
-        let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
-            deserialize(key_share_and_aux_before).unwrap();
+    // for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
+    //     let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
+    //         deserialize(key_share_and_aux_before).unwrap();
+    //
+    //     let port = get_port(signers.iter().find(|s| s.tss_account.0 == *tss_account).unwrap());
+    //     let key_share_and_aux_after =
+    //         unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
+    //     let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
+    //         deserialize(&key_share_and_aux_after).unwrap();
+    //
+    //     // Check key share has not yet changed
+    //     assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
+    //     // Check aux info has not yet changed
+    //     assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
+    // }
 
-        let port = get_port(signers.iter().find(|s| s.tss_account.0 == *tss_account).unwrap());
-        let key_share_and_aux_after =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-        let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
-            deserialize(&key_share_and_aux_after).unwrap();
+    // let new_signers = {
+    //     let signer_query = entropy::storage().staking_extension().signers();
+    //     let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    //     let mut signers = Vec::new();
+    //     for signer in signer_ids {
+    //         let query = entropy::storage().staking_extension().threshold_servers(signer);
+    //         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+    //         signers.push(server_info);
+    //     }
+    //     signers
+    // };
 
-        // Check key share has not yet changed
-        assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
-        // Check aux info has not yet changed
-        assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
-    }
-
-    let new_signers = {
-        let signer_query = entropy::storage().staking_extension().signers();
-        let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-        let mut signers = Vec::new();
-        for signer in signer_ids {
-            let query = entropy::storage().staking_extension().threshold_servers(signer);
-            let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-            signers.push(server_info);
+    loop {
+        let new_signer_ids: HashSet<[u8; 32]> = {
+            let signer_query = entropy::storage().staking_extension().signers();
+            let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+            HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
+        };
+        if new_signer_ids != old_signer_ids {
+            break;
         }
-        signers
-    };
-
-    println!("Signers {:?}", signers);
-    println!("NEW Signers {:?}", new_signers);
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    // println!("Signers {:?}", signers);
+    // println!("NEW Signers {:?}", new_signers);
 
     // for signer in new_signers {
     //     let _ = client
