@@ -848,7 +848,7 @@ checksum = "33415e24172c1b7d6066f6d999545375ab8e1d95421d6784bdfff9496f292387"
 dependencies = [
  "bitcoin_hashes",
  "rand",
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
  "zeroize",
@@ -2578,7 +2578,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=master#c689ad3d8114eff88bc646d9b200c71f6e14f436"
+source = "git+https://github.com/entropyxyz/programs.git?branch=master#b300dab62e0bd77ff9a6341dab4988459dcaed78"
 dependencies = [
  "getrandom 0.2.15",
  "serde",
@@ -2589,7 +2589,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-runtime"
 version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=master#c689ad3d8114eff88bc646d9b200c71f6e14f436"
+source = "git+https://github.com/entropyxyz/programs.git?branch=master#b300dab62e0bd77ff9a6341dab4988459dcaed78"
 dependencies = [
  "entropy-programs-core",
  "thiserror 1.0.68",
@@ -7713,7 +7713,7 @@ checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes",
  "rand",
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
 ]
