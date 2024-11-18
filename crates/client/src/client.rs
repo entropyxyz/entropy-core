@@ -21,6 +21,7 @@ pub use crate::{
 };
 use anyhow::anyhow;
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
+use parity_scale_codec::Decode;
 use rand::Rng;
 use std::str::FromStr;
 pub use synedrion::KeyShare;
@@ -450,4 +451,21 @@ pub async fn request_attestation(
     let nonce = result_event.0;
 
     Ok(nonce)
+}
+
+/// Get oracle data headings
+/// This is useful for program developers to know what oracle data is available
+pub async fn get_oracle_headings(
+    api: &OnlineClient<EntropyConfig>,
+    _rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<Vec<String>, ClientError> {
+    let storage_address = entropy::storage().oracle().oracle_data_iter();
+    let mut iter = api.storage().at_latest().await?.iter(storage_address).await?;
+    let mut headings = Vec::new();
+    while let Some(Ok(kv)) = iter.next().await {
+        let mut input = &kv.key_bytes[49..];
+        let heading = String::decode(&mut input).unwrap();
+        headings.push(heading);
+    }
+    Ok(headings)
 }

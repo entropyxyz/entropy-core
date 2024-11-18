@@ -11,8 +11,8 @@ use crate::{
         },
         get_api, get_rpc, EntropyConfig,
     },
-    change_endpoint, change_threshold_accounts, register, remove_program, request_attestation,
-    store_program,
+    change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
+    request_attestation, store_program,
     substrate::query_chain,
     update_programs,
 };
@@ -273,4 +273,22 @@ async fn test_remove_program_reference_counter() {
 
     // We can now remove the program because no-one is using it
     remove_program(&api, &rpc, &program_owner, program_pointer).await.unwrap();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_get_oracle_headings() {
+    let force_authoring = true;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
+    let api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let mut current_block = 0;
+    while current_block < 1 {
+        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    }
+
+    let headings = get_oracle_headings(&api, &rpc).await.unwrap();
+
+    assert_eq!(headings, vec!["block_number_entropy".to_string()]);
 }
