@@ -190,6 +190,8 @@ enum CliCommand {
         mnemonic_option: Option<String>,
     },
     /// Get headings of oracle data
+    ///
+    /// This is useful for program developers to know what oracle data is available.
     GetOracleHeadings,
 }
 

@@ -108,4 +108,6 @@ pub enum ClientError {
     BadVerifyingKeyLength,
     #[error("There are no validators which can act as a relay node for signature requests")]
     NoNonSigningValidators,
+    #[error("Scale decode: {0}")]
+    Codec(#[from] parity_scale_codec::Error),
 }

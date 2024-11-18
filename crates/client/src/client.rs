@@ -464,7 +464,7 @@ pub async fn get_oracle_headings(
     let mut headings = Vec::new();
     while let Some(Ok(kv)) = iter.next().await {
         let mut input = &kv.key_bytes[49..];
-        let heading = String::decode(&mut input).unwrap();
+        let heading = String::decode(&mut input)?;
         headings.push(heading);
     }
     Ok(headings)
