@@ -284,7 +284,7 @@ async fn test_get_oracle_headings() {
     let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
 
     let mut current_block = 0;
-    while current_block < 1 {
+    while current_block < 2 {
         current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     }
 

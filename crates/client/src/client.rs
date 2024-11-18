@@ -463,7 +463,8 @@ pub async fn get_oracle_headings(
     let mut iter = api.storage().at_latest().await?.iter(storage_address).await?;
     let mut headings = Vec::new();
     while let Some(Ok(kv)) = iter.next().await {
-        let mut input = &kv.key_bytes[49..];
+        // Key is: storage_address || 128 bit hash || key
+        let mut input = &kv.key_bytes[32 + 16 + 1..];
         let heading = String::decode(&mut input)?;
         headings.push(heading);
     }
