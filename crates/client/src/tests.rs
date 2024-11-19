@@ -116,7 +116,7 @@ async fn test_change_threshold_accounts() {
     .unwrap();
 
     // When we request an attestation we get a nonce back that we must use when generating our quote.
-    let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
+    let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer()).await.unwrap();
     let nonce: [u8; 32] = nonce.try_into().unwrap();
 
     let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
