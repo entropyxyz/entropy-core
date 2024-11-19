@@ -48,6 +48,8 @@ pub enum AttestationErr {
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("Data is stale")]
     StaleData,
+    #[error("Attestation request: {0}")]
+    AttestationRequest(#[from] entropy_client::errors::AttestationRequestError),
 }
 
 impl IntoResponse for AttestationErr {

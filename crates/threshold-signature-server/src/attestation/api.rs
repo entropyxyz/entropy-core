@@ -90,7 +90,7 @@ pub async fn get_attest(
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
     // Request attestation to get nonce
-    let nonce = request_attestation(&api, &rpc, signer.signer()).await.unwrap();
+    let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
 
     // We also need the current block number as input
     let block_number =
