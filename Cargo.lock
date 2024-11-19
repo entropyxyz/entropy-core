@@ -2753,6 +2753,7 @@ dependencies = [
  "entropy-client",
  "entropy-shared",
  "hex",
+ "reqwest",
  "serde",
  "serde_json",
  "sp-core 31.0.0",
