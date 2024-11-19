@@ -21,12 +21,13 @@ At the moment this project **does not** adhere to
   `change_threshold_accounts()` extrinsics got new TDX `quote` related parameters added.
 - In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the `--no-sync` option was
   removed.
-- In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept 
+- In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
 
 ### Added
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
+- Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
