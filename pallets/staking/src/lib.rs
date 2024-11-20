@@ -794,6 +794,11 @@ pub mod pallet {
                 return Ok(weight);
             }
 
+            // Network not jumpstarted
+            if current_signers_length == 0 {
+                return Ok(weight);
+            }
+
             let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
             let mut remove_indicies_len = 0;
