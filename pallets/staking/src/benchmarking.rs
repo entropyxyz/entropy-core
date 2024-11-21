@@ -19,7 +19,7 @@ use super::*;
 use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::{AttestationHandler, MAX_SIGNERS};
+use entropy_shared::{AttestationHandler, QuoteContext, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
