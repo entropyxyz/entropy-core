@@ -123,15 +123,26 @@ impl QuoteInputData {
         tss_account_id: T,
         x25519_public_key: X25519PublicKey,
         nonce: [u8; 32],
-        block_number: u32,
+        context: QuoteContext,
     ) -> Self {
         let mut hasher = Blake2b512::new();
         hasher.update(tss_account_id.encode());
         hasher.update(x25519_public_key);
         hasher.update(nonce);
-        hasher.update(block_number.to_be_bytes());
+        hasher.update(context.encode());
         Self(hasher.finalize().into())
     }
+}
+
+/// An indicator as to the context in which a quote is intended to be used
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq)]
+pub enum QuoteContext {
+    /// To be used in the `validate` extrinsic
+    Validate,
+    /// To be used in the `change_endpoint` extrinsic
+    ChangeEndpoint,
+    /// To be used in the `change_threshold_accounts` extrinsic
+    ChangeThresholdAccounts,
 }
 
 /// A trait for types which can handle attestation requests.
@@ -143,6 +154,7 @@ pub trait AttestationHandler<AccountId> {
         x25519_public_key: X25519PublicKey,
         provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
+        context: QuoteContext,
     ) -> Result<(), sp_runtime::DispatchError>;
 
     /// Indicate to the attestation handler that a quote is desired.
@@ -160,6 +172,7 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         _x25519_public_key: X25519PublicKey,
         _provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         _quote: Vec<u8>,
+        _context: QuoteContext,
     ) -> Result<(), sp_runtime::DispatchError> {
         Ok(())
     }

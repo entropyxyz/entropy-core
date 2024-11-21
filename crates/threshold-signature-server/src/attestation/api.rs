@@ -26,7 +26,7 @@ use crate::{
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::OcwMessageAttestationRequest;
+use entropy_shared::{OcwMessageAttestationRequest, QuoteContext};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
 use subxt::tx::PairSigner;
@@ -68,8 +68,8 @@ pub async fn attest(
             .ok_or_else(|| AttestationErr::Unexpected)?
     };
 
-    // We add 1 to the block number as this will be processed in the next block
-    let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
+    let context = QuoteContext::Validate; // TODO
+    let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
     // Submit the quote
     let attest_tx = entropy::tx().attestation().attest(quote.clone());
@@ -93,12 +93,8 @@ pub async fn get_attest(
     // Request attestation to get nonce
     let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
 
-    // We also need the current block number as input
-    let block_number =
-        rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
-
-    // We add 1 to the block number as this will be processed in the next block
-    let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
+    let context = QuoteContext::Validate; // TODO
+    let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
     Ok((StatusCode::OK, quote))
 }
@@ -106,10 +102,10 @@ pub async fn get_attest(
 /// Create a mock quote for testing on non-TDX hardware
 #[cfg(not(feature = "production"))]
 pub async fn create_quote(
-    block_number: u32,
     nonce: [u8; 32],
     signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
     x25519_secret: &StaticSecret,
+    context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {
     use rand::{rngs::StdRng, SeedableRng};
     use rand_core::OsRng;
@@ -124,7 +120,7 @@ pub async fn create_quote(
         signer.signer().public(),
         *public_key.as_bytes(),
         nonce,
-        block_number,
+        context,
     );
 
     // This is generated deterministically from TSS account id
@@ -167,10 +163,10 @@ pub async fn validate_new_attestation(
 /// Create a TDX quote in production
 #[cfg(feature = "production")]
 pub async fn create_quote(
-    block_number: u32,
     nonce: [u8; 32],
     signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
     x25519_secret: &StaticSecret,
+    context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
@@ -178,7 +174,7 @@ pub async fn create_quote(
         signer.signer().public(),
         *public_key.as_bytes(),
         nonce,
-        block_number,
+        context,
     );
 
     Ok(configfs_tsm::create_quote(input_data.0)?)
