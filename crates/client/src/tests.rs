@@ -285,7 +285,8 @@ async fn test_get_oracle_headings() {
 
     let mut current_block = 0;
     while current_block < 2 {
-        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+        let finalized_head = rpc.chain_get_finalized_head().await.unwrap();
+        current_block = rpc.chain_get_header(Some(finalized_head)).await.unwrap().unwrap().number;
     }
 
     let headings = get_oracle_headings(&api, &rpc).await.unwrap();
