@@ -326,16 +326,18 @@ pub async fn run_command(
 
             let config_interface = match config_interface_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => fs::read(
-                    config_interface_file_option.expect("No config interface file passed"),
-                )?,
+                None => match config_interface_file_option {
+                    Some(config_interface_file) => fs::read(config_interface_file)?,
+                    None => Vec::new(),
+                },
             };
 
             let aux_data_interface = match aux_data_interface_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => fs::read(
-                    aux_data_interface_file_option.expect("No aux data interface file passed"),
-                )?,
+                None => match aux_data_interface_file_option {
+                    Some(aux_data_interface_file) => fs::read(aux_data_interface_file)?,
+                    None => Vec::new(),
+                },
             };
 
             let program_version_number = match program_version_number_option {
