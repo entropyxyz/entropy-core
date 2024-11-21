@@ -80,6 +80,7 @@ pub async fn attest(
 
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
 /// body.
+///
 /// This is used by node operators to get a quote for use in the `validate`, `change_endpoint`
 /// and `change_tss_accounts` extrinsics.
 pub async fn get_attest(

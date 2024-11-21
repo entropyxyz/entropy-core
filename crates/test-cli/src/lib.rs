@@ -189,12 +189,12 @@ enum CliCommand {
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
-    /// Request a TDX quote from a TS server and write it to a file
+    /// Request a TDX quote from a TSS server and write it to a file.
     GetTdxQuote {
-        /// The socket address of the TS server, eg: 127.0.0.1:3002
+        /// The socket address of the TS server, eg: `127.0.0.1:3002`
         tss_endpoint: String,
-        /// The filename to write the quote to. Defaults to quote.dat
-        #[arg(short, long)]
+        /// The filename to write the quote to. Defaults to `quote.dat`
+        #[arg(long)]
         output_filename: Option<String>,
     },
 }
