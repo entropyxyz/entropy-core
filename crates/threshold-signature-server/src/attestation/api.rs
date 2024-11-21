@@ -23,11 +23,16 @@ use crate::{
     },
     AppState,
 };
-use axum::{body::Bytes, extract::State, http::StatusCode};
+use axum::{
+    body::Bytes,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{OcwMessageAttestationRequest, QuoteContext};
 use parity_scale_codec::Decode;
+use serde::Deserialize;
 use sp_core::Pair;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
@@ -78,6 +83,11 @@ pub async fn attest(
     Ok(StatusCode::OK)
 }
 
+#[derive(Deserialize)]
+pub struct QuoteContextQuery {
+    context: String,
+}
+
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
 /// body.
 ///
@@ -85,6 +95,7 @@ pub async fn attest(
 /// and `change_tss_accounts` extrinsics.
 pub async fn get_attest(
     State(app_state): State<AppState>,
+    Query(context_querystring): Query<QuoteContextQuery>,
 ) -> Result<(StatusCode, Vec<u8>), AttestationErr> {
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -93,7 +104,11 @@ pub async fn get_attest(
     // Request attestation to get nonce
     let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
 
-    let context = QuoteContext::Validate; // TODO
+    let context = match context_querystring.context.as_str() {
+        "validate" => QuoteContext::Validate,
+        _ => panic!("Bad context"),
+    };
+
     let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
     Ok((StatusCode::OK, quote))
