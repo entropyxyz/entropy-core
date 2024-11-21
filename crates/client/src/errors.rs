@@ -49,6 +49,17 @@ pub enum SubgroupGetError {
     JoinError(#[from] tokio::task::JoinError),
 }
 
+/// An error when making an attestation request
+#[derive(Debug, Error)]
+pub enum AttestationRequestError {
+    #[error("Generic Substrate error: {0}")]
+    GenericSubstrate(#[from] subxt::error::Error),
+    #[error("Substrate client: {0}")]
+    SubstrateClient(#[from] crate::substrate::SubstrateError),
+    #[error("Recieved nonce is not 32 bytes")]
+    BadNonce,
+}
+
 #[cfg(feature = "full-client")]
 #[derive(Debug, Error)]
 pub enum ClientError {
@@ -110,4 +121,6 @@ pub enum ClientError {
     NoNonSigningValidators,
     #[error("Scale decode: {0}")]
     Codec(#[from] parity_scale_codec::Error),
+    #[error("Attestation request: {0}")]
+    AttestationRequest(#[from] AttestationRequestError),
 }

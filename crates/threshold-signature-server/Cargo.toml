@@ -36,7 +36,7 @@ axum   ={ version="0.7.9", features=["ws"] }
 
 # Substrate
 subxt             ="0.35.3"
-parity-scale-codec="3.6.12"
+parity-scale-codec="3.7.0"
 sp-core           ={ version="31.0.0", default-features=false }
 
 # Entropy
@@ -52,7 +52,7 @@ entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", bra
 tracing                 ="0.1.37"
 tracing-subscriber      ={ version="0.3.18", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
-tower-http              ={ version="0.6.1", features=["trace", "cors"] }
+tower-http              ={ version="0.6.2", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.9"
 uuid                    ={ version="1.11.0", features=["v4"] }
 

@@ -193,6 +193,14 @@ enum CliCommand {
     ///
     /// This is useful for program developers to know what oracle data is available.
     GetOracleHeadings,
+    /// Request a TDX quote from a TSS server and write it to a file.
+    GetTdxQuote {
+        /// The socket address of the TS server, eg: `127.0.0.1:3002`
+        tss_endpoint: String,
+        /// The filename to write the quote to. Defaults to `quote.dat`
+        #[arg(long)]
+        output_filename: Option<String>,
+    },
 }
 
 impl Cli {
@@ -565,6 +573,18 @@ pub async fn run_command(
         CliCommand::GetOracleHeadings => {
             let headings = get_oracle_headings(&api, &rpc).await?;
             Ok(serde_json::to_string_pretty(&headings)?)
+        },
+        CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
+            let quote_bytes =
+                reqwest::get(format!("http://{}/attest", tss_endpoint)).await?.bytes().await?;
+            let output_filename = output_filename.unwrap_or("quote.dat".into());
+
+            std::fs::write(&output_filename, quote_bytes)?;
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok(format!("Succesfully written quote to {}", output_filename))
+            }
         },
     }
 }

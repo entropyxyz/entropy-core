@@ -524,6 +524,13 @@ fn it_deletes_when_no_bond_left() {
 }
 
 #[test]
+fn it_doesnt_panic_when_no_signers() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Staking::new_session_handler(&[1, 2, 3]));
+    });
+}
+
+#[test]
 fn it_tests_new_session_handler() {
     new_test_ext().execute_with(|| {
         // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.

@@ -24,6 +24,7 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
+use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::OcwMessageAttestationRequest;
 use parity_scale_codec::Decode;
@@ -75,6 +76,31 @@ pub async fn attest(
     submit_transaction(&api, &rpc, &signer, &attest_tx, None).await?;
 
     Ok(StatusCode::OK)
+}
+
+/// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
+/// body.
+///
+/// This is used by node operators to get a quote for use in the `validate`, `change_endpoint`
+/// and `change_tss_accounts` extrinsics.
+pub async fn get_attest(
+    State(app_state): State<AppState>,
+) -> Result<(StatusCode, Vec<u8>), AttestationErr> {
+    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let api = get_api(&app_state.configuration.endpoint).await?;
+    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
+    // Request attestation to get nonce
+    let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
+
+    // We also need the current block number as input
+    let block_number =
+        rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
+
+    // We add 1 to the block number as this will be processed in the next block
+    let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
+
+    Ok((StatusCode::OK, quote))
 }
 
 /// Create a mock quote for testing on non-TDX hardware

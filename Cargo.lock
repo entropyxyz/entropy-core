@@ -2579,7 +2579,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-core"
 version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=master#c689ad3d8114eff88bc646d9b200c71f6e14f436"
+source = "git+https://github.com/entropyxyz/programs.git?branch=master#b300dab62e0bd77ff9a6341dab4988459dcaed78"
 dependencies = [
  "getrandom 0.2.15",
  "serde",
@@ -2590,7 +2590,7 @@ dependencies = [
 [[package]]
 name = "entropy-programs-runtime"
 version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=master#c689ad3d8114eff88bc646d9b200c71f6e14f436"
+source = "git+https://github.com/entropyxyz/programs.git?branch=master#b300dab62e0bd77ff9a6341dab4988459dcaed78"
 dependencies = [
  "entropy-programs-core",
  "thiserror 1.0.68",
@@ -2754,6 +2754,7 @@ dependencies = [
  "entropy-client",
  "entropy-shared",
  "hex",
+ "reqwest",
  "serde",
  "serde_json",
  "sp-core 31.0.0",
@@ -2846,7 +2847,7 @@ dependencies = [
  "thiserror 2.0.3",
  "tokio",
  "tokio-tungstenite",
- "tower-http 0.6.1",
+ "tower-http 0.6.2",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-loki",
@@ -7742,9 +7743,9 @@ dependencies = [
 
 [[package]]
 name = "parity-scale-codec"
-version = "3.6.12"
+version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "306800abfa29c7f16596b5970a588435e3d5b3149683d00c12b699cc19f895ee"
+checksum = "8be4817d39f3272f69c59fe05d0535ae6456c2dc2fa1ba02910296c7e0a5c590"
 dependencies = [
  "arrayvec 0.7.4",
  "bitvec",
@@ -7752,6 +7753,7 @@ dependencies = [
  "bytes",
  "impl-trait-for-tuples",
  "parity-scale-codec-derive",
+ "rustversion",
  "serde",
 ]
 
@@ -11282,9 +11284,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "2.11.5"
+version = "2.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aa7ffc1c0ef49b0452c6e2986abf2b07743320641ffd5fc63d552458e3b779b"
+checksum = "346a3b32eba2640d17a9cb5927056b08f3de90f65b72fe09402c2ad07d684d0b"
 dependencies = [
  "bitvec",
  "cfg-if",
@@ -11296,9 +11298,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info-derive"
-version = "2.11.5"
+version = "2.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46385cc24172cf615450267463f937c10072516359b3ff1cb24228a4a08bf951"
+checksum = "c6630024bf739e2179b91fb424b28898baf819414262c5d376677dbff1fe7ebf"
 dependencies = [
  "proc-macro-crate 3.1.0",
  "proc-macro2",
@@ -14652,9 +14654,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8437150ab6bbc8c5f0f519e3d5ed4aa883a83dd4cdd3d1b21f9482936046cb97"
+checksum = "403fa3b783d4b626a8ad51d766ab03cb6d2dbfc46b1c5d4448395e6628dc9697"
 dependencies = [
  "bitflags 2.5.0",
  "bytes",

@@ -40,7 +40,9 @@ use crate::{
     },
     client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
     substrate::{get_registered_details, submit_transaction_with_pair},
-    user::{get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest},
+    user::{
+        self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
+    },
     Hasher,
 };
 
@@ -427,6 +429,9 @@ async fn jumpstart_inner(
 /// some point in the near future.
 ///
 /// The returned `nonce` must be used when generating a `quote` for the chain.
+///
+/// This wraps [user::request_attestation] to convert the error to a [ClientError] consistant with
+/// other functions in this module
 #[tracing::instrument(
     skip_all,
     fields(
@@ -436,21 +441,9 @@ async fn jumpstart_inner(
 pub async fn request_attestation(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    attestee: sr25519::Pair,
-) -> Result<Vec<u8>, ClientError> {
-    tracing::debug!("{} is requesting an attestation.", attestee.public());
-
-    let request_attestation = entropy::tx().attestation().request_attestation();
-
-    let result =
-        submit_transaction_with_pair(api, rpc, &attestee, &request_attestation, None).await?;
-    let result_event = result
-        .find_first::<entropy::attestation::events::AttestationIssued>()?
-        .ok_or(crate::errors::SubstrateError::NoEvent)?;
-
-    let nonce = result_event.0;
-
-    Ok(nonce)
+    attestee: &sr25519::Pair,
+) -> Result<[u8; 32], ClientError> {
+    Ok(user::request_attestation(api, rpc, attestee).await?)
 }
 
 /// Get oracle data headings
