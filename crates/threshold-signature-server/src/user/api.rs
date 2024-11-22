@@ -450,9 +450,10 @@ async fn setup_dkg(
 
     let serialized_key_share = key_serialize(&(key_share, aux_info))
         .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
-
+    dbg!("pre reserve key");
     let reservation = app_state.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await?;
     app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
+    dbg!("post reserve key");
 
     let block_hash = rpc
         .chain_get_block_hash(None)

@@ -107,6 +107,7 @@ pub async fn new_reshare(
 
     let old_holder: Option<OldHolder<KeyParams, PartyId>> =
         if data.new_signers.contains(&my_stash_address.encode()) {
+            dbg!("one is here");
             None
         } else {
             println!("Loading keyshare");
@@ -116,7 +117,7 @@ pub async fn new_reshare(
                     .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
             Some(OldHolder { key_share: key_share.0 })
         };
-
+        dbg!("should be 3");
     // new_holders -> From chain next_signers (old_holders (currently forced to be t) + new_holders)
     // also acts as verifiers as is everyone in the party
     let new_holders: BTreeSet<PartyId> =
@@ -317,6 +318,7 @@ pub async fn confirm_key_reshare(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
 ) -> Result<(), ValidatorErr> {
+    dbg!("confirm resahre");
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error
     // TODO: Understand this better, potentially use sign_and_submit_default
@@ -331,6 +333,7 @@ pub async fn confirm_key_reshare(
 
     let confirm_key_reshare_request = entropy::tx().staking_extension().confirm_key_reshare();
     submit_transaction(api, rpc, signer, &confirm_key_reshare_request, Some(nonce)).await?;
+    dbg!("submitted");
     Ok(())
 }
 

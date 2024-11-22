@@ -197,19 +197,19 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    let (dave_axum, dave_kv) =
-        create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
+    // let (dave_axum, dave_kv) =
+    //     create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
 
-    let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
-        .await
-        .expect("Unable to bind to given server address.");
-    tokio::spawn(async move {
-        axum::serve(listener_dave, dave_axum).await.unwrap();
-    });
-    let dave_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
-    ids.push(dave_id);
+    // let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
+    //     .await
+    //     .expect("Unable to bind to given server address.");
+    // tokio::spawn(async move {
+    //     axum::serve(listener_dave, dave_axum).await.unwrap();
+    // });
+    // let dave_id = PartyId::new(SubxtAccountId32(
+    //     *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
+    // ));
+    // ids.push(dave_id);
 
     if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
         put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;

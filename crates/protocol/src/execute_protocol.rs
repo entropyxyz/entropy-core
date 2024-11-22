@@ -379,7 +379,7 @@ pub async fn execute_reshare(
 > {
     tracing::info!("Executing reshare");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
-
+    // dbg!(threshold_pair.to_account_id().clone());
     let pair = PairWrapper(threshold_pair.clone());
 
     let session_id_hash = session_id.blake2(None)?;
@@ -392,11 +392,14 @@ pub async fn execute_reshare(
         inputs.clone(),
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
-
+    dbg!("here -1");
     let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
+    dbg!("here");
     let aux_info = if let Some(aux_info) = aux_info_option {
+        dbg!("here aux data ");
         aux_info
     } else {
+        dbg!("here 2 ");
         tracing::info!("Executing aux gen session as part of reshare");
         // Now run an aux gen session
         let session_id_hash_aux_data = session_id.blake2(Some(Subsession::AuxGen))?;
@@ -407,9 +410,10 @@ pub async fn execute_reshare(
             &inputs.new_holders,
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
-
+        dbg!("here 3");
         execute_protocol_generic(chans, session, session_id_hash_aux_data).await?.0
     };
+    dbg!("here 4");
 
     Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, aux_info))
 }

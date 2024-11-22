@@ -151,7 +151,7 @@ async fn wait_for_reshare(
     dbg!(block_number);
     println!("reshare_data {reshare_data:?}");
 
-    let block_number = TEST_RESHARE_BLOCK_NUMBER + 20;
+    let block_number = TEST_RESHARE_BLOCK_NUMBER + 10;
     run_to_block(&rpc, block_number).await;
 
     // let new_signers = {

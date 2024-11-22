@@ -62,11 +62,11 @@ pub fn integration_tests_config(jumpstarted: bool) -> ChainSpec {
                 crate::chain_spec::authority_keys_from_seed("Alice"),
                 crate::chain_spec::authority_keys_from_seed("Bob"),
                 crate::chain_spec::authority_keys_from_seed("Charlie"),
-                crate::chain_spec::authority_keys_from_seed("Dave"),
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             vec![
+                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                 get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
             ],
@@ -190,15 +190,6 @@ pub fn integration_tests_genesis_config(
                         provisioning_certification_key::CHARLIE.clone(),
                     ),
                 ),
-                (
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    (
-                        crate::chain_spec::tss_account_id::DAVE.clone(),
-                        crate::chain_spec::tss_x25519_public_key::DAVE,
-                        "127.0.0.1:3004".as_bytes().to_vec(),
-                        provisioning_certification_key::DAVE.clone(),
-                    ),
-                ),
             ],
             proactive_refresh_data: (
                 vec![
@@ -229,7 +220,7 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")]),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Charlie//stash")]),
             jump_started_signers,
         },
         "elections": ElectionsConfig {
