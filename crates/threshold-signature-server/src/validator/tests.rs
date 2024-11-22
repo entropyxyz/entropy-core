@@ -70,8 +70,7 @@ async fn test_reshare_basic() {
     initialize_test_logger().await;
     clean_tests();
 
-    let chain_spec_type = ChainSpecType::IntegrationJumpStarted;
-    let (validator_ips, validator_ids) =
+    let (_validator_ips, _validator_ids) =
         spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
             .await;
 
@@ -106,37 +105,8 @@ async fn test_reshare_basic() {
         key_shares_before.insert(signer.tss_account.0, key_share);
     }
 
-    // Get all validators
-    // let validators_query = entropy::storage().session().validators();
-    // let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
-
-    // Get stash account of a non-signer, to become the new signer
-    // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses
-    // let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
-
-    // let onchain_reshare_request = OcwMessageReshare {
-    //     new_signers: vec![new_signer.0.to_vec()],
-    //     block_number: block_number - 1,
-    // };
-    //
-    let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    run_to_block(&rpc, block_number + 1).await;
-    // Send the OCW message to all TS servers who don't have a chain node
-    // let response_results = join_all(
-    //     validator_ports
-    //         .iter()
-    //         .map(|port| {
-    //             client
-    //                 .post(format!("http://127.0.0.1:{}/validator/reshare", port))
-    //                 .body(onchain_reshare_request.clone().encode())
-    //                 .send()
-    //         })
-    //         .collect::<Vec<_>>(),
-    // )
-    // .await;
-    // for response_result in response_results {
-    //     assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    // }
+    // let block_number = TEST_RESHARE_BLOCK_NUMBER;
+    // run_to_block(&rpc, block_number + 1).await;
 
     // for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
     //     let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
