@@ -85,11 +85,6 @@ pub async fn attest(
     Ok(StatusCode::OK)
 }
 
-#[derive(Deserialize)]
-pub struct QuoteContextQuery {
-    context: String,
-}
-
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
 /// body.
 ///
@@ -106,12 +101,7 @@ pub async fn get_attest(
     // Request attestation to get nonce
     let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
 
-    let context = match context_querystring.context.as_str() {
-        "validate" => QuoteContext::Validate,
-        "change_endpoint" => QuoteContext::ChangeEndpoint,
-        "change_threshold_accounts" => QuoteContext::ChangeThresholdAccounts,
-        _ => return Err(AttestationErr::UnknownContext),
-    };
+    let context = context_querystring.as_quote_context()?;
 
     let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
@@ -197,4 +187,25 @@ pub async fn create_quote(
     );
 
     Ok(configfs_tsm::create_quote(input_data.0)?)
+}
+
+/// Querystring for the GET `/attest` endpoint
+#[derive(Deserialize)]
+pub struct QuoteContextQuery {
+    /// The context in which the requested quote will be used.
+    ///
+    /// Must be one of `validate`, `change_endpoint`, `change_threshold_accounts`.
+    /// Eg: `http://127.0.0.1:3001/attest?context=validate`
+    context: String,
+}
+
+impl QuoteContextQuery {
+    fn as_quote_context(&self) -> Result<QuoteContext, AttestationErr> {
+        match self.context.as_str() {
+            "validate" => Ok(QuoteContext::Validate),
+            "change_endpoint" => Ok(QuoteContext::ChangeEndpoint),
+            "change_threshold_accounts" => Ok(QuoteContext::ChangeThresholdAccounts),
+            _ => Err(AttestationErr::UnknownContext),
+        }
+    }
 }
