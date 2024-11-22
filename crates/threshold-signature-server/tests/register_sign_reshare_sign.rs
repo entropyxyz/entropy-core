@@ -33,7 +33,7 @@ use entropy_testing_utils::{
     },
     spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
-use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger, run_to_block};
+use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger, run_to_block, log_all_block_numbers};
 use futures::future::join_all;
 use serial_test::serial;
 use sp_core::{Encode, Pair};
@@ -175,6 +175,7 @@ async fn do_reshare(
     run_to_all_blocks(rpcs, block_number).await;
     // Send the OCW message to all TS servers who don't have a chain node
     let client = reqwest::Client::new();
+    log_all_block_numbers(rpcs).await;
     let response_results = join_all(
         ips.iter()
             .map(|port| {

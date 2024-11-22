@@ -424,7 +424,7 @@ pub async fn do_jump_start(
     assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
 }
 
-async fn log_all_block_numbers(other_chains: &[LegacyRpcMethods<EntropyConfig>]) {
+pub async fn log_all_block_numbers(other_chains: &[LegacyRpcMethods<EntropyConfig>]) {
     for (i, other_chain) in other_chains.iter().enumerate() {
         let block_number = other_chain.chain_get_header(None).await.unwrap().unwrap().number;
         tracing::info!("Block number for rpc `{}`: `{}`", i, block_number);

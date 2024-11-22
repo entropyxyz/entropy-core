@@ -266,6 +266,8 @@ pub async fn validate_new_reshare(
 
     // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
+        tracing::info!("latest_block_number: {}", latest_block_number.saturating_sub(1));
+        tracing::info!("chain_data.block_number: {}", chain_data.block_number);
         return Err(ValidatorErr::StaleData);
     }
 
