@@ -43,7 +43,8 @@ fn setup_programs(
             bytecode: empty_program.clone(),
             configuration_schema: empty_program.clone(),
             auxiliary_data_schema: empty_program.clone(),
-            oracle_data_pointer: empty_program.clone(),
+            oracle_data_pointers: BoundedVec::try_from(vec![empty_program.clone()].to_vec())
+                .unwrap(),
             deployer: alice,
             ref_counter: 0,
             version_number: 0,
@@ -479,7 +480,8 @@ fn it_changes_a_program_instance() {
                 bytecode: empty_program.clone(),
                 configuration_schema: empty_program.clone(),
                 auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
+                oracle_data_pointers: BoundedVec::try_from(vec![empty_program.clone()].to_vec())
+                    .unwrap(),
                 deployer: 1,
                 ref_counter: 1,
                 version_number: 0,
@@ -500,7 +502,8 @@ fn it_changes_a_program_instance() {
                 bytecode: new_program,
                 configuration_schema: empty_program.clone(),
                 auxiliary_data_schema: empty_program.clone(),
-                oracle_data_pointer: empty_program.clone(),
+                oracle_data_pointers: BoundedVec::try_from(vec![empty_program.clone()].to_vec())
+                    .unwrap(),
                 deployer: 1,
                 ref_counter: 1,
                 version_number: 0,

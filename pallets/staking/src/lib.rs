@@ -41,6 +41,8 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
+pub mod pck;
+
 #[cfg(test)]
 mod mock;
 
@@ -68,6 +70,7 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
+    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -93,6 +96,9 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+
+        /// A type that verifies a provisioning certification key (PCK) certificate chain.
+        type PckCertChainVerifier: PckCertChainVerifier;
 
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
@@ -124,6 +130,18 @@ pub mod pallet {
         pub endpoint: TssServerURL,
         pub provisioning_certification_key: VerifyingKey,
     }
+
+    /// Information about a threshold server in the process of joining
+    /// This becomes a [ServerInfo] when the Pck certificate chain has been validated
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct JoiningServerInfo<AccountId> {
+        pub tss_account: AccountId,
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: TssServerURL,
+        pub pck_certificate_chain: Vec<Vec<u8>>,
+    }
+
     /// Info that is requiered to do a proactive refresh
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, Default)]
     pub struct RefreshInfo {
@@ -311,7 +329,22 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        PckCertificateParse,
+        PckCertificateVerify,
+        PckCertificateBadPublicKey,
+        PckCertificateNoCertificate,
         FailedAttestationCheck,
+    }
+
+    impl<T> From<pck::PckParseVerifyError> for Error<T> {
+        fn from(error: pck::PckParseVerifyError) -> Self {
+            match error {
+                pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
+                pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
+                pck::PckParseVerifyError::BadPublicKey => Error::<T>::PckCertificateBadPublicKey,
+                pck::PckParseVerifyError::NoCertificate => Error::<T>::PckCertificateNoCertificate,
+            }
+        }
     }
 
     #[pallet::event]
@@ -345,12 +378,26 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Allows a validator to change their endpoint so signers can find them when they are coms
-        /// manager `endpoint`: nodes's endpoint
+        /// Allows a validator to change the endpoint used by their Threshold Siganture Scheme
+        /// (TSS) server.
+        ///
+        /// # Expects TDX Quote
+        ///
+        /// A valid TDX quote must be passed along in order to ensure that the validator is running
+        /// TDX hardware. In order for the chain to be aware that a quote is expected from the
+        /// validator `pallet_attestation::request_attestation()` must be called first.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
         #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::change_endpoint())]
-        pub fn change_endpoint(origin: OriginFor<T>, endpoint: Vec<u8>) -> DispatchResult {
+        pub fn change_endpoint(
+            origin: OriginFor<T>,
+            endpoint: Vec<u8>,
+            quote: Vec<u8>,
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+
             ensure!(
                 endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
@@ -363,31 +410,60 @@ pub mod pallet {
 
             ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
                 if let Some(server_info) = maybe_server_info {
+                    // Before we modify the `server_info`, we want to check that the validator is
+                    // still running TDX hardware.
+                    ensure!(
+                        <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                            &server_info.tss_account.clone(),
+                            server_info.x25519_public_key,
+                            server_info.provisioning_certification_key.clone(),
+                            quote
+                        )
+                        .is_ok(),
+                        Error::<T>::FailedAttestationCheck
+                    );
+
                     server_info.endpoint.clone_from(&endpoint);
+
                     Ok(())
                 } else {
                     Err(Error::<T>::NoBond)
                 }
             })?;
+
             Self::deposit_event(Event::EndpointChanged(who, endpoint));
             Ok(())
         }
 
-        /// Allows a validator to change their threshold key so can confirm done when coms manager
-        /// `new_account`: nodes's threshold account
+        /// Allows a validator to change their associated threshold server AccountID and X25519
+        /// public key.
+        ///
+        /// # Expects TDX Quote
+        ///
+        /// A valid TDX quote must be passed along in order to ensure that the validator is running
+        /// TDX hardware. In order for the chain to be aware that a quote is expected from the
+        /// validator `pallet_attestation::request_attestation()` must be called first.
+        ///
+        /// The **new** TSS AccountID must be used when requesting this quote.
+        ///
+        /// The quote format is specified in:
+        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
         #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::change_threshold_accounts(MAX_SIGNERS as u32))]
         pub fn change_threshold_accounts(
             origin: OriginFor<T>,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
+            pck_certificate_chain: Vec<Vec<u8>>,
+            quote: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
             ensure!(
                 !ThresholdToStash::<T>::contains_key(&tss_account),
                 Error::<T>::TssAccountAlreadyExists
             );
 
-            let who = ensure_signed(origin)?;
             let stash = Self::get_stash(&who)?;
             let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(stash)
                 .or(Err(Error::<T>::InvalidValidatorId))?;
@@ -398,20 +474,48 @@ pub mod pallet {
                 Error::<T>::NoChangingThresholdAccountWhenSigner
             );
 
-            let new_server_info: ServerInfo<T::AccountId> =
-                ThresholdServers::<T>::try_mutate(&validator_id, |maybe_server_info| {
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(pck_certificate_chain)
+                    .map_err(|error| {
+                        let e: Error<T> = error.into();
+                        e
+                    })?;
+
+            let new_server_info: ServerInfo<T::AccountId> = ThresholdServers::<T>::try_mutate(
+                &validator_id,
+                |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
-                        server_info.tss_account = tss_account.clone();
+                        // Before we modify the `server_info`, we want to check that the validator is
+                        // still running TDX hardware.
+                        ensure!(
+                            <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                                &tss_account.clone(),
+                                x25519_public_key,
+                                provisioning_certification_key.clone(),
+                                quote
+                            )
+                            .is_ok(),
+                            Error::<T>::FailedAttestationCheck
+                        );
+
+                        server_info.tss_account = tss_account;
                         server_info.x25519_public_key = x25519_public_key;
-                        ThresholdToStash::<T>::insert(&tss_account, &validator_id);
+                        server_info.provisioning_certification_key = provisioning_certification_key;
+
+                        ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
+
                         Ok(server_info.clone())
                     } else {
                         Err(Error::<T>::NoBond)
                     }
-                })?;
+                },
+            )?;
+
             Self::deposit_event(Event::ThresholdAccountChanged(validator_id, new_server_info));
-            Ok(Some(<T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32))
-                .into())
+
+            let actual_weight =
+                <T as Config>::WeightInfo::change_threshold_accounts(signers.len() as u32);
+            Ok(Some(actual_weight).into())
         }
 
         /// Wraps's Substrate's `unbond` extrinsic but checks to make sure targeted account is not a signer or next signer
@@ -488,9 +592,11 @@ pub mod pallet {
         /// Wrap's Substrate's `staking_pallet::validate()` extrinsic, but enforces that
         /// information about a validator's threshold server is provided.
         ///
+        /// # Expects TDX Quote
+        ///
         /// A valid TDX quote must be passed along in order to ensure that the validator candidate
         /// is running TDX hardware. In order for the chain to be aware that a quote is expected
-        /// from the candidate, `pallet_attestation::request_attestation()` must be called first.
+        /// from the candidate `pallet_attestation::request_attestation()` must be called first.
         ///
         /// The quote format is specified in:
         /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
@@ -504,11 +610,26 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            server_info: ServerInfo<T::AccountId>,
+            joining_server_info: JoiningServerInfo<T::AccountId>,
             quote: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(
+                    joining_server_info.pck_certificate_chain,
+                )
+                .map_err(|error| {
+                    let e: Error<T> = error.into();
+                    e
+                })?;
+
+            let server_info = ServerInfo::<T::AccountId> {
+                tss_account: joining_server_info.tss_account,
+                x25519_public_key: joining_server_info.x25519_public_key,
+                endpoint: joining_server_info.endpoint,
+                provisioning_certification_key,
+            };
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
@@ -670,6 +791,11 @@ pub mod pallet {
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
+                return Ok(weight);
+            }
+
+            // Network not jumpstarted
+            if current_signers_length == 0 {
                 return Ok(weight);
             }
 

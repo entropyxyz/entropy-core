@@ -52,7 +52,7 @@ pub async fn get_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     program_pointer: &<EntropyConfig as Config>::Hash,
-) -> Result<ProgramInfo<AccountId32>, UserErr> {
+) -> Result<ProgramInfo, UserErr> {
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
     let program_info = query_chain(api, rpc, bytecode_address, None)
         .await?
@@ -64,12 +64,17 @@ pub async fn get_program(
 pub async fn get_oracle_data(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    program_oracle_data: Vec<u8>,
-) -> Result<Vec<u8>, UserErr> {
-    let oracle_data_call = entropy::storage().oracle().oracle_data(BoundedVec(program_oracle_data));
-    let oracle_info =
-        query_chain(api, rpc, oracle_data_call, None).await?.unwrap_or(BoundedVec(vec![]));
-    Ok(oracle_info.0)
+    program_oracle_datas: Vec<Vec<u8>>,
+) -> Result<Vec<Vec<u8>>, UserErr> {
+    let mut oracle_infos = vec![];
+    for program_oracle_data in program_oracle_datas {
+        let oracle_data_call =
+            entropy::storage().oracle().oracle_data(BoundedVec(program_oracle_data));
+        let oracle_info =
+            query_chain(api, rpc, oracle_data_call, None).await?.unwrap_or(BoundedVec(vec![]));
+        oracle_infos.push(oracle_info.0);
+    }
+    Ok(oracle_infos)
 }
 
 /// Takes Stash keys and returns validator info from chain

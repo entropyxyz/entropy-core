@@ -75,6 +75,9 @@ pub mod pallet {
         /// The maximum amount of owned programs.
         type MaxOwnedPrograms: Get<u32>;
 
+        /// The maximum amount of oracle lookups allowed.
+        type MaxOracleLookups: Get<u32>;
+
         /// The amount to charge, per byte, for storing a program on-chain.
         type ProgramDepositPerByte: Get<BalanceOf<Self>>;
 
@@ -84,6 +87,8 @@ pub mod pallet {
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
+
+    pub type OraclePointers<T> = BoundedVec<Vec<u8>, <T as Config>::MaxOracleLookups>;
 
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
@@ -108,7 +113,7 @@ pub mod pallet {
                         configuration_schema: program_info.2.clone(),
                         auxiliary_data_schema: program_info.3.clone(),
                         deployer: program_info.4.clone(),
-                        oracle_data_pointer: vec![],
+                        oracle_data_pointers: BoundedVec::try_from([].to_vec()).unwrap(),
                         ref_counter: program_info.5,
                         version_number: 0,
                     },
@@ -123,7 +128,8 @@ pub mod pallet {
 
     /// Information on the program
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-    pub struct ProgramInfo<AccountId> {
+    #[scale_info(skip_type_params(T))]
+    pub struct ProgramInfo<T: Config> {
         /// The bytecode of the program.
         pub bytecode: Vec<u8>,
         /// The schema for the Program's configuration parameters.
@@ -138,10 +144,10 @@ pub mod pallet {
         /// [JSON Schema](https://json-schema.org/) in order to simplify the life of off-chain
         /// actors.
         pub auxiliary_data_schema: Vec<u8>,
-        /// The location of the oracle data needed for this program
-        pub oracle_data_pointer: Vec<u8>,
+        /// The locations of the oracle data needed for this program
+        pub oracle_data_pointers: OraclePointers<T>,
         /// Deployer of the program
-        pub deployer: AccountId,
+        pub deployer: T::AccountId,
         /// Accounts that use this program
         pub ref_counter: u128,
         /// The user submitted version number of the program's runtime
@@ -154,7 +160,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn programs)]
     pub type Programs<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T::AccountId>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::Hash, ProgramInfo<T>, OptionQuery>;
 
     /// Maps an account to all the programs it owns
     #[pallet::storage]
@@ -184,8 +190,8 @@ pub mod pallet {
             /// The new program auxiliary data schema.
             auxiliary_data_schema: Vec<u8>,
 
-            /// The oracle data location needed for the program
-            oracle_data_pointer: Vec<u8>,
+            /// The oracle data locations needed for the program
+            oracle_data_pointers: OraclePointers<T>,
 
             /// The version number of runtime for which the program was written
             version_number: u8,
@@ -224,30 +230,33 @@ pub mod pallet {
         ///
         /// Note that the caller becomes the deployer account.
         #[pallet::call_index(0)]
-        #[pallet::weight({<T as Config>::WeightInfo::set_program()})]
+        #[pallet::weight({<T as Config>::WeightInfo::set_program(<T as Config>::MaxOracleLookups::get())})]
         pub fn set_program(
             origin: OriginFor<T>,
             new_program: Vec<u8>,
             configuration_schema: Vec<u8>,
             auxiliary_data_schema: Vec<u8>,
-            oracle_data_pointer: Vec<u8>,
+            oracle_data_pointers: OraclePointers<T>,
             version_number: u8,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let deployer = ensure_signed(origin)?;
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
             hash_input.extend(&configuration_schema);
             hash_input.extend(&auxiliary_data_schema);
-            hash_input.extend(&oracle_data_pointer);
+
             hash_input.extend(&vec![version_number]);
-            let program_hash = T::Hashing::hash(&hash_input);
+            let (oracle_length, hash_input_with_oracle) =
+                Self::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)?;
+            let program_hash = T::Hashing::hash(&hash_input_with_oracle);
+
             let new_program_length = new_program
                 .len()
                 .checked_add(configuration_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
                 .checked_add(auxiliary_data_schema.len())
                 .ok_or(Error::<T>::ArithmeticError)?
-                .checked_add(oracle_data_pointer.len())
+                .checked_add(oracle_length)
                 .ok_or(Error::<T>::ArithmeticError)?;
             ensure!(
                 new_program_length as u32 <= T::MaxBytecodeLength::get(),
@@ -263,7 +272,7 @@ pub mod pallet {
                     bytecode: new_program.clone(),
                     configuration_schema: configuration_schema.clone(),
                     auxiliary_data_schema: auxiliary_data_schema.clone(),
-                    oracle_data_pointer: oracle_data_pointer.clone(),
+                    oracle_data_pointers: oracle_data_pointers.clone(),
                     deployer: deployer.clone(),
                     ref_counter: 0u128,
                     version_number,
@@ -283,17 +292,18 @@ pub mod pallet {
                 program_hash,
                 configuration_schema,
                 auxiliary_data_schema,
-                oracle_data_pointer,
+                oracle_data_pointers: oracle_data_pointers.clone(),
                 version_number,
             });
-            Ok(())
+            Ok(Some(<T as Config>::WeightInfo::set_program(oracle_data_pointers.len() as u32))
+                .into())
         }
 
         /// Removes a program at a specific hash
         ///
         /// Caller must be the deployer account for said program.
         #[pallet::call_index(1)]
-        #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOwnedPrograms::get())})]
+        #[pallet::weight({<T as Config>::WeightInfo::remove_program( <T as Config>::MaxOracleLookups::get(), <T as Config>::MaxOwnedPrograms::get())})]
         pub fn remove_program(
             origin: OriginFor<T>,
             program_hash: T::Hash,
@@ -303,12 +313,18 @@ pub mod pallet {
                 Self::programs(program_hash).ok_or(Error::<T>::NoProgramDefined)?;
             ensure!(old_program_info.deployer == deployer, Error::<T>::NotAuthorized);
             ensure!(old_program_info.ref_counter == 0, Error::<T>::ProgramInUse);
+
+            let mut oracle_length: usize = 0;
+            for oracle_data_pointer in &old_program_info.oracle_data_pointers {
+                oracle_length += oracle_data_pointer.len();
+            }
+
             Self::unreserve_program_deposit(
                 &old_program_info.deployer,
                 old_program_info.bytecode.len()
                     + old_program_info.configuration_schema.len()
                     + old_program_info.auxiliary_data_schema.len()
-                    + old_program_info.oracle_data_pointer.len(),
+                    + oracle_length,
             );
             let mut owned_programs_length = 0;
             OwnedPrograms::<T>::try_mutate(
@@ -325,7 +341,11 @@ pub mod pallet {
             )?;
             Programs::<T>::remove(program_hash);
             Self::deposit_event(Event::ProgramRemoved { deployer, old_program_hash: program_hash });
-            Ok(Some(<T as Config>::WeightInfo::remove_program(owned_programs_length as u32)).into())
+            Ok(Some(<T as Config>::WeightInfo::remove_program(
+                old_program_info.oracle_data_pointers.len() as u32,
+                owned_programs_length as u32,
+            ))
+            .into())
         }
     }
 
@@ -371,6 +391,20 @@ pub mod pallet {
             }
 
             Ok(())
+        }
+
+        /// Gets hash input and length of each oracle data pointer
+        pub fn get_length_and_hash_of_oracle(
+            oracle_datas: &OraclePointers<T>,
+            mut hash_input: Vec<u8>,
+        ) -> Result<(usize, Vec<u8>), Error<T>> {
+            let mut length: usize = 0;
+            for oracle_data in oracle_datas {
+                hash_input.extend(oracle_data);
+                length =
+                    length.checked_add(oracle_data.len()).ok_or(Error::<T>::ArithmeticError)?;
+            }
+            Ok((length, hash_input))
         }
     }
 }

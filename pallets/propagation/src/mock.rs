@@ -309,6 +309,7 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = ();
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
+    type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifier;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
@@ -350,6 +351,7 @@ parameter_types! {
   pub const MaxBytecodeLength: u32 = 3;
   pub const ProgramDepositPerByte: u32 = 5;
   pub const MaxOwnedPrograms: u32 = 5;
+  pub const MaxOracleLookups: u32 = 5;
 }
 
 impl pallet_programs::Config for Test {
@@ -357,6 +359,7 @@ impl pallet_programs::Config for Test {
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;
     type MaxOwnedPrograms = MaxOwnedPrograms;
+    type MaxOracleLookups = MaxOracleLookups;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }

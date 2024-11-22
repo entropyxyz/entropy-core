@@ -52,79 +52,85 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for pallet_programs.
 pub trait WeightInfo {
-	fn set_program() -> Weight;
-	fn remove_program(p: u32) -> Weight;
+	fn set_program(o: u32) -> Weight;
+	fn remove_program(o: u32, p: u32) -> Weight;
 }
 
 /// Weights for pallet_programs using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	/// Storage: `Programs::Bytecode` (r:1 w:1)
-	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
 	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn set_program() -> Weight {
+	/// The range of component `o` is `[0, 10]`.
+	fn set_program(_o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `142`
-		//  Estimated: `3607`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(27_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3607))
+		//  Measured:  `214`
+		//  Estimated: `3679`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(26_554_140, 0)
+			.saturating_add(Weight::from_parts(0, 3679))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// Storage: `Programs::Bytecode` (r:1 w:1)
-	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
 	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 25]`.
-	fn remove_program(p: u32, ) -> Weight {
+	/// The range of component `p` is `[0, 250]`.
+	/// The range of component `o` is `[0, 10]`.
+	fn remove_program(p: u32, o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `326 + p * (32 ±0)`
-		//  Estimated: `3809 + p * (31 ±0)`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(26_938_669, 0)
-			.saturating_add(Weight::from_parts(0, 3809))
-			// Standard Error: 47_904
-			.saturating_add(Weight::from_parts(136_174, 0).saturating_mul(p.into()))
+		//  Measured:  `353 + o * (1 ±0) + p * (32 ±0)`
+		//  Estimated: `3842 + o * (1 ±0) + p * (32 ±0)`
+		// Minimum execution time: 22_000_000 picoseconds.
+		Weight::from_parts(28_023_735, 0)
+			.saturating_add(Weight::from_parts(0, 3842))
+			// Standard Error: 11_641
+			.saturating_add(Weight::from_parts(103_353, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
-			.saturating_add(Weight::from_parts(0, 31).saturating_mul(p.into()))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(o.into()))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(p.into()))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	/// Storage: `Programs::Bytecode` (r:1 w:1)
-	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
 	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn set_program() -> Weight {
+	/// The range of component `o` is `[0, 10]`.
+	fn set_program(_o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `142`
-		//  Estimated: `3607`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(27_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3607))
+		//  Measured:  `214`
+		//  Estimated: `3679`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(26_554_140, 0)
+			.saturating_add(Weight::from_parts(0, 3679))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
-	/// Storage: `Programs::Bytecode` (r:1 w:1)
-	/// Proof: `Programs::Bytecode` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Programs::Programs` (r:1 w:1)
+	/// Proof: `Programs::Programs` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Programs::OwnedPrograms` (r:1 w:1)
 	/// Proof: `Programs::OwnedPrograms` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// The range of component `p` is `[0, 25]`.
-	fn remove_program(p: u32, ) -> Weight {
+	/// The range of component `p` is `[0, 250]`.
+	/// The range of component `o` is `[0, 10]`.
+	fn remove_program(p: u32, o: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `326 + p * (32 ±0)`
-		//  Estimated: `3809 + p * (31 ±0)`
-		// Minimum execution time: 26_000_000 picoseconds.
-		Weight::from_parts(26_938_669, 0)
-			.saturating_add(Weight::from_parts(0, 3809))
-			// Standard Error: 47_904
-			.saturating_add(Weight::from_parts(136_174, 0).saturating_mul(p.into()))
+		//  Measured:  `353 + o * (1 ±0) + p * (32 ±0)`
+		//  Estimated: `3842 + o * (1 ±0) + p * (32 ±0)`
+		// Minimum execution time: 22_000_000 picoseconds.
+		Weight::from_parts(28_023_735, 0)
+			.saturating_add(Weight::from_parts(0, 3842))
+			// Standard Error: 11_641
+			.saturating_add(Weight::from_parts(103_353, 0).saturating_mul(p.into()))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
-			.saturating_add(Weight::from_parts(0, 31).saturating_mul(p.into()))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(o.into()))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(p.into()))
 	}
 }

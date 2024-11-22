@@ -33,7 +33,7 @@ use std::{
 
 use blake2::{Blake2s256, Digest};
 use errors::{ProtocolExecutionErr, VerifyingKeyError};
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
@@ -45,6 +45,13 @@ use synedrion::{
     signature::{self, hazmat::PrehashVerifier},
     AuxInfo, ThresholdKeyShare,
 };
+
+/// The current version number of the protocol message format or protocols themselves
+pub const PROTOCOL_MESSAGE_VERSION: u32 = 1;
+
+/// Currently supported protocol message versions for backward compatibility
+/// This must contain the current version
+pub const SUPPORTED_PROTOCOL_MESSAGE_VERSIONS: [u32; 1] = [PROTOCOL_MESSAGE_VERSION];
 
 /// Identifies a party participating in a protocol session
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -139,6 +146,19 @@ pub type KeyShareWithAuxInfo = (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<K
 pub struct RecoverableSignature {
     pub signature: Signature,
     pub recovery_id: RecoveryId,
+}
+
+// This cannot be derived because [RecoveryId] does not implement Serialize
+impl Serialize for RecoverableSignature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("RecoverableSignature", 2)?;
+        state.serialize_field("signature", &self.signature)?;
+        state.serialize_field("recovery_id", &self.recovery_id.to_byte())?;
+        state.end()
+    }
 }
 
 impl RecoverableSignature {
