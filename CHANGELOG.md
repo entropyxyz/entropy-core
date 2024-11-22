@@ -24,11 +24,14 @@ At the moment this project **does not** adhere to
 - In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
+- In [#1184](https://github.com/entropyxyz/entropy-core/pull/1184/) The ```OracleData``` mapping now holds a 
+struct ```OracleInfo``` which includes the ```oracle_data``` and the ```oracle_type```
 
 ### Added
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
 - CLI command to get oracle headings ([#1170](https://github.com/entropyxyz/entropy-core/pull/1170))
 - Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
+- Add type info to oracle data ([#1184](https://github.com/entropyxyz/entropy-core/pull/1184))
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
