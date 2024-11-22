@@ -394,6 +394,9 @@ pub async fn execute_reshare(
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
+
+    tracing::info!("Completed reshare protocol");
+
     let aux_info = if let Some(aux_info) = aux_info_option {
         aux_info
     } else {
