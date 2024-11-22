@@ -73,7 +73,9 @@ pub async fn attest(
             .ok_or_else(|| AttestationErr::Unexpected)?
     };
 
-    let context = QuoteContext::Validate; // TODO
+    // TODO #1181 since this endpoint is currently only used in tests we dont know what the context should be
+    let context = QuoteContext::Validate;
+
     let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
     // Submit the quote
@@ -106,7 +108,9 @@ pub async fn get_attest(
 
     let context = match context_querystring.context.as_str() {
         "validate" => QuoteContext::Validate,
-        _ => panic!("Bad context"),
+        "change_endpoint" => QuoteContext::ChangeEndpoint,
+        "change_threshold_accounts" => QuoteContext::ChangeThresholdAccounts,
+        _ => return Err(AttestationErr::UnknownContext),
     };
 
     let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
