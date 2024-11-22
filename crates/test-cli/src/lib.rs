@@ -27,9 +27,9 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
-        jumpstart_network, register, remove_program, sign, store_program, update_programs,
-        VERIFYING_KEY_LENGTH,
+        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_oracle_headings,
+        get_programs, get_rpc, jumpstart_network, register, remove_program, sign, store_program,
+        update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::PROGRAM_VERSION_NUMBER;
@@ -189,6 +189,10 @@ enum CliCommand {
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
+    /// Get headings of oracle data
+    ///
+    /// This is useful for program developers to know what oracle data is available.
+    GetOracleHeadings,
     /// Request a TDX quote from a TSS server and write it to a file.
     GetTdxQuote {
         /// The socket address of the TS server, eg: `127.0.0.1:3002`
@@ -567,6 +571,10 @@ pub async fn run_command(
             } else {
                 Ok("Succesfully jumpstarted network.".to_string())
             }
+        },
+        CliCommand::GetOracleHeadings => {
+            let headings = get_oracle_headings(&api, &rpc).await?;
+            Ok(serde_json::to_string_pretty(&headings)?)
         },
         CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
             let quote_bytes =

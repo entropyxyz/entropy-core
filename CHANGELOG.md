@@ -27,6 +27,7 @@ runtime
 
 ### Added
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
+- CLI command to get oracle headings ([#1170](https://github.com/entropyxyz/entropy-core/pull/1170))
 - Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
 
 ### Changed
