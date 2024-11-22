@@ -31,10 +31,11 @@ fn test_set_block_number() {
 
         <Oracle as OnInitialize<u64>>::on_initialize(50);
 
-        assert_eq!(
+        let oracle_info =
             Oracle::oracle_data(BoundedVec::try_from("block_number_entropy".encode()).unwrap())
-                .unwrap()[0],
-            50
-        );
+                .unwrap();
+
+        assert_eq!(u32::decode(&mut oracle_info.oracle_data.as_ref()).unwrap(), 50u32);
+        assert_eq!(std::str::from_utf8(&oracle_info.oracle_type).unwrap().to_string(), "u32");
     });
 }

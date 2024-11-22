@@ -55,13 +55,22 @@ pub mod module {
         type WeightInfo: WeightInfo;
     }
 
+    /// Oracle Info for oracle data
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct OracleInfo<T: Config> {
+        pub oracle_data: BoundedVec<u8, T::MaxOracleValueLength>,
+        pub oracle_type: Vec<u8>,
+    }
+
+    /// Storage for oracle info to be passed to programs.
     #[pallet::storage]
     #[pallet::getter(fn oracle_data)]
     pub type OracleData<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
         BoundedVec<u8, T::MaxOracleKeyLength>,
-        BoundedVec<u8, T::MaxOracleValueLength>,
+        OracleInfo<T>,
         OptionQuery,
     >;
 
@@ -92,8 +101,11 @@ pub mod module {
             OracleData::<T>::insert(
                 BoundedVec::try_from("block_number_entropy".encode())
                     .expect("Key fits in bounded vec; qed"),
-                BoundedVec::try_from(block_number.encode())
-                    .expect("Block number fits in bounded vec; qed"),
+                OracleInfo {
+                    oracle_data: BoundedVec::try_from(block_number.encode())
+                        .expect("Block number fits in bounded vec; qed"),
+                    oracle_type: "u32".as_bytes().to_vec(),
+                },
             );
             T::WeightInfo::on_initialize()
         }
