@@ -33,7 +33,9 @@ use entropy_testing_utils::{
     },
     spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
-use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger, run_to_block, log_all_block_numbers};
+use entropy_tss::helpers::tests::{
+    do_jump_start, initialize_test_logger, log_all_block_numbers, run_to_block,
+};
 use futures::future::join_all;
 use serial_test::serial;
 use sp_core::{Encode, Pair};
