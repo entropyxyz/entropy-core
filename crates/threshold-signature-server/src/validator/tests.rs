@@ -28,9 +28,7 @@ use crate::{
 };
 use entropy_client::{
     self as test_client,
-    chain_api::{
-        entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo, EntropyConfig,
-    },
+    chain_api::entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo,
 };
 use entropy_client::{
     chain_api::{
@@ -40,14 +38,8 @@ use entropy_client::{
     substrate::query_chain,
     Hasher,
 };
-use entropy_kvdb::{
-    clean_tests,
-    kv_manager::helpers::{deserialize, serialize},
-};
-use entropy_protocol::KeyShareWithAuxInfo;
-use entropy_shared::{
-    OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_RESHARE_BLOCK_NUMBER,
-};
+use entropy_kvdb::clean_tests;
+use entropy_shared::{OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY};
 use entropy_testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, RANDOM_ACCOUNT,
@@ -60,7 +52,7 @@ use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
@@ -94,181 +86,88 @@ async fn test_reshare_basic() {
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
     }
-    println!("Signers {:?}", signers);
 
-    // A map of account IDs to serialized keyshares before the reshare
-    let mut key_shares_before = HashMap::new();
     for signer in signers.iter() {
         let port = get_port(signer);
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
-        key_shares_before.insert(signer.tss_account.0, key_share);
     }
 
-    // let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    // run_to_block(&rpc, block_number + 1).await;
-
-    // for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
-    //     let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
-    //         deserialize(key_share_and_aux_before).unwrap();
-    //
-    //     let port = get_port(signers.iter().find(|s| s.tss_account.0 == *tss_account).unwrap());
-    //     let key_share_and_aux_after =
-    //         unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-    //     let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
-    //         deserialize(&key_share_and_aux_after).unwrap();
-    //
-    //     // Check key share has not yet changed
-    //     assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
-    //     // Check aux info has not yet changed
-    //     assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
-    // }
-
-    // let new_signers = {
-    //     let signer_query = entropy::storage().staking_extension().signers();
-    //     let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-    //     let mut signers = Vec::new();
-    //     for signer in signer_ids {
-    //         let query = entropy::storage().staking_extension().threshold_servers(signer);
-    //         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-    //         signers.push(server_info);
-    //     }
-    //     signers
-    // };
-
-    loop {
+    let _new_signer_ids = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
             let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
             HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
         };
         if new_signer_ids != old_signer_ids {
-            break;
+            println!("Signers have changed");
+            break new_signer_ids;
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    }
-    // println!("Signers {:?}", signers);
-    // println!("NEW Signers {:?}", new_signers);
+    };
 
-    // for signer in new_signers {
-    //     let _ = client
-    //         .post(format!(
-    //             "http://{}/rotate_network_key",
-    //             std::str::from_utf8(&signer.endpoint).unwrap()
-    //         ))
-    //         .send()
-    //         .await
-    //         .unwrap();
-    //
-    //     let key_share_and_aux_data_after_rotate =
-    //         unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&signer)).await;
-    //     let (key_share_after_rotate, aux_info_after_rotate): KeyShareWithAuxInfo =
-    //         deserialize(&key_share_and_aux_data_after_rotate).unwrap();
-    //
-    //     if let Some(key_share_and_aux_before) = key_shares_before.get(&signer.tss_account.0) {
-    //         let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
-    //             deserialize(&key_share_and_aux_before).unwrap();
-    //         // Check key share has changed
-    //         assert_ne!(
-    //             serialize(&key_share_before).unwrap(),
-    //             serialize(&key_share_after_rotate).unwrap()
-    //         );
-    //         // Check aux info has changed
-    //         assert_ne!(
-    //             serialize(&aux_info_before).unwrap(),
-    //             serialize(&aux_info_after_rotate).unwrap()
-    //         );
-    //     }
-    //
-    //     // calling twice doesn't do anything
-    //     let response = client
-    //         .post(format!(
-    //             "http://{}/rotate_network_key",
-    //             std::str::from_utf8(&signer.endpoint).unwrap()
-    //         ))
-    //         .send()
-    //         .await
-    //         .unwrap();
-    //
-    //     assert_eq!(response.text().await.unwrap(), "Kv error: Recv Error: channel closed");
-    //     let key_share_and_aux_data_after_rotate_twice =
-    //         unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&signer)).await;
-    //     let (key_share_after_rotate_twice, aux_info_after_rotate_twice): KeyShareWithAuxInfo =
-    //         deserialize(&key_share_and_aux_data_after_rotate_twice).unwrap();
-    //
-    //     // Check key share has not changed
-    //     assert_eq!(
-    //         serialize(&key_share_after_rotate_twice).unwrap(),
-    //         serialize(&key_share_after_rotate).unwrap()
-    //     );
-    //     // Check aux info has not changed
-    //     assert_eq!(
-    //         serialize(&aux_info_after_rotate_twice).unwrap(),
-    //         serialize(&aux_info_after_rotate).unwrap()
-    //     );
+    // Check that the new signers have keyshares
+    // for signer in new_signer_ids {
+    //     let query = entropy::storage().staking_extension().threshold_servers(AccountId32(signer));
+    //     let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+    //     let port = get_port(&server_info);
+    //     let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
+    //     assert!(!key_share.is_empty());
     // }
-    //
-    // let current_block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    // // Check that rotating the network key wont work again later
-    // run_to_block(&rpc, current_block_number + 3).await;
-    //
-    // let response_stale =
-    //     client.post("http://127.0.0.1:3001/rotate_network_key").send().await.unwrap();
-    //
-    // assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
-    //
-    // // Now test signing a message with the new keyshare set
-    // let account_owner = AccountKeyring::Ferdie.pair();
-    // let signature_request_author = AccountKeyring::One;
-    // // Store a program
-    // let program_pointer = test_client::store_program(
-    //     &api,
-    //     &rpc,
-    //     &account_owner,
-    //     TEST_PROGRAM_WASM_BYTECODE.to_owned(),
-    //     vec![],
-    //     vec![],
-    //     vec![],
-    //     0u8,
-    // )
-    // .await
-    // .unwrap();
-    //
-    // // Register, using that program
-    // let (verifying_key, _registered_info) = test_client::register(
-    //     &api,
-    //     &rpc,
-    //     account_owner.clone(),
-    //     AccountId32(account_owner.public().0),
-    //     BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
-    // )
-    // .await
-    // .unwrap();
-    //
-    // // Sign a message
-    // let recoverable_signature = test_client::sign(
-    //     &api,
-    //     &rpc,
-    //     signature_request_author.pair(),
-    //     verifying_key,
-    //     PREIMAGE_SHOULD_SUCCEED.to_vec(),
-    //     Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
-    // )
-    // .await
-    // .unwrap();
-    //
-    // // Check the signature
-    // let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
-    // let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
-    //     &message_should_succeed_hash,
-    //     &recoverable_signature.signature,
-    //     recoverable_signature.recovery_id,
-    // )
-    // .unwrap();
-    // assert_eq!(
-    //     verifying_key.to_vec(),
-    //     recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
-    // );
+
+    // Now test signing a message with the new keyshare set
+    let account_owner = AccountKeyring::Ferdie.pair();
+    let signature_request_author = AccountKeyring::One;
+    // Store a program
+    let program_pointer = test_client::store_program(
+        &api,
+        &rpc,
+        &account_owner,
+        TEST_PROGRAM_WASM_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec![],
+        0u8,
+    )
+    .await
+    .unwrap();
+    dbg!("stored program");
+    // Register, using that program
+    let (verifying_key, _registered_info) = test_client::register(
+        &api,
+        &rpc,
+        account_owner.clone(),
+        AccountId32(account_owner.public().0),
+        BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
+
+    dbg!("registered");
+    // Sign a message
+    let recoverable_signature = test_client::sign(
+        &api,
+        &rpc,
+        signature_request_author.pair(),
+        verifying_key,
+        PREIMAGE_SHOULD_SUCCEED.to_vec(),
+        Some(AUXILARY_DATA_SHOULD_SUCCEED.to_vec()),
+    )
+    .await
+    .unwrap();
+
+    // Check the signature
+    let message_should_succeed_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
+        &message_should_succeed_hash,
+        &recoverable_signature.signature,
+        recoverable_signature.recovery_id,
+    )
+    .unwrap();
+    assert_eq!(
+        verifying_key.to_vec(),
+        recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
+    );
     clean_tests();
 }
 

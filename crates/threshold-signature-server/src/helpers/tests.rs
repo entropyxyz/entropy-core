@@ -18,13 +18,12 @@
 // only compile when testing or when the test_helpers feature is enabled
 #![cfg(any(test, feature = "test_helpers"))]
 
+#[cfg(test)]
+use crate::helpers::tests::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec;
 use crate::{
     app,
     chain_api::{
-        entropy::{
-            self, runtime_types::bounded_collections::bounded_vec::BoundedVec,
-            runtime_types::pallet_staking_extension::pallet::JumpStartStatus,
-        },
+        entropy::{self, runtime_types::pallet_staking_extension::pallet::JumpStartStatus},
         EntropyConfig,
     },
     get_signer,
@@ -35,7 +34,6 @@ use crate::{
         },
         logger::{Instrumentation, Logger},
         substrate::submit_transaction,
-        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     signing_client::ListenerState,
     AppState,
@@ -46,7 +44,7 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvMa
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
-use entropy_shared::{EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
+use entropy_shared::NETWORK_PARENT_KEY;
 use std::{fmt, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
