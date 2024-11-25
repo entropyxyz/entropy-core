@@ -73,7 +73,7 @@ pub async fn attest(
             .ok_or_else(|| AttestationErr::Unexpected)?
     };
 
-    // TODO #1181 since this endpoint is currently only used in tests we dont know what the context should be
+    // TODO (#1181): since this endpoint is currently only used in tests we don't know what the context should be
     let context = QuoteContext::Validate;
 
     let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;

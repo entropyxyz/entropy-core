@@ -136,6 +136,7 @@ impl QuoteInputData {
 
 /// An indicator as to the context in which a quote is intended to be used
 #[derive(Clone, Encode, Decode, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum QuoteContext {
     /// To be used in the `validate` extrinsic
     Validate,
