@@ -1380,8 +1380,6 @@ async fn test_registration_flow() {
     let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let non_signer = ValidatorName::Dave;
-
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
     let jump_start_progress =
         query_chain(&entropy_api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
