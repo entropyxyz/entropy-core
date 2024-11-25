@@ -146,7 +146,6 @@ async fn test_reshare() {
             HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
         };
         if new_signer_ids != old_signer_ids {
-            println!("Signers have changed");
             break;
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
