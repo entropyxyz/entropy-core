@@ -86,7 +86,7 @@ pub async fn new_reshare(
     // Do reshare in a separate task so we can already respond
     tokio::spawn(async move {
         if let Err(err) =
-            do_reshare(api, &rpc, signer, &x25519_secret_key, data, validators_info, app_state)
+            do_reshare(&api, &rpc, signer, &x25519_secret_key, data, validators_info, app_state)
                 .await
         {
             tracing::error!("Error during reshare: {err}");
@@ -96,7 +96,7 @@ pub async fn new_reshare(
 }
 
 async fn do_reshare(
-    api: OnlineClient<EntropyConfig>,
+    api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: PairSigner<EntropyConfig, sr25519::Pair>,
     x25519_secret_key: &StaticSecret,
@@ -105,7 +105,7 @@ async fn do_reshare(
     app_state: AppState,
 ) -> Result<(), ValidatorErr> {
     let verifying_key_query = entropy::storage().staking_extension().jump_start_progress();
-    let parent_key_details = query_chain(&api, &rpc, verifying_key_query, None)
+    let parent_key_details = query_chain(api, rpc, verifying_key_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Parent verifying key error"))?;
 
@@ -121,7 +121,7 @@ async fn do_reshare(
             .map_err(|_| ValidatorErr::Conversion("Verifying key conversion"))?,
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
-    let my_stash_address = get_stash_address(&api, &rpc, signer.account_id())
+    let my_stash_address = get_stash_address(api, rpc, signer.account_id())
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
@@ -142,7 +142,7 @@ async fn do_reshare(
         validators_info.iter().cloned().map(|x| PartyId::new(x.tss_account)).collect();
     // old holders -> next_signers - new_signers (will be at least t)
     let old_holders =
-        &prune_old_holders(&api, &rpc, data.new_signers, validators_info.clone()).await?;
+        &prune_old_holders(api, rpc, data.new_signers, validators_info.clone()).await?;
     let old_holders: BTreeSet<PartyId> =
         old_holders.iter().map(|x| PartyId::new(x.tss_account.clone())).collect();
 
@@ -152,7 +152,7 @@ async fn do_reshare(
         old_holders,
     };
     let key_info_query = entropy::storage().parameters().signers_info();
-    let threshold = query_chain(&api, &rpc, key_info_query, None)
+    let threshold = query_chain(api, rpc, key_info_query, None)
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Failed to get signers info"))?
         .threshold;
@@ -185,7 +185,7 @@ async fn do_reshare(
         account_id,
         &session_id,
         &signer,
-        &x25519_secret_key,
+        x25519_secret_key,
     )
     .await?;
     let (new_key_share, aux_info) =
@@ -204,7 +204,7 @@ async fn do_reshare(
     app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
     // TODO: Error handling really complex needs to be thought about.
-    confirm_key_reshare(&api, &rpc, &signer).await?;
+    confirm_key_reshare(api, rpc, &signer).await?;
     Ok(())
 }
 
