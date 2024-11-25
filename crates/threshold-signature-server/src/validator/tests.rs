@@ -93,7 +93,7 @@ async fn test_reshare_basic() {
         assert!(!key_share.is_empty());
     }
 
-    let _new_signer_ids = loop {
+    let new_signer_ids = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
             let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
@@ -105,15 +105,8 @@ async fn test_reshare_basic() {
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     };
-
-    // Check that the new signers have keyshares
-    // for signer in new_signer_ids {
-    //     let query = entropy::storage().staking_extension().threshold_servers(AccountId32(signer));
-    //     let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-    //     let port = get_port(&server_info);
-    //     let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-    //     assert!(!key_share.is_empty());
-    // }
+    // At this point the signing set has changed on-chain, but the keyshares haven't been rotated
+    // but by the time we have stored a program and registered, the rotation should have happened
 
     // Now test signing a message with the new keyshare set
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -131,7 +124,7 @@ async fn test_reshare_basic() {
     )
     .await
     .unwrap();
-    dbg!("stored program");
+
     // Register, using that program
     let (verifying_key, _registered_info) = test_client::register(
         &api,
@@ -143,7 +136,6 @@ async fn test_reshare_basic() {
     .await
     .unwrap();
 
-    dbg!("registered");
     // Sign a message
     let recoverable_signature = test_client::sign(
         &api,
@@ -168,6 +160,15 @@ async fn test_reshare_basic() {
         verifying_key.to_vec(),
         recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
     );
+
+    // Check that the new signers have keyshares
+    for signer in new_signer_ids {
+        let query = entropy::storage().staking_extension().threshold_servers(AccountId32(signer));
+        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+        let port = get_port(&server_info);
+        let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
+        assert!(!key_share.is_empty());
+    }
     clean_tests();
 }
 
