@@ -23,11 +23,16 @@ use crate::{
     },
     AppState,
 };
-use axum::{body::Bytes, extract::State, http::StatusCode};
+use axum::{
+    body::Bytes,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::OcwMessageAttestationRequest;
+use entropy_shared::{OcwMessageAttestationRequest, QuoteContext};
 use parity_scale_codec::Decode;
+use serde::Deserialize;
 use sp_core::Pair;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
@@ -68,8 +73,10 @@ pub async fn attest(
             .ok_or_else(|| AttestationErr::Unexpected)?
     };
 
-    // We add 1 to the block number as this will be processed in the next block
-    let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
+    // TODO (#1181): since this endpoint is currently only used in tests we don't know what the context should be
+    let context = QuoteContext::Validate;
+
+    let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
     // Submit the quote
     let attest_tx = entropy::tx().attestation().attest(quote.clone());
@@ -85,6 +92,7 @@ pub async fn attest(
 /// and `change_tss_accounts` extrinsics.
 pub async fn get_attest(
     State(app_state): State<AppState>,
+    Query(context_querystring): Query<QuoteContextQuery>,
 ) -> Result<(StatusCode, Vec<u8>), AttestationErr> {
     let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -93,12 +101,9 @@ pub async fn get_attest(
     // Request attestation to get nonce
     let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
 
-    // We also need the current block number as input
-    let block_number =
-        rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
+    let context = context_querystring.as_quote_context()?;
 
-    // We add 1 to the block number as this will be processed in the next block
-    let quote = create_quote(block_number + 1, nonce, &signer, &x25519_secret).await?;
+    let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
 
     Ok((StatusCode::OK, quote))
 }
@@ -106,10 +111,10 @@ pub async fn get_attest(
 /// Create a mock quote for testing on non-TDX hardware
 #[cfg(not(feature = "production"))]
 pub async fn create_quote(
-    block_number: u32,
     nonce: [u8; 32],
     signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
     x25519_secret: &StaticSecret,
+    context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {
     use rand::{rngs::StdRng, SeedableRng};
     use rand_core::OsRng;
@@ -124,7 +129,7 @@ pub async fn create_quote(
         signer.signer().public(),
         *public_key.as_bytes(),
         nonce,
-        block_number,
+        context,
     );
 
     // This is generated deterministically from TSS account id
@@ -167,10 +172,10 @@ pub async fn validate_new_attestation(
 /// Create a TDX quote in production
 #[cfg(feature = "production")]
 pub async fn create_quote(
-    block_number: u32,
     nonce: [u8; 32],
     signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
     x25519_secret: &StaticSecret,
+    context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
@@ -178,8 +183,29 @@ pub async fn create_quote(
         signer.signer().public(),
         *public_key.as_bytes(),
         nonce,
-        block_number,
+        context,
     );
 
     Ok(configfs_tsm::create_quote(input_data.0)?)
+}
+
+/// Querystring for the GET `/attest` endpoint
+#[derive(Deserialize)]
+pub struct QuoteContextQuery {
+    /// The context in which the requested quote will be used.
+    ///
+    /// Must be one of `validate`, `change_endpoint`, `change_threshold_accounts`.
+    /// Eg: `http://127.0.0.1:3001/attest?context=validate`
+    context: String,
+}
+
+impl QuoteContextQuery {
+    fn as_quote_context(&self) -> Result<QuoteContext, AttestationErr> {
+        match self.context.as_str() {
+            "validate" => Ok(QuoteContext::Validate),
+            "change_endpoint" => Ok(QuoteContext::ChangeEndpoint),
+            "change_threshold_accounts" => Ok(QuoteContext::ChangeThresholdAccounts),
+            _ => Err(AttestationErr::UnknownContext),
+        }
+    }
 }

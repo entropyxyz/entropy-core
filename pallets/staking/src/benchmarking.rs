@@ -19,7 +19,7 @@ use super::*;
 use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::{AttestationHandler, MAX_SIGNERS};
+use entropy_shared::{AttestationHandler, QuoteContext, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -78,7 +78,6 @@ fn prepare_attestation_for_validate<T: Config>(
     threshold: T::AccountId,
     x25519_public_key: [u8; 32],
     endpoint: Vec<u8>,
-    block_number: u32,
 ) -> (Vec<u8>, JoiningServerInfo<T::AccountId>) {
     let nonce = NULL_ARR;
     let quote = {
@@ -91,8 +90,12 @@ fn prepare_attestation_for_validate<T: Config>(
 
         let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
 
-        let input_data =
-            entropy_shared::QuoteInputData::new(&threshold, x25519_public_key, nonce, block_number);
+        let input_data = entropy_shared::QuoteInputData::new(
+            &threshold,
+            x25519_public_key,
+            nonce,
+            QuoteContext::Validate,
+        );
 
         tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
     };
@@ -132,14 +135,9 @@ fn prep_bond_and_validate<T: Config>(
     ));
 
     if validate_also {
-        let block_number = 0;
         let endpoint = b"http://localhost:3001".to_vec();
-        let (quote, joining_server_info) = prepare_attestation_for_validate::<T>(
-            threshold,
-            x25519_public_key,
-            endpoint,
-            block_number,
-        );
+        let (quote, joining_server_info) =
+            prepare_attestation_for_validate::<T>(threshold, x25519_public_key, endpoint);
 
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
@@ -185,13 +183,10 @@ benchmarks! {
         x25519_public_key.clone(),
     );
 
-    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
-    let block_number = 1;
     let quote = prepare_attestation_for_validate::<T>(
         threshold,
         x25519_public_key,
         endpoint.clone().to_vec(),
-        block_number,
     )
     .0;
   }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
@@ -229,12 +224,10 @@ benchmarks! {
     );
 
     // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
-    let block_number = 1;
     let (quote , joining_server_info) = prepare_attestation_for_validate::<T>(
         new_threshold.clone(),
         x25519_public_key,
         endpoint.clone().to_vec(),
-        block_number,
     );
 
     let pck_certificate_chain = joining_server_info.pck_certificate_chain;
@@ -383,10 +376,8 @@ benchmarks! {
         x25519_public_key.clone()
     );
 
-    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
-    let block_number = 1;
     let (quote, joining_server_info) =
-        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone(), block_number);
+        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone());
   }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), joining_server_info, quote)
   verify {
     assert_last_event::<T>(
