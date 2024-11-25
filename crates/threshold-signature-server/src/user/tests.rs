@@ -43,7 +43,7 @@ use entropy_testing_utils::{
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_context_stationary, testing_context},
-    ChainSpecType,
+    test_node_process_testing_state, ChainSpecType,
 };
 use more_asserts as ma;
 use parity_scale_codec::{Decode, Encode};
@@ -69,7 +69,6 @@ use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKe
 use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 use tokio_tungstenite::connect_async;
 
-use crate::helpers::tests::do_jump_start;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -87,8 +86,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
-            initialize_test_logger, run_to_block, setup_client, store_program_and_register,
-            unsafe_get,
+            do_jump_start, get_port, initialize_test_logger, run_to_block, setup_client,
+            spawn_testing_validators, store_program_and_register, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -577,8 +576,16 @@ async fn test_request_limit_are_updated_during_signing() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
+            .await;
+
+    let force_authoring = true;
+    let context =
+        test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+            .await;
+    let entropy_api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
     let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
@@ -850,23 +857,39 @@ async fn test_jumpstart_network() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
+
+    let force_authoring = true;
+    let context =
+        test_node_process_testing_state(ChainSpecType::Integration, force_authoring).await;
+    let api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
 
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
     let client = reqwest::Client::new();
-    let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
+    let mut verifying_key = Vec::new();
+    for signer in signer_stash_accounts.iter() {
+        let query = entropy::storage().staking_extension().threshold_servers(signer);
+        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+        let response_key =
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&server_info)).await;
 
-    // check to make sure keyshare is correct
-    let key_share: Option<KeyShareWithAuxInfo> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
-    assert_eq!(key_share.is_some(), true);
+        // check to make sure keyshare is correct
+        let key_share: Option<KeyShareWithAuxInfo> =
+            entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
+        assert!(key_share.is_some());
+
+        verifying_key =
+            key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    }
+
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
     let jump_start_progress =
         query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
-    let verifying_key =
-        key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
     assert_eq!(jump_start_progress.verifying_key.unwrap().0, verifying_key);
     clean_tests();

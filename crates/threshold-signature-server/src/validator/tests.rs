@@ -17,7 +17,7 @@ use crate::{
     helpers::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         tests::{
-            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            get_port, initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
             unsafe_get,
         },
     },
@@ -26,10 +26,7 @@ use crate::{
         errors::ValidatorErr,
     },
 };
-use entropy_client::{
-    self as test_client,
-    chain_api::entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo,
-};
+use entropy_client::{self as test_client};
 use entropy_client::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -178,7 +175,9 @@ async fn test_reshare_none_called() {
     initialize_test_logger().await;
     clean_tests();
 
-    // let _cxt = test_node_process_testing_state(true).await;
+    let force_authoring = true;
+    let _context =
+        test_node_process_testing_state(ChainSpecType::Integration, force_authoring).await;
 
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
@@ -335,9 +334,4 @@ async fn test_deletes_key() {
     let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
     assert!(!has_key);
     clean_tests();
-}
-
-/// Given a ServerInfo, get the port number
-fn get_port(server_info: &ServerInfo<AccountId32>) -> u32 {
-    std::str::from_utf8(&server_info.endpoint).unwrap().split(":").last().unwrap().parse().unwrap()
 }

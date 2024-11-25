@@ -23,7 +23,10 @@ use crate::helpers::tests::entropy::runtime_types::bounded_collections::bounded_
 use crate::{
     app,
     chain_api::{
-        entropy::{self, runtime_types::pallet_staking_extension::pallet::JumpStartStatus},
+        entropy::{
+            self,
+            runtime_types::pallet_staking_extension::pallet::{JumpStartStatus, ServerInfo},
+        },
         EntropyConfig,
     },
     get_signer,
@@ -359,4 +362,9 @@ async fn put_jumpstart_request_on_chain(
 
     let registering_tx = entropy::tx().registry().jump_start_network();
     submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
+}
+
+/// Given a ServerInfo, get the port number
+pub fn get_port(server_info: &ServerInfo<SubxtAccountId32>) -> u32 {
+    std::str::from_utf8(&server_info.endpoint).unwrap().split(":").last().unwrap().parse().unwrap()
 }
