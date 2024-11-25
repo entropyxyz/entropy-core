@@ -151,7 +151,7 @@ impl fmt::Display for ChainSpecType {
 pub async fn spawn_testing_validators(
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
-    let ports = vec![3001i64, 3002, 3003, 3004];
+    let ports = [3001i64, 3002, 3003, 3004];
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
