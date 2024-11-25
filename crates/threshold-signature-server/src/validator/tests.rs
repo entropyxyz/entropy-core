@@ -62,6 +62,7 @@ use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
+use std::collections::HashSet;
 use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
@@ -134,6 +135,21 @@ async fn test_reshare() {
     .await;
     for response_result in response_results {
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
+
+    // Now wait until signers have changed
+    let old_signer_ids = HashSet::from_iter(signer_stash_accounts.into_iter().map(|id| id.0));
+    loop {
+        let new_signer_ids: HashSet<[u8; 32]> = {
+            let signer_query = entropy::storage().staking_extension().signers();
+            let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+            HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
+        };
+        if new_signer_ids != old_signer_ids {
+            println!("Signers have changed");
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
 
     for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
