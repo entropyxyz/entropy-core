@@ -1085,20 +1085,14 @@ async fn test_oracle_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (_tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
