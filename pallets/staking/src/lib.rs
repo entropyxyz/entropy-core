@@ -60,7 +60,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, MAX_SIGNERS, TEST_RESHARE_BLOCK_NUMBER,
+        ValidatorInfo, X25519PublicKey, EVE_VERIFYING_KEY, MAX_SIGNERS, TEST_RESHARE_BLOCK_NUMBER,
         VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
@@ -264,6 +264,9 @@ pub mod pallet {
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
         /// validator info and account new signer to take part in a reshare
         pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
+        /// Whether to begin in an already jumpstarted state in order to be able to test signing
+        /// using pre-generated keyshares
+        pub jump_started_signers: Option<Vec<T::ValidatorId>>,
     }
 
     #[pallet::genesis_build]
@@ -308,8 +311,19 @@ pub mod pallet {
                     new_signers,
                 })
             }
+
+            if let Some(jump_started_signers) = &self.jump_started_signers {
+                Signers::<T>::put(jump_started_signers.clone());
+                JumpStartProgress::<T>::put(JumpStartDetails {
+                    jump_start_status: JumpStartStatus::Done,
+                    confirmations: jump_started_signers.clone(),
+                    verifying_key: Some(BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap()),
+                    parent_key_threshold: 2,
+                });
+            }
         }
     }
+
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
@@ -779,7 +793,7 @@ pub mod pallet {
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
-                block_number: current_block_number - sp_runtime::traits::One::one(),
+                block_number: current_block_number + sp_runtime::traits::One::one(),
                 new_signers,
             };
 

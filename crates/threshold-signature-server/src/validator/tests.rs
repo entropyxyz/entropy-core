@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 // Copyright (C) 2023 Entropy Cryptography Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,20 +17,16 @@ use crate::{
     helpers::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         tests::{
-            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get, ChainSpecType,
+            get_port, initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            unsafe_get,
         },
     },
-    user::tests::jump_start_network,
     validator::{
         api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
         errors::ValidatorErr,
     },
 };
-use entropy_client::{
-    self as test_client,
-    chain_api::entropy::runtime_types::pallet_staking_extension::pallet::ServerInfo,
-};
+use entropy_client::{self as test_client};
 use entropy_client::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -41,26 +35,21 @@ use entropy_client::{
     substrate::query_chain,
     Hasher,
 };
-use entropy_kvdb::{
-    clean_tests,
-    kv_manager::helpers::{deserialize, serialize},
-};
-use entropy_protocol::KeyShareWithAuxInfo;
-use entropy_shared::{
-    OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_RESHARE_BLOCK_NUMBER,
-};
-use entropy_testing_utils::constants::{
-    AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
-};
+use entropy_kvdb::clean_tests;
+use entropy_shared::{OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY};
 use entropy_testing_utils::{
-    constants::{ALICE_STASH_ADDRESS, RANDOM_ACCOUNT},
+    constants::{
+        ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, RANDOM_ACCOUNT,
+        TEST_PROGRAM_WASM_BYTECODE,
+    },
     substrate_context::{test_node_process_testing_state, testing_context},
-    test_context_stationary,
+    test_context_stationary, ChainSpecType,
 };
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
+use std::collections::HashSet;
 use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
@@ -70,22 +59,24 @@ async fn test_reshare_basic() {
     initialize_test_logger().await;
     clean_tests();
 
-    let cxt = &test_node_process_testing_state(true).await[0];
-
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
+            .await;
 
-    // let validator_ports = vec![3002, 3003, 3004];
-    let api = get_api(&cxt.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let force_authoring = true;
+    let context =
+        test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+            .await;
+    let api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
     let client = reqwest::Client::new();
-
-    jump_start_network(&api, &rpc).await;
 
     // Get current signers
     let signer_query = entropy::storage().staking_extension().signers();
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    let old_signer_ids: HashSet<[u8; 32]> =
+        HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
     let mut signers = Vec::new();
     for signer in signer_stash_accounts.iter() {
         let query = entropy::storage().staking_extension().threshold_servers(signer);
@@ -93,145 +84,32 @@ async fn test_reshare_basic() {
         signers.push(server_info);
     }
 
-    // A map of account IDs to serialized keyshares before the reshare
-    let mut key_shares_before = HashMap::new();
     for signer in signers.iter() {
         let port = get_port(signer);
-        key_shares_before.insert(
-            signer.tss_account.0,
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await,
-        );
+        let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
+        assert!(!key_share.is_empty());
     }
 
-    // Get all validators
-    // let validators_query = entropy::storage().session().validators();
-    // let all_validators = query_chain(&api, &rpc, validators_query, None).await.unwrap().unwrap();
-
-    // Get stash account of a non-signer, to become the new signer
-    // Since we only have 4 nodes in our test setup, this will be the same one the chain chooses
-    // let new_signer = all_validators.iter().find(|v| !signer_stash_accounts.contains(v)).unwrap();
-
-    // let onchain_reshare_request = OcwMessageReshare {
-    //     new_signers: vec![new_signer.0.to_vec()],
-    //     block_number: block_number - 1,
-    // };
-    //
-    let block_number = TEST_RESHARE_BLOCK_NUMBER;
-    run_to_block(&rpc, block_number + 1).await;
-    // Send the OCW message to all TS servers who don't have a chain node
-    // let response_results = join_all(
-    //     validator_ports
-    //         .iter()
-    //         .map(|port| {
-    //             client
-    //                 .post(format!("http://127.0.0.1:{}/validator/reshare", port))
-    //                 .body(onchain_reshare_request.clone().encode())
-    //                 .send()
-    //         })
-    //         .collect::<Vec<_>>(),
-    // )
-    // .await;
-    // for response_result in response_results {
-    //     assert_eq!(response_result.unwrap().text().await.unwrap(), "");
-    // }
-
-    for (tss_account, key_share_and_aux_before) in key_shares_before.iter() {
-        let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
-            deserialize(key_share_and_aux_before).unwrap();
-
-        let port = get_port(signers.iter().find(|s| s.tss_account.0 == *tss_account).unwrap());
-        let key_share_and_aux_after =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-        let (key_share_after, aux_info_after): KeyShareWithAuxInfo =
-            deserialize(&key_share_and_aux_after).unwrap();
-
-        // Check key share has not yet changed
-        assert_eq!(serialize(&key_share_before).unwrap(), serialize(&key_share_after).unwrap());
-        // Check aux info has not yet changed
-        assert_eq!(serialize(&aux_info_before).unwrap(), serialize(&aux_info_after).unwrap());
-    }
-
-    let new_signers = {
-        let signer_query = entropy::storage().staking_extension().signers();
-        let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-        let mut signers = Vec::new();
-        for signer in signer_ids {
-            let query = entropy::storage().staking_extension().threshold_servers(signer);
-            let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-            signers.push(server_info);
+    let mut i = 0;
+    let new_signer_ids = loop {
+        let new_signer_ids: HashSet<[u8; 32]> = {
+            let signer_query = entropy::storage().staking_extension().signers();
+            let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+            HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
+        };
+        if new_signer_ids != old_signer_ids {
+            break Ok(new_signer_ids);
         }
-        signers
-    };
-
-    println!("Signers {:?}", signers);
-    println!("NEW Signers {:?}", new_signers);
-
-    for signer in new_signers {
-        let _ = client
-            .post(format!(
-                "http://{}/rotate_network_key",
-                std::str::from_utf8(&signer.endpoint).unwrap()
-            ))
-            .send()
-            .await
-            .unwrap();
-
-        let key_share_and_aux_data_after_rotate =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&signer)).await;
-        let (key_share_after_rotate, aux_info_after_rotate): KeyShareWithAuxInfo =
-            deserialize(&key_share_and_aux_data_after_rotate).unwrap();
-
-        if let Some(key_share_and_aux_before) = key_shares_before.get(&signer.tss_account.0) {
-            let (key_share_before, aux_info_before): KeyShareWithAuxInfo =
-                deserialize(&key_share_and_aux_before).unwrap();
-            // Check key share has changed
-            assert_ne!(
-                serialize(&key_share_before).unwrap(),
-                serialize(&key_share_after_rotate).unwrap()
-            );
-            // Check aux info has changed
-            assert_ne!(
-                serialize(&aux_info_before).unwrap(),
-                serialize(&aux_info_after_rotate).unwrap()
-            );
+        if i > 120 {
+            break Err("Timed out waiting for reshare");
         }
-
-        // calling twice doesn't do anything
-        let response = client
-            .post(format!(
-                "http://{}/rotate_network_key",
-                std::str::from_utf8(&signer.endpoint).unwrap()
-            ))
-            .send()
-            .await
-            .unwrap();
-
-        assert_eq!(response.text().await.unwrap(), "Kv error: Recv Error: channel closed");
-        let key_share_and_aux_data_after_rotate_twice =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&signer)).await;
-        let (key_share_after_rotate_twice, aux_info_after_rotate_twice): KeyShareWithAuxInfo =
-            deserialize(&key_share_and_aux_data_after_rotate_twice).unwrap();
-
-        // Check key share has not changed
-        assert_eq!(
-            serialize(&key_share_after_rotate_twice).unwrap(),
-            serialize(&key_share_after_rotate).unwrap()
-        );
-        // Check aux info has not changed
-        assert_eq!(
-            serialize(&aux_info_after_rotate_twice).unwrap(),
-            serialize(&aux_info_after_rotate).unwrap()
-        );
+        i += 1;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
+    .unwrap();
 
-    let current_block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    // Check that rotating the network key wont work again later
-    run_to_block(&rpc, current_block_number + 3).await;
-
-    let response_stale =
-        client.post("http://127.0.0.1:3001/rotate_network_key").send().await.unwrap();
-
-    assert_eq!(response_stale.text().await.unwrap(), "Data is stale");
+    // At this point the signing set has changed on-chain, but the keyshares haven't been rotated
+    // but by the time we have stored a program and registered, the rotation should have happened
 
     // Now test signing a message with the new keyshare set
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -285,6 +163,15 @@ async fn test_reshare_basic() {
         verifying_key.to_vec(),
         recovery_key_from_sig.to_encoded_point(true).to_bytes().to_vec()
     );
+
+    // Check that the new signers have keyshares
+    for signer in new_signer_ids {
+        let query = entropy::storage().staking_extension().threshold_servers(AccountId32(signer));
+        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+        let port = get_port(&server_info);
+        let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
+        assert!(!key_share.is_empty());
+    }
     clean_tests();
 }
 
@@ -294,10 +181,12 @@ async fn test_reshare_none_called() {
     initialize_test_logger().await;
     clean_tests();
 
-    let _cxt = test_node_process_testing_state(true).await;
+    let force_authoring = true;
+    let _context =
+        test_node_process_testing_state(ChainSpecType::Integration, force_authoring).await;
 
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
 
     let validator_ports = vec![3001, 3002, 3003, 3004];
 
@@ -321,7 +210,8 @@ async fn test_reshare_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
-    let cxt = &test_node_process_testing_state(true).await[0];
+
+    let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let kv = setup_client().await;
@@ -450,9 +340,4 @@ async fn test_deletes_key() {
     let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
     assert!(!has_key);
     clean_tests();
-}
-
-/// Given a ServerInfo, get the port number
-fn get_port(server_info: &ServerInfo<AccountId32>) -> u32 {
-    std::str::from_utf8(&server_info.endpoint).unwrap().split(":").last().unwrap().parse().unwrap()
 }

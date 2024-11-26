@@ -22,7 +22,6 @@ use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
 use entropy_tss::helpers::{
     launch::{
         ValidatorName, DEFAULT_ALICE_MNEMONIC, DEFAULT_BOB_MNEMONIC, DEFAULT_CHARLIE_MNEMONIC,
-        DEFAULT_DAVE_MNEMONIC,
     },
     validator::get_signer_and_x25519_secret_from_mnemonic,
 };
@@ -38,7 +37,6 @@ async fn main() {
         (DEFAULT_ALICE_MNEMONIC, ValidatorName::Alice),
         (DEFAULT_BOB_MNEMONIC, ValidatorName::Bob),
         (DEFAULT_CHARLIE_MNEMONIC, ValidatorName::Charlie),
-        (DEFAULT_DAVE_MNEMONIC, ValidatorName::Dave),
     ]
     .into_iter()
     .map(|(mnemonic, name)| {
@@ -49,41 +47,31 @@ async fn main() {
 
     let secret_key = *DETERMINISTIC_KEY_SHARE_EVE;
 
-    for (_keypair, name) in keypairs_and_names.iter() {
-        let (keypairs_this_time, names_this_time): (Vec<sr25519::Pair>, Vec<ValidatorName>) =
-            keypairs_and_names.iter().filter(|(_, n)| n != name).cloned().unzip();
+    let (keypairs, names): (Vec<sr25519::Pair>, Vec<ValidatorName>) =
+        keypairs_and_names.iter().cloned().unzip();
 
-        let keypairs_this_time: [sr25519::Pair; 3] = keypairs_this_time
-            .try_into()
-            .map_err(|_| "Cannot convert keypair vector to array")
-            .unwrap();
+    let keypairs: [sr25519::Pair; 3] =
+        keypairs.try_into().map_err(|_| "Cannot convert keypair vector to array").unwrap();
 
-        // Create and write test keyshares
-        let test_keyshares =
-            create_test_keyshares::<TestParams>(secret_key, keypairs_this_time.clone()).await;
-        let test_keyshares_serialized: Vec<_> =
-            test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
-        let keyshares_and_names = zip(test_keyshares_serialized, names_this_time.clone()).collect();
-        write_keyshares(base_path.join("test"), name, keyshares_and_names).await;
+    // Create and write test keyshares
+    let test_keyshares = create_test_keyshares::<TestParams>(secret_key, keypairs.clone()).await;
+    let test_keyshares_serialized: Vec<_> =
+        test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
+    let keyshares_and_names = zip(test_keyshares_serialized, names.clone()).collect();
+    write_keyshares(base_path.join("test"), keyshares_and_names).await;
 
-        // Create and write production keyshares
-        let production_keyshares =
-            create_test_keyshares::<ProductionParams>(secret_key, keypairs_this_time.clone()).await;
-        let production_keyshres_serialized: Vec<_> =
-            production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
-        let keyshares_and_names = zip(production_keyshres_serialized, names_this_time).collect();
-        write_keyshares(base_path.join("production"), name, keyshares_and_names).await;
-    }
+    // Create and write production keyshares
+    let production_keyshares =
+        create_test_keyshares::<ProductionParams>(secret_key, keypairs.clone()).await;
+    let production_keyshres_serialized: Vec<_> =
+        production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
+    let keyshares_and_names = zip(production_keyshres_serialized, names).collect();
+    write_keyshares(base_path.join("production"), keyshares_and_names).await;
 }
 
-async fn write_keyshares(
-    base_path: PathBuf,
-    name_of_excluded: &ValidatorName,
-    keyshares_and_names: Vec<(Vec<u8>, ValidatorName)>,
-) {
+async fn write_keyshares(base_path: PathBuf, keyshares_and_names: Vec<(Vec<u8>, ValidatorName)>) {
     for (keyshare, name) in keyshares_and_names {
         let mut filepath = base_path.clone();
-        filepath.push(name_of_excluded.to_string());
         let filename = format!("keyshare-held-by-{}.keyshare", name);
         filepath.push(filename);
         println!("Writing keyshare file: {:?}", filepath);

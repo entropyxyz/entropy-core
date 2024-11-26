@@ -18,12 +18,14 @@
 // only compile when testing or when the test_helpers feature is enabled
 #![cfg(any(test, feature = "test_helpers"))]
 
+#[cfg(test)]
+use crate::helpers::tests::entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec;
 use crate::{
     app,
     chain_api::{
         entropy::{
-            self, runtime_types::bounded_collections::bounded_vec::BoundedVec,
-            runtime_types::pallet_staking_extension::pallet::JumpStartStatus,
+            self,
+            runtime_types::pallet_staking_extension::pallet::{JumpStartStatus, ServerInfo},
         },
         EntropyConfig,
     },
@@ -35,9 +37,7 @@ use crate::{
         },
         logger::{Instrumentation, Logger},
         substrate::submit_transaction,
-        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    r#unsafe::api::UnsafeQuery,
     signing_client::ListenerState,
     AppState,
 };
@@ -47,8 +47,8 @@ use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvMa
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
-use entropy_shared::{EVE_VERIFYING_KEY, NETWORK_PARENT_KEY};
-use std::time::Duration;
+use entropy_shared::NETWORK_PARENT_KEY;
+use std::{fmt, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -128,25 +128,33 @@ pub async fn create_clients(
 /// A way to specify which chainspec to use in testing
 #[derive(Copy, Clone, PartialEq)]
 pub enum ChainSpecType {
-    /// The development chainspec, which has 3 TSS nodes
-    Development,
     /// The integration test chainspec, which has 4 TSS nodes
     Integration,
+    /// The integration test chainspec, starting in a pre-jumpstarted state
+    IntegrationJumpStarted,
 }
 
-/// Spawn either 3 or 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
+impl fmt::Display for ChainSpecType {
+    /// This is used when specifying the chainspec type as a command line argument when starting the
+    /// Entropy chain for testing
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ChainSpecType::Integration => "integration-tests",
+                ChainSpecType::IntegrationJumpStarted => "integration-tests-jumpstarted",
+            },
+        )
+    }
+}
+
+/// Spawn 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
 /// desired
 pub async fn spawn_testing_validators(
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
-    let add_fourth_server = chain_spec_type == ChainSpecType::Integration;
-
-    // spawn threshold servers
-    let mut ports = vec![3001i64, 3002, 3003];
-
-    if add_fourth_server {
-        ports.push(3004);
-    }
+    let ports = [3001i64, 3002, 3003, 3004];
 
     let (alice_axum, alice_kv) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
@@ -190,21 +198,24 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    if add_fourth_server {
-        let (dave_axum, dave_kv) =
-            create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave))
-                .await;
+    let (dave_axum, dave_kv) =
+        create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
 
-        let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
-            .await
-            .expect("Unable to bind to given server address.");
-        tokio::spawn(async move {
-            axum::serve(listener_dave, dave_axum).await.unwrap();
-        });
-        let dave_id = PartyId::new(SubxtAccountId32(
-            *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
-        ));
-        ids.push(dave_id);
+    let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
+        .await
+        .expect("Unable to bind to given server address.");
+    tokio::spawn(async move {
+        axum::serve(listener_dave, dave_axum).await.unwrap();
+    });
+    let dave_id = PartyId::new(SubxtAccountId32(
+        *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
+    ));
+    ids.push(dave_id);
+
+    if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
+        put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;
+        put_keyshares_in_db(ValidatorName::Bob, bob_kv).await;
+        put_keyshares_in_db(ValidatorName::Charlie, charlie_kv).await;
     }
 
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -214,29 +225,18 @@ pub async fn spawn_testing_validators(
 }
 
 /// Add the pre-generated test keyshares to a kvdb
-async fn put_keyshares_in_db(non_signer_name: ValidatorName, validator_name: ValidatorName) {
+pub async fn put_keyshares_in_db(validator_name: ValidatorName, kvdb: KvManager) {
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/{}/keyshare-held-by-{}.keyshare",
-            non_signer_name, validator_name
+            "crates/testing-utils/keyshares/production/keyshare-held-by-{}.keyshare",
+            validator_name
         ));
-        println!("File path {:?}", file_path);
         std::fs::read(file_path).unwrap()
     };
 
-    let unsafe_put = UnsafeQuery { key: hex::encode(NETWORK_PARENT_KEY), value: keyshare_bytes };
-    let unsafe_put = serde_json::to_string(&unsafe_put).unwrap();
-
-    let port = 3001 + (validator_name as usize);
-    let http_client = reqwest::Client::new();
-    http_client
-        .post(format!("http://127.0.0.1:{port}/unsafe/put"))
-        .header("Content-Type", "application/json")
-        .body(unsafe_put.clone())
-        .send()
-        .await
-        .unwrap();
+    let reservation = kvdb.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+    kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
 }
 
 /// Removes the program at the program hash
@@ -273,47 +273,6 @@ pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) 
         .unwrap();
 
     get_result.bytes().await.unwrap().into()
-}
-
-/// Mock the network being jump started by confirming a jump start even though no DKG took place,
-/// so that we can use pre-store parent keyshares for testing
-pub async fn jump_start_network_with_signer(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
-) -> Option<ValidatorName> {
-    let jump_start_request = entropy::tx().registry().jump_start_network();
-    let _result = submit_transaction(api, rpc, signer, &jump_start_request, None).await.unwrap();
-
-    let validators_names =
-        vec![ValidatorName::Alice, ValidatorName::Bob, ValidatorName::Charlie, ValidatorName::Dave];
-    let mut non_signer = None;
-    for validator_name in validators_names.clone() {
-        let mnemonic = development_mnemonic(&Some(validator_name));
-        let (tss_signer, _static_secret) =
-            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
-        let jump_start_confirm_request =
-            entropy::tx().registry().confirm_jump_start(BoundedVec(EVE_VERIFYING_KEY.to_vec()));
-
-        // Ignore the error as one confirmation will fail
-        if submit_transaction(api, rpc, &tss_signer, &jump_start_confirm_request, None)
-            .await
-            .is_err()
-        {
-            non_signer = Some(validator_name);
-        }
-    }
-    if let Some(non_signer) = non_signer {
-        for validator_name in validators_names {
-            if non_signer != validator_name {
-                put_keyshares_in_db(non_signer, validator_name).await;
-            }
-        }
-    } else {
-        tracing::error!("Missing non-signer - not storing pre-generated keyshares");
-    }
-
-    non_signer
 }
 
 /// Helper to store a program and register a user. Returns the verify key and program hash.
@@ -402,4 +361,9 @@ async fn put_jumpstart_request_on_chain(
 
     let registering_tx = entropy::tx().registry().jump_start_network();
     submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
+}
+
+/// Given a ServerInfo, get the port number
+pub fn get_port(server_info: &ServerInfo<SubxtAccountId32>) -> u32 {
+    std::str::from_utf8(&server_info.endpoint).unwrap().split(":").last().unwrap().parse().unwrap()
 }

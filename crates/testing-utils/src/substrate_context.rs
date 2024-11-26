@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_tss::helpers::tests::ChainSpecType;
 use sp_keyring::AccountKeyring;
 use subxt::{config::substrate::SubstrateExtrinsicParams, OnlineClient};
 
@@ -110,6 +111,7 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
 ///
 /// Allowing `force_authoring` will produce blocks.
 pub async fn test_node_process_testing_state(
+    chain_spec_type: ChainSpecType,
     force_authoring: bool,
 ) -> Vec<TestNodeProcess<EntropyConfig>> {
     let alice_bootnode = Some(
@@ -118,14 +120,14 @@ pub async fn test_node_process_testing_state(
     );
     let result = test_node(
         AccountKeyring::Alice,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         None,
     )
     .await;
     let result_bob = test_node_process_with(
         AccountKeyring::Bob,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://127.0.0.1:3002".into()),
@@ -133,7 +135,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_charlie = test_node_process_with(
         AccountKeyring::Charlie,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://127.0.0.1:3003".into()),
@@ -141,7 +143,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_dave = test_node_process_with(
         AccountKeyring::Dave,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://127.0.0.1:3004".into()),
