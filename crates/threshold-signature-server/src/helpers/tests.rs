@@ -226,12 +226,11 @@ pub async fn spawn_testing_validators(
 
 /// Add the pre-generated test keyshares to a kvdb
 pub async fn put_keyshares_in_db(validator_name: ValidatorName, kvdb: KvManager) {
-    let non_signer_name = ValidatorName::Dave;
     let keyshare_bytes = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/{}/keyshare-held-by-{}.keyshare",
-            non_signer_name, validator_name
+            "crates/testing-utils/keyshares/production/keyshare-held-by-{}.keyshare",
+            validator_name
         ));
         std::fs::read(file_path).unwrap()
     };
