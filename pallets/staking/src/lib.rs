@@ -318,7 +318,7 @@ pub mod pallet {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: jump_started_signers.clone(),
                     verifying_key: Some(BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap()),
-                    parent_key_threshold: 2, // TODO use constant
+                    parent_key_threshold: 2,
                 });
             }
         }

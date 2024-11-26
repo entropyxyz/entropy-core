@@ -90,6 +90,7 @@ async fn test_reshare_basic() {
         assert!(!key_share.is_empty());
     }
 
+    let mut i = 0;
     let new_signer_ids = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
@@ -97,11 +98,16 @@ async fn test_reshare_basic() {
             HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
         };
         if new_signer_ids != old_signer_ids {
-            println!("Signers have changed");
-            break new_signer_ids;
+            break Ok(new_signer_ids);
         }
+        if i > 120 {
+            break Err("Timed out waiting for reshare");
+        }
+        i += 1;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    };
+    }
+    .unwrap();
+
     // At this point the signing set has changed on-chain, but the keyshares haven't been rotated
     // but by the time we have stored a program and registered, the rotation should have happened
 
