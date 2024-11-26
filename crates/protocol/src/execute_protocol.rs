@@ -40,7 +40,7 @@ use crate::{
     KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
 };
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
@@ -134,6 +134,7 @@ where
 
         // Receive and process incoming messages
         let (process_tx, mut process_rx) = mpsc::channel(1024);
+        let mut messages_for_next_subprotocol = VecDeque::new();
         while !session_arc.can_finalize(&accum)? {
             tokio::select! {
                 // Incoming message from remote peer
@@ -160,7 +161,7 @@ where
                             }
                         } else {
                             tracing::warn!("Got protocol message with incorrect session ID - putting back in queue");
-                            tx.incoming_sender.send(message).await?;
+                            messages_for_next_subprotocol.push_back(message);
                         }
                     } else {
                         tracing::warn!("Got verifying key during protocol - ignoring");
@@ -174,6 +175,10 @@ where
                     }
                 }
             }
+        }
+
+        for message in messages_for_next_subprotocol {
+            tx.incoming_sender.send(message).await?;
         }
 
         // Get session back out of Arc

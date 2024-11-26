@@ -39,7 +39,8 @@ use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY,
         PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
-        TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE, X25519_PUBLIC_KEYS,
+        TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
+        X25519_PUBLIC_KEYS,
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_context_stationary, testing_context},
@@ -1077,6 +1078,69 @@ async fn test_fail_infinite_program() {
 
 #[tokio::test]
 #[serial]
+async fn test_oracle_program() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let one = AccountKeyring::One;
+    let two = AccountKeyring::Two;
+
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(ChainSpecType::Integration).await;
+
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    let (_tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    let force_authoring = true;
+    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
+
+    let api = get_api(&substrate_context.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+
+    let non_signer = jump_start_network(&api, &rpc).await.unwrap();
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
+
+    let program_hash = test_client::store_program(
+        &api,
+        &rpc,
+        &two.pair(),
+        TEST_ORACLE_BYTECODE.to_owned(),
+        vec![],
+        vec![],
+        vec!["block_number_entropy".encode()],
+        0u8,
+    )
+    .await
+    .unwrap();
+
+    let (verifying_key, _registered_info) = test_client::register(
+        &api,
+        &rpc,
+        one.clone().into(), // This is our program modification account
+        subxtAccountId32(two.public().0), // This is our signature request account
+        BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
+    )
+    .await
+    .unwrap();
+
+    // Now we'll send off a signature request using the new program
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
+        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key).await;
+
+    let test_user_res =
+        submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
+            .await;
+
+    let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+    let decoded_verifying_key =
+        decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
+    let all_signers_info = get_all_signers_from_chain(&api, &rpc).await.unwrap();
+    verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
+}
+
+#[tokio::test]
+#[serial]
 async fn test_device_key_proxy() {
     initialize_test_logger().await;
     clean_tests();
@@ -1536,13 +1600,17 @@ async fn test_get_oracle_data() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     run_to_block(&rpc, 1).await;
 
-    let oracle_data = get_oracle_data(&api, &rpc, "block_number_entropy".encode()).await.unwrap();
+    let oracle_data =
+        get_oracle_data(&api, &rpc, vec!["block_number_entropy".encode()]).await.unwrap();
     let current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    assert_eq!(current_block.encode(), oracle_data);
+    assert_eq!(oracle_data.len(), 1);
+    assert_eq!(current_block.encode(), oracle_data[0]);
 
     // fails gracefully
-    let oracle_data_fail = get_oracle_data(&api, &rpc, "random_heading".encode()).await.unwrap();
-    assert_eq!(oracle_data_fail.len(), 0);
+    let oracle_data_fail =
+        get_oracle_data(&api, &rpc, vec!["random_heading".encode()]).await.unwrap();
+    assert_eq!(oracle_data_fail.len(), 1);
+    assert_eq!(oracle_data_fail[0].len(), 0);
 }
 
 pub async fn submit_transaction_request(

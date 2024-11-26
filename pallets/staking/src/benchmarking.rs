@@ -19,7 +19,7 @@ use super::*;
 use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::{AttestationHandler, MAX_SIGNERS};
+use entropy_shared::{AttestationHandler, QuoteContext, MAX_SIGNERS};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -78,7 +78,6 @@ fn prepare_attestation_for_validate<T: Config>(
     threshold: T::AccountId,
     x25519_public_key: [u8; 32],
     endpoint: Vec<u8>,
-    block_number: u32,
 ) -> (Vec<u8>, JoiningServerInfo<T::AccountId>) {
     let nonce = NULL_ARR;
     let quote = {
@@ -91,8 +90,12 @@ fn prepare_attestation_for_validate<T: Config>(
 
         let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
 
-        let input_data =
-            entropy_shared::QuoteInputData::new(&threshold, x25519_public_key, nonce, block_number);
+        let input_data = entropy_shared::QuoteInputData::new(
+            &threshold,
+            x25519_public_key,
+            nonce,
+            QuoteContext::Validate,
+        );
 
         tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
     };
@@ -132,14 +135,9 @@ fn prep_bond_and_validate<T: Config>(
     ));
 
     if validate_also {
-        let block_number = 0;
-        let endpoint = vec![20, 20];
-        let (quote, joining_server_info) = prepare_attestation_for_validate::<T>(
-            threshold,
-            x25519_public_key,
-            endpoint,
-            block_number,
-        );
+        let endpoint = b"http://localhost:3001".to_vec();
+        let (quote, joining_server_info) =
+            prepare_attestation_for_validate::<T>(threshold, x25519_public_key, endpoint);
 
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
@@ -172,33 +170,81 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller();
     let bonder: T::AccountId = account("bond", 0, SEED);
     let threshold: T::AccountId = account("threshold", 0, SEED);
+
+    let endpoint = b"http://localhost:3001";
     let x25519_public_key = NULL_ARR;
 
-    prep_bond_and_validate::<T>(true, caller.clone(), bonder.clone(), threshold, NULL_ARR);
+    let validate_also = true;
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        bonder.clone(),
+        threshold.clone(),
+        x25519_public_key.clone(),
+    );
 
-  }:  _(RawOrigin::Signed(bonder.clone()), vec![30])
+    let quote = prepare_attestation_for_validate::<T>(
+        threshold,
+        x25519_public_key,
+        endpoint.clone().to_vec(),
+    )
+    .0;
+  }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
   verify {
-    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, vec![30]).into());
+    assert_last_event::<T>(Event::<T>::EndpointChanged(bonder, endpoint.to_vec()).into());
   }
 
   change_threshold_accounts {
     let s in 0 .. MAX_SIGNERS as u32;
+
     let caller: T::AccountId = whitelisted_caller();
     let _bonder: T::AccountId = account("bond", 0, SEED);
-    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone()).or(Err(Error::<T>::InvalidValidatorId));
-    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone()).or(Err(Error::<T>::InvalidValidatorId)).unwrap();
-    let bonder: T::ValidatorId = validator_id_res.expect("Issue converting account id into validator id");
+
+    let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone())
+        .or(Err(Error::<T>::InvalidValidatorId));
+    let validator_id_signers = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+    let bonder: T::ValidatorId =
+        validator_id_res.expect("Issue converting account id into validator id");
+
     let threshold: T::AccountId = account("threshold", 0, SEED);
+    let new_threshold: T::AccountId = account("new_threshold", 0, SEED);
+
     let x25519_public_key: [u8; 32] = NULL_ARR;
-    prep_bond_and_validate::<T>(true, caller.clone(), _bonder.clone(), threshold, NULL_ARR);
+    let endpoint = b"http://localhost:3001".to_vec();
+
+    let validate_also = true;
+    prep_bond_and_validate::<T>(
+        validate_also,
+        caller.clone(),
+        _bonder.clone(),
+        threshold.clone(),
+        x25519_public_key.clone(),
+    );
+
+    // For quote verification this needs to be the _next_ block, and right now we're at block `0`.
+    let (quote , joining_server_info) = prepare_attestation_for_validate::<T>(
+        new_threshold.clone(),
+        x25519_public_key,
+        endpoint.clone().to_vec(),
+    );
+
+    let pck_certificate_chain = joining_server_info.pck_certificate_chain;
+
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
-
-  }:  _(RawOrigin::Signed(_bonder.clone()), _bonder.clone(), NULL_ARR)
+  }:  _(
+        RawOrigin::Signed(_bonder.clone()),
+        new_threshold.clone(),
+        x25519_public_key.clone(),
+        pck_certificate_chain,
+        quote
+    )
   verify {
     let server_info = ServerInfo {
-      endpoint: vec![20, 20],
-      tss_account: _bonder.clone(),
+      endpoint: b"http://localhost:3001".to_vec(),
+      tss_account: new_threshold.clone(),
       x25519_public_key: NULL_ARR,
       provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap(),
     };
@@ -330,9 +376,8 @@ benchmarks! {
         x25519_public_key.clone()
     );
 
-    let block_number = 1;
     let (quote, joining_server_info) =
-        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone(), block_number);
+        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone());
   }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), joining_server_info, quote)
   verify {
     assert_last_event::<T>(

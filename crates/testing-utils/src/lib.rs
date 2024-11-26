@@ -25,3 +25,5 @@ pub mod substrate_context;
 pub use entropy_tss::helpers::tests::{spawn_testing_validators, ChainSpecType};
 pub use node_proc::TestNodeProcess;
 pub use substrate_context::*;
+
+pub use entropy_tss::helpers::validator::get_signer_and_x25519_secret_from_mnemonic;

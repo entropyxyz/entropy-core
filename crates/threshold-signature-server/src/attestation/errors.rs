@@ -48,6 +48,10 @@ pub enum AttestationErr {
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("Data is stale")]
     StaleData,
+    #[error("Attestation request: {0}")]
+    AttestationRequest(#[from] entropy_client::errors::AttestationRequestError),
+    #[error("Invalid or unknown context value given in query string")]
+    UnknownContext,
 }
 
 impl IntoResponse for AttestationErr {

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::mock::*;
-use entropy_shared::{AttestationHandler, QuoteInputData};
+use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData};
 use frame_support::{assert_noop, assert_ok};
 use rand_core::OsRng;
 
@@ -32,13 +32,12 @@ fn verify_quote_works() {
         let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
 
         let x25519_public_key = [0; 32];
-        let block_number = 0;
 
         let input_data = QuoteInputData::new(
             ATTESTEE, // TSS Account ID
             x25519_public_key,
             nonce,
-            block_number,
+            QuoteContext::Validate,
         );
 
         let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0);
@@ -47,6 +46,7 @@ fn verify_quote_works() {
             x25519_public_key,
             sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
             quote.as_bytes().to_vec(),
+            QuoteContext::Validate,
         ));
     })
 }
@@ -63,13 +63,12 @@ fn verify_quote_fails_with_mismatched_input_data() {
         let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
 
         let x25519_public_key = [0; 32];
-        let block_number = 0;
 
         let input_data = QuoteInputData::new(
             ATTESTEE, // TSS Account ID
             x25519_public_key,
             nonce,
-            block_number,
+            QuoteContext::Validate,
         );
 
         let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0);
@@ -83,6 +82,7 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 x25519_public_key,
                 sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
                 quote.as_bytes().to_vec(),
+                QuoteContext::Validate,
             ),
             crate::Error::<Test>::UnexpectedAttestation,
         );
@@ -96,6 +96,7 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 mismatched_x25519_public_key,
                 sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
                 quote.as_bytes().to_vec(),
+                QuoteContext::Validate,
             ),
             crate::Error::<Test>::IncorrectInputData,
         );
@@ -116,6 +117,7 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 x25519_public_key,
                 sp_runtime::BoundedVec::try_from(mismatched_pck_encoded.to_vec()).unwrap(),
                 quote.as_bytes().to_vec(),
+                QuoteContext::Validate,
             ),
             crate::Error::<Test>::PckVerification
         );

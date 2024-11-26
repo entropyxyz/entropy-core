@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-staking-extension'
-version   ='0.3.0-rc.1'
+version   ='0.3.0'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -15,7 +15,7 @@ targets=['x86_64-unknown-linux-gnu']
 codec      ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info ={ version="2.11", default-features=false, features=["derive"] }
 log        ={ version="0.4.22", default-features=false }
-serde      ={ version="1.0.214", default-features=false }
+serde      ={ version="1.0.215", default-features=false }
 rand_chacha={ version="0.3", default-features=false }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
@@ -33,8 +33,8 @@ spki              ="0.7.3"
 p256              ={ version="0.13.2", default-features=false, features=["ecdsa"] }
 rand              ={ version="0.8.5", default-features=false, features=["alloc"] }
 
-pallet-parameters={ version="0.3.0-rc.1", path="../parameters", default-features=false }
-entropy-shared={ version="0.3.0-rc.1", path="../../crates/shared", features=[
+pallet-parameters={ version="0.3.0", path="../parameters", default-features=false }
+entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
 

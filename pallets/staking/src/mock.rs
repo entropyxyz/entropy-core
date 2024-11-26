@@ -16,6 +16,7 @@
 use core::convert::{TryFrom, TryInto};
 use std::cell::RefCell;
 
+use entropy_shared::QuoteContext;
 use frame_election_provider_support::{
     bounds::{ElectionBounds, ElectionBoundsBuilder},
     onchain, SequentialPhragmen, VoteWeight,
@@ -400,6 +401,7 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
         _x25519_public_key: entropy_shared::X25519PublicKey,
         _provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
+        _context: QuoteContext,
     ) -> Result<(), sp_runtime::DispatchError> {
         let quote: Result<[u8; 32], _> = quote.try_into();
         match quote {
