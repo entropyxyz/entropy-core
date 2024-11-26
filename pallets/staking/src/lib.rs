@@ -793,7 +793,7 @@ pub mod pallet {
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
-                block_number: current_block_number + sp_runtime::traits::One::one(),
+                block_number: current_block_number - sp_runtime::traits::One::one(),
                 new_signers,
             };
 
