@@ -9,7 +9,7 @@ use crate::{
             },
             staking_extension::events,
         },
-        get_api, get_rpc, EntropyConfig,
+        get_api, get_rpc,
     },
     change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
     request_attestation, store_program,
@@ -20,10 +20,7 @@ use crate::{
 use entropy_shared::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    helpers::{
-        derive_mock_pck_verifying_key, encode_verifying_key, spawn_tss_nodes_and_start_chain,
-    },
-    jump_start_network, spawn_testing_validators,
+    helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
     ChainSpecType,
 };
@@ -34,7 +31,7 @@ use rand::{
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
 use sp_keyring::AccountKeyring;
-use subxt::{tx::PairSigner, utils::AccountId32};
+use subxt::utils::AccountId32;
 
 #[tokio::test]
 #[serial]
@@ -265,10 +262,10 @@ async fn test_remove_program_reference_counter() {
 #[tokio::test]
 #[serial]
 async fn test_get_oracle_headings() {
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     let mut current_block = 0;
     while current_block < 2 {
