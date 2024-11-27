@@ -152,6 +152,8 @@ pub enum ProtocolExecutionErr {
     ArcUnwrapError,
     #[error("Message processing task panic or cancellation: {0}")]
     JoinHandle(#[from] tokio::task::JoinError),
+    #[error("Could not get validating key from keyshare")]
+    NoValidatingKey,
 }
 
 #[derive(Debug, Error)]

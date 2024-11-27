@@ -278,7 +278,8 @@ pub async fn execute_dkg(
         tracing::info!("Finished key init protocol");
 
         // Send verifying key
-        let verifying_key = init_keyshare.verifying_key();
+        let verifying_key =
+            init_keyshare.verifying_key().ok_or(ProtocolExecutionErr::NoValidatingKey)?;
         for party_id in party_ids.iter() {
             if !key_init_parties.contains(party_id) {
                 let message = ProtocolMessage {
