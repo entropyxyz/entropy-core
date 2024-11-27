@@ -41,6 +41,10 @@ runtime
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
 
+### Fixed
+
+- Reshare in a spawned task and fix propagation pallet rotate keyshares endpoint lookup key ([#1185](https://github.com/entropyxyz/entropy-core/pull/1185))
+
 ## [0.3.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0) - 2024-10-22
 
 ### Breaking Changes
