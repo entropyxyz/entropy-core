@@ -49,7 +49,7 @@ entropy-client  ={ version="0.3.0", path="../client", default-features=false, fe
 entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", branch="master" }
 
 # Logging
-tracing                 ="0.1.37"
+tracing                 ="0.1.41"
 tracing-subscriber      ={ version="0.3.18", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
 tower-http              ={ version="0.6.2", features=["trace", "cors"] }
