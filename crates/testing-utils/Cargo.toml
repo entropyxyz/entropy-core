@@ -29,5 +29,5 @@ rand              ="0.8.5"
 tdx-quote         ={ version="0.0.1", features=["mock"] }
 
 # Logging
-tracing           ="0.1.37"
+tracing           ="0.1.41"
 tracing-subscriber={ version="0.3.18", features=["env-filter"] }
