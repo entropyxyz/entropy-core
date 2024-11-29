@@ -163,6 +163,9 @@ impl TestNodeProcessBuilder {
         let arg = "--rpc-external";
         cmd.arg(arg);
 
+        let arg = "--rpc-cors=all";
+        cmd.arg(arg);
+
         let ws_url = format!("ws://127.0.0.1:{ws_port}");
 
         let mut proc = cmd.spawn().map_err(|e| {
