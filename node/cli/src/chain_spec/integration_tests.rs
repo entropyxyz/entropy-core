@@ -157,7 +157,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
-                        "127.0.0.1:3001".as_bytes().to_vec(),
+                        "15.204.101.103:3001".as_bytes().to_vec(),
                         provisioning_certification_key::ALICE.clone(),
                     ),
                 ),
@@ -166,7 +166,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
-                        "127.0.0.1:3002".as_bytes().to_vec(),
+                        "15.204.101.103:3002".as_bytes().to_vec(),
                         provisioning_certification_key::BOB.clone(),
                     ),
                 ),
@@ -175,7 +175,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-                        "127.0.0.1:3003".as_bytes().to_vec(),
+                        "15.204.101.103:3003".as_bytes().to_vec(),
                         provisioning_certification_key::CHARLIE.clone(),
                     ),
                 ),
@@ -184,7 +184,7 @@ pub fn integration_tests_genesis_config(
                     (
                         crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::DAVE,
-                        "127.0.0.1:3004".as_bytes().to_vec(),
+                        "15.204.101.103:3004".as_bytes().to_vec(),
                         provisioning_certification_key::DAVE.clone(),
                     ),
                 ),
