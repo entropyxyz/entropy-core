@@ -39,7 +39,7 @@ pub enum AttestationErr {
     Codec(#[from] parity_scale_codec::Error),
     #[cfg(feature = "production")]
     #[error("Quote generation: {0}")]
-    QuoteGeneration(#[from] std::io::Error),
+    QuoteGeneration(#[from] configfs_tsm::QuoteGenerationError),
     #[error("Vec<u8> Conversion Error: {0}")]
     Conversion(&'static str),
     #[error("Data is repeated")]
