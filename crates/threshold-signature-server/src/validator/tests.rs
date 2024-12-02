@@ -91,6 +91,7 @@ async fn test_reshare_basic() {
     }
 
     let mut i = 0;
+    // Wait up to 2min for reshare to complete: check once every second if we have a new set of signers.
     let new_signer_ids = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
