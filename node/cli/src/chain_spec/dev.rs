@@ -42,28 +42,28 @@ pub fn devnet_four_node_initial_tss_servers(
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_x25519_public_key::ALICE,
-        "127.0.0.1:3001".to_string(),
+        "15.204.101.103:3001".to_string(),
         provisioning_certification_key::ALICE.clone(),
     );
 
     let bob = (
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_x25519_public_key::BOB,
-        "127.0.0.1:3002".to_string(),
+        "15.204.101.103:3002".to_string(),
         provisioning_certification_key::BOB.clone(),
     );
 
     let charlie = (
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
         crate::chain_spec::tss_x25519_public_key::CHARLIE,
-        "127.0.0.1:3003".to_string(),
+        "15.204.101.103:3003".to_string(),
         provisioning_certification_key::CHARLIE.clone(),
     );
 
     let dave = (
         crate::chain_spec::tss_account_id::DAVE.clone(),
         crate::chain_spec::tss_x25519_public_key::DAVE,
-        "127.0.0.1:3004".to_string(),
+        "15.204.101.103:3004".to_string(),
         provisioning_certification_key::DAVE.clone(),
     );
 

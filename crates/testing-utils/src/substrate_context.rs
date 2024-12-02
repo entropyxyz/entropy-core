@@ -117,16 +117,11 @@ pub async fn test_node_process_testing_state(
             .to_string(),
     );
     // reduses message from chain to same TSS cleaning up a lot of logging
-    let result = test_node(
-        AccountKeyring::Alice,
-        "--chain=integration-tests".to_string(),
-        force_authoring,
-        None,
-    )
-    .await;
+    let result =
+        test_node(AccountKeyring::Alice, "--chain=dev".to_string(), force_authoring, None).await;
     let result_bob = test_node_process_with(
         AccountKeyring::Bob,
-        "--chain=integration-tests".to_string(),
+        "--chain=dev".to_string(),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://localhost:3002".to_string()),
@@ -134,7 +129,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_charlie = test_node_process_with(
         AccountKeyring::Charlie,
-        "--chain=integration-tests".to_string(),
+        "--chain=dev".to_string(),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://localhost:3003".to_string()),
@@ -142,7 +137,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_dave = test_node_process_with(
         AccountKeyring::Dave,
-        "--chain=integration-tests".to_string(),
+        "--chain=dev".to_string(),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://localhost:3004".to_string()),
