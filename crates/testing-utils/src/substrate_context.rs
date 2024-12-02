@@ -129,7 +129,7 @@ pub async fn test_node_process_testing_state(
         "--chain=integration-tests".to_string(),
         force_authoring,
         alice_bootnode.clone(),
-        Some("127.0.0.1:3002".to_string()),
+        Some("localhost:3002".to_string()),
     )
     .await;
     let result_charlie = test_node_process_with(
@@ -137,7 +137,7 @@ pub async fn test_node_process_testing_state(
         "--chain=integration-tests".to_string(),
         force_authoring,
         alice_bootnode.clone(),
-        Some("127.0.0.1:3003".to_string()),
+        Some("localhost:3003".to_string()),
     )
     .await;
     let result_dave = test_node_process_with(
@@ -145,7 +145,7 @@ pub async fn test_node_process_testing_state(
         "--chain=integration-tests".to_string(),
         force_authoring,
         alice_bootnode.clone(),
-        Some("127.0.0.1:3004".to_string()),
+        Some("localhost:3004".to_string()),
     )
     .await;
 
