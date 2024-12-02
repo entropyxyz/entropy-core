@@ -34,7 +34,7 @@ hex               ={ version="0.4.3", optional=true }
 parity-scale-codec={ version="3.6.3", default-features=false, optional=true }
 
 # Only for the browser
-js-sys={ version="0.3.72", optional=true }
+js-sys={ version="0.3.74", optional=true }
 tokio ={ version="1.41", features=["time"] }
 
 [dev-dependencies]
