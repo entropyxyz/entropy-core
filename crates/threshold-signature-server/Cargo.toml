@@ -50,7 +50,7 @@ entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", bra
 
 # Logging
 tracing                 ="0.1.41"
-tracing-subscriber      ={ version="0.3.18", features=["env-filter", "json"] }
+tracing-subscriber      ={ version="0.3.19", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
 tower-http              ={ version="0.6.2", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.10"
