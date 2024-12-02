@@ -122,6 +122,7 @@ pub mod pallet {
             let url =
                 str::from_utf8(&from_local).unwrap_or("http://localhost:3001/generate_network_key");
 
+            log::warn!("propagation::post::url: {:?}", &url);
             log::warn!("propagation::post::validators_info: {:?}", &validators_info);
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
@@ -145,6 +146,7 @@ pub mod pallet {
             let response =
                 pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
 
+            log::warn!("propagation::post **submitted**");
             // check response code
             if response.code != 200 {
                 log::warn!("Unexpected status code: {}", response.code);
