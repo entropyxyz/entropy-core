@@ -50,6 +50,7 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use entropy_shared::HashingAlgorithm;
 use futures::stream::StreamExt;
+use serde::{Deserialize, Serialize};
 use sp_core::{
     sr25519::{self, Signature},
     Pair,
@@ -446,20 +447,33 @@ pub async fn request_attestation(
     Ok(user::request_attestation(api, rpc, attestee).await?)
 }
 
+/// Return type for getting oracle headings.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OracleDataReturn {
+    pub oracle_heading: String,
+    pub oracle_type: String,
+}
 /// Get oracle data headings
 /// This is useful for program developers to know what oracle data is available
 pub async fn get_oracle_headings(
     api: &OnlineClient<EntropyConfig>,
-    _rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<Vec<String>, ClientError> {
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<Vec<OracleDataReturn>, ClientError> {
     let storage_address = entropy::storage().oracle().oracle_data_iter();
-    let mut iter = api.storage().at_latest().await?.iter(storage_address).await?;
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or(ClientError::ChainFetch("Failed to get block hash"))?;
+    let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut headings = Vec::new();
     while let Some(Ok(kv)) = iter.next().await {
         // Key is: storage_address || 128 bit hash || key
         let mut input = &kv.key_bytes[32 + 16 + 1..];
-        let heading = String::decode(&mut input)?;
-        headings.push(heading);
+        let oracle_heading = String::decode(&mut input)?;
+        headings.push(OracleDataReturn {
+            oracle_heading,
+            oracle_type: std::str::from_utf8(&kv.value.oracle_type)?.to_string(),
+        });
     }
     Ok(headings)
 }

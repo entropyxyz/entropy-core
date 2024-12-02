@@ -14,7 +14,7 @@ use crate::{
     change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
     request_attestation, store_program,
     substrate::query_chain,
-    update_programs,
+    update_programs, OracleDataReturn,
 };
 
 use entropy_shared::{QuoteContext, QuoteInputData};
@@ -284,7 +284,10 @@ async fn test_get_oracle_headings() {
         current_block = rpc.chain_get_header(Some(finalized_head)).await.unwrap().unwrap().number;
     }
 
-    let headings = get_oracle_headings(&api, &rpc).await.unwrap();
-
-    assert_eq!(headings, vec!["block_number_entropy".to_string()]);
+    let oracle_headings = get_oracle_headings(&api, &rpc).await.unwrap();
+    let mock_data = OracleDataReturn {
+        oracle_heading: "block_number_entropy".to_string(),
+        oracle_type: "u32".to_string(),
+    };
+    assert_eq!(oracle_headings, vec![mock_data]);
 }

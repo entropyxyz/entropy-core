@@ -573,8 +573,8 @@ pub async fn run_command(
             }
         },
         CliCommand::GetOracleHeadings => {
-            let headings = get_oracle_headings(&api, &rpc).await?;
-            Ok(serde_json::to_string_pretty(&headings)?)
+            let oracles_data = get_oracle_headings(&api, &rpc).await?;
+            Ok(format!("{:?}", oracles_data))
         },
         CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
             let quote_bytes =
