@@ -186,7 +186,8 @@ pub async fn create_quote(
         context,
     );
 
-    Ok(configfs_tsm::create_quote(input_data.0)?)
+    Ok(configfs_tsm::create_quote(input_data.0)
+        .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?)
 }
 
 /// Querystring for the GET `/attest` endpoint
