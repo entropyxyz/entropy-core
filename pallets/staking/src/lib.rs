@@ -60,7 +60,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        ValidatorInfo, X25519PublicKey, MAX_SIGNERS, TEST_RESHARE_BLOCK_NUMBER,
+        QuoteContext, ValidatorInfo, X25519PublicKey, MAX_SIGNERS, TEST_RESHARE_BLOCK_NUMBER,
         VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
@@ -417,7 +417,8 @@ pub mod pallet {
                             &server_info.tss_account.clone(),
                             server_info.x25519_public_key,
                             server_info.provisioning_certification_key.clone(),
-                            quote
+                            quote,
+                            QuoteContext::ChangeEndpoint,
                         )
                         .is_ok(),
                         Error::<T>::FailedAttestationCheck
@@ -492,7 +493,8 @@ pub mod pallet {
                                 &tss_account.clone(),
                                 x25519_public_key,
                                 provisioning_certification_key.clone(),
-                                quote
+                                quote,
+                                QuoteContext::ChangeThresholdAccounts,
                             )
                             .is_ok(),
                             Error::<T>::FailedAttestationCheck
@@ -645,7 +647,8 @@ pub mod pallet {
                     &server_info.tss_account.clone(),
                     server_info.x25519_public_key,
                     server_info.provisioning_certification_key.clone(),
-                    quote
+                    quote,
+                    QuoteContext::Validate,
                 )
                 .is_ok(),
                 Error::<T>::FailedAttestationCheck

@@ -17,6 +17,7 @@ use crate::{
     update_programs,
 };
 
+use entropy_shared::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::encode_verifying_key,
@@ -54,11 +55,8 @@ async fn test_change_endpoint() {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
         let public_key = sr25519::Public(tss_account_id.0);
 
-        // We need to add `1` here since the quote is being checked in the next block
-        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-
         let input_data =
-            entropy_shared::QuoteInputData::new(public_key, x25519_public_key, nonce, block_number);
+            QuoteInputData::new(public_key, x25519_public_key, nonce, QuoteContext::ChangeEndpoint);
 
         let mut pck_seeder = StdRng::from_seed(public_key.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
@@ -129,14 +127,11 @@ async fn test_change_threshold_accounts() {
     let pck_certificate_chain = vec![tss_public_key.0.to_vec()];
 
     let quote = {
-        // We need to add `1` here since the quote is being checked in the next block
-        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-
         let input_data = entropy_shared::QuoteInputData::new(
             tss_public_key,
             *x25519_public_key.as_bytes(),
             nonce,
-            block_number,
+            QuoteContext::ChangeThresholdAccounts,
         );
 
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);

@@ -24,6 +24,8 @@ At the moment this project **does not** adhere to
 - In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
+- In [#1179](https://github.com/entropyxyz/entropy-core/pull/1179) the format of TDX Quote input data has
+  been changed.
 - In [#1184](https://github.com/entropyxyz/entropy-core/pull/1184/) The ```OracleData``` mapping now holds a 
 struct ```OracleInfo``` which includes the ```oracle_data``` and the ```oracle_type```
 
@@ -40,6 +42,11 @@ struct ```OracleInfo``` which includes the ```oracle_data``` and the ```oracle_t
 - Add quote guards to `ServerInfo` related extrinsics ([#1123](https://github.com/entropyxyz/entropy-core/pull/1123/))
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
+- Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
+
+### Fixed
+
+- Reshare in a spawned task and fix propagation pallet rotate keyshares endpoint lookup key ([#1185](https://github.com/entropyxyz/entropy-core/pull/1185))
 
 ## [0.3.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0) - 2024-10-22
 
