@@ -26,7 +26,7 @@ use crate::{
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, PREGENERATED_NETWORK_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
@@ -56,7 +56,8 @@ async fn test_proactive_refresh() {
     let client = reqwest::Client::new();
 
     // check get key before proactive refresh
-    let key_before_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_before_network =
+        unsafe_get(&client, hex::encode(EVPREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
     let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     let validators_info = vec![
@@ -79,7 +80,10 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![
+            PREGENERATED_NETWORK_VERIFYING_KEY.to_vec(),
+            DAVE_VERIFYING_KEY.to_vec(),
+        ],
         block_number: 0,
     };
 
@@ -97,11 +101,12 @@ async fn test_proactive_refresh() {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
     }
 
-    let key_after_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_after_network =
+        unsafe_get(&client, hex::encode(PREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
     let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     // make sure private keyshares are changed
-    assert_ne!(key_before_eve, key_after_eve);
+    assert_ne!(key_before_network, key_after_network);
     assert_ne!(key_before_dave, key_after_dave);
 
     let alice = AccountKeyring::Alice;

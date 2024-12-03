@@ -25,8 +25,8 @@ use entropy_runtime::{
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
-    DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
-    TOTAL_SIGNERS,
+    DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, PREGENERATED_NETWORK_VERIFYING_KEY,
+    SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -227,7 +227,7 @@ pub fn integration_tests_genesis_config(
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
                     },
                 ],
-                vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+                vec![PREGENERATED_NETWORK_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
             mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")]),
             jump_started_signers,

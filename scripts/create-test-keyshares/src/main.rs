@@ -17,7 +17,7 @@
 //! The base path for where to store keyshares is given as a single command line argument
 //! If it is not given, the current working directory is used
 use entropy_kvdb::kv_manager::helpers::serialize;
-use entropy_shared::DETERMINISTIC_KEY_SHARE_EVE;
+use entropy_shared::DETERMINISTIC_KEY_SHARE_NETWORK;
 use entropy_testing_utils::create_test_keyshares::create_test_keyshares;
 use entropy_tss::helpers::{
     launch::{
@@ -45,7 +45,7 @@ async fn main() {
     })
     .collect();
 
-    let secret_key = *DETERMINISTIC_KEY_SHARE_EVE;
+    let secret_key = *DETERMINISTIC_KEY_SHARE_NETWORK;
 
     let (keypairs, names): (Vec<sr25519::Pair>, Vec<ValidatorName>) =
         keypairs_and_names.iter().cloned().unzip();

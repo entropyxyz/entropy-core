@@ -60,8 +60,8 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        QuoteContext, ValidatorInfo, X25519PublicKey, EVE_VERIFYING_KEY, MAX_SIGNERS,
-        TEST_RESHARE_BLOCK_NUMBER, VERIFICATION_KEY_LENGTH,
+        QuoteContext, ValidatorInfo, X25519PublicKey, MAX_SIGNERS,
+        PREGENERATED_NETWORK_VERIFYING_KEY, TEST_RESHARE_BLOCK_NUMBER, VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -317,7 +317,9 @@ pub mod pallet {
                 JumpStartProgress::<T>::put(JumpStartDetails {
                     jump_start_status: JumpStartStatus::Done,
                     confirmations: jump_started_signers.clone(),
-                    verifying_key: Some(BoundedVec::try_from(EVE_VERIFYING_KEY.to_vec()).unwrap()),
+                    verifying_key: Some(
+                        BoundedVec::try_from(PREGENERATED_NETWORK_VERIFYING_KEY.to_vec()).unwrap(),
+                    ),
                     parent_key_threshold: 2,
                 });
             }
