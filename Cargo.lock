@@ -2590,8 +2590,9 @@ dependencies = [
 
 [[package]]
 name = "entropy-programs-core"
-version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=master#b300dab62e0bd77ff9a6341dab4988459dcaed78"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9a92d75d04917995a04398bc9bb57971c1d9ce4fe7b0460fe12fe10213a2c9c"
 dependencies = [
  "getrandom 0.2.15",
  "serde",
@@ -2601,8 +2602,9 @@ dependencies = [
 
 [[package]]
 name = "entropy-programs-runtime"
-version = "0.10.0"
-source = "git+https://github.com/entropyxyz/programs.git?branch=master#b300dab62e0bd77ff9a6341dab4988459dcaed78"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1d5617ea52abc9c4eed998053a2dcf163f926224a1302fb75d4cc31ae99e700"
 dependencies = [
  "entropy-programs-core",
  "thiserror 1.0.68",

@@ -46,7 +46,7 @@ entropy-protocol={ version="0.3.0", path="../protocol", features=["server"] }
 entropy-client  ={ version="0.3.0", path="../client", default-features=false, features=["native"] }
 
 # Programs
-entropy-programs-runtime={ git="https://github.com/entropyxyz/programs.git", branch="master" }
+entropy-programs-runtime="0.11.0"
 
 # Logging
 tracing                 ="0.1.41"
