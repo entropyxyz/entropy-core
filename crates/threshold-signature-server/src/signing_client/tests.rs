@@ -57,7 +57,7 @@ async fn test_proactive_refresh() {
 
     // check get key before proactive refresh
     let key_before_network =
-        unsafe_get(&client, hex::encode(EVPREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
+        unsafe_get(&client, hex::encode(PREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
     let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     let validators_info = vec![
