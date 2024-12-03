@@ -147,7 +147,7 @@ impl TestNodeProcessBuilder {
         }
 
         cmd.arg(format!("--rpc-port={}", self.port));
-        if port != 9944 {
+        if self.port != 9944 {
             let (p2p_port, _http_port, _ws_port) = next_open_port()
                 .ok_or_else(|| "No available ports in the given port range".to_owned())?;
             cmd.arg(format!("--port={p2p_port}"));
