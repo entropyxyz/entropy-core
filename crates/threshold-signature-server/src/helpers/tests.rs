@@ -48,7 +48,7 @@ use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
-use std::{fmt, time::Duration};
+use std::{fmt, net::SocketAddr, str, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -365,5 +365,7 @@ async fn put_jumpstart_request_on_chain(
 
 /// Given a ServerInfo, get the port number
 pub fn get_port(server_info: &ServerInfo<SubxtAccountId32>) -> u32 {
-    std::str::from_utf8(&server_info.endpoint).unwrap().split(":").last().unwrap().parse().unwrap()
+    let socket_address: SocketAddr =
+        str::from_utf8(&server_info.endpoint).unwrap().parse().unwrap();
+    socket_address.port().into()
 }
