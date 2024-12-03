@@ -146,7 +146,7 @@ impl TestNodeProcessBuilder {
             cmd.arg(arg);
         }
 
-        cmd.arg(format!("--port={}", self.port));
+        cmd.arg(format!("--rpc-port={}", self.port));
         // let ws_port = if self.scan_port_range {
         //     // let (p2p_port, _http_port, ws_port) = next_open_port()
         //     //     .ok_or_else(|| "No available ports in the given port range".to_owned())?;
