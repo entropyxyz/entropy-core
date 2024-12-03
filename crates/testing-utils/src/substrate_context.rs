@@ -63,6 +63,7 @@ pub async fn test_node_process_with(
     force_authoring: bool,
     bootnode: Option<String>,
     tss_server_endpoint: Option<String>,
+    port: Option<u16>,
 ) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
     let path = path.to_str().expect("Path should've been checked to be valid earlier.");
@@ -75,7 +76,7 @@ pub async fn test_node_process_with(
         tss_server_endpoint,
     )
     .with_authority(key)
-    .scan_for_open_ports()
+    .set_port(port.unwrap_or(9944))
     .spawn::<EntropyConfig>()
     .await;
     proc.unwrap()
@@ -99,7 +100,8 @@ pub async fn test_node(
 }
 
 pub async fn test_node_process() -> TestNodeProcess<EntropyConfig> {
-    test_node_process_with(AccountKeyring::Alice, "--dev".to_string(), false, None, None).await
+    test_node_process_with(AccountKeyring::Alice, "--dev".to_string(), false, None, None, None)
+        .await
 }
 
 pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
@@ -116,7 +118,6 @@ pub async fn test_node_process_testing_state(
         "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38"
             .to_string(),
     );
-    // reduses message from chain to same TSS cleaning up a lot of logging
     let result =
         test_node(AccountKeyring::Alice, "--chain=dev".to_string(), force_authoring, None).await;
     let result_bob = test_node_process_with(
@@ -125,6 +126,7 @@ pub async fn test_node_process_testing_state(
         force_authoring,
         alice_bootnode.clone(),
         Some("http://localhost:3002".to_string()),
+        Some(9945),
     )
     .await;
     let result_charlie = test_node_process_with(
@@ -133,6 +135,7 @@ pub async fn test_node_process_testing_state(
         force_authoring,
         alice_bootnode.clone(),
         Some("http://localhost:3003".to_string()),
+        Some(9946),
     )
     .await;
     let result_dave = test_node_process_with(
@@ -141,6 +144,7 @@ pub async fn test_node_process_testing_state(
         force_authoring,
         alice_bootnode.clone(),
         Some("http://localhost:3004".to_string()),
+        Some(9947),
     )
     .await;
 

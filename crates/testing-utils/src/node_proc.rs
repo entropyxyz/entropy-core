@@ -79,7 +79,7 @@ where
 pub struct TestNodeProcessBuilder {
     node_path: OsString,
     authority: Option<AccountKeyring>,
-    scan_port_range: bool,
+    port: u16,
     chain_type: String,
     force_authoring: bool,
     bootnode: Option<String>,
@@ -100,7 +100,7 @@ impl TestNodeProcessBuilder {
         Self {
             node_path: node_path.as_ref().into(),
             authority: None,
-            scan_port_range: false,
+            port: 9944,
             chain_type,
             force_authoring,
             bootnode,
@@ -114,11 +114,9 @@ impl TestNodeProcessBuilder {
         self
     }
 
-    /// Enable port scanning to scan for open ports.
-    ///
-    /// Allows spawning multiple node instances for tests to run in parallel.
-    pub fn scan_for_open_ports(&mut self) -> &mut Self {
-        self.scan_port_range = true;
+    /// Set the port for websocket rpc
+    pub fn set_port(&mut self, port: u16) -> &mut Self {
+        self.port = port;
         self
     }
 
@@ -148,17 +146,18 @@ impl TestNodeProcessBuilder {
             cmd.arg(arg);
         }
 
-        let ws_port = if self.scan_port_range {
-            let (p2p_port, _http_port, ws_port) = next_open_port()
-                .ok_or_else(|| "No available ports in the given port range".to_owned())?;
-            cmd.arg(format!("--port={p2p_port}"));
-            cmd.arg(format!("--rpc-port={ws_port}"));
-            tracing::info!("ws port: {ws_port}");
-            ws_port
-        } else {
-            // the default Websockets port
-            9944
-        };
+        cmd.arg(format!("--port={}", self.port));
+        // let ws_port = if self.scan_port_range {
+        //     // let (p2p_port, _http_port, ws_port) = next_open_port()
+        //     //     .ok_or_else(|| "No available ports in the given port range".to_owned())?;
+        //     cmd.arg(format!("--port={p2p_port}"));
+        //     cmd.arg(format!("--rpc-port={ws_port}"));
+        //     tracing::info!("ws port: {ws_port}");
+        //     ws_port
+        // } else {
+        //     // the default Websockets port
+        //     9944
+        // };
 
         let arg = "--rpc-external";
         cmd.arg(arg);
@@ -166,7 +165,7 @@ impl TestNodeProcessBuilder {
         let arg = "--rpc-cors=all";
         cmd.arg(arg);
 
-        let ws_url = format!("ws://127.0.0.1:{ws_port}");
+        let ws_url = format!("ws://127.0.0.1:{}", self.port);
 
         let mut proc = cmd.spawn().map_err(|e| {
             format!("Error spawning substrate node '{}': {e}", self.node_path.to_string_lossy())
