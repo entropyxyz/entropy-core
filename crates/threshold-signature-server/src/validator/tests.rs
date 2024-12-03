@@ -139,6 +139,7 @@ async fn test_reshare() {
 
     // Now wait until signers have changed
     let old_signer_ids = HashSet::from_iter(signer_stash_accounts.into_iter().map(|id| id.0));
+    let start = std::time::Instant::now();
     loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
@@ -147,6 +148,9 @@ async fn test_reshare() {
         };
         if new_signer_ids != old_signer_ids {
             break;
+        }
+        if start.elapsed() > std::time::Duration::from_secs(60) {
+            panic!("Timed out waiting for reshare protocol to finish successfully");
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
