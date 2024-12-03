@@ -23,6 +23,7 @@ sp-io             ={ version="31.0.0", default-features=false }
 sp-runtime        ={ version="32.0.0", default-features=false }
 sp-staking        ={ version="27.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
+pallet-oracle           ={ version='0.3.0', path='../oracle', default-features=false }
 
 [dev-dependencies]
 pallet-balances={ version="29.0.0" }
@@ -40,5 +41,6 @@ std=[
   'frame-support/std',
   'frame-system/std',
   'log/std',
+  'pallet-oracle/std',
 ]
 try-runtime=['frame-support/try-runtime']

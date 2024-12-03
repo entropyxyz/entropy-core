@@ -7257,6 +7257,7 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-oracle",
  "parity-scale-codec",
  "scale-info",
  "sp-core 29.0.0",

@@ -32,6 +32,7 @@ frame_support::construct_runtime!(
     System: frame_system,
     ProgramsPallet: pallet_programs,
     Balances: pallet_balances,
+    Oracle: pallet_oracle,
   }
 );
 
@@ -92,6 +93,18 @@ impl pallet_balances::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeFreezeReason;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const MaxOracleKeyLength: u32 = 100;
+  pub const MaxOracleValueLength: u32 = 100;
+}
+
+impl pallet_oracle::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
     type WeightInfo = ();
 }
 

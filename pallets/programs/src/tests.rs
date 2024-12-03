@@ -37,11 +37,24 @@ fn set_program() {
         hash_input.extend(&configuration_schema);
         hash_input.extend(&auxiliary_data_schema);
         hash_input.extend(&vec![version_number]);
-        let (_oracle_length, hash_input_with_oracle) =
-            ProgramsPallet::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)
-                .unwrap();
 
-        let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input_with_oracle);
+        assert_noop!(
+            ProgramsPallet::set_program(
+                RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
+                program.clone(),
+                configuration_schema.clone(),
+                auxiliary_data_schema.clone(),
+                oracle_data_pointers.clone(),
+                version_number
+            ),
+            Error::<Test>::CannotFindOracleData
+        );
+
+        pallet_oracle::OracleData::<Test>::insert(
+            BoundedVec::try_from(oracle_data_pointers[0].clone()).unwrap(),
+            BoundedVec::default(),
+        );
+
         // can't pay deposit
         assert_noop!(
             ProgramsPallet::set_program(
@@ -56,6 +69,12 @@ fn set_program() {
         );
 
         Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, 100);
+
+        let (_oracle_length, hash_input_with_oracle) =
+            ProgramsPallet::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)
+                .unwrap();
+
+        let program_hash = <Test as frame_system::Config>::Hashing::hash(&hash_input_with_oracle);
 
         assert_ok!(ProgramsPallet::set_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
@@ -140,6 +159,11 @@ fn remove_program() {
         hash_input.extend(&configuration_schema);
         hash_input.extend(&auxiliary_data_schema);
         hash_input.extend(&vec![version_number]);
+
+        pallet_oracle::OracleData::<Test>::insert(
+            BoundedVec::try_from(oracle_data_pointers[0].clone()).unwrap(),
+            BoundedVec::default(),
+        );
 
         let (_oracle_length, hash_input_with_oracle) =
             ProgramsPallet::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)
