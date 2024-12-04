@@ -27,15 +27,15 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_oracle_headings,
-        get_programs, get_rpc, jumpstart_network, register, remove_program, sign, store_program,
-        update_programs, VERIFYING_KEY_LENGTH,
+        change_threshold_accounts, get_accounts, get_api, get_oracle_headings, get_programs,
+        get_quote_and_change_endpoint, get_rpc, jumpstart_network, register, remove_program, sign,
+        store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::PROGRAM_VERSION_NUMBER;
 use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::{traits::BlakeTwo256, Serialize};
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
@@ -150,11 +150,6 @@ enum CliCommand {
     ChangeEndpoint {
         /// New endpoint to change to (ex. "127.0.0.1:3001")
         new_endpoint: String,
-        /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
-        ///
-        /// The quote format is specified in:
-        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
-        quote: String,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -499,7 +494,7 @@ pub async fn run_command(
                 Ok("Got status".to_string())
             }
         },
-        CliCommand::ChangeEndpoint { new_endpoint, quote, mnemonic_option } => {
+        CliCommand::ChangeEndpoint { new_endpoint, mnemonic_option } => {
             let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
                 mnemonic_option
             } else {
@@ -510,7 +505,7 @@ pub async fn run_command(
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let result_event =
-                change_endpoint(&api, &rpc, user_keypair, new_endpoint, quote.into()).await?;
+                get_quote_and_change_endpoint(&api, &rpc, user_keypair, new_endpoint).await?;
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
@@ -534,6 +529,10 @@ pub async fn run_command(
             let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
+            let new_tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
+            let new_x25519_public_key = hex::decode(new_x25519_public_key)?
+                .try_into()
+                .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
             let new_pck_certificate_chain =
                 new_pck_certificate_chain.iter().cloned().map(|i| i.into()).collect::<_>();
             let result_event = change_threshold_accounts(
