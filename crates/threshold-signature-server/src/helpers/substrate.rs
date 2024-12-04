@@ -19,7 +19,8 @@ use crate::{
         entropy::{
             self,
             runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec, pallet_programs::pallet::ProgramInfo,
+                bounded_collections::bounded_vec::BoundedVec, pallet_oracle::module::OracleInfo,
+                pallet_programs::pallet::ProgramInfo,
             },
         },
         EntropyConfig,
@@ -70,9 +71,10 @@ pub async fn get_oracle_data(
     for program_oracle_data in program_oracle_datas {
         let oracle_data_call =
             entropy::storage().oracle().oracle_data(BoundedVec(program_oracle_data));
-        let oracle_info =
-            query_chain(api, rpc, oracle_data_call, None).await?.unwrap_or(BoundedVec(vec![]));
-        oracle_infos.push(oracle_info.0);
+        let oracle_info = query_chain(api, rpc, oracle_data_call, None)
+            .await?
+            .unwrap_or(OracleInfo { oracle_data: BoundedVec(vec![]), oracle_type: vec![] });
+        oracle_infos.push(oracle_info.oracle_data.0);
     }
     Ok(oracle_infos)
 }

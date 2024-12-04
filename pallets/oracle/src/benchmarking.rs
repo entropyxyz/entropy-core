@@ -26,7 +26,7 @@ benchmarks! {
   }: {
     Oracle::<T>::on_initialize(50u32.into());
     } verify {
-    assert_eq!(OracleData::<T>::get(BoundedVec::try_from("block_number_entropy".encode()).unwrap()).unwrap()[0], 50);
+    assert_eq!(OracleData::<T>::get(BoundedVec::try_from("block_number_entropy".encode()).unwrap()).unwrap().oracle_data[0], 50);
     }
 
   impl_benchmark_test_suite!(Oracle, crate::mock::new_test_ext(), crate::mock::Test);

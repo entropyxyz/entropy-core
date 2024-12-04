@@ -123,4 +123,6 @@ pub enum ClientError {
     Codec(#[from] parity_scale_codec::Error),
     #[error("Attestation request: {0}")]
     AttestationRequest(#[from] AttestationRequestError),
+    #[error("Chain Fetch: {0}")]
+    ChainFetch(&'static str),
 }
