@@ -35,7 +35,7 @@ parity-scale-codec={ version="3.6.3", default-features=false, optional=true }
 
 # Only for the browser
 js-sys={ version="0.3.74", optional=true }
-tokio ={ version="1.41", features=["time"] }
+tokio ={ version="1.42", features=["time"] }
 
 [dev-dependencies]
 serial_test          ="3.2.0"
