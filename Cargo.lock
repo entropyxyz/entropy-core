@@ -3678,7 +3678,7 @@ dependencies = [
  "sp-transaction-pool 34.0.0",
  "sp-version 37.0.0",
  "static_assertions",
- "substrate-wasm-builder 18.0.1",
+ "substrate-wasm-builder 19.0.0",
 ]
 
 [[package]]
@@ -11771,6 +11771,12 @@ dependencies = [
 
 [[package]]
 name = "polkavm-common"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92c99f7eee94e7be43ba37eef65ad0ee8cbaf89b7c00001c3f6d2be985cb1817"
+
+[[package]]
+name = "polkavm-common"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d9428a5cfcc85c5d7b9fc4b6a18c4b802d0173d768182a51cc7751640f08b92"
@@ -11848,6 +11854,21 @@ checksum = "9324fe036de37c17829af233b46ef6b5562d4a0c09bb7fdb9f8378856dee30cf"
 dependencies = [
  "polkavm-derive-impl 0.10.0",
  "syn 2.0.87",
+]
+
+[[package]]
+name = "polkavm-linker"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdec1451cb18261d5d01de82acc15305e417fb59588cdcb3127d3dcc9672b925"
+dependencies = [
+ "gimli 0.28.1",
+ "hashbrown 0.14.5",
+ "log",
+ "object 0.32.2",
+ "polkavm-common 0.8.0",
+ "regalloc2 0.9.3",
+ "rustc-demangle",
 ]
 
 [[package]]
@@ -18295,15 +18316,16 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder"
-version = "18.0.1"
+version = "19.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a39a20e17c24ede36b5bd5e7543a4cef8d8a0daf6e1a046dc31832b837a54a0"
+checksum = "d182ae093d473b5947e32c392b10fb12125318c4470ff8adf32b0cbf2e9e6611"
 dependencies = [
  "build-helper",
  "cargo_metadata",
  "console",
  "filetime",
  "parity-wasm",
+ "polkavm-linker 0.8.2",
  "sp-maybe-compressed-blob",
  "strum 0.24.1",
  "tempfile",
