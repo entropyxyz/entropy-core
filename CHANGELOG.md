@@ -21,6 +21,7 @@ At the moment this project **does not** adhere to
   `change_threshold_accounts()` extrinsics got new TDX `quote` related parameters added.
 - In [#1134](https://github.com/entropyxyz/entropy-core/pull/1134/) the `--no-sync` option was
   removed.
+- In [#1138](https://github.com/entropyxyz/entropy-core/pull/1138/) the substreate version was updated, this could cause changes to the chainspec file as well requires a stratagery for command line argument ```--public-addr``` and for handling ```node-key-generation```
 - In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
@@ -38,6 +39,7 @@ runtime
 - Handle PCK certificates ([#1068](https://github.com/entropyxyz/entropy-core/pull/1068))
 - Add quote guards to `ServerInfo` related extrinsics ([#1123](https://github.com/entropyxyz/entropy-core/pull/1123/))
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
+- Update substrate version ([#1138](https://github.com/entropyxyz/entropy-core/pull/1138/))
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
 

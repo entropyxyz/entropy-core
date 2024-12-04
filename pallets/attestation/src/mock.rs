@@ -261,7 +261,6 @@ impl pallet_staking::Config for Test {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
-    type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;
@@ -272,6 +271,7 @@ impl pallet_staking::Config for Test {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = pallet_timestamp::Pallet<Test>;
     type VoterList = BagsList;
+    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
     type WeightInfo = ();
 }
 

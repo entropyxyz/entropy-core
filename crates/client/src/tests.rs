@@ -30,7 +30,7 @@ use rand::{
     SeedableRng,
 };
 use serial_test::serial;
-use sp_core::{sr25519, Pair, H256};
+use sp_core::{sr25519, Pair};
 use sp_keyring::AccountKeyring;
 use subxt::{tx::PairSigner, utils::AccountId32};
 
@@ -53,7 +53,7 @@ async fn test_change_endpoint() {
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        let public_key = sr25519::Public(tss_account_id.0);
+        let public_key = sr25519::Public::from(tss_account_id.0);
 
         let input_data =
             QuoteInputData::new(public_key, x25519_public_key, nonce, QuoteContext::ChangeEndpoint);
@@ -259,7 +259,7 @@ async fn test_remove_program_reference_counter() {
         verifying_key,
         &program_owner,
         BoundedVec(vec![ProgramInstance {
-            program_pointer: H256([0; 32]),
+            program_pointer: subxt::utils::H256([0; 32]),
             program_config: vec![],
         }]),
     )

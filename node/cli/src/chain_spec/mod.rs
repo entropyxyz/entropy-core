@@ -35,7 +35,7 @@ pub mod dev;
 pub mod integration_tests;
 pub mod testnet;
 
-pub use entropy_runtime::{AccountId, RuntimeGenesisConfig, Signature};
+pub use entropy_runtime::{AccountId, Signature};
 
 use entropy_runtime::{Block, SessionKeys};
 use grandpa_primitives::AuthorityId as GrandpaId;
@@ -176,7 +176,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<Extensions>;
 
 fn session_keys(
     grandpa: GrandpaId,

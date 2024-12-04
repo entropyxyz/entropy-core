@@ -356,7 +356,7 @@ pub async fn store_program_and_register(
     .await
     .unwrap();
 
-    (verifying_key, program_hash)
+    (verifying_key, sp_core::H256(program_hash.into()))
 }
 
 /// Do a network jumpstart DKG

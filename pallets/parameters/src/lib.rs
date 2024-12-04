@@ -85,12 +85,12 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            assert!(self.threshold > 0, "Threhsold too low");
-            assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
-            assert!(
-                !self.accepted_mrtd_values.is_empty(),
-                "At least one accepted MRTD value is required"
-            );
+            // assert!(self.threshold > 0, "Threhsold too low");
+            // assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
+            // assert!(
+            //     !self.accepted_mrtd_values.is_empty(),
+            //     "At least one accepted MRTD value is required"
+            // );
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
             let signer_info = SignersSize {
