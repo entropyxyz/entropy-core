@@ -771,7 +771,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 24.0.1",
 ]
 
 [[package]]
@@ -795,7 +795,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 24.0.1",
 ]
 
 [[package]]
@@ -3678,7 +3678,7 @@ dependencies = [
  "sp-transaction-pool 34.0.0",
  "sp-version 37.0.0",
  "static_assertions",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 18.0.1",
 ]
 
 [[package]]
@@ -10873,7 +10873,7 @@ dependencies = [
  "staging-parachain-info",
  "staging-xcm",
  "staging-xcm-executor",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 24.0.1",
 ]
 
 [[package]]
@@ -10904,7 +10904,7 @@ dependencies = [
  "staging-parachain-info",
  "staging-xcm",
  "staging-xcm-executor",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 24.0.1",
 ]
 
 [[package]]
@@ -18291,6 +18291,25 @@ dependencies = [
  "sc-rpc-api 0.37.0",
  "serde",
  "sp-runtime 35.0.0",
+]
+
+[[package]]
+name = "substrate-wasm-builder"
+version = "18.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a39a20e17c24ede36b5bd5e7543a4cef8d8a0daf6e1a046dc31832b837a54a0"
+dependencies = [
+ "build-helper",
+ "cargo_metadata",
+ "console",
+ "filetime",
+ "parity-wasm",
+ "sp-maybe-compressed-blob",
+ "strum 0.24.1",
+ "tempfile",
+ "toml 0.8.19",
+ "walkdir",
+ "wasm-opt",
 ]
 
 [[package]]
