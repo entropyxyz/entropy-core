@@ -45,6 +45,7 @@ pallet-timestamp               ={ version="28.0.0", default-features=false }
 sp-io                          ={ version="31.0.0", default-features=false }
 sp-npos-elections              ={ version="27.0.0", default-features=false }
 sp-staking                     ={ version="27.0.0", default-features=false }
+pallet-oracle                  ={ version='0.3.0', path='../oracle', default-features=false }
 
 [features]
 

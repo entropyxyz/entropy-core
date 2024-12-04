@@ -60,6 +60,7 @@ frame_support::construct_runtime!(
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
     Attestation: pallet_attestation,
+    Oracle: pallet_oracle,
   }
 );
 
@@ -344,6 +345,18 @@ impl pallet_registry::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxProgramHashes = MaxProgramHashes;
     type KeyVersionNumber = KeyVersionNumber;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+  pub const MaxOracleKeyLength: u32 = 100;
+  pub const MaxOracleValueLength: u32 = 100;
+}
+
+impl pallet_oracle::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
     type WeightInfo = ();
 }
 
