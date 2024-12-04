@@ -470,6 +470,8 @@ pub async fn get_oracle_headings(
     Ok(headings)
 }
 
+/// Retrieve a TDX quote using the currently configured endpoint associated with the given validator
+/// ID
 pub async fn get_tdx_quote(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
