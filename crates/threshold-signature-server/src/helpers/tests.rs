@@ -358,18 +358,20 @@ pub async fn store_program_and_register(
 
     (verifying_key, program_hash)
 }
-
 /// Do a network jumpstart DKG
 pub async fn do_jump_start(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     pair: sr25519::Pair,
+    other_chains: &[LegacyRpcMethods<EntropyConfig>],
 ) {
     run_to_block(rpc, 2).await;
+    log_all_block_numbers(other_chains).await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_jumpstart_request_on_chain(api, rpc, pair).await;
 
     run_to_block(rpc, block_number + 1).await;
+    log_all_block_numbers(other_chains).await;
 
     let selected_validators_query = entropy::storage().registry().jumpstart_dkg(block_number);
     let validators_info =
@@ -381,6 +383,7 @@ pub async fn do_jump_start(
     let client = reqwest::Client::new();
 
     let mut results = vec![];
+    log_all_block_numbers(other_chains).await;
     for validator_info in validators_info {
         let url = format!(
             "http://{}/generate_network_key",
@@ -390,8 +393,13 @@ pub async fn do_jump_start(
             results.push(client.post(url).body(onchain_user_request.clone().encode()).send())
         }
     }
+    log_all_block_numbers(other_chains).await;
 
     let response_results = join_all(results).await;
+
+    for response_result in response_results {
+        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+    }
 
     let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
     let mut jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
@@ -414,8 +422,12 @@ pub async fn do_jump_start(
     }
 
     assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
-    for response_result in response_results {
-        assert_eq!(response_result.unwrap().text().await.unwrap(), "");
+}
+
+pub async fn log_all_block_numbers(other_chains: &[LegacyRpcMethods<EntropyConfig>]) {
+    for (i, other_chain) in other_chains.iter().enumerate() {
+        let block_number = other_chain.chain_get_header(None).await.unwrap().unwrap().number;
+        tracing::info!("Block number for rpc `{}`: `{}`", i, block_number);
     }
 }
 

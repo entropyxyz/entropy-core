@@ -33,7 +33,9 @@ use entropy_testing_utils::{
     },
     spawn_testing_validators, test_node_process_testing_state, ChainSpecType,
 };
-use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger, run_to_block};
+use entropy_tss::helpers::tests::{
+    do_jump_start, initialize_test_logger, log_all_block_numbers, run_to_block,
+};
 use futures::future::join_all;
 use serial_test::serial;
 use sp_core::{Encode, Pair};
@@ -51,13 +53,19 @@ async fn integration_test_register_sign_reshare_sign() {
         spawn_testing_validators(ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
+    let substrate_context = &test_node_process_testing_state(force_authoring).await;
 
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let api = get_api(&substrate_context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();
+
+    let mut other_rpcs = vec![];
+    for context in substrate_context {
+        let next_rpc = get_rpc(&context.ws_url).await.unwrap();
+        other_rpcs.push(next_rpc)
+    }
 
     // First jumpstart the network
-    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair(), &other_rpcs).await;
 
     // Now register an account
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -114,7 +122,7 @@ async fn integration_test_register_sign_reshare_sign() {
     );
 
     // Do a reshare
-    do_reshare(&api, &rpc).await;
+    do_reshare(&api, &rpc, &other_rpcs).await;
 
     // Sign a message again
     let recoverable_signature = test_client::sign(
@@ -142,7 +150,11 @@ async fn integration_test_register_sign_reshare_sign() {
     );
 }
 
-async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<EntropyConfig>) {
+async fn do_reshare(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    rpcs: &[LegacyRpcMethods<EntropyConfig>],
+) {
     // Get current signers
     let signer_query = entropy::storage().staking_extension().signers();
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
@@ -161,13 +173,13 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
         new_signers: reshare_data.new_signers.into_iter().map(|s| s.to_vec()).collect(),
         block_number: block_number - 1,
     };
-
-    run_to_block(&rpc, block_number).await;
+    let ips = vec![3002, 3003, 3004];
+    run_to_all_blocks(rpcs, block_number).await;
     // Send the OCW message to all TS servers who don't have a chain node
     let client = reqwest::Client::new();
+    log_all_block_numbers(rpcs).await;
     let response_results = join_all(
-        [3002, 3003, 3004]
-            .iter()
+        ips.iter()
             .map(|port| {
                 client
                     .post(format!("http://127.0.0.1:{}/validator/reshare", port))
@@ -177,7 +189,8 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
             .collect::<Vec<_>>(),
     )
     .await;
-    for response_result in response_results {
+    for (i, response_result) in response_results.into_iter().enumerate() {
+        dbg!(ips[i]);
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
 
@@ -209,5 +222,14 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
             .send()
             .await
             .unwrap();
+    }
+}
+
+pub async fn run_to_all_blocks(rpcs: &[LegacyRpcMethods<EntropyConfig>], block_run: u32) {
+    let mut current_block = 0;
+    for rpc in rpcs {
+        while current_block < block_run {
+            current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+        }
     }
 }
