@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-slashing'
-version   ='0.3.0-rc.1'
+version   ='0.3.0'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -12,7 +12,7 @@ publish   =false
 targets=['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
+codec     ={ package="parity-scale-codec", version="3.6.8", default-features=false, features=["derive"] }
 scale-info={ version="2.11", default-features=false, features=["derive"] }
 log       ={ version="0.4.22", default-features=false }
 

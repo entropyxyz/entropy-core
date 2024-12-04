@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-registry'
-version   ='0.3.0-rc.1'
+version   ='0.3.0'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -13,10 +13,10 @@ targets=['x86_64-unknown-linux-gnu']
 
 [dependencies]
 bip32     ={ version="0.5.2", default-features=false, features=["alloc"] }
-codec     ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
+codec     ={ package="parity-scale-codec", version="3.6.8", default-features=false, features=["derive"] }
 log       ={ version="0.4.22", default-features=false }
 scale-info={ version="2.11", default-features=false, features=["derive"] }
-synedrion ={ version="0.2.0-beta.0", default-features=false }
+synedrion ={ version="0.2.0", default-features=false }
 rand      ={ version="0.8.5", default-features=false, features=["alloc"] }
 
 frame-benchmarking={ version="38.0.0", default-features=false, optional=true }
@@ -29,12 +29,12 @@ sp-core           ={ version="34.0.0", default-features=false }
 sp-runtime        ={ version="39.0.1", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 
-entropy-shared={ version="0.3.0-rc.1", path="../../crates/shared", features=[
+entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
-pallet-programs={ version="0.3.0-rc.1", path="../programs", default-features=false }
-pallet-staking-extension={ version="0.3.0-rc.1", path="../staking", default-features=false }
-pallet-parameters={ version="0.3.0-rc.1", path="../parameters", default-features=false }
+pallet-programs={ version="0.3.0", path="../programs", default-features=false }
+pallet-staking-extension={ version="0.3.0", path="../staking", default-features=false }
+pallet-parameters={ version="0.3.0", path="../parameters", default-features=false }
 
 [dev-dependencies]
 frame-election-provider-support={ version="38.0.0", default-features=false }

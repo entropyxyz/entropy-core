@@ -1466,6 +1466,7 @@ parameter_types! {
   pub const MaxBytecodeLength: u32 = 1_000_000;
   pub const ProgramDepositPerByte: Balance = MILLICENTS;
   pub const MaxOwnedPrograms: u32 = 250;
+  pub const MaxOracleLookups: u32 = 10;
 }
 
 impl pallet_programs::Config for Runtime {
@@ -1473,6 +1474,7 @@ impl pallet_programs::Config for Runtime {
     type MaxBytecodeLength = MaxBytecodeLength;
     type ProgramDepositPerByte = ProgramDepositPerByte;
     type MaxOwnedPrograms = MaxOwnedPrograms;
+    type MaxOracleLookups = MaxOracleLookups;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = weights::pallet_programs::WeightInfo<Runtime>;
 }

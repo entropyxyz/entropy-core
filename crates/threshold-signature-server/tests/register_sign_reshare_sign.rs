@@ -181,37 +181,33 @@ async fn do_reshare(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<En
         assert_eq!(response_result.unwrap().text().await.unwrap(), "");
     }
 
-    let new_signers = {
-        let signer_query = entropy::storage().staking_extension().signers();
-        let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-        let mut signers = Vec::new();
-        for signer in signer_ids {
-            let query = entropy::storage().staking_extension().threshold_servers(signer);
-            let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-            signers.push(server_info);
+    // Wait for the reshare protocol to finish
+    let old_signer_ids = HashSet::from_iter(signer_stash_accounts.into_iter().map(|id| id.0));
+    let new_signer_ids = loop {
+        let new_signer_ids: HashSet<[u8; 32]> = {
+            let signer_query = entropy::storage().staking_extension().signers();
+            let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+            HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
+        };
+        if new_signer_ids != old_signer_ids {
+            break new_signer_ids;
         }
-        signers
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     };
 
     // Tell TS servers who do not have an associated chain node to rotate their keyshare.
     // This is called by the chain on getting confirmation of the reshare from all of the new
     // signing group.
-    for signer in new_signers {
+    for signer in new_signer_ids {
+        let query = entropy::storage().staking_extension().threshold_servers(&AccountId32(signer));
+        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         let _ = client
             .post(format!(
                 "http://{}/rotate_network_key",
-                std::str::from_utf8(&signer.endpoint).unwrap()
+                std::str::from_utf8(&server_info.endpoint).unwrap()
             ))
             .send()
             .await
             .unwrap();
     }
-
-    // Check that the signers have changed since before the reshare
-    let signer_query = entropy::storage().staking_extension().signers();
-    let new_signer_stash_accounts =
-        query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
-    let old: HashSet<[u8; 32]> = signer_stash_accounts.iter().map(|s| s.0).collect();
-    let new: HashSet<[u8; 32]> = new_signer_stash_accounts.iter().map(|s| s.0).collect();
-    assert_ne!(old, new);
 }

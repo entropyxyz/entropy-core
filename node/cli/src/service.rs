@@ -377,7 +377,7 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
-                b"rotate_keyshares",
+                b"rotate_network_key",
                 &format!("{}/rotate_network_key", endpoint).into_bytes(),
             );
             offchain_db.local_storage_set(

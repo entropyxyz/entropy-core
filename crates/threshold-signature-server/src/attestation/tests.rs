@@ -27,10 +27,44 @@ use crate::{
 use entropy_kvdb::clean_tests;
 use entropy_shared::OcwMessageAttestationRequest;
 use entropy_testing_utils::{
-    constants::TSS_ACCOUNTS,
+    constants::{BOB_STASH_ADDRESS, TSS_ACCOUNTS},
     substrate_context::{test_context_stationary, test_node_process_stationary},
 };
 use serial_test::serial;
+use subxt::utils::AccountId32;
+use tdx_quote::{decode_verifying_key, Quote};
+
+#[tokio::test]
+#[serial]
+async fn test_get_attest() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let cxt = test_node_process_stationary().await;
+    let (_validator_ips, _validator_ids) =
+        spawn_testing_validators(ChainSpecType::Integration).await;
+
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+
+    let quote_bytes = reqwest::get("http://127.0.0.1:3002/attest?context=validate")
+        .await
+        .unwrap()
+        .bytes()
+        .await
+        .unwrap();
+    let quote = Quote::from_bytes(&quote_bytes).unwrap();
+
+    let query =
+        entropy::storage().staking_extension().threshold_servers(&AccountId32(BOB_STASH_ADDRESS.0));
+    let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+
+    let provisioning_certification_key =
+        decode_verifying_key(&server_info.provisioning_certification_key.0.try_into().unwrap())
+            .unwrap();
+
+    assert!(quote.verify_with_pck(provisioning_certification_key).is_ok())
+}
 
 #[ignore]
 #[tokio::test]

@@ -15,13 +15,14 @@
 //! User interaction related
 use crate::{
     chain_api::{entropy, EntropyConfig},
-    substrate::query_chain,
+    substrate::{query_chain, submit_transaction_with_pair},
 };
 use entropy_shared::{user::ValidatorInfo, BlockNumber, HashingAlgorithm};
 use serde::{Deserialize, Serialize};
+use sp_core::{sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 
-pub use crate::errors::SubgroupGetError;
+pub use crate::errors::{AttestationRequestError, SubgroupGetError};
 
 /// Represents an unparsed, transaction request coming from the client.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -142,4 +143,34 @@ pub async fn get_all_signers_from_chain(
     }
 
     Ok(all_signers)
+}
+
+/// An extrinsic to indicate to the chain that it should expect an attestation from the `signer` at
+/// some point in the near future.
+///
+/// The returned `nonce` must be used when generating a `quote` for the chain.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        attestee = ?attestee.public(),
+    )
+)]
+pub async fn request_attestation(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    attestee: &sr25519::Pair,
+) -> Result<[u8; 32], AttestationRequestError> {
+    tracing::debug!("{:?} is requesting an attestation.", attestee.public());
+
+    let request_attestation = entropy::tx().attestation().request_attestation();
+
+    let result =
+        submit_transaction_with_pair(api, rpc, attestee, &request_attestation, None).await?;
+    let result_event = result
+        .find_first::<entropy::attestation::events::AttestationIssued>()?
+        .ok_or(crate::errors::SubstrateError::NoEvent)?;
+
+    let nonce = result_event.0.try_into().map_err(|_| AttestationRequestError::BadNonce)?;
+
+    Ok(nonce)
 }

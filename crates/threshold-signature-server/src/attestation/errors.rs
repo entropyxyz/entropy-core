@@ -39,7 +39,7 @@ pub enum AttestationErr {
     Codec(#[from] parity_scale_codec::Error),
     #[cfg(feature = "production")]
     #[error("Quote generation: {0}")]
-    QuoteGeneration(#[from] std::io::Error),
+    QuoteGeneration(String),
     #[error("Vec<u8> Conversion Error: {0}")]
     Conversion(&'static str),
     #[error("Data is repeated")]
@@ -48,6 +48,10 @@ pub enum AttestationErr {
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("Data is stale")]
     StaleData,
+    #[error("Attestation request: {0}")]
+    AttestationRequest(#[from] entropy_client::errors::AttestationRequestError),
+    #[error("Invalid or unknown context value given in query string")]
+    UnknownContext,
 }
 
 impl IntoResponse for AttestationErr {

@@ -14,22 +14,30 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Simple CLI to test registering, updating programs and signing
-use std::time::Instant;
-
+use clap::Parser;
 use colored::Colorize;
-use entropy_test_cli::run_command;
+use entropy_test_cli::{run_command, Cli};
+use std::time::Instant;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let now = Instant::now();
-    match run_command(None, None, None, None).await {
+    let cli = Cli::parse();
+    let json_ouput = cli.json;
+    match run_command(cli, None, None, None, None).await {
         Ok(output) => {
-            println!("Success: {}", output.green());
-            println!("{}", format!("That took {:?}", now.elapsed()).yellow());
+            if json_ouput {
+                println!("{}", output);
+            } else {
+                println!("Success: {}", output.green());
+                println!("{}", format!("That took {:?}", now.elapsed()).yellow());
+            }
             Ok(())
         },
         Err(err) => {
-            println!("{}", "Failed!".red());
+            if !json_ouput {
+                eprintln!("{}", "Failed!".red());
+            }
             Err(err)
         },
     }
