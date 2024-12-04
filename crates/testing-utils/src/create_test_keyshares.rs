@@ -49,7 +49,7 @@ where
     let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
     let new_holder = NewHolder {
-        verifying_key: keyshares.values().next().unwrap().verifying_key(),
+        verifying_key: keyshares.values().next().unwrap().verifying_key().unwrap(),
         old_threshold: 2,
         old_holders,
     };

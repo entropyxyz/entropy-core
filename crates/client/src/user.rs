@@ -160,7 +160,7 @@ pub async fn request_attestation(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     attestee: &sr25519::Pair,
 ) -> Result<[u8; 32], AttestationRequestError> {
-    tracing::debug!("{} is requesting an attestation.", attestee.public());
+    tracing::debug!("{:?} is requesting an attestation.", attestee.public());
 
     let request_attestation = entropy::tx().attestation().request_attestation();
 
