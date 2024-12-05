@@ -158,11 +158,11 @@ pub mod pallet {
         /// Submits a request to do a key refresh on the signers parent key.
         pub fn post_reshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let reshare_data = pallet_staking_extension::Pallet::<T>::reshare_data();
-            if reshare_data.block_number != block_number {
+            if reshare_data.block_number != block_number + sp_runtime::traits::One::one() {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(10_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"reshare_validators")
                 .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
