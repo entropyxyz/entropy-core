@@ -26,6 +26,9 @@ multiple oracle inputs, this means any programs that were compiled and used need
 runtime
 - In [#1179](https://github.com/entropyxyz/entropy-core/pull/1179) the format of TDX Quote input data has
   been changed.
+- In [#1147](https://github.com/entropyxyz/entropy-core/pull/1147) a field is added to the
+  chainspec: `jump_started_signers` which allows the chain to be started in a pre-jumpstarted state
+  for testing. If this is not desired it should be set to `None`.
 
 ### Added
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
@@ -40,6 +43,7 @@ runtime
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
+- Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
 
 ### Fixed
 
