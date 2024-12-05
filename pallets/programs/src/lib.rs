@@ -62,7 +62,7 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_oracle::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
@@ -218,10 +218,14 @@ pub mod pallet {
         ProgramAlreadySet,
         /// User owns too many programs.
         TooManyProgramsOwned,
-        /// Program is being used by an account
+        /// Program is being used by an account.
         ProgramInUse,
-        /// Arithmetic overflow error
+        /// Arithmetic overflow error.
         ArithmeticError,
+        /// Oracle data non existent.
+        CannotFindOracleData,
+        /// The oracle data length is too long.
+        OracleDataLengthExceeded,
     }
 
     #[pallet::call]
@@ -400,6 +404,13 @@ pub mod pallet {
         ) -> Result<(usize, Vec<u8>), Error<T>> {
             let mut length: usize = 0;
             for oracle_data in oracle_datas {
+                ensure!(
+                    pallet_oracle::OracleData::<T>::contains_key(
+                        BoundedVec::try_from(oracle_data.clone())
+                            .map_err(|_| Error::<T>::CannotFindOracleData)?
+                    ),
+                    Error::<T>::CannotFindOracleData
+                );
                 hash_input.extend(oracle_data);
                 length =
                     length.checked_add(oracle_data.len()).ok_or(Error::<T>::ArithmeticError)?;
