@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationHandler, QuoteInputData};
+    use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData};
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
@@ -205,6 +205,7 @@ pub mod pallet {
             x25519_public_key: entropy_shared::X25519PublicKey,
             provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
             quote: Vec<u8>,
+            context: QuoteContext,
         ) -> Result<(), DispatchError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
@@ -214,15 +215,9 @@ pub mod pallet {
             // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
 
-            // Get current block number
-            let block_number: u32 = {
-                let block_number = <frame_system::Pallet<T>>::block_number();
-                BlockNumberFor::<T>::try_into(block_number).unwrap_or_default()
-            };
-
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
-                QuoteInputData::new(attestee, x25519_public_key, nonce, block_number);
+                QuoteInputData::new(attestee, x25519_public_key, nonce, context);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
                 Error::<T>::IncorrectInputData

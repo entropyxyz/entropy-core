@@ -21,6 +21,7 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
+use pallet_oracle::OracleData;
 use sp_runtime::{traits::Hash, Saturating};
 use sp_std::{vec, vec::Vec};
 
@@ -52,6 +53,12 @@ benchmarks! {
     hash_input.extend(&configuration_schema);
     hash_input.extend(&auxiliary_data_schema);
     hash_input.extend(&vec![version_number]);
+
+    OracleData::<T>::insert(
+      BoundedVec::try_from(oracle_data_pointers[0].clone()).unwrap(),
+      BoundedVec::default(),
+    );
+
     let (_oracle_length, hash_input_with_oracle) =
     ProgramsPallet::<T>::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input).unwrap();
 
@@ -97,6 +104,12 @@ benchmarks! {
     hash_input.extend(&configuration_schema);
     hash_input.extend(&auxiliary_data_schema);
     hash_input.extend(&vec![version_number]);
+
+    OracleData::<T>::insert(
+      BoundedVec::try_from(oracle_data_pointers[0].clone()).unwrap(),
+      BoundedVec::default(),
+    );
+
     let (_oracle_length, hash_input_with_oracle) =
     ProgramsPallet::<T>::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input).unwrap();
 

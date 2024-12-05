@@ -12,7 +12,7 @@ edition    ='2021'
 # Common
 rand     ={ version="0.8", default-features=false }
 serde    ={ version="1.0", features=["derive"] }
-thiserror="2.0.3"
+thiserror="2.0.4"
 hex      ="0.4.3"
 
 # Substrate
@@ -23,10 +23,10 @@ zeroize         ={ version="1.8", features=["zeroize_derive"], default-features=
 rpassword       ={ version="7.3.1", default-features=false }
 scrypt          ={ version="0.11.0", default-features=false, features=["std"] }
 chacha20poly1305={ version="0.9", features=["alloc"], default-features=false }
-synedrion       ={ version="0.2.0-beta.0" }
+synedrion       ="0.2.0"
 
 # Async
-tokio  ={ version="1.41", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }
+tokio  ={ version="1.42", features=["macros", "sync", "fs", "rt-multi-thread", "io-util"] }
 tracing={ version="0.1", default-features=false }
 
 # Misc

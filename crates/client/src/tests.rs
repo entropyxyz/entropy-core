@@ -9,18 +9,18 @@ use crate::{
             },
             staking_extension::events,
         },
-        get_api, get_rpc, EntropyConfig,
+        get_api, get_rpc,
     },
-    change_endpoint, change_threshold_accounts, register, remove_program, request_attestation,
-    store_program,
+    change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
+    request_attestation, store_program,
     substrate::query_chain,
     update_programs,
 };
 
+use entropy_shared::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    helpers::encode_verifying_key,
-    jump_start_network, spawn_testing_validators,
+    helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
     test_node_process_testing_state, ChainSpecType,
 };
@@ -31,7 +31,7 @@ use rand::{
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
 use sp_keyring::AccountKeyring;
-use subxt::{tx::PairSigner, utils::AccountId32};
+use subxt::utils::AccountId32;
 
 #[tokio::test]
 #[serial]
@@ -54,11 +54,8 @@ async fn test_change_endpoint() {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
         let public_key = sr25519::Public(tss_account_id.0);
 
-        // We need to add `1` here since the quote is being checked in the next block
-        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-
         let input_data =
-            entropy_shared::QuoteInputData::new(public_key, x25519_public_key, nonce, block_number);
+            QuoteInputData::new(public_key, x25519_public_key, nonce, QuoteContext::ChangeEndpoint);
 
         let mut pck_seeder = StdRng::from_seed(public_key.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
@@ -116,7 +113,7 @@ async fn test_change_threshold_accounts() {
     .unwrap();
 
     // When we request an attestation we get a nonce back that we must use when generating our quote.
-    let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer().clone()).await.unwrap();
+    let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer()).await.unwrap();
     let nonce: [u8; 32] = nonce.try_into().unwrap();
 
     let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
@@ -129,14 +126,11 @@ async fn test_change_threshold_accounts() {
     let pck_certificate_chain = vec![tss_public_key.0.to_vec()];
 
     let quote = {
-        // We need to add `1` here since the quote is being checked in the next block
-        let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-
         let input_data = entropy_shared::QuoteInputData::new(
             tss_public_key,
             *x25519_public_key.as_bytes(),
             nonce,
-            block_number,
+            QuoteContext::ChangeThresholdAccounts,
         );
 
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
@@ -216,18 +210,8 @@ async fn test_store_and_remove_program() {
 async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
-
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // Jumpstart the network
-    let alice = AccountKeyring::Alice;
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-    jump_start_network(&api, &rpc, &signer).await;
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Store a program
     let program_pointer = store_program(
@@ -273,4 +257,25 @@ async fn test_remove_program_reference_counter() {
 
     // We can now remove the program because no-one is using it
     remove_program(&api, &rpc, &program_owner, program_pointer).await.unwrap();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_get_oracle_headings() {
+    let force_authoring = true;
+    let context =
+        test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+            .await;
+    let api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
+
+    let mut current_block = 0;
+    while current_block < 2 {
+        let finalized_head = rpc.chain_get_finalized_head().await.unwrap();
+        current_block = rpc.chain_get_header(Some(finalized_head)).await.unwrap().unwrap().number;
+    }
+
+    let headings = get_oracle_headings(&api, &rpc).await.unwrap();
+
+    assert_eq!(headings, vec!["block_number_entropy".to_string()]);
 }

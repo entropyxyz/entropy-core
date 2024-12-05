@@ -25,8 +25,8 @@ use entropy_runtime::{
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
-    DEVICE_KEY_PROXY, EVE_VERIFYING_KEY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
-    TOTAL_SIGNERS,
+    DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, PREGENERATED_NETWORK_VERIFYING_KEY,
+    SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -39,11 +39,20 @@ use sp_runtime::{BoundedVec, Perbill};
 
 /// The configuration used for the Threshold Signature Scheme server integration tests.
 ///
-/// Since Entropy requires at least two signing groups to work properly we spin up this network with
-/// two validators, Alice and Bob.
+/// Since Entropy requires at least four nodes to work properly we spin up this network with
+/// four validators, Alice, Bob, Charlie, and Dave.
 ///
-/// There are also some changes around the proactive refresh validators.
-pub fn integration_tests_config() -> ChainSpec {
+/// There are also some changes around the reshare validators.
+pub fn integration_tests_config(jumpstarted: bool) -> ChainSpec {
+    let jump_started_signers = if jumpstarted {
+        Some(vec![
+            get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+            get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+        ])
+    } else {
+        None
+    };
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Integration Test")
         .with_id("integration_tests")
@@ -59,8 +68,9 @@ pub fn integration_tests_config() -> ChainSpec {
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             vec![
                 get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
             ],
+            jump_started_signers,
         ))
         .build()
 }
@@ -78,6 +88,7 @@ pub fn integration_tests_genesis_config(
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
     mock_signer_rotate_data: Vec<AccountId>,
+    jump_started_signers: Option<Vec<AccountId>>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -216,9 +227,10 @@ pub fn integration_tests_genesis_config(
                         x25519_public_key: crate::chain_spec::tss_x25519_public_key::CHARLIE,
                     },
                 ],
-                vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+                vec![PREGENERATED_NETWORK_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Charlie//stash")]),
+            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")]),
+            jump_started_signers,
         },
         "elections": ElectionsConfig {
             members: endowed_accounts

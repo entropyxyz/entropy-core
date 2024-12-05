@@ -83,6 +83,18 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+  pub const MaxOracleKeyLength: u32 = 100;
+  pub const MaxOracleValueLength: u32 = 100;
+}
+
+impl pallet_oracle::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
+    type WeightInfo = ();
+}
+
+parameter_types! {
   pub const MaxBytecodeLength: u32 = 3;
   pub const ProgramDepositPerByte: u32 = 5;
   pub const MaxOwnedPrograms: u32 = 5;
@@ -117,6 +129,7 @@ construct_runtime!(
     TransactionPause: transaction_pause,
     Balances: pallet_balances,
     ProgramsPallet: pallet_programs,
+    Oracle: pallet_oracle,
   }
 );
 

@@ -27,9 +27,9 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_programs, get_rpc,
-        jumpstart_network, register, remove_program, sign, store_program, update_programs,
-        VERIFYING_KEY_LENGTH,
+        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_oracle_headings,
+        get_programs, get_rpc, jumpstart_network, register, remove_program, sign, store_program,
+        update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::PROGRAM_VERSION_NUMBER;
@@ -189,6 +189,18 @@ enum CliCommand {
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
+    /// Get headings of oracle data
+    ///
+    /// This is useful for program developers to know what oracle data is available.
+    GetOracleHeadings,
+    /// Request a TDX quote from a TSS server and write it to a file.
+    GetTdxQuote {
+        /// The socket address of the TS server, eg: `127.0.0.1:3002`
+        tss_endpoint: String,
+        /// The filename to write the quote to. Defaults to `quote.dat`
+        #[arg(long)]
+        output_filename: Option<String>,
+    },
 }
 
 impl Cli {
@@ -318,16 +330,18 @@ pub async fn run_command(
 
             let config_interface = match config_interface_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => fs::read(
-                    config_interface_file_option.expect("No config interface file passed"),
-                )?,
+                None => match config_interface_file_option {
+                    Some(config_interface_file) => fs::read(config_interface_file)?,
+                    None => Vec::new(),
+                },
             };
 
             let aux_data_interface = match aux_data_interface_file {
                 Some(file_name) => fs::read(file_name)?,
-                None => fs::read(
-                    aux_data_interface_file_option.expect("No aux data interface file passed"),
-                )?,
+                None => match aux_data_interface_file_option {
+                    Some(aux_data_interface_file) => fs::read(aux_data_interface_file)?,
+                    None => Vec::new(),
+                },
             };
 
             let program_version_number = match program_version_number_option {
@@ -556,6 +570,22 @@ pub async fn run_command(
                 Ok("{}".to_string())
             } else {
                 Ok("Succesfully jumpstarted network.".to_string())
+            }
+        },
+        CliCommand::GetOracleHeadings => {
+            let headings = get_oracle_headings(&api, &rpc).await?;
+            Ok(serde_json::to_string_pretty(&headings)?)
+        },
+        CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
+            let quote_bytes =
+                reqwest::get(format!("http://{}/attest", tss_endpoint)).await?.bytes().await?;
+            let output_filename = output_filename.unwrap_or("quote.dat".into());
+
+            std::fs::write(&output_filename, quote_bytes)?;
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok(format!("Succesfully written quote to {}", output_filename))
             }
         },
     }

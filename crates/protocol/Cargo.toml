@@ -11,20 +11,20 @@ edition    ='2021'
 [dependencies]
 async-trait        ="0.1.83"
 entropy-shared     ={ version="0.3.0", path="../shared", default-features=false }
-synedrion          ={ version="0.2.0-beta.0" }
+synedrion          ="0.2.0"
 serde              ={ version="1.0", features=["derive"], default-features=false }
 subxt              ={ version="0.35.3", default-features=false }
 sp-core            ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
-tokio              ={ version="1.41", features=["sync", "rt", "macros"] }
+tokio              ={ version="1.42", features=["sync", "rt", "macros"] }
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
 futures            ="0.3"
 hex                ="0.4.3"
 blake2             ="0.10.4"
-thiserror          ="2.0.3"
+thiserror          ="2.0.4"
 snow               ="0.9.6"
 getrandom          ={ version="0.2", features=["js"] }
 rand_core          ={ version="0.6.4", features=["getrandom"] }
-tracing            ="0.1.37"
+tracing            ="0.1.41"
 bincode            ="1.3.3"
 serde_json         ="1.0"
 zeroize            ="1.8.1"
@@ -39,17 +39,17 @@ tokio-tungstenite={ version="0.24.0", optional=true }
 
 # Used only with the `wasm` feature
 gloo-net            ={ version="0.6.0", default-features=false, features=["websocket"], optional=true }
-wasm-bindgen-futures={ version="0.4.45", optional=true }
+wasm-bindgen-futures={ version="0.4.47", optional=true }
 wasm-bindgen        ={ version="0.2.92", optional=true }
 wasm-bindgen-derive ={ version="0.3", optional=true }
-js-sys              ={ version="0.3.72", optional=true }
+js-sys              ={ version="0.3.74", optional=true }
 base64              ={ version="0.22.1", optional=true }
 schnorrkel          ={ version="0.11.4", default-features=false, features=["std"], optional=true }
 
 [dev-dependencies]
 serial_test="3.2.0"
 sp-keyring ="34.0.0"
-anyhow     ="1.0.93"
+anyhow     ="1.0.94"
 num_cpus   ="1.16.0"
 
 [features]

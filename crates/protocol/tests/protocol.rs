@@ -78,7 +78,7 @@ async fn test_sign_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
-    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key();
+    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key().unwrap();
 
     let parties: Vec<_> = pairs
         .iter()
@@ -114,7 +114,7 @@ async fn test_sign_with_parties(num_parties: usize) {
 async fn test_refresh_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
-    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key();
+    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key().unwrap();
 
     let session_id = SessionId::Reshare {
         verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
@@ -198,7 +198,7 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
         })
         .collect();
 
-    let verifying_key = parties[0].keyshare.clone().unwrap().verifying_key();
+    let verifying_key = parties[0].keyshare.clone().unwrap().verifying_key().unwrap();
 
     let message_hash = [0u8; 32];
     let session_id = SessionId::Sign(SigningSessionInfo {

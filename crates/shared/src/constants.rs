@@ -12,8 +12,8 @@ pub const DAVE_VERIFYING_KEY: EncodedVerifyingKey = [
     3, 42, 97, 187, 199, 208, 95, 166, 102, 15, 38, 146, 173, 111, 175, 123, 62, 132, 178, 237,
     150, 199, 194, 240, 153, 30, 113, 104, 57, 63, 54, 2, 65,
 ];
-// This key is associated with a constant key share generation from DETERMINISTIC_KEY_SHARE_EVE
-pub const EVE_VERIFYING_KEY: EncodedVerifyingKey = [
+// This key is associated with a constant key share generation from DETERMINISTIC_KEY_SHARE_NETWORK
+pub const PREGENERATED_NETWORK_VERIFYING_KEY: EncodedVerifyingKey = [
     2, 78, 59, 129, 175, 156, 34, 52, 202, 208, 157, 103, 156, 230, 3, 94, 209, 57, 35, 71, 206,
     100, 206, 64, 95, 93, 205, 54, 34, 138, 37, 222, 110,
 ];
@@ -22,7 +22,7 @@ pub const DEFAULT_VERIFYING_KEY: EncodedVerifyingKey = [0; VERIFICATION_KEY_LENG
 
 lazy_static! {
     // key used to create a deterministic key share for EVE taken from here https://docs.rs/k256/latest/k256/ecdsa/index.html
-    pub static ref DETERMINISTIC_KEY_SHARE_EVE: [u8; 32] =  hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318");
+    pub static ref DETERMINISTIC_KEY_SHARE_NETWORK: [u8; 32] =  hex!("4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318");
     // key used to create a deterministic key for DAVE - this is random 32 bytes
     pub static ref DETERMINISTIC_KEY_SHARE_DAVE: [u8; 32] =  hex!("06b07fd12cdfb94fbde3ff2098e9f19bb11b00959680cfbd15c914b025f298d7");
     // hash used to find DEVICE_KEY_PROXY onchain
@@ -75,7 +75,7 @@ pub const MAX_SIGNERS: u8 = 15;
 pub const SIGNER_THRESHOLD: u8 = 2;
 
 /// For testing to line up chain mock data and reshare_test
-pub const TEST_RESHARE_BLOCK_NUMBER: u32 = 11;
+pub const TEST_RESHARE_BLOCK_NUMBER: u32 = 10;
 
 /// Program version number, must be incremented if version number changes
 pub const PROGRAM_VERSION_NUMBER: u8 = 0;

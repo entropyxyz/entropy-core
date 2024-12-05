@@ -40,7 +40,7 @@ use crate::{
     KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
 };
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
@@ -134,6 +134,7 @@ where
 
         // Receive and process incoming messages
         let (process_tx, mut process_rx) = mpsc::channel(1024);
+        let mut messages_for_next_subprotocol = VecDeque::new();
         while !session_arc.can_finalize(&accum)? {
             tokio::select! {
                 // Incoming message from remote peer
@@ -160,7 +161,7 @@ where
                             }
                         } else {
                             tracing::warn!("Got protocol message with incorrect session ID - putting back in queue");
-                            tx.incoming_sender.send(message).await?;
+                            messages_for_next_subprotocol.push_back(message);
                         }
                     } else {
                         tracing::warn!("Got verifying key during protocol - ignoring");
@@ -174,6 +175,10 @@ where
                     }
                 }
             }
+        }
+
+        for message in messages_for_next_subprotocol {
+            tx.incoming_sender.send(message).await?;
         }
 
         // Get session back out of Arc
@@ -273,7 +278,8 @@ pub async fn execute_dkg(
         tracing::info!("Finished key init protocol");
 
         // Send verifying key
-        let verifying_key = init_keyshare.verifying_key();
+        let verifying_key =
+            init_keyshare.verifying_key().ok_or(ProtocolExecutionErr::NoValidatingKey)?;
         for party_id in party_ids.iter() {
             if !key_init_parties.contains(party_id) {
                 let message = ProtocolMessage {
@@ -377,7 +383,7 @@ pub async fn execute_reshare(
     (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>),
     ProtocolExecutionErr,
 > {
-    tracing::debug!("Executing proactive refresh");
+    tracing::info!("Executing reshare");
     tracing::debug!("Signing with {:?}", &threshold_pair.public());
 
     let pair = PairWrapper(threshold_pair.clone());
@@ -394,9 +400,13 @@ pub async fn execute_reshare(
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
     let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
+
+    tracing::info!("Completed reshare protocol");
+
     let aux_info = if let Some(aux_info) = aux_info_option {
         aux_info
     } else {
+        tracing::info!("Executing aux gen session as part of reshare");
         // Now run an aux gen session
         let session_id_hash_aux_data = session_id.blake2(Some(Subsession::AuxGen))?;
         let session = make_aux_gen_session(

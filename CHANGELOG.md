@@ -18,6 +18,11 @@ At the moment this project **does not** adhere to
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) mnemonics can no longer be passed
   in via a command line argument, file, or environment variable. Instead they are randomly generated
   internally.
+- In [#1179](https://github.com/entropyxyz/entropy-core/pull/1179) the format of TDX Quote input data has
+  been changed.
+- In [#1147](https://github.com/entropyxyz/entropy-core/pull/1147) a field is added to the
+  chainspec: `jump_started_signers` which allows the chain to be started in a pre-jumpstarted state
+  for testing. If this is not desired it should be set to `None`.
 
 ### Added
 - [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) adds an `/info` route to `entropy-tss`
@@ -32,6 +37,8 @@ At the moment this project **does not** adhere to
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
+- CLI command to get oracle headings ([#1170](https://github.com/entropyxyz/entropy-core/pull/1170))
+- Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
@@ -40,6 +47,12 @@ runtime
 - Add quote guards to `ServerInfo` related extrinsics ([#1123](https://github.com/entropyxyz/entropy-core/pull/1123/))
 - Remove declare synced ([#1134](https://github.com/entropyxyz/entropy-core/pull/1134/))
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
+- Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
+- Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
+
+### Fixed
+
+- Reshare in a spawned task and fix propagation pallet rotate keyshares endpoint lookup key ([#1185](https://github.com/entropyxyz/entropy-core/pull/1185))
 
 ## [0.3.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.2.0...release/v0.3.0) - 2024-10-22
 

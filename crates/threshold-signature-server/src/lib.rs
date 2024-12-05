@@ -187,7 +187,7 @@ pub use crate::helpers::{
     validator::{get_signer, get_signer_and_x25519_secret},
 };
 use crate::{
-    attestation::api::attest,
+    attestation::api::{attest, get_attest},
     health::api::healthz,
     launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
@@ -219,6 +219,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/validator/reshare", post(new_reshare))
         .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
+        .route("/attest", get(get_attest))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))
