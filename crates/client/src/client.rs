@@ -478,7 +478,7 @@ pub async fn get_tdx_quote(
     validator_stash: &SubxtAccountId32,
 ) -> Result<Vec<u8>, ClientError> {
     let query = entropy::storage().staking_extension().threshold_servers(validator_stash);
-    let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+    let server_info = query_chain(api, rpc, query, None).await.unwrap().unwrap();
 
     let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?.to_string();
     Ok(reqwest::get(format!("http://{}/attest", tss_endpoint)).await?.bytes().await?.to_vec())
