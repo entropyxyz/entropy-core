@@ -12,8 +12,8 @@ edition    ='2021'
 # Common
 serde              ={ version="1.0", default-features=false, features=["derive"] }
 serde_json         ="1.0"
-thiserror          ="2.0.3"
-anyhow             ="1.0.93"
+thiserror          ="2.0.4"
+anyhow             ="1.0.94"
 blake2             ="0.10.4"
 x25519-dalek       ={ version="2.0.1", features=["static_secrets"] }
 rand_core          ="0.6.4"
@@ -63,7 +63,7 @@ bip32            ={ version="0.5.2" }
 bip39            ={ version="2.1.0", features=["zeroize"] }
 bytes            ={ version="1.9", default-features=false, features=["serde"] }
 base64           ="0.22.1"
-clap             ={ version="4.5.21", features=["derive"] }
+clap             ={ version="4.5.22", features=["derive"] }
 num              ="0.4.3"
 snow             ="0.9.6"
 sha3             ="0.10.8"
