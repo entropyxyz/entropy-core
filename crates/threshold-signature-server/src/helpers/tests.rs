@@ -216,6 +216,7 @@ pub async fn spawn_testing_validators(
         put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;
         put_keyshares_in_db(ValidatorName::Bob, bob_kv).await;
         put_keyshares_in_db(ValidatorName::Charlie, charlie_kv).await;
+        // Dave does not get a keyshare as there are only 3 parties in the signing group
     }
 
     tokio::time::sleep(Duration::from_secs(1)).await;
