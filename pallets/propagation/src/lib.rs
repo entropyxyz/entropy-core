@@ -158,7 +158,7 @@ pub mod pallet {
         /// Submits a request to do a key refresh on the signers parent key.
         pub fn post_reshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let reshare_data = pallet_staking_extension::Pallet::<T>::reshare_data();
-            if reshare_data.block_number != block_number + sp_runtime::traits::One::one() {
+            if reshare_data.block_number + sp_runtime::traits::One::one() != block_number {
                 return Ok(());
             }
 
