@@ -218,6 +218,7 @@ pub async fn rotate_network_key(
     // validate from chain
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
+
     validate_rotate_network_key(&api, &rpc).await?;
 
     let (signer, _) = get_signer_and_x25519_secret(&app_state.kv_store)
@@ -243,7 +244,7 @@ pub async fn rotate_network_key(
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
-
+    tracing::info!("Rotating network key");
     let network_parent_key_heading = hex::encode(NETWORK_PARENT_KEY);
     let next_network_parent_key_heading = hex::encode(NEXT_NETWORK_PARENT_KEY);
 

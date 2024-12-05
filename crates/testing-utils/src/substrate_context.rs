@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_tss::helpers::tests::ChainSpecType;
 use sp_keyring::AccountKeyring;
 use subxt::{config::substrate::SubstrateExtrinsicParams, OnlineClient};
 
@@ -110,43 +111,42 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
 ///
 /// Allowing `force_authoring` will produce blocks.
 pub async fn test_node_process_testing_state(
+    chain_spec_type: ChainSpecType,
     force_authoring: bool,
 ) -> Vec<TestNodeProcess<EntropyConfig>> {
     let alice_bootnode = Some(
         "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38"
             .to_string(),
     );
-    // reduses message from chain to same TSS cleaning up a lot of logging
-    let fuck_off_tss_ip = Some("127.0.0.1:4010".to_string());
     let result = test_node(
         AccountKeyring::Alice,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         None,
     )
     .await;
     let result_bob = test_node_process_with(
         AccountKeyring::Bob,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
-        fuck_off_tss_ip.clone(),
+        Some("http://127.0.0.1:3002".into()),
     )
     .await;
     let result_charlie = test_node_process_with(
         AccountKeyring::Charlie,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
-        fuck_off_tss_ip.clone(),
+        Some("http://127.0.0.1:3003".into()),
     )
     .await;
     let result_dave = test_node_process_with(
         AccountKeyring::Dave,
-        "--chain=integration-tests".to_string(),
+        format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
-        fuck_off_tss_ip.clone(),
+        Some("http://127.0.0.1:3004".into()),
     )
     .await;
 

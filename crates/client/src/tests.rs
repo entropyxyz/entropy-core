@@ -9,7 +9,7 @@ use crate::{
             },
             staking_extension::events,
         },
-        get_api, get_rpc, EntropyConfig,
+        get_api, get_rpc,
     },
     change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
     request_attestation, store_program,
@@ -20,8 +20,7 @@ use crate::{
 use entropy_shared::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    helpers::encode_verifying_key,
-    jump_start_network, spawn_testing_validators,
+    helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
     test_node_process_testing_state, ChainSpecType,
 };
@@ -32,7 +31,7 @@ use rand::{
 use serial_test::serial;
 use sp_core::{sr25519, Pair, H256};
 use sp_keyring::AccountKeyring;
-use subxt::{tx::PairSigner, utils::AccountId32};
+use subxt::utils::AccountId32;
 
 #[tokio::test]
 #[serial]
@@ -211,18 +210,8 @@ async fn test_store_and_remove_program() {
 async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
-
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // Jumpstart the network
-    let alice = AccountKeyring::Alice;
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-    jump_start_network(&api, &rpc, &signer).await;
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Store a program
     let program_pointer = store_program(
@@ -274,9 +263,11 @@ async fn test_remove_program_reference_counter() {
 #[serial]
 async fn test_get_oracle_headings() {
     let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let context =
+        test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+            .await;
+    let api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
     let mut current_block = 0;
     while current_block < 2 {

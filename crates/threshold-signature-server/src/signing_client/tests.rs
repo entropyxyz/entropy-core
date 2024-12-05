@@ -20,18 +20,19 @@ use crate::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get, ChainSpecType,
+            unsafe_get,
         },
     },
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, EVE_VERIFYING_KEY},
+    constants::{DAVE_VERIFYING_KEY, PREGENERATED_NETWORK_VERIFYING_KEY},
     OcwMessageProactiveRefresh,
 };
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_context_stationary, test_node_process_testing_state},
+    ChainSpecType,
 };
 use futures::future::join_all;
 use parity_scale_codec::Encode;
@@ -44,15 +45,19 @@ use sp_keyring::AccountKeyring;
 async fn test_proactive_refresh() {
     initialize_test_logger().await;
     clean_tests();
-    let _cxt = &test_node_process_testing_state(false).await[0];
+    let _cxt =
+        &test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, false).await[0];
 
-    let (validator_ips, _ids) = spawn_testing_validators(ChainSpecType::Integration).await;
+    let (validator_ips, _ids) =
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
+            .await;
     let signing_committee_ips = &validator_ips[..3].to_vec();
 
     let client = reqwest::Client::new();
 
     // check get key before proactive refresh
-    let key_before_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_before_network =
+        unsafe_get(&client, hex::encode(PREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
     let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     let validators_info = vec![
@@ -75,7 +80,10 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![EVE_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
+        proactive_refresh_keys: vec![
+            PREGENERATED_NETWORK_VERIFYING_KEY.to_vec(),
+            DAVE_VERIFYING_KEY.to_vec(),
+        ],
         block_number: 0,
     };
 
@@ -93,11 +101,12 @@ async fn test_proactive_refresh() {
         assert_eq!(res.unwrap().text().await.unwrap(), "");
     }
 
-    let key_after_eve = unsafe_get(&client, hex::encode(EVE_VERIFYING_KEY), 3001).await;
+    let key_after_network =
+        unsafe_get(&client, hex::encode(PREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
     let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
 
     // make sure private keyshares are changed
-    assert_ne!(key_before_eve, key_after_eve);
+    assert_ne!(key_before_network, key_after_network);
     assert_ne!(key_before_dave, key_after_dave);
 
     let alice = AccountKeyring::Alice;
