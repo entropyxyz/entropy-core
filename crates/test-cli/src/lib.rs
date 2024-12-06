@@ -28,11 +28,11 @@ use entropy_client::{
     },
     client::{
         change_threshold_accounts, get_accounts, get_api, get_oracle_headings, get_programs,
-        get_quote_and_change_endpoint, get_rpc, jumpstart_network, register, remove_program, sign,
-        store_program, update_programs, VERIFYING_KEY_LENGTH,
+        get_quote_and_change_endpoint, get_rpc, get_tdx_quote, jumpstart_network, register,
+        remove_program, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
-pub use entropy_shared::PROGRAM_VERSION_NUMBER;
+pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
 use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::{traits::BlakeTwo256, Serialize};
 use std::{fs, path::PathBuf, str::FromStr};
@@ -576,14 +576,9 @@ pub async fn run_command(
             Ok(serde_json::to_string_pretty(&headings)?)
         },
         CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
-            // TODO add context
-            let response =
-                reqwest::get(format!("http://{}/attest?context=change_endpoint", tss_endpoint))
-                    .await?;
-            if response.status() != reqwest::StatusCode::OK {
-                return Err(anyhow!(response.text().await?));
-            }
-            let quote_bytes = response.bytes().await?;
+            // TODO get context from user
+            let context = QuoteContext::ChangeEndpoint;
+            let quote_bytes = get_tdx_quote(&tss_endpoint, context).await?;
             let output_filename = output_filename.unwrap_or("quote.dat".into());
 
             std::fs::write(&output_filename, quote_bytes)?;

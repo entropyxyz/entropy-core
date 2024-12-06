@@ -20,6 +20,7 @@ pub use crate::{
     errors::{ClientError, SubstrateError},
 };
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
+pub use entropy_shared::{HashingAlgorithm, QuoteContext};
 use parity_scale_codec::Decode;
 use rand::Rng;
 pub use synedrion::KeyShare;
@@ -46,7 +47,6 @@ use crate::{
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
-use entropy_shared::{HashingAlgorithm, QuoteContext};
 use futures::stream::StreamExt;
 use sp_core::{
     sr25519::{self, Signature},
@@ -343,11 +343,7 @@ pub async fn get_quote_and_change_endpoint(
     validator_keypair: sr25519::Pair,
     new_endpoint: String,
 ) -> Result<EndpointChanged, ClientError> {
-    let quote = reqwest::get(format!("http://{}/attest?context=change_endpoint", new_endpoint))
-        .await?
-        .bytes()
-        .await?
-        .to_vec();
+    let quote = get_tdx_quote(&new_endpoint, QuoteContext::ChangeEndpoint).await?;
     change_endpoint(api, rpc, validator_keypair, new_endpoint, quote).await
 }
 
@@ -475,7 +471,7 @@ pub async fn get_oracle_headings(
 
 /// Retrieve a TDX quote using the currently configured endpoint associated with the given validator
 /// ID
-pub async fn get_tdx_quote(
+pub async fn get_tdx_quote_with_validator_id(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     validator_stash: &SubxtAccountId32,
@@ -484,10 +480,18 @@ pub async fn get_tdx_quote(
     let query = entropy::storage().staking_extension().threshold_servers(validator_stash);
     let server_info = query_chain(api, rpc, query, None).await.unwrap().unwrap();
 
-    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?.to_string();
-    Ok(reqwest::get(format!("http://{}/attest?context={:?}", tss_endpoint, quote_context))
-        .await?
-        .bytes()
-        .await?
-        .to_vec())
+    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
+    get_tdx_quote(tss_endpoint, quote_context).await
+}
+
+pub async fn get_tdx_quote(
+    tss_endpoint: &str,
+    quote_context: QuoteContext,
+) -> Result<Vec<u8>, ClientError> {
+    let response =
+        reqwest::get(format!("http://{}/attest?context={:?}", tss_endpoint, quote_context)).await?;
+    if response.status() != reqwest::StatusCode::OK {
+        return Err(ClientError::QuoteGet(response.text().await?));
+    }
+    Ok(response.bytes().await?.to_vec())
 }
