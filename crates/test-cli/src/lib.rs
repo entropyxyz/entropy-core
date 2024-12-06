@@ -576,6 +576,7 @@ pub async fn run_command(
             Ok(serde_json::to_string_pretty(&headings)?)
         },
         CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
+            // TODO add context
             let quote_bytes =
                 reqwest::get(format!("http://{}/attest", tss_endpoint)).await?.bytes().await?;
             let output_filename = output_filename.unwrap_or("quote.dat".into());

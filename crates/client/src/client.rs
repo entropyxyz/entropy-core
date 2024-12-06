@@ -46,7 +46,7 @@ use crate::{
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
-use entropy_shared::HashingAlgorithm;
+use entropy_shared::{HashingAlgorithm, QuoteContext};
 use futures::stream::StreamExt;
 use sp_core::{
     sr25519::{self, Signature},
@@ -343,8 +343,11 @@ pub async fn get_quote_and_change_endpoint(
     validator_keypair: sr25519::Pair,
     new_endpoint: String,
 ) -> Result<EndpointChanged, ClientError> {
-    let quote =
-        reqwest::get(format!("http://{}/attest", new_endpoint)).await?.bytes().await?.to_vec();
+    let quote = reqwest::get(format!("http://{}/attest?context=change_endpoint", new_endpoint))
+        .await?
+        .bytes()
+        .await?
+        .to_vec();
     change_endpoint(api, rpc, validator_keypair, new_endpoint, quote).await
 }
 
@@ -476,10 +479,15 @@ pub async fn get_tdx_quote(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     validator_stash: &SubxtAccountId32,
+    quote_context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
     let query = entropy::storage().staking_extension().threshold_servers(validator_stash);
     let server_info = query_chain(api, rpc, query, None).await.unwrap().unwrap();
 
     let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?.to_string();
-    Ok(reqwest::get(format!("http://{}/attest", tss_endpoint)).await?.bytes().await?.to_vec())
+    Ok(reqwest::get(format!("http://{}/attest?context={:?}", tss_endpoint, quote_context))
+        .await?
+        .bytes()
+        .await?
+        .to_vec())
 }
