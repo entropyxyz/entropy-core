@@ -686,9 +686,9 @@ enum QuoteContextArg {
     ChangeThresholdAccounts,
 }
 
-impl Into<QuoteContext> for QuoteContextArg {
-    fn into(self) -> QuoteContext {
-        match self {
+impl From<QuoteContextArg> for QuoteContext {
+    fn from(quote_context: QuoteContextArg) -> Self {
+        match quote_context {
             QuoteContextArg::Validate => QuoteContext::Validate,
             QuoteContextArg::ChangeEndpoint => QuoteContext::ChangeEndpoint,
             QuoteContextArg::ChangeThresholdAccounts => QuoteContext::ChangeThresholdAccounts,
