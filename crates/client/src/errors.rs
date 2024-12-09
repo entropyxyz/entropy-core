@@ -125,4 +125,6 @@ pub enum ClientError {
     AttestationRequest(#[from] AttestationRequestError),
     #[error("Unable to get TDX quote: {0}")]
     QuoteGet(String),
+    #[error("Unable to get info for TSS server from chain")]
+    NoServerInfo,
 }

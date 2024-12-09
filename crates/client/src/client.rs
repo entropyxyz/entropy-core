@@ -511,12 +511,13 @@ pub async fn get_tdx_quote_with_validator_id(
     quote_context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
     let query = entropy::storage().staking_extension().threshold_servers(validator_stash);
-    let server_info = query_chain(api, rpc, query, None).await.unwrap().unwrap();
+    let server_info = query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
 
     let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
     get_tdx_quote(tss_endpoint, quote_context).await
 }
 
+/// Retrieve a TDX quote with a given socket address
 pub async fn get_tdx_quote(
     tss_endpoint: &str,
     quote_context: QuoteContext,

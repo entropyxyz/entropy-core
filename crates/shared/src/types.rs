@@ -148,7 +148,7 @@ pub enum QuoteContext {
 
 #[cfg(feature = "std")]
 impl std::fmt::Display for QuoteContext {
-    /// Custom debug implementation so that it can be used to build a query string
+    /// Custom display implementation so that it can be used to build a query string
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             QuoteContext::Validate => write!(f, "validate"),

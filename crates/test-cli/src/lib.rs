@@ -15,7 +15,7 @@
 
 //! Simple CLI to test registering, updating programs and signing
 use anyhow::{anyhow, ensure};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use entropy_client::{
     chain_api::{
@@ -187,6 +187,9 @@ enum CliCommand {
     GetTdxQuote {
         /// The socket address of the TS server, eg: `127.0.0.1:3002`
         tss_endpoint: String,
+        /// The context in which this quote will be used. Must be one of
+        #[arg(value_enum)]
+        quote_context: QuoteContextArg,
         /// The filename to write the quote to. Defaults to `quote.dat`
         #[arg(long)]
         output_filename: Option<String>,
@@ -524,10 +527,8 @@ pub async fn run_command(
             let headings = get_oracle_headings(&api, &rpc).await?;
             Ok(serde_json::to_string_pretty(&headings)?)
         },
-        CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
-            // TODO get context from user
-            let context = QuoteContext::ChangeEndpoint;
-            let quote_bytes = get_tdx_quote(&tss_endpoint, context).await?;
+        CliCommand::GetTdxQuote { tss_endpoint, output_filename, quote_context } => {
+            let quote_bytes = get_tdx_quote(&tss_endpoint, quote_context.into()).await?;
             let output_filename = output_filename.unwrap_or("quote.dat".into());
 
             std::fs::write(&output_filename, quote_bytes)?;
@@ -672,4 +673,25 @@ fn handle_mnemonic(mnemonic_option: Option<String>) -> anyhow::Result<sr25519::P
             .map_err(|_| anyhow!("A mnemonic must be given either by the command line option or DEPLOYER_MNEMONIC environment variable"))?
     };
     Ok(<sr25519::Pair as Pair>::from_string(&mnemonic, None)?)
+}
+
+/// This is the same as [QuoteContext] but implements [ValueEnum]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+enum QuoteContextArg {
+    /// To be used in the `validate` extrinsic
+    Validate,
+    /// To be used in the `change_endpoint` extrinsic
+    ChangeEndpoint,
+    /// To be used in the `change_threshold_accounts` extrinsic
+    ChangeThresholdAccounts,
+}
+
+impl Into<QuoteContext> for QuoteContextArg {
+    fn into(self) -> QuoteContext {
+        match self {
+            QuoteContextArg::Validate => QuoteContext::Validate,
+            QuoteContextArg::ChangeEndpoint => QuoteContext::ChangeEndpoint,
+            QuoteContextArg::ChangeThresholdAccounts => QuoteContext::ChangeThresholdAccounts,
+        }
+    }
 }
