@@ -27,9 +27,9 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        change_threshold_accounts, get_accounts, get_api, get_oracle_headings, get_programs,
-        get_quote_and_change_endpoint, get_rpc, get_tdx_quote, jumpstart_network, register,
-        remove_program, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
+        get_accounts, get_api, get_oracle_headings, get_programs, get_quote_and_change_endpoint,
+        get_quote_and_change_threshold_accounts, get_rpc, get_tdx_quote, jumpstart_network,
+        register, remove_program, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
@@ -162,11 +162,6 @@ enum CliCommand {
         new_x25519_public_key: String,
         /// The new Provisioning Certification Key (PCK) certificate chain to be used for the TSS.
         new_pck_certificate_chain: Vec<String>,
-        /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
-        ///
-        /// The quote format is specified in:
-        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
-        quote: String,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -485,7 +480,6 @@ pub async fn run_command(
             new_tss_account,
             new_x25519_public_key,
             new_pck_certificate_chain,
-            quote,
             mnemonic_option,
         } => {
             let user_keypair = handle_mnemonic(mnemonic_option)?;
@@ -497,14 +491,13 @@ pub async fn run_command(
                 .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
             let new_pck_certificate_chain =
                 new_pck_certificate_chain.iter().cloned().map(|i| i.into()).collect::<_>();
-            let result_event = change_threshold_accounts(
+            let result_event = get_quote_and_change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
                 new_pck_certificate_chain,
-                quote.into(),
             )
             .await?;
             cli.log(format!("Event result: {:?}", result_event));

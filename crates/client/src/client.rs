@@ -365,11 +365,39 @@ pub async fn change_endpoint(
     Ok(result_event)
 }
 
+/// Changes the threshold account info of a validator, retrieving a TDX quote from the new endpoint internally
+pub async fn get_quote_and_change_threshold_accounts(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validator_keypair: sr25519::Pair,
+    new_tss_account: SubxtAccountId32,
+    new_x25519_public_key: [u8; 32],
+    new_pck_certificate_chain: Vec<Vec<u8>>,
+) -> Result<ThresholdAccountChanged, ClientError> {
+    let quote = get_tdx_quote_with_validator_id(
+        api,
+        rpc,
+        &SubxtAccountId32(validator_keypair.public().0),
+        QuoteContext::ChangeThresholdAccounts,
+    )
+    .await?;
+    change_threshold_accounts(
+        api,
+        rpc,
+        validator_keypair,
+        new_tss_account,
+        new_x25519_public_key,
+        new_pck_certificate_chain,
+        quote,
+    )
+    .await
+}
+
 /// Changes the threshold account info of a validator
 pub async fn change_threshold_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    user_keypair: sr25519::Pair,
+    validator_keypair: sr25519::Pair,
     new_tss_account: SubxtAccountId32,
     new_x25519_public_key: [u8; 32],
     new_pck_certificate_chain: Vec<Vec<u8>>,
@@ -381,9 +409,14 @@ pub async fn change_threshold_accounts(
         new_pck_certificate_chain,
         quote,
     );
-    let in_block =
-        submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)
-            .await?;
+    let in_block = submit_transaction_with_pair(
+        api,
+        rpc,
+        &validator_keypair,
+        &change_threshold_accounts,
+        None,
+    )
+    .await?;
     let result_event = in_block
         .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
         .ok_or(SubstrateError::NoEvent)?;
