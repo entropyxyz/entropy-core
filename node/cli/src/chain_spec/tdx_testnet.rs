@@ -19,6 +19,14 @@ use entropy_runtime::wasm_binary_unwrap;
 use entropy_shared::{BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey};
 use sc_service::ChainType;
 use sp_core::sr25519;
+use sp_runtime::BoundedVec;
+
+/// The build time measurement value from the current entropy-tss VM images
+const ACCEPTED_MRTD: [u8; 48] = [
+    145, 235, 43, 68, 209, 65, 212, 236, 224, 159, 12, 117, 194, 197, 61, 36, 122, 60, 104, 237,
+    215, 250, 254, 138, 53, 32, 201, 66, 166, 4, 164, 7, 222, 3, 174, 109, 197, 248, 127, 39, 66,
+    139, 37, 56, 135, 49, 24, 183,
+];
 
 lazy_static::lazy_static! {
     pub static ref PCK: BoundedVecEncodedVerifyingKey = vec![
@@ -83,6 +91,7 @@ pub fn development_config() -> ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             tdx_devnet_four_node_initial_tss_servers(),
+            Some(vec![BoundedVec::try_from(ACCEPTED_MRTD.to_vec()).unwrap()]),
         ))
         .build()
 }
