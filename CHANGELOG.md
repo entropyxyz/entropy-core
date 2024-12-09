@@ -34,6 +34,7 @@ runtime
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
 - CLI command to get oracle headings ([#1170](https://github.com/entropyxyz/entropy-core/pull/1170))
 - Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
+- Add TDX test network chainspec ([#1204](https://github.com/entropyxyz/entropy-core/pull/1204))
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
