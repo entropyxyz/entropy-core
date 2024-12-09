@@ -217,20 +217,12 @@ pub async fn run_command(
         std::env::var("ENTROPY_DEVNET").unwrap_or("ws://localhost:9944".to_string())
     });
 
-    let passed_mnemonic = std::env::var("DEPLOYER_MNEMONIC");
-
     let api = get_api(&endpoint_addr).await?;
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command.clone() {
         CliCommand::Register { mnemonic_option, programs, program_version_numbers } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No mnemonic set")
-            };
-
-            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let program_keypair = handle_mnemonic(mnemonic_option)?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
             cli.log(format!("Program account: {}", program_keypair.public()));
 
@@ -269,13 +261,9 @@ pub async fn run_command(
             }
         },
         CliCommand::Sign { signature_verifying_key, message, auxilary_data, mnemonic_option } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.unwrap_or("//Alice".to_string())
-            };
             // If an account name is not provided, use the Alice key
-            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let user_keypair = handle_mnemonic(mnemonic_option)
+                .unwrap_or(<sr25519::Pair as Pair>::from_string("//Alice", None)?);
 
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
@@ -310,12 +298,7 @@ pub async fn run_command(
             aux_data_interface_file,
             program_version_number,
         } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Storing program using account: {}", keypair.public()));
 
             let program = match program_file {
@@ -365,12 +348,7 @@ pub async fn run_command(
             }
         },
         CliCommand::RemoveProgram { mnemonic_option, hash } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Removing program using account: {}", keypair.public()));
 
             let hash: [u8; 32] = hex::decode(hash)?
@@ -391,12 +369,7 @@ pub async fn run_command(
             programs,
             program_version_numbers,
         } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let program_keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Program account: {}", program_keypair.public()));
 
             let mut programs_info = Vec::new();
@@ -495,13 +468,7 @@ pub async fn run_command(
             }
         },
         CliCommand::ChangeEndpoint { new_endpoint, mnemonic_option } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-
-            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let user_keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let result_event =
@@ -521,12 +488,7 @@ pub async fn run_command(
             quote,
             mnemonic_option,
         } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let user_keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let new_tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
@@ -554,13 +516,7 @@ pub async fn run_command(
             }
         },
         CliCommand::JumpstartNetwork { mnemonic_option } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.unwrap_or("//Alice".to_string())
-            };
-
-            let signer = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for jumpstart: {}", signer.public()));
 
             jumpstart_network(&api, &rpc, signer).await?;
@@ -712,4 +668,15 @@ impl StatusOutput {
             programs.into_iter().map(|(hash, _program_info)| hex::encode(hash.0)).collect();
         Self { accounts, programs }
     }
+}
+
+/// Get an sr25519 from a mnemonic given as either option or environment variable
+fn handle_mnemonic(mnemonic_option: Option<String>) -> anyhow::Result<sr25519::Pair> {
+    let mnemonic = if let Some(mnemonic) = mnemonic_option {
+        mnemonic
+    } else {
+        std::env::var("DEPLOYER_MNEMONIC")
+            .map_err(|_| anyhow!("A mnemonic must be given either by the command line option or DEPLOYER_MNEMONIC environment variable"))?
+    };
+    Ok(<sr25519::Pair as Pair>::from_string(&mnemonic, None)?)
 }
