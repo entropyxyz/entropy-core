@@ -42,9 +42,9 @@ use entropy_testing_utils::{
         TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
         X25519_PUBLIC_KEYS,
     },
-    substrate_context::{
-        test_context_stationary, test_node_process_testing_state, testing_context,
-    },
+    helpers::spawn_tss_nodes_and_start_chain,
+    substrate_context::{test_context_stationary, testing_context},
+    test_node_process_testing_state, ChainSpecType,
 };
 use more_asserts as ma;
 use parity_scale_codec::{Decode, Encode};
@@ -70,7 +70,6 @@ use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKe
 use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
 use tokio_tungstenite::connect_async;
 
-use crate::helpers::tests::do_jump_start;
 use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -88,8 +87,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
-            initialize_test_logger, jump_start_network_with_signer, run_to_block, setup_client,
-            spawn_testing_validators, store_program_and_register, unsafe_get, ChainSpecType,
+            do_jump_start, get_port, initialize_test_logger, run_to_block, setup_client,
+            spawn_testing_validators, store_program_and_register, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -131,22 +130,13 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // We first need to jump start the network and grab the resulting network wide verifying key
-    // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
@@ -367,22 +357,13 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // We first need to jump start the network and grab the resulting network wide verifying key
-    // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, tss_account) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
@@ -447,21 +428,11 @@ async fn signature_request_with_derived_account_works() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (_idsvalidator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // We first need to jump start the network and grab the resulting network wide verifying key
-    // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
     let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+        validator_name_to_relayer_info(ValidatorName::Dave, &entropy_api, &rpc).await;
 
     // Register the user with a test program
     let (verifying_key, _program_hash) =
@@ -494,16 +465,10 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let one = AccountKeyring::Dave;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
     let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
@@ -613,15 +578,17 @@ async fn test_request_limit_are_updated_during_signing() {
     let two = AccountKeyring::Two;
 
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
+            .await;
 
     let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
+    let context =
+        test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+            .await;
+    let entropy_api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
     // Register the user with a test program
@@ -717,16 +684,10 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
         store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
@@ -817,16 +778,10 @@ async fn test_program_with_config() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
@@ -904,28 +859,38 @@ async fn test_jumpstart_network() {
     clean_tests();
 
     let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+        spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
 
     let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let context =
+        test_node_process_testing_state(ChainSpecType::Integration, force_authoring).await;
+    let api = get_api(&context[0].ws_url).await.unwrap();
+    let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
 
+    let signer_query = entropy::storage().staking_extension().signers();
+    let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
     let client = reqwest::Client::new();
-    let response_key = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3001).await;
+    let mut verifying_key = Vec::new();
+    for signer in signer_stash_accounts.iter() {
+        let query = entropy::storage().staking_extension().threshold_servers(signer);
+        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+        let response_key =
+            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&server_info)).await;
 
-    // check to make sure keyshare is correct
-    let key_share: Option<KeyShareWithAuxInfo> =
-        entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
-    assert_eq!(key_share.is_some(), true);
+        // check to make sure keyshare is correct
+        let key_share: Option<KeyShareWithAuxInfo> =
+            entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
+        assert!(key_share.is_some());
+
+        verifying_key =
+            key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    }
+
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
     let jump_start_progress =
         query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
-    let verifying_key =
-        key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
 
     assert_eq!(jump_start_progress.verifying_key.unwrap().0, verifying_key);
     clean_tests();
@@ -1053,20 +1018,13 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
-
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
@@ -1127,20 +1085,14 @@ async fn test_oracle_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (_tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-
-    let api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    let non_signer = jump_start_network(&api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
 
     let program_hash = test_client::store_program(
@@ -1214,19 +1166,10 @@ async fn test_device_key_proxy() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // We first need to jump start the network and grab the resulting network wide verifying key
-    // for later
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
@@ -1352,13 +1295,10 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
-    let substrate_context = &test_node_process_testing_state(true).await[0];
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let non_signer = jump_start_network(&entropy_api, &rpc).await.unwrap();
+    let non_signer = ValidatorName::Dave;
     let (relayer_ip_and_key, _) =
         validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
 
@@ -1518,19 +1458,8 @@ async fn test_registration_flow() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (_validator_ips, _validator_ids) =
-        spawn_testing_validators(ChainSpecType::Integration).await;
-
-    // Here we need to use `--chain=integration-tests` and force authoring otherwise we won't be
-    // able to get our chain in the right state to be jump started.
-    let force_authoring = true;
-    let substrate_context = &test_node_process_testing_state(force_authoring).await[0];
-    let entropy_api = get_api(&substrate_context.ws_url).await.unwrap();
-    let rpc = get_rpc(&substrate_context.ws_url).await.unwrap();
-
-    // We first need to jump start the network and grab the resulting network wide verifying key
-    // for later
-    jump_start_network(&entropy_api, &rpc).await;
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
     let jump_start_progress =
@@ -1757,16 +1686,6 @@ pub async fn get_sign_tx_data(
         validators_info.iter().map(|v| (v.ip_address.clone(), v.x25519_public_key)).collect();
 
     (validators_info, signature_request, validator_ips_and_keys)
-}
-
-/// Mock jump starting the network
-pub async fn jump_start_network(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Option<ValidatorName> {
-    let alice = AccountKeyring::Alice;
-    let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(alice.clone().into());
-    jump_start_network_with_signer(api, rpc, &signer).await
 }
 
 /// Takes a validator name and returns relayer info needed for tests

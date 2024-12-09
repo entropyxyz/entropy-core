@@ -22,6 +22,7 @@ sp-std            ={ version="14.0.0", default-features=false }
 smallvec="1.13.2"
 
 pallet-balances={ version="29.0.0" }
+pallet-oracle  ={ version='0.3.0', path='../oracle', default-features=false }
 sp-core        ={ version="29.0.0" }
 sp-io          ={ version="31.0.0" }
 

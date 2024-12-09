@@ -60,6 +60,7 @@ frame_support::construct_runtime!(
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
     Attestation: pallet_attestation,
+    Oracle: pallet_oracle,
   }
 );
 
@@ -348,6 +349,18 @@ impl pallet_registry::Config for Test {
 }
 
 parameter_types! {
+  pub const MaxOracleKeyLength: u32 = 100;
+  pub const MaxOracleValueLength: u32 = 100;
+}
+
+impl pallet_oracle::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxOracleKeyLength = MaxOracleKeyLength;
+    type MaxOracleValueLength = MaxOracleValueLength;
+    type WeightInfo = ();
+}
+
+parameter_types! {
   pub const MaxBytecodeLength: u32 = 3;
   pub const ProgramDepositPerByte: u32 = 5;
   pub const MaxOwnedPrograms: u32 = 5;
@@ -394,6 +407,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         ],
         proactive_refresh_data: (vec![], vec![]),
         mock_signer_rotate: (false, vec![], vec![]),
+        jump_started_signers: None,
     };
 
     pallet_staking_extension.assimilate_storage(&mut t).unwrap();
