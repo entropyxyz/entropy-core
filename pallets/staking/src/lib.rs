@@ -710,6 +710,7 @@ pub mod pallet {
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
+                log::warn!("validtor length less than current signer");
                 return Ok(weight);
             }
 

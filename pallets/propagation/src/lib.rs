@@ -159,6 +159,7 @@ pub mod pallet {
         pub fn post_reshare(block_number: BlockNumberFor<T>) -> Result<(), http::Error> {
             let reshare_data = pallet_staking_extension::Pallet::<T>::reshare_data();
             if reshare_data.block_number + sp_runtime::traits::One::one() != block_number {
+                log::warn!("reshare block numbers: {:?}, {:?}", reshare_data.block_number + sp_runtime::traits::One::one(), block_number);
                 return Ok(());
             }
 
