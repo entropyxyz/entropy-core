@@ -482,7 +482,7 @@ fn it_tests_new_session_handler() {
 
         assert_eq!(
             Staking::reshare_data().block_number,
-            101,
+            99,
             "Check reshare block start at 100 + 1"
         );
         assert_eq!(
@@ -494,17 +494,6 @@ fn it_tests_new_session_handler() {
             Staking::jump_start_progress().parent_key_threshold,
             2,
             "parent key threhsold updated"
-        );
-
-        assert_eq!(
-            Staking::reshare_data().block_number,
-            101,
-            "Check reshare block start at 100 + 1"
-        );
-        assert_eq!(
-            Staking::reshare_data().new_signer,
-            1u64.encode(),
-            "Check reshare next signer up is 1"
         );
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
@@ -522,6 +511,7 @@ fn it_tests_new_session_handler_signer_size_changes() {
     new_test_ext().execute_with(|| {
         // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
         Signers::<Test>::put(vec![5, 6]);
+        System::set_block_number(100);
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
         // Signer size increased is reflected as 5 is not removed from vec

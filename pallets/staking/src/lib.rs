@@ -710,6 +710,7 @@ pub mod pallet {
             // Since not enough validators do not allow rotation
             // TODO: https://github.com/entropyxyz/entropy-core/issues/943
             if validators.len() <= current_signers_length {
+                log::warn!("validtor length less than current signer");
                 return Ok(weight);
             }
 
@@ -746,7 +747,7 @@ pub mod pallet {
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
-                block_number: current_block_number + sp_runtime::traits::One::one(),
+                block_number: current_block_number - sp_runtime::traits::One::one(),
                 new_signer,
             };
 
