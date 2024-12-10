@@ -153,10 +153,9 @@ pub trait AttestationHandler<AccountId> {
     fn verify_quote(
         attestee: &AccountId,
         x25519_public_key: X25519PublicKey,
-        provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
         context: QuoteContext,
-    ) -> Result<(), sp_runtime::DispatchError>;
+    ) -> Result<BoundedVecEncodedVerifyingKey, sp_runtime::DispatchError>;
 
     /// Indicate to the attestation handler that a quote is desired.
     ///
@@ -171,11 +170,10 @@ impl<AccountId> AttestationHandler<AccountId> for () {
     fn verify_quote(
         _attestee: &AccountId,
         _x25519_public_key: X25519PublicKey,
-        _provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         _quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<(), sp_runtime::DispatchError> {
-        Ok(())
+    ) -> Result<BoundedVecEncodedVerifyingKey, sp_runtime::DispatchError> {
+        Ok(sp_runtime::BoundedVec::new())
     }
 
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
