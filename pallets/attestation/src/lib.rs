@@ -39,6 +39,8 @@ pub mod benchmarking;
 
 pub mod weights;
 
+mod pck;
+
 #[cfg(test)]
 mod mock;
 
@@ -54,6 +56,7 @@ pub mod pallet {
     use sp_runtime::traits::TrailingZeroInput;
     use sp_std::vec::Vec;
 
+    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -77,6 +80,8 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
+        /// A type that verifies a provisioning certification key (PCK) certificate chain.
+        type PckCertChainVerifier: PckCertChainVerifier;
     }
 
     #[pallet::genesis_config]
@@ -203,10 +208,10 @@ pub mod pallet {
         fn verify_quote(
             attestee: &T::AccountId,
             x25519_public_key: entropy_shared::X25519PublicKey,
-            provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
+            // provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
             quote: Vec<u8>,
             context: QuoteContext,
-        ) -> Result<(), DispatchError> {
+        ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, DispatchError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
             let nonce =
@@ -228,6 +233,14 @@ pub mod pallet {
                 .map_err(|_| Error::<T>::BadMrtdValue)?;
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
+
+            let pck_certificate_chain = quote.pck_cert_chain().ok_or(Error::<T>::NoPckCertChain)?;
+            let provisioning_certification_key =
+                T::PckCertChainVerifier::verify_pck_certificate_chain(pck_certificate_chain)
+                    .map_err(|error| {
+                        let e: Error<T> = error.into();
+                        e
+                    })?;
 
             // Check that the attestation public key is signed with the PCK
             let provisioning_certification_key = decode_verifying_key(

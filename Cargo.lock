@@ -2546,7 +2546,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote",
+ "tdx-quote 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror 2.0.6",
  "tokio",
  "tracing",
@@ -2798,7 +2798,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote",
+ "tdx-quote 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.19",
@@ -2857,7 +2857,7 @@ dependencies = [
  "subxt",
  "subxt-signer",
  "synedrion",
- "tdx-quote",
+ "tdx-quote 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror 2.0.6",
  "tokio",
  "tokio-tungstenite",
@@ -6764,6 +6764,7 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
+ "p256",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",
@@ -6782,7 +6783,9 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote",
+ "spki",
+ "tdx-quote 0.0.1 (git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-getter)",
+ "x509-verify",
 ]
 
 [[package]]
@@ -7489,7 +7492,6 @@ dependencies = [
  "frame-support 29.0.2",
  "frame-system",
  "log",
- "p256",
  "pallet-bags-list",
  "pallet-balances",
  "pallet-parameters",
@@ -7510,9 +7512,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "spki",
- "tdx-quote",
- "x509-verify",
+ "tdx-quote 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -9049,9 +9049,9 @@ dependencies = [
 
 [[package]]
 name = "rsa"
-version = "0.9.6"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d0e5124fcb30e76a7e79bfee683a2746db83784b86289f6251b54b7950a0dfc"
+checksum = "47c75d7c5c6b673e58bf54d8544a9f432e3a925b0e80f7cd3602ab5c50c55519"
 dependencies = [
  "const-oid",
  "digest 0.10.7",
@@ -14279,6 +14279,16 @@ name = "tdx-quote"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e10fe3140395153ccb4050f6eb51fe621a3b6d76da489601aec9fabe2fb1c3e0"
+dependencies = [
+ "nom",
+ "p256",
+ "sha2 0.10.8",
+]
+
+[[package]]
+name = "tdx-quote"
+version = "0.0.1"
+source = "git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-getter#4f27cc67ff1726d273b64546891218af60ae43f3"
 dependencies = [
  "nom",
  "p256",
