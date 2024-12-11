@@ -89,7 +89,7 @@ impl SubstrateCli for Cli {
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
             "testnet" => Box::new(chain_spec::testnet::testnet_config()),
-            "tdx-testnet" => Box::new(chain_spec::tdx_testnet::development_config()),
+            "tdx-testnet" => Box::new(chain_spec::tdx_testnet::tdx_testnet_config()),
             path => {
                 Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)
             },

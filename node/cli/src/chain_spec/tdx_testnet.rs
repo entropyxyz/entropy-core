@@ -29,6 +29,7 @@ const ACCEPTED_MRTD: [u8; 48] = [
 ];
 
 lazy_static::lazy_static! {
+    /// This is the PCK from the certificates of the current TDX machine we are using for testing
     pub static ref PCK: BoundedVecEncodedVerifyingKey = vec![
     2, 166, 103, 136, 58, 157, 155, 124, 186, 75, 81, 133, 87, 255, 233, 182, 192, 125, 235, 230,
     121, 173, 147, 108, 47, 190, 240, 181, 75, 181, 31, 148, 128,
@@ -71,14 +72,14 @@ fn tdx_devnet_four_node_initial_tss_servers(
     vec![alice, bob, charlie, dave]
 }
 
-/// The configuration used for development.
+/// The configuration used for the TDX testnet.
 ///
 /// Since Entropy requires at two-of-three threshold setup, and requires an additional relayer node,
 /// we spin up four validators: Alice, Bob, Charlie and Dave.
-pub fn development_config() -> ChainSpec {
+pub fn tdx_testnet_config() -> ChainSpec {
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
-        .with_name("Development")
-        .with_id("dev")
+        .with_name("TDX-testnet")
+        .with_id("tdx")
         .with_chain_type(ChainType::Development)
         .with_properties(crate::chain_spec::entropy_properties())
         .with_genesis_config_patch(development_genesis_config(
