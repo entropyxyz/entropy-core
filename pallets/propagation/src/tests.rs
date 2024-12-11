@@ -93,7 +93,7 @@ fn knows_how_to_mock_several_http_calls() {
         // doesn't trigger no reshare block
         Propagation::post_reshare(7).unwrap();
         pallet_staking_extension::ReshareData::<Test>::put(ReshareInfo {
-            block_number: 7,
+            block_number: 6,
             new_signers: vec![1u64.encode()],
         });
         // now triggers

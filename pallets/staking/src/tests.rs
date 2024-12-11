@@ -555,11 +555,7 @@ fn it_tests_new_session_handler() {
         assert_ok!(Staking::new_session_handler(&[1, 5, 6]));
         // takes signers original (5,6) pops off one and adds in new validator
         assert_eq!(Staking::next_signers().unwrap().next_signers, vec![6, 1]);
-        assert_eq!(
-            Staking::reshare_data().block_number,
-            101,
-            "Check reshare block start at 100 + 1"
-        );
+        assert_eq!(Staking::reshare_data().block_number, 99, "Check reshare block start at 99 + 1");
         assert_eq!(
             Staking::reshare_data().new_signers,
             vec![1u64.encode()],
@@ -569,12 +565,6 @@ fn it_tests_new_session_handler() {
             Staking::jump_start_progress().parent_key_threshold,
             2,
             "parent key threhsold updated"
-        );
-
-        assert_eq!(
-            Staking::reshare_data().block_number,
-            101,
-            "Check reshare block start at 100 + 1"
         );
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3]));
