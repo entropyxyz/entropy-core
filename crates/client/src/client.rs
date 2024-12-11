@@ -17,13 +17,12 @@
 //! Used in integration tests and for the test-cli
 pub use crate::{
     chain_api::{get_api, get_rpc},
-    errors::ClientError,
+    errors::{ClientError, SubstrateError},
 };
-use anyhow::anyhow;
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
+pub use entropy_shared::{HashingAlgorithm, QuoteContext};
 use parity_scale_codec::Decode;
 use rand::Rng;
-use std::str::FromStr;
 pub use synedrion::KeyShare;
 
 use crate::{
@@ -39,7 +38,7 @@ use crate::{
         EntropyConfig,
     },
     client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
-    substrate::{get_registered_details, submit_transaction_with_pair},
+    substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
     user::{
         self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
     },
@@ -48,7 +47,6 @@ use crate::{
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
-use entropy_shared::HashingAlgorithm;
 use futures::stream::StreamExt;
 use sp_core::{
     sr25519::{self, Signature},
@@ -338,50 +336,90 @@ pub async fn put_register_request_on_chain(
     registered_event
 }
 
-/// Changes the endpoint of a validator
+/// Changes the endpoint of a validator, retrieving a TDX quote from the new endpoint internally
+pub async fn get_quote_and_change_endpoint(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validator_keypair: sr25519::Pair,
+    new_endpoint: String,
+) -> Result<EndpointChanged, ClientError> {
+    let quote = get_tdx_quote(&new_endpoint, QuoteContext::ChangeEndpoint).await?;
+    change_endpoint(api, rpc, validator_keypair, new_endpoint, quote).await
+}
+
+/// Changes the endpoint of a validator, with a TDX quote given as an argument
 pub async fn change_endpoint(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     user_keypair: sr25519::Pair,
     new_endpoint: String,
     quote: Vec<u8>,
-) -> anyhow::Result<EndpointChanged> {
+) -> Result<EndpointChanged, ClientError> {
     let change_endpoint_tx =
         entropy::tx().staking_extension().change_endpoint(new_endpoint.into(), quote);
     let in_block =
         submit_transaction_with_pair(api, rpc, &user_keypair, &change_endpoint_tx, None).await?;
     let result_event = in_block
         .find_first::<entropy::staking_extension::events::EndpointChanged>()?
-        .ok_or(anyhow!("Error with transaction"))?;
+        .ok_or(SubstrateError::NoEvent)?;
     Ok(result_event)
+}
+
+/// Changes the threshold account info of a validator, retrieving a TDX quote from the new endpoint internally
+pub async fn get_quote_and_change_threshold_accounts(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validator_keypair: sr25519::Pair,
+    new_tss_account: SubxtAccountId32,
+    new_x25519_public_key: [u8; 32],
+    new_pck_certificate_chain: Vec<Vec<u8>>,
+) -> Result<ThresholdAccountChanged, ClientError> {
+    let quote = get_tdx_quote_with_validator_id(
+        api,
+        rpc,
+        &SubxtAccountId32(validator_keypair.public().0),
+        QuoteContext::ChangeThresholdAccounts,
+    )
+    .await?;
+    change_threshold_accounts(
+        api,
+        rpc,
+        validator_keypair,
+        new_tss_account,
+        new_x25519_public_key,
+        new_pck_certificate_chain,
+        quote,
+    )
+    .await
 }
 
 /// Changes the threshold account info of a validator
 pub async fn change_threshold_accounts(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    user_keypair: sr25519::Pair,
-    new_tss_account: String,
-    new_x25519_public_key: String,
+    validator_keypair: sr25519::Pair,
+    new_tss_account: SubxtAccountId32,
+    new_x25519_public_key: [u8; 32],
     new_pck_certificate_chain: Vec<Vec<u8>>,
     quote: Vec<u8>,
-) -> anyhow::Result<ThresholdAccountChanged> {
-    let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
-    let x25519_public_key = hex::decode(new_x25519_public_key)?
-        .try_into()
-        .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
+) -> Result<ThresholdAccountChanged, ClientError> {
     let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
-        tss_account,
-        x25519_public_key,
+        new_tss_account,
+        new_x25519_public_key,
         new_pck_certificate_chain,
         quote,
     );
-    let in_block =
-        submit_transaction_with_pair(api, rpc, &user_keypair, &change_threshold_accounts, None)
-            .await?;
+    let in_block = submit_transaction_with_pair(
+        api,
+        rpc,
+        &validator_keypair,
+        &change_threshold_accounts,
+        None,
+    )
+    .await?;
     let result_event = in_block
         .find_first::<entropy::staking_extension::events::ThresholdAccountChanged>()?
-        .ok_or(anyhow!("Error with transaction"))?;
+        .ok_or(SubstrateError::NoEvent)?;
     Ok(result_event)
 }
 
@@ -462,4 +500,32 @@ pub async fn get_oracle_headings(
         headings.push(heading);
     }
     Ok(headings)
+}
+
+/// Retrieve a TDX quote using the currently configured endpoint associated with the given validator
+/// ID
+pub async fn get_tdx_quote_with_validator_id(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    validator_stash: &SubxtAccountId32,
+    quote_context: QuoteContext,
+) -> Result<Vec<u8>, ClientError> {
+    let query = entropy::storage().staking_extension().threshold_servers(validator_stash);
+    let server_info = query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
+
+    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
+    get_tdx_quote(tss_endpoint, quote_context).await
+}
+
+/// Retrieve a TDX quote with a given socket address
+pub async fn get_tdx_quote(
+    tss_endpoint: &str,
+    quote_context: QuoteContext,
+) -> Result<Vec<u8>, ClientError> {
+    let response =
+        reqwest::get(format!("http://{}/attest?context={}", tss_endpoint, quote_context)).await?;
+    if response.status() != reqwest::StatusCode::OK {
+        return Err(ClientError::QuoteGet(response.text().await?));
+    }
+    Ok(response.bytes().await?.to_vec())
 }

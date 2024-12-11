@@ -123,4 +123,8 @@ pub enum ClientError {
     Codec(#[from] parity_scale_codec::Error),
     #[error("Attestation request: {0}")]
     AttestationRequest(#[from] AttestationRequestError),
+    #[error("Unable to get TDX quote: {0}")]
+    QuoteGet(String),
+    #[error("Unable to get info for TSS server from chain")]
+    NoServerInfo,
 }
