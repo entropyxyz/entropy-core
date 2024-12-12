@@ -623,32 +623,31 @@ pub mod pallet {
             //         e
             //     })?;
 
+            ensure!(
+                joining_server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                Error::<T>::EndpointTooLong
+            );
+
+            ensure!(
+                !ThresholdToStash::<T>::contains_key(&joining_server_info.tss_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
+
+            let provisioning_certification_key =
+                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                    &joining_server_info.tss_account.clone(),
+                    joining_server_info.x25519_public_key,
+                    quote,
+                    QuoteContext::Validate,
+                )
+                .map_err(|_| Error::<T>::FailedAttestationCheck)?;
+
             let server_info = ServerInfo::<T::AccountId> {
                 tss_account: joining_server_info.tss_account,
                 x25519_public_key: joining_server_info.x25519_public_key,
                 endpoint: joining_server_info.endpoint,
                 provisioning_certification_key,
             };
-            ensure!(
-                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
-                Error::<T>::EndpointTooLong
-            );
-
-            ensure!(
-                !ThresholdToStash::<T>::contains_key(&server_info.tss_account),
-                Error::<T>::TssAccountAlreadyExists
-            );
-
-            ensure!(
-                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
-                    &server_info.tss_account.clone(),
-                    server_info.x25519_public_key,
-                    quote,
-                    QuoteContext::Validate,
-                )
-                .is_ok(),
-                Error::<T>::FailedAttestationCheck
-            );
 
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
 

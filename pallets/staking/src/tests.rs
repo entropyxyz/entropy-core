@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    mock::*, pck::MOCK_PCK_DERIVED_FROM_NULL_ARRAY, tests::RuntimeEvent, Error, JoiningServerInfo,
-    NextSignerInfo, NextSigners, ServerInfo, Signers,
+    mock::*, tests::RuntimeEvent, Error, JoiningServerInfo, NextSignerInfo, NextSigners,
+    ServerInfo, Signers,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -250,7 +250,6 @@ fn it_changes_threshold_account() {
             RuntimeOrigin::signed(1),
             4,
             NULL_ARR,
-            pck_certificate_chain.clone(),
             VALID_QUOTE.to_vec()
         ));
         assert_eq!(Staking::threshold_server(1).unwrap().tss_account, 4);
@@ -261,7 +260,6 @@ fn it_changes_threshold_account() {
                 RuntimeOrigin::signed(4),
                 5,
                 NULL_ARR,
-                pck_certificate_chain.clone(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::NotController
@@ -292,7 +290,6 @@ fn it_changes_threshold_account() {
                 RuntimeOrigin::signed(1),
                 5,
                 NULL_ARR,
-                pck_certificate_chain.clone(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::TssAccountAlreadyExists
@@ -304,7 +301,6 @@ fn it_changes_threshold_account() {
                 RuntimeOrigin::signed(1),
                 9,
                 NULL_ARR,
-                pck_certificate_chain.clone(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::NoChangingThresholdAccountWhenSigner
@@ -340,7 +336,6 @@ fn it_doesnt_allow_changing_threshold_account_with_invalid_quote() {
                 RuntimeOrigin::signed(1),
                 4,
                 NULL_ARR,
-                pck_certificate_chain.clone(),
                 INVALID_QUOTE.to_vec()
             ),
             Error::<Test>::FailedAttestationCheck
@@ -396,7 +391,6 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
                 RuntimeOrigin::signed(1),
                 5,
                 NULL_ARR,
-                pck_certificate_chain.clone(),
                 VALID_QUOTE.to_vec()
             ),
             Error::<Test>::TssAccountAlreadyExists
@@ -735,10 +729,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
             tss_account: joining_server_info.tss_account,
             x25519_public_key: joining_server_info.x25519_public_key,
             endpoint: joining_server_info.endpoint,
-            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
-                .to_vec()
-                .try_into()
-                .unwrap(),
+            provisioning_certification_key: [0; 33].to_vec().try_into().unwrap(),
         };
         assert_eq!(Staking::threshold_to_stash(bob), Some(alice));
         assert_eq!(Staking::threshold_server(alice), Some(server_info));

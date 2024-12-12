@@ -119,3 +119,6 @@ runtime-benchmarks=[
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime=["entropy-runtime/try-runtime", "try-runtime-cli/try-runtime"]
+# Enables real PCK certificate chain verification - which means TSS nodes much be runnning on TDX
+# hardware
+production=["entropy-runtime/production"]

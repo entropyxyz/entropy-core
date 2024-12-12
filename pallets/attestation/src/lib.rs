@@ -39,8 +39,6 @@ pub mod benchmarking;
 
 pub mod weights;
 
-mod pck;
-
 #[cfg(test)]
 mod mock;
 
@@ -56,12 +54,11 @@ pub mod pallet {
     use sp_runtime::traits::TrailingZeroInput;
     use sp_std::vec::Vec;
 
-    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
     };
-    use tdx_quote::{decode_verifying_key, Quote};
+    use tdx_quote::{encode_verifying_key, Quote, VerifyingKey};
 
     pub use crate::weights::WeightInfo;
 
@@ -80,8 +77,6 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
-        /// A type that verifies a provisioning certification key (PCK) certificate chain.
-        type PckCertChainVerifier: PckCertChainVerifier;
     }
 
     #[pallet::genesis_config]
@@ -144,6 +139,8 @@ pub mod pallet {
         PckVerification,
         /// There's an existing attestation request for this account ID.
         OutstandingAttestationRequest,
+        /// PCK certificate chain cannot be extracted from quote
+        NoPckCertChain,
     }
 
     #[pallet::call]
@@ -234,36 +231,36 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
-            let pck_certificate_chain = quote.pck_cert_chain().ok_or(Error::<T>::NoPckCertChain)?;
-            let provisioning_certification_key =
-                T::PckCertChainVerifier::verify_pck_certificate_chain(pck_certificate_chain)
-                    .map_err(|error| {
-                        let e: Error<T> = error.into();
-                        e
-                    })?;
-
-            // Check that the attestation public key is signed with the PCK
-            let provisioning_certification_key = decode_verifying_key(
-                &provisioning_certification_key
-                    .to_vec()
-                    .try_into()
-                    .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
-            )
-            .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
-
-            quote
-                .verify_with_pck(provisioning_certification_key)
-                .map_err(|_| Error::<T>::PckVerification)?;
+            let pck = verify_pck_certificate_chain::<T>(&quote).unwrap();
 
             PendingAttestations::<T>::remove(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
-            Ok(())
+            Ok(BoundedVec::try_from(encode_verifying_key(&pck).unwrap().to_vec()).unwrap())
         }
 
         fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
             PendingAttestations::<T>::insert(who, nonce)
         }
+    }
+
+    #[cfg(feature = "production")]
+    fn verify_pck_certificate_chain<T: Config>(
+        quote: &Quote,
+    ) -> Result<VerifyingKey, DispatchError> {
+        Ok(quote.verify().map_err(|_| Error::<T>::PckVerification)?)
+    }
+
+    #[cfg(not(feature = "production"))]
+    fn verify_pck_certificate_chain<T: Config>(
+        quote: &Quote,
+    ) -> Result<VerifyingKey, DispatchError> {
+        let provisioning_certification_key =
+            quote.pck_cert_chain().map_err(|_| Error::<T>::NoPckCertChain)?;
+        let provisioning_certification_key =
+            tdx_quote::decode_verifying_key(&provisioning_certification_key.try_into().unwrap())
+                .unwrap();
+        Ok(provisioning_certification_key)
     }
 }

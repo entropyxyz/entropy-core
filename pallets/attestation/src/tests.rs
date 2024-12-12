@@ -40,11 +40,15 @@ fn verify_quote_works() {
             QuoteContext::Validate,
         );
 
-        let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0);
+        let quote = tdx_quote::Quote::mock(
+            attestation_key.clone(),
+            pck,
+            input_data.0,
+            pck_encoded.to_vec(),
+        );
         assert_ok!(Attestation::verify_quote(
             &ATTESTEE,
             x25519_public_key,
-            sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
             quote.as_bytes().to_vec(),
             QuoteContext::Validate,
         ));
@@ -71,7 +75,12 @@ fn verify_quote_fails_with_mismatched_input_data() {
             QuoteContext::Validate,
         );
 
-        let quote = tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0);
+        let quote = tdx_quote::Quote::mock(
+            attestation_key.clone(),
+            pck.clone(),
+            input_data.0,
+            pck_encoded.to_vec(),
+        );
 
         // We want to test that our quote verification fails if we commit to data that doesn't match
         // the `quote`.
@@ -80,7 +89,6 @@ fn verify_quote_fails_with_mismatched_input_data() {
             Attestation::verify_quote(
                 &mismatched_attestee,
                 x25519_public_key,
-                sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
                 quote.as_bytes().to_vec(),
                 QuoteContext::Validate,
             ),
@@ -94,32 +102,10 @@ fn verify_quote_fails_with_mismatched_input_data() {
             Attestation::verify_quote(
                 &ATTESTEE,
                 mismatched_x25519_public_key,
-                sp_runtime::BoundedVec::try_from(pck_encoded.to_vec()).unwrap(),
                 quote.as_bytes().to_vec(),
                 QuoteContext::Validate,
             ),
             crate::Error::<Test>::IncorrectInputData,
-        );
-
-        // Here we have a random p256 ECDSA key which doesn't match the one used to generate the
-        // quote.
-        let mismatched_pck = [
-            34, 106, 242, 46, 148, 212, 105, 237, 205, 76, 112, 33, 10, 46, 94, 228, 46, 62, 226,
-            127, 19, 73, 28, 106, 68, 253, 119, 138, 136, 246, 37, 251,
-        ];
-        let mismatched_pck = tdx_quote::SigningKey::from_bytes(&mismatched_pck.into()).unwrap();
-        let mismatched_pck_encoded =
-            tdx_quote::encode_verifying_key(mismatched_pck.verifying_key()).unwrap();
-
-        assert_noop!(
-            Attestation::verify_quote(
-                &ATTESTEE,
-                x25519_public_key,
-                sp_runtime::BoundedVec::try_from(mismatched_pck_encoded.to_vec()).unwrap(),
-                quote.as_bytes().to_vec(),
-                QuoteContext::Validate,
-            ),
-            crate::Error::<Test>::PckVerification
         );
     })
 }
