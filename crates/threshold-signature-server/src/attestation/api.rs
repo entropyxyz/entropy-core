@@ -136,7 +136,7 @@ pub async fn create_quote(
     let mut pck_seeder = StdRng::from_seed(signer.signer().public().0);
     let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
 
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).to_vec();
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key())?.to_vec();
     let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded)
         .as_bytes()
         .to_vec();
