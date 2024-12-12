@@ -886,7 +886,7 @@ fn cannot_report_outside_of_signer_set() {
 #[test]
 fn can_report_unstable_peer() {
     new_test_ext().execute_with(|| {
-       // These mappings come from the mock GenesisConfig
+        // These mappings come from the mock GenesisConfig
         let (alice_validator, alice_tss) = (5, 7);
         let (bob_validator, bob_tss) = (6, 8);
 
@@ -894,10 +894,7 @@ fn can_report_unstable_peer() {
 
         // The TSS accounts are used for reports. We expect the accompanying validator to be
         // reported though.
-        assert_ok!(Staking::report_unstable_peer(
-            RuntimeOrigin::signed(alice_tss),
-            bob_tss
-        ));
+        assert_ok!(Staking::report_unstable_peer(RuntimeOrigin::signed(alice_tss), bob_tss));
 
         assert_eq!(<pallet_slashing::Pallet<Test>>::failed_registrations(bob_validator), 1);
     })
