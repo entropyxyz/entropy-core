@@ -90,6 +90,7 @@ pub mod pallet {
         + frame_system::Config
         + pallet_staking::Config
         + pallet_parameters::Config
+        + pallet_slashing::Config // TODO (Nando) Don't hardcode this
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -734,6 +735,50 @@ pub mod pallet {
             // TODO: Weight is `Pays::No` but want a more accurate weight for max signers vs current
             // signers see https://github.com/entropyxyz/entropy-core/issues/985
             Ok(Pays::No.into())
+        }
+
+        // TODO (Nando): Real weight
+        #[pallet::call_index(7)]
+        #[pallet::weight(<T as Config>::WeightInfo::validate())]
+        pub fn report_unstable_peer(
+            origin: OriginFor<T>,
+            offender_tss_account: T::AccountId,
+        ) -> DispatchResult {
+            let reporter_tss_account = ensure_signed(origin)?;
+
+            let reporter_validator_id = Self::threshold_to_stash(&reporter_tss_account).expect("TODO");
+            let offender_validator_id = Self::threshold_to_stash(&offender_tss_account).expect("TODO");
+
+            // This spits out a validator ID
+            let signers = Self::signers();
+
+            // Note: This operation is O(n), but with a small enough Signer group this should be
+            // fine to do on-chain.
+            assert!(signers.contains(&reporter_validator_id));
+            assert!(signers.contains(&offender_validator_id));
+
+            // We do a bit of a weird conversion here since we want the validator's underlying
+            // `AccountId` for the reporting mechanism, not their `ValidatorId`.
+            //
+            // The Session pallet should have this configured to be the same thing, but we can't
+            // prove that to the compiler.
+            let encoded_validator_id = T::ValidatorId::encode(&reporter_validator_id);
+            let reporter_validator_account = T::AccountId::decode(&mut &encoded_validator_id[..])
+                .expect("A `ValidatorId` should be equivalent to an `AccountId`.");
+
+            let encoded_validator_id = T::ValidatorId::encode(&offender_validator_id);
+            let offending_peer_validator_account =
+                T::AccountId::decode(&mut &encoded_validator_id[..])
+                    .expect("A `ValidatorId` should be equivalent to an `AccountId`.");
+
+            // We don't actually take any action here, we offload the reporting to the Slashing
+            // pallet.
+            pallet_slashing::Pallet::<T>::note_report(
+                reporter_validator_account,
+                offending_peer_validator_account,
+            )?;
+
+            Ok(())
         }
     }
 

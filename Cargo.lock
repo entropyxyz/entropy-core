@@ -7494,6 +7494,7 @@ dependencies = [
  "pallet-balances",
  "pallet-parameters",
  "pallet-session",
+ "pallet-slashing",
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-timestamp",
