@@ -844,3 +844,61 @@ fn it_stops_chill_when_signer_or_next_signer() {
         );
     });
 }
+
+#[test]
+fn cannot_report_outside_of_signer_set() {
+    new_test_ext().execute_with(|| {
+        // These mappings come from the mock GenesisConfig
+        let (alice_validator, alice_tss) = (5, 7);
+        let (_bob_validator, bob_tss) = (6, 8);
+
+        let (_not_validator, not_tss) = (33, 33);
+
+        // We only want Alice to be part of the signing committee for the test.
+        Signers::<Test>::put(vec![alice_validator]);
+
+        // A TSS which doesn't have a `ValidatorId` cannot report another peer
+        assert_noop!(
+            Staking::report_unstable_peer(RuntimeOrigin::signed(not_tss), bob_tss),
+            Error::<Test>::NoThresholdKey
+        );
+
+        // A validator which isn't part of the signing committee cannot report another peer
+        assert_noop!(
+            Staking::report_unstable_peer(RuntimeOrigin::signed(bob_tss), alice_tss),
+            Error::<Test>::NotSigner
+        );
+
+        // An offender that does not have a `ValidatorId` cannot be reported
+        assert_noop!(
+            Staking::report_unstable_peer(RuntimeOrigin::signed(alice_tss), not_tss),
+            Error::<Test>::NoThresholdKey
+        );
+
+        // An offender which isn't part of the signing committee cannot be reported
+        assert_noop!(
+            Staking::report_unstable_peer(RuntimeOrigin::signed(alice_tss), bob_tss),
+            Error::<Test>::NotSigner
+        );
+    })
+}
+
+#[test]
+fn can_report_unstable_peer() {
+    new_test_ext().execute_with(|| {
+       // These mappings come from the mock GenesisConfig
+        let (alice_validator, alice_tss) = (5, 7);
+        let (bob_validator, bob_tss) = (6, 8);
+
+        Signers::<Test>::put(vec![alice_validator, bob_validator]);
+
+        // The TSS accounts are used for reports. We expect the accompanying validator to be
+        // reported though.
+        assert_ok!(Staking::report_unstable_peer(
+            RuntimeOrigin::signed(alice_tss),
+            bob_tss
+        ));
+
+        assert_eq!(<pallet_slashing::Pallet<Test>>::failed_registrations(bob_validator), 1);
+    })
+}
