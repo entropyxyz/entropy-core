@@ -83,12 +83,14 @@ async fn test_reshare_basic() {
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
     }
-
+    
     for signer in signers.iter() {
         let port = get_port(signer);
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
+    
+    let key_share_before = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
 
     let mut i = 0;
     // Wait up to 2min for reshare to complete: check once every second if we have a new set of signers.
@@ -108,7 +110,12 @@ async fn test_reshare_basic() {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     .unwrap();
+    
+    // wait for roatate keyshare
+    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
+    let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
+    assert_ne!(key_share_before, key_share_after);
     // At this point the signing set has changed on-chain, but the keyshares haven't been rotated
     // but by the time we have stored a program and registered, the rotation should have happened
 
