@@ -337,6 +337,7 @@ pub mod pallet {
         InvalidValidatorId,
         SigningGroupError,
         TssAccountAlreadyExists,
+        NotSigner,
         NotNextSigner,
         ReshareNotInProgress,
         AlreadyConfirmed,
@@ -746,16 +747,17 @@ pub mod pallet {
         ) -> DispatchResult {
             let reporter_tss_account = ensure_signed(origin)?;
 
-            let reporter_validator_id = Self::threshold_to_stash(&reporter_tss_account).expect("TODO");
-            let offender_validator_id = Self::threshold_to_stash(&offender_tss_account).expect("TODO");
-
-            // This spits out a validator ID
-            let signers = Self::signers();
+            // For reporting purposes we need to know the validator account tied to the TSS account.
+            let reporter_validator_id = Self::threshold_to_stash(&reporter_tss_account)
+                .ok_or(Error::<T>::NoThresholdKey)?;
+            let offender_validator_id = Self::threshold_to_stash(&offender_tss_account)
+                .ok_or(Error::<T>::NoThresholdKey)?;
 
             // Note: This operation is O(n), but with a small enough Signer group this should be
             // fine to do on-chain.
-            assert!(signers.contains(&reporter_validator_id));
-            assert!(signers.contains(&offender_validator_id));
+            let signers = Self::signers();
+            ensure!(signers.contains(&reporter_validator_id), Error::<T>::NotSigner);
+            ensure!(signers.contains(&offender_validator_id), Error::<T>::NotSigner);
 
             // We do a bit of a weird conversion here since we want the validator's underlying
             // `AccountId` for the reporting mechanism, not their `ValidatorId`.
