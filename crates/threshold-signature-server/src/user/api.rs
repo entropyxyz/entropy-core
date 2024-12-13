@@ -41,6 +41,7 @@ use x25519_dalek::StaticSecret;
 
 use super::UserErr;
 use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
+use crate::signing_client::ProtocolErr;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
@@ -351,14 +352,41 @@ pub async fn sign_tx(
             request_limit,
             derivation_path,
         )
-        .await
-        .map(|signature| {
-            (
+        .await;
+
+        let signing_protocol_output = match signing_protocol_output {
+            Ok(signature) => Ok((
                 BASE64_STANDARD.encode(signature.to_rsv_bytes()),
                 signer.signer().sign(&signature.to_rsv_bytes()),
-            )
-        })
-        .map_err(|error| error.to_string());
+            )),
+            Err(e)
+                if matches!(
+                    e,
+                    ProtocolErr::ConnectionError { .. }
+                        | ProtocolErr::EncryptedConnection { .. }
+                        | ProtocolErr::BadSubscribeMessage { .. }
+                        | ProtocolErr::Subscribe { .. }
+                ) =>
+            {
+                let account_id = match e {
+                    ProtocolErr::ConnectionError { ref account_id, .. } => account_id,
+                    ProtocolErr::EncryptedConnection { ref account_id, .. } => account_id,
+                    ProtocolErr::BadSubscribeMessage { ref account_id, .. } => account_id,
+                    ProtocolErr::Subscribe { ref account_id, .. } => account_id,
+                    _ => unreachable!(),
+                }
+                .clone();
+
+                let report_unstable_peer_tx =
+                    entropy::tx().staking_extension().report_unstable_peer(account_id);
+                submit_transaction(&api, &rpc, &signer, &report_unstable_peer_tx, None)
+                    .await
+                    .expect("TODO");
+
+                Err(e.to_string())
+            },
+            Err(e) => Err(e.to_string()),
+        };
 
         // This response chunk is sent later with the result of the signing protocol
         if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
