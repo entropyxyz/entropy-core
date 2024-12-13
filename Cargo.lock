@@ -14414,7 +14414,7 @@ checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 [[package]]
 name = "tdx-quote"
 version = "0.0.1"
-source = "git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse#14d3de69028ef33d2cf201a8767fe2d03228109b"
+source = "git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse#8cdfb2f1387496914c8748dc8ad25225a1e722ed"
 dependencies = [
  "nom",
  "p256",
