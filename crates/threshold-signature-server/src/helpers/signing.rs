@@ -82,38 +82,14 @@ pub async fn do_signing(
         .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
         .insert(session_id.clone(), listener);
 
-    let result = open_protocol_connections(
+    open_protocol_connections(
         &sign_context.sign_init.validators_info,
         &session_id,
         signer,
         state,
         &x25519_secret_key,
     )
-    .await;
-
-    match result {
-        Ok(_) => (),
-        Err(e)
-            if matches!(
-                e,
-                ProtocolErr::ConnectionError { .. }
-                    | ProtocolErr::EncryptedConnection { .. }
-                    | ProtocolErr::BadSubscribeMessage { .. }
-                    | ProtocolErr::Subscribe { .. }
-            ) =>
-        {
-            let _account_id = match e {
-                ProtocolErr::ConnectionError { ref account_id, .. } => account_id,
-                ProtocolErr::EncryptedConnection { ref account_id, .. } => account_id,
-                ProtocolErr::BadSubscribeMessage { ref account_id, .. } => account_id,
-                ProtocolErr::Subscribe { ref account_id, .. } => account_id,
-                _ => unreachable!(),
-            }.clone();
-
-            return Err(e);
-        },
-        Err(e) => return Err(e),
-    }
+    .await?;
 
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
