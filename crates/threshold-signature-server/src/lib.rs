@@ -178,6 +178,7 @@ use axum::{
 use entropy_kvdb::kv_manager::KvManager;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
+use subxt::tx::PairSigner;
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
@@ -191,8 +192,9 @@ pub use crate::helpers::{
 };
 use crate::{
     attestation::api::{attest, get_attest},
+    chain_api::EntropyConfig,
     health::api::healthz,
-    launch::Configuration,
+    launch::{development_mnemonic, Configuration, ValidatorName},
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
@@ -203,7 +205,7 @@ use crate::{
 #[derive(Clone)]
 pub struct AppState {
     listener_state: ListenerState,
-    pair: sr25519::Pair,
+    signer: PairSigner<EntropyConfig, sr25519::Pair>,
     x25519_secret: StaticSecret,
     x25519_public_key: [u8; 32],
     pub configuration: Configuration,
@@ -211,10 +213,22 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(configuration: Configuration, kv_store: KvManager) -> Self {
-        let (pair, _seed) = sr25519::Pair::generate();
-        let x25519_secret = StaticSecret::random_from_rng(&mut OsRng);
+    pub fn new(
+        configuration: Configuration,
+        kv_store: KvManager,
+        validator_name: &ValidatorName,
+    ) -> Self {
+        let (pair, x25519_secret) = if cfg!(test) || validator_name.is_some() {
+            get_signer_and_x25519_secret(development_mnemonic(&validator_name))
+        } else {
+            let (pair, _seed) = sr25519::Pair::generate();
+            let x25519_secret = StaticSecret::random_from_rng(&mut OsRng);
+            (pair, x25519_secret)
+        };
+
+        let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(pair);
         let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret).to_bytes();
+
         Self {
             pair,
             x25519_secret,

@@ -54,9 +54,8 @@ pub async fn do_signing(
 
     let info = SignInit::new(relayer_signature_request.clone(), signing_session_info.clone());
     let signing_service = ThresholdSigningService::new(state, kv_manager);
-    let (pair_signer, x25519_secret_key) = get_signer_and_x25519_secret(kv_manager)
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    let pair_signer = &app_state.signer;
+    let x25519_secret_key = &app_state.x25519_secret;
     let signer = pair_signer.signer();
 
     let account_id = AccountId32(signer.public().0);

@@ -46,7 +46,8 @@ pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
 ) -> Result<StatusCode, AttestationErr> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let signer = app_state.signer;
+    let x25519_secret = app_state.x25519_secret;
     let attestation_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -94,7 +95,8 @@ pub async fn get_attest(
     State(app_state): State<AppState>,
     Query(context_querystring): Query<QuoteContextQuery>,
 ) -> Result<(StatusCode, Vec<u8>), AttestationErr> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    let signer = app_state.signer;
+    let x25519_secret = app_state.x25519_secret;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 

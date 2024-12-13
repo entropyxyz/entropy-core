@@ -43,10 +43,10 @@ pub async fn get_signer(
 
 /// Get the PairSigner as above, and also the x25519 encryption keypair for
 /// this threshold server
-pub async fn get_signer_and_x25519_secret(
-    kv: &KvManager,
+pub fn get_signer_and_x25519_secret(
+    mnemonic: &str,
 ) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
-    let hkdf = get_hkdf(kv).await?;
+    let hkdf = get_hkdf_from_mnemonic(mnemonic)?;
     let pair_signer = get_signer_from_hkdf(&hkdf)?;
     let static_secret = get_x25519_secret_from_hkdf(&hkdf)?;
     Ok((pair_signer, static_secret))

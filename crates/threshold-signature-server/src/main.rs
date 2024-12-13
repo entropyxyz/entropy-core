@@ -64,16 +64,7 @@ async fn main() {
 
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
 
-    let app_state = AppState::new(configuration.clone(), kv_store.clone());
-
-    if cfg!(test) || validator_name.is_some() {
-        setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
-    } else if !has_mnemonic(&kv_store).await {
-        let mut rng = rand::thread_rng();
-        let mnemonic = bip39::Mnemonic::generate_in_with(&mut rng, bip39::Language::English, 24)
-            .expect("Failed to generate mnemonic");
-        setup_mnemonic(&kv_store, mnemonic).await
-    }
+    let app_state = AppState::new(configuration.clone(), kv_store.clone(), &validator_name);
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
