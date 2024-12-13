@@ -176,11 +176,14 @@ use axum::{
     Router,
 };
 use entropy_kvdb::kv_manager::KvManager;
+use rand_core::OsRng;
+use sp_core::{sr25519, Pair};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use x25519_dalek::StaticSecret;
 
 pub use crate::helpers::{
     launch,
@@ -200,13 +203,26 @@ use crate::{
 #[derive(Clone)]
 pub struct AppState {
     listener_state: ListenerState,
+    pair: sr25519::Pair,
+    x25519_secret: StaticSecret,
+    x25519_public_key: [u8; 32],
     pub configuration: Configuration,
     pub kv_store: KvManager,
 }
 
 impl AppState {
     pub fn new(configuration: Configuration, kv_store: KvManager) -> Self {
-        Self { listener_state: ListenerState::default(), configuration, kv_store }
+        let (pair, _seed) = sr25519::Pair::generate();
+        let x25519_secret = StaticSecret::random_from_rng(&mut OsRng);
+        let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret).to_bytes();
+        Self {
+            pair,
+            x25519_secret,
+            x25519_public_key,
+            listener_state: ListenerState::default(),
+            configuration,
+            kv_store,
+        }
     }
 }
 
