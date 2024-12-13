@@ -275,7 +275,7 @@ pub mod pallet {
         .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
 
         ensure!(
-            quote.verify_with_pck(&provisioning_certification_key),
+            quote.verify_with_pck(&provisioning_certification_key).is_ok(),
             Error::<T>::PckVerification
         );
         Ok(provisioning_certification_key)
