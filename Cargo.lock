@@ -837,7 +837,7 @@ checksum = "33415e24172c1b7d6066f6d999545375ab8e1d95421d6784bdfff9496f292387"
 dependencies = [
  "bitcoin_hashes",
  "rand",
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
  "zeroize",
@@ -7881,7 +7881,7 @@ checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes",
  "rand",
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
 ]
@@ -14414,7 +14414,7 @@ checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 [[package]]
 name = "tdx-quote"
 version = "0.0.1"
-source = "git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse#a0cad09e8030b322ebb878fad0247bae8e62f141"
+source = "git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse#ae3b869572fc4ff68218570e699a4acc227f833b"
 dependencies = [
  "nom",
  "p256",

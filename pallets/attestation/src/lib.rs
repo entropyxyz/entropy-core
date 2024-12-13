@@ -133,6 +133,8 @@ pub mod pallet {
         NoPCKForAccount,
         /// Unacceptable VM image running
         BadMrtdValue,
+        /// Cannot encode verifying key (PCK)
+        CannotEncodeVerifyingKey,
         /// Cannot decode verifying key (PCK)
         CannotDecodeVerifyingKey,
         /// Could not verify PCK signature
@@ -205,7 +207,6 @@ pub mod pallet {
         fn verify_quote(
             attestee: &T::AccountId,
             x25519_public_key: entropy_shared::X25519PublicKey,
-            // provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
             quote: Vec<u8>,
             context: QuoteContext,
         ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, DispatchError> {
@@ -231,13 +232,19 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
-            let pck = verify_pck_certificate_chain::<T>(&quote).unwrap();
+            let pck =
+                verify_pck_certificate_chain::<T>(&quote).map_err(|_| Error::<T>::PckVerification);
 
             PendingAttestations::<T>::remove(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
-            Ok(BoundedVec::try_from(encode_verifying_key(&pck).unwrap().to_vec()).unwrap())
+            Ok(BoundedVec::try_from(
+                encode_verifying_key(&pck)
+                    .map_err(|_| Error::<T>::CannotEncodeVerifyingKey)?
+                    .to_vec(),
+            )
+            .map_err(|_| Error::<T>::CannotEncodeVerifyingKey)?)
         }
 
         fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
@@ -258,9 +265,12 @@ pub mod pallet {
     ) -> Result<VerifyingKey, DispatchError> {
         let provisioning_certification_key =
             quote.pck_cert_chain().map_err(|_| Error::<T>::NoPckCertChain)?;
-        let provisioning_certification_key =
-            tdx_quote::decode_verifying_key(&provisioning_certification_key.try_into().unwrap())
-                .unwrap();
+        let provisioning_certification_key = tdx_quote::decode_verifying_key(
+            &provisioning_certification_key
+                .try_into()
+                .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
+        )
+        .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
         Ok(provisioning_certification_key)
     }
 }
