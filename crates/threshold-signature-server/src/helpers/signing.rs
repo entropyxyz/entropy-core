@@ -82,14 +82,25 @@ pub async fn do_signing(
         .map_err(|_| ProtocolErr::SessionError("Error getting lock".to_string()))?
         .insert(session_id.clone(), listener);
 
-    open_protocol_connections(
+    let result = open_protocol_connections(
         &sign_context.sign_init.validators_info,
         &session_id,
         signer,
         state,
         &x25519_secret_key,
     )
-    .await?;
+    .await;
+
+    match result {
+        Ok(_) => (),
+        Err(ProtocolErr::ConnectionError { source: _, account_id: _ }) => {
+            todo!()
+        },
+        // Err(ProtocolErr::EncryptedConnection(_)) => todo!(),
+        // Err(ProtocolErr::BadSubscribeMessage(_)) => todo!(),
+        // Err(ProtocolErr::Subscribe(_)) => todo!(),
+        _ => todo!(),
+    }
 
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;

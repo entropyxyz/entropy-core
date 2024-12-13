@@ -87,6 +87,7 @@ pub async fn do_dkg(
         x25519_secret_key,
     )
     .await?;
+
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;

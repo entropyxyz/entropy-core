@@ -62,7 +62,11 @@ pub async fn open_protocol_connections(
         .map(|validator_info| async move {
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
-            let (ws_stream, _response) = connect_async(ws_endpoint).await?;
+            let (ws_stream, _response) =
+                connect_async(ws_endpoint).await.map_err(|e| ProtocolErr::ConnectionError {
+                    source: e,
+                    account_id: validator_info.tss_account.clone(),
+                })?;
 
             // Send a SubscribeMessage in the payload of the final handshake message
             let subscribe_message_vec =
@@ -75,32 +79,50 @@ pub async fn open_protocol_connections(
                 subscribe_message_vec,
             )
             .await
-            .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
+            .map_err(|e| ProtocolErr::EncryptedConnection {
+                source: e,
+                account_id: validator_info.tss_account.clone(),
+            })?;
 
             // Check the response as to whether they accepted our SubscribeMessage
-            let response_message = encrypted_connection
-                .recv()
-                .await
-                .map_err(|e| ProtocolErr::EncryptedConnection(e.to_string()))?;
+            let response_message = encrypted_connection.recv().await.map_err(|e| {
+                ProtocolErr::EncryptedConnection {
+                    source: e,
+                    account_id: validator_info.tss_account.clone(),
+                }
+            })?;
+
             let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
             if let Err(error_message) = subscribe_response {
                 // In future versions, we can check here if the error is VersionTooNew(version)
                 // and if possible the downgrade protocol messages used to be backward compatible
-                return Err(ProtocolErr::BadSubscribeMessage(error_message));
+                return Err(ProtocolErr::BadSubscribeMessage {
+                    message: error_message,
+                    account_id: validator_info.tss_account.clone(),
+                });
             }
 
             // Setup channels
-            let ws_channels = get_ws_channels(state, session_id, &validator_info.tss_account)?;
+            let ws_channels = get_ws_channels(state, session_id, &validator_info.tss_account)
+                .map_err(|e| ProtocolErr::Subscribe {
+                    source: e,
+                    account_id: validator_info.tss_account.clone(),
+                })?;
 
             let remote_party_id = PartyId::new(validator_info.tss_account.clone());
+            let account_id = validator_info.tss_account.clone();
 
             // Handle protocol messages
             tokio::spawn(async move {
-                if let Err(err) =
-                    ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await
-                {
-                    tracing::warn!("{:?}", err);
-                };
+                ws_to_channels(encrypted_connection, ws_channels, remote_party_id).await.map_err(
+                    |err| {
+                        tracing::warn!("{:?}", err);
+                        Err::<(), ProtocolErr>(ProtocolErr::EncryptedConnection {
+                            source: err.into(),
+                            account_id,
+                        })
+                    },
+                )
             });
 
             Ok::<_, ProtocolErr>(())
