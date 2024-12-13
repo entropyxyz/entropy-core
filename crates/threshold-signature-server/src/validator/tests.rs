@@ -31,6 +31,10 @@ use entropy_client::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+        entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
+        entropy::runtime_types::entropy_runtime::RuntimeCall::StakingExtension as StakingExtension,
+        entropy::runtime_types::pallet_staking_extension::pallet::ReshareInfo,
+        entropy::runtime_types::entropy_runtime::RuntimeCall, EntropyConfig
     },
     substrate::query_chain,
     Hasher,
@@ -50,7 +54,7 @@ use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use std::collections::HashSet;
-use subxt::utils::AccountId32;
+use subxt::{utils::{AccountId32}, tx::PairSigner, config::PolkadotExtrinsicParamsBuilder as Params};
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
@@ -69,7 +73,8 @@ async fn test_reshare_basic() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
-
+    let alice = AccountKeyring::Alice;
+    let alice_stash = AccountKeyring::AliceStash;
     let client = reqwest::Client::new();
 
     // Get current signers
@@ -180,6 +185,40 @@ async fn test_reshare_basic() {
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 2;
+    let key_share_before_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
+
+    // let storage_hash = get_storage_hash()
+    let storage_address = entropy::storage().staking_extension().reshare_data();
+    let value = ReshareInfo {
+        block_number,
+        new_signers: vec![alice_stash.public().encode()],
+    };
+    // Add another reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address.to_root_bytes(), value.encode())],
+    });
+    let set_storage = entropy::tx().sudo().sudo(call);
+
+    let signature_request_pair_signer =
+        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+
+    let tx_params_balance = Params::new().build();
+    api
+        .tx()
+        .create_signed(&set_storage, &signature_request_pair_signer, tx_params_balance)
+        .await
+        .unwrap()
+        .submit_and_watch()
+        .await
+        .unwrap();
+    
+    // wait for roatate keyshare
+    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+   
+    let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
+    assert_ne!(key_share_before_2, key_share_after_2);
+    
     clean_tests();
 }
 
