@@ -186,10 +186,7 @@ use tower_http::{
 use tracing::Level;
 use x25519_dalek::StaticSecret;
 
-pub use crate::helpers::{
-    launch,
-    validator::{get_signer, get_signer_and_x25519_secret},
-};
+pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
 use crate::{
     attestation::api::{attest, get_attest},
     chain_api::EntropyConfig,
@@ -205,7 +202,7 @@ use crate::{
 #[derive(Clone)]
 pub struct AppState {
     listener_state: ListenerState,
-    signer: PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: sr25519::Pair,
     x25519_secret: StaticSecret,
     x25519_public_key: [u8; 32],
     pub configuration: Configuration,
@@ -216,27 +213,31 @@ impl AppState {
     pub fn new(
         configuration: Configuration,
         kv_store: KvManager,
-        validator_name: &ValidatorName,
+        validator_name: &Option<ValidatorName>,
     ) -> Self {
-        let (pair, x25519_secret) = if cfg!(test) || validator_name.is_some() {
-            get_signer_and_x25519_secret(development_mnemonic(&validator_name))
+        let (signer, x25519_secret) = if cfg!(test) || validator_name.is_some() {
+            get_signer_and_x25519_secret(&development_mnemonic(&validator_name).to_string())
+                .unwrap()
         } else {
             let (pair, _seed) = sr25519::Pair::generate();
             let x25519_secret = StaticSecret::random_from_rng(&mut OsRng);
             (pair, x25519_secret)
         };
 
-        let signer = PairSigner::<EntropyConfig, sr25519::Pair>::new(pair);
         let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret).to_bytes();
 
         Self {
-            pair,
+            signer,
             x25519_secret,
             x25519_public_key,
             listener_state: ListenerState::default(),
             configuration,
             kv_store,
         }
+    }
+
+    pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.signer.clone())
     }
 }
 

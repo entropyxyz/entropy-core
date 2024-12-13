@@ -30,8 +30,6 @@ use subxt::ext::sp_core::{
     sr25519, Pair,
 };
 
-use crate::helpers::validator::get_signer_and_x25519_secret;
-
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
 pub const DEFAULT_BOB_MNEMONIC: &str =
@@ -235,44 +233,6 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
     bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic)
         .expect("Unable to parse given mnemonic.")
 }
-
-// pub async fn setup_mnemonic(mnemonic: bip39::Mnemonic) -> (sr25519::Pair, StaticSecret) {
-//     let (pair, static_secret) =
-//         get_signer_and_x25519_secret(kv).await.expect("Cannot derive keypairs");
-//     let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
-//
-//     // Write the shared secret in the KVDB
-//     let shared_secret_reservation = kv
-//         .kv()
-//         .reserve_key(FORBIDDEN_KEY_SHARED_SECRET.to_string())
-//         .await
-//         .expect("Issue reserving ss key");
-//     kv.kv()
-//         .put(shared_secret_reservation, static_secret.to_bytes().to_vec())
-//         .await
-//         .expect("failed to update secret share");
-//
-//     // Write the Diffie-Hellman key in the KVDB
-//     let diffie_hellman_reservation = kv
-//         .kv()
-//         .reserve_key(FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC.to_string())
-//         .await
-//         .expect("Issue reserving DH key");
-//
-//     kv.kv()
-//         .put(diffie_hellman_reservation, x25519_public_key.to_vec())
-//         .await
-//         .expect("failed to update dh");
-//
-//     // Now we write the TSS AccountID and X25519 public key to files for convenience reasons.
-//     let formatted_dh_public = format!("{x25519_public_key:?}").replace('"', "");
-//     fs::write(".entropy/public_key", formatted_dh_public).expect("Failed to write public key file");
-//
-//     let id = AccountId32::new(pair.signer().public().0);
-//     fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
-//
-//     tracing::debug!("Starting process with account ID: `{id}`");
-// }
 
 pub async fn threshold_account_id(kv: &KvManager) -> String {
     let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");

@@ -20,8 +20,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        development_mnemonic, has_mnemonic, load_kv_store, setup_latest_block_number,
-        setup_mnemonic, setup_only, Configuration, StartupArgs, ValidatorName,
+        load_kv_store, setup_latest_block_number, setup_only, Configuration, StartupArgs,
+        ValidatorName,
     },
     AppState,
 };
