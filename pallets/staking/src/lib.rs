@@ -614,15 +614,6 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
-            // let provisioning_certification_key =
-            //     T::PckCertChainVerifier::verify_pck_certificate_chain(
-            //         joining_server_info.pck_certificate_chain,
-            //     )
-            //     .map_err(|error| {
-            //         let e: Error<T> = error.into();
-            //         e
-            //     })?;
-
             ensure!(
                 joining_server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
