@@ -2546,7 +2546,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote 0.0.1 (git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse)",
+ "tdx-quote",
  "thiserror 2.0.6",
  "tokio",
  "tracing",
@@ -2798,7 +2798,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "tdx-quote 0.0.1 (git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse)",
+ "tdx-quote",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.19",
@@ -2857,7 +2857,7 @@ dependencies = [
  "subxt",
  "subxt-signer",
  "synedrion",
- "tdx-quote 0.0.1 (git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse)",
+ "tdx-quote",
  "thiserror 2.0.6",
  "tokio",
  "tokio-tungstenite",
@@ -6933,7 +6933,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote 0.0.1 (git+https://github.com/entropyxyz/tdx-quote.git?branch=peg%2Fcert-chain-parse)",
+ "tdx-quote",
 ]
 
 [[package]]
@@ -7660,7 +7660,6 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "tdx-quote 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -14411,17 +14410,6 @@ name = "target-lexicon"
 version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
-
-[[package]]
-name = "tdx-quote"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e10fe3140395153ccb4050f6eb51fe621a3b6d76da489601aec9fabe2fb1c3e0"
-dependencies = [
- "nom",
- "p256",
- "sha2 0.10.8",
-]
 
 [[package]]
 name = "tdx-quote"
