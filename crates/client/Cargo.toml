@@ -38,10 +38,12 @@ js-sys={ version="0.3.74", optional=true }
 tokio ={ version="1.42", features=["time"] }
 
 [dev-dependencies]
-serial_test          ="3.2.0"
-sp-keyring           ="34.0.0"
+serial_test="3.2.0"
+sp-keyring="34.0.0"
 entropy-testing-utils={ path="../testing-utils" }
-tdx-quote            ={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse",  features=["mock"] }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse", features=[
+  "mock",
+] }
 
 [features]
 default=["native", "full-client-native"]
