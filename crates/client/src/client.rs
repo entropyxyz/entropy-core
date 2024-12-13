@@ -363,7 +363,6 @@ pub async fn change_threshold_accounts(
     user_keypair: sr25519::Pair,
     new_tss_account: String,
     new_x25519_public_key: String,
-    new_pck_certificate_chain: Vec<Vec<u8>>,
     quote: Vec<u8>,
 ) -> anyhow::Result<ThresholdAccountChanged> {
     let tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
@@ -373,7 +372,6 @@ pub async fn change_threshold_accounts(
     let change_threshold_accounts = entropy::tx().staking_extension().change_threshold_accounts(
         tss_account,
         x25519_public_key,
-        new_pck_certificate_chain,
         quote,
     );
     let in_block =
