@@ -132,7 +132,7 @@ async fn test_change_threshold_accounts() {
         );
 
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0, encoded_pck)
+        tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0, encoded_pck.clone())
             .as_bytes()
             .to_vec()
     };
