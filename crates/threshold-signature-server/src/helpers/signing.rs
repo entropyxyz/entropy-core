@@ -93,13 +93,26 @@ pub async fn do_signing(
 
     match result {
         Ok(_) => (),
-        Err(ProtocolErr::ConnectionError { source: _, account_id: _ }) => {
-            todo!()
+        Err(e)
+            if matches!(
+                e,
+                ProtocolErr::ConnectionError { .. }
+                    | ProtocolErr::EncryptedConnection { .. }
+                    | ProtocolErr::BadSubscribeMessage { .. }
+                    | ProtocolErr::Subscribe { .. }
+            ) =>
+        {
+            let _account_id = match e {
+                ProtocolErr::ConnectionError { ref account_id, .. } => account_id,
+                ProtocolErr::EncryptedConnection { ref account_id, .. } => account_id,
+                ProtocolErr::BadSubscribeMessage { ref account_id, .. } => account_id,
+                ProtocolErr::Subscribe { ref account_id, .. } => account_id,
+                _ => unreachable!(),
+            }.clone();
+
+            return Err(e);
         },
-        // Err(ProtocolErr::EncryptedConnection(_)) => todo!(),
-        // Err(ProtocolErr::BadSubscribeMessage(_)) => todo!(),
-        // Err(ProtocolErr::Subscribe(_)) => todo!(),
-        _ => todo!(),
+        Err(e) => return Err(e),
     }
 
     let channels = {
