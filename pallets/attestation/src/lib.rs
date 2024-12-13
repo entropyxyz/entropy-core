@@ -232,8 +232,7 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
 
-            let pck =
-                verify_pck_certificate_chain::<T>(&quote).map_err(|_| Error::<T>::PckVerification);
+            let pck = verify_pck_certificate_chain::<T>(&quote)?;
 
             PendingAttestations::<T>::remove(attestee);
 
@@ -259,6 +258,9 @@ pub mod pallet {
         Ok(quote.verify().map_err(|_| Error::<T>::PckVerification)?)
     }
 
+    /// A mock version of verifying the PCK certificate chain.
+    /// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
+    /// so this function just decodes it, checks it was used to sign the quote, and returns it
     #[cfg(not(feature = "production"))]
     fn verify_pck_certificate_chain<T: Config>(
         quote: &Quote,
@@ -271,6 +273,11 @@ pub mod pallet {
                 .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
         )
         .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
+
+        ensure!(
+            quote.verify_with_pck(&provisioning_certification_key),
+            Error::<T>::PckVerification
+        );
         Ok(provisioning_certification_key)
     }
 }
