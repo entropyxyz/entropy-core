@@ -22,6 +22,7 @@ use axum::{
 };
 use entropy_kvdb::kv_manager::error::InnerKvError;
 use entropy_protocol::errors::ProtocolExecutionErr;
+use subxt::utils::AccountId32;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -46,8 +47,8 @@ pub enum ProtocolErr {
     Deserialization(String),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),
-    #[error("Subscribe API error: {0}")]
-    Subscribe(#[from] SubscribeErr),
+    #[error("Subscribe API error: {source} by TSS Account `{account_id:?}`")]
+    Subscribe { source: SubscribeErr, account_id: AccountId32 },
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Utf8Error: {0:?}")]
@@ -70,18 +71,21 @@ pub enum ProtocolErr {
     UserError(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Subscribe message rejected: {0}")]
-    BadSubscribeMessage(String),
+    #[error("Subscribe message rejected: {message} by TSS Account `{account_id:?}`")]
+    BadSubscribeMessage { message: String, account_id: AccountId32 },
     #[error("From Hex Error: {0}")]
     FromHex(#[from] hex::FromHexError),
     #[error("Conversion Error: {0}")]
     Conversion(&'static str),
-    #[error("Could not open ws connection: {0}")]
-    ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("Could not open ws connection: {source} with the TSS Account `{account_id:?}`")]
+    ConnectionError { source: tokio_tungstenite::tungstenite::Error, account_id: AccountId32 },
     #[error("Timed out waiting for remote party")]
     Timeout(#[from] tokio::time::error::Elapsed),
-    #[error("Encrypted connection error {0}")]
-    EncryptedConnection(String),
+    #[error("Encrypted connection error {source:?} with the TSS Account `{account_id:?}`")]
+    EncryptedConnection {
+        source: entropy_protocol::protocol_transport::errors::EncryptedConnectionErr,
+        account_id: AccountId32,
+    },
     #[error("Program error: {0}")]
     ProgramError(#[from] crate::user::errors::ProgramError),
     #[error("Invalid length for converting address")]
