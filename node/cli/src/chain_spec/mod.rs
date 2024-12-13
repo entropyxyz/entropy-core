@@ -33,6 +33,7 @@
 
 pub mod dev;
 pub mod integration_tests;
+pub mod tdx_testnet;
 pub mod testnet;
 
 pub use entropy_runtime::{AccountId, RuntimeGenesisConfig, Signature};
@@ -47,7 +48,10 @@ use serde_json::json;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, Pair, Public};
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{
+    traits::{ConstU32, IdentifyAccount, Verify},
+    BoundedVec,
+};
 
 type AccountPublic = <Signature as Verify>::Signer;
 
@@ -215,3 +219,6 @@ pub fn authority_keys_from_seed(
         get_from_seed::<AuthorityDiscoveryId>(seed),
     )
 }
+
+/// Accepted build time measurement values for TDX attestation
+pub type MrtdValues = Vec<BoundedVec<u8, ConstU32<48>>>;
