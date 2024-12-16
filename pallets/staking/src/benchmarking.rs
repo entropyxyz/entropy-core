@@ -531,7 +531,7 @@ benchmarks! {
   }
 
   report_unstable_peer {
-    // We substract `2` here to give room to our test signers
+    // We subtract `2` here to give room to our test signers
     let s in 0 .. (MAX_SIGNERS - 2) as u32;
 
     let threshold_reporter: T::AccountId = whitelisted_caller();
