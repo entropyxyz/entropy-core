@@ -321,4 +321,22 @@ impl<T: frame_system::Config> pallet_staking_extension::WeightInfo for WeightInf
 			.saturating_add(Weight::from_parts(0, 11364552184692736).saturating_mul(r.into()))
 			.saturating_add(Weight::from_parts(0, 18).saturating_mul(v.into()))
 	}
+	/// Storage: `StakingExtension::ThresholdToStash` (r:2 w:0)
+	/// Proof: `StakingExtension::ThresholdToStash` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `StakingExtension::Signers` (r:1 w:0)
+	/// Proof: `StakingExtension::Signers` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Slashing::FailedRegistrations` (r:1 w:1)
+	/// Proof: `Slashing::FailedRegistrations` (`max_values`: None, `max_size`: Some(36), added: 2511, mode: `MaxEncodedLen`)
+	/// The range of component `s` is `[0, 13]`.
+	fn report_unstable_peer(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `519 + s * (32 ±0)`
+		//  Estimated: `6459 + s * (32 ±0)`
+		// Minimum execution time: 16_000_000 picoseconds.
+		Weight::from_parts(19_055_447, 0)
+			.saturating_add(Weight::from_parts(0, 6459))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(1))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(s.into()))
+	}
 }
