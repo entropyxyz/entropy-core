@@ -11,7 +11,7 @@ edition    ='2021'
 [dependencies]
 entropy-client={ version="0.3.0", path="../client" }
 clap          ={ version="4.5.23", features=["derive"] }
-colored       ="2.0.4"
+colored       ="2.2.0"
 subxt         ="0.35.3"
 sp-core       ="31.0.0"
 anyhow        ="1.0.94"
@@ -22,5 +22,5 @@ x25519-dalek  ="2.0.1"
 sp-runtime    ={ version="32.0.0", default-features=false }
 entropy-shared={ version="0.3.0", path="../shared" }
 serde_json    ="1.0.133"
-serde         ={ version="1.0.215", features=["derive"] }
+serde         ={ version="1.0.216", features=["derive"] }
 reqwest       ="0.12.9"

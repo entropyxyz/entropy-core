@@ -15,7 +15,7 @@
 
 //! Simple CLI to test registering, updating programs and signing
 use anyhow::{anyhow, ensure};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use entropy_client::{
     chain_api::{
@@ -27,15 +27,15 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        change_endpoint, change_threshold_accounts, get_accounts, get_api, get_oracle_headings,
-        get_programs, get_rpc, jumpstart_network, register, remove_program, sign, store_program,
-        update_programs, VERIFYING_KEY_LENGTH,
+        get_accounts, get_api, get_oracle_headings, get_programs, get_quote_and_change_endpoint,
+        get_quote_and_change_threshold_accounts, get_rpc, get_tdx_quote, jumpstart_network,
+        register, remove_program, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
-pub use entropy_shared::PROGRAM_VERSION_NUMBER;
+pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
 use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::{traits::BlakeTwo256, Serialize};
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
@@ -150,11 +150,6 @@ enum CliCommand {
     ChangeEndpoint {
         /// New endpoint to change to (ex. "127.0.0.1:3001")
         new_endpoint: String,
-        /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
-        ///
-        /// The quote format is specified in:
-        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
-        quote: String,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -165,11 +160,6 @@ enum CliCommand {
         new_tss_account: String,
         /// New x25519 public key
         new_x25519_public_key: String,
-        /// The Intel TDX quote used to prove that this TSS is running on TDX hardware.
-        ///
-        /// The quote format is specified in:
-        /// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf
-        quote: String,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -195,6 +185,9 @@ enum CliCommand {
     GetTdxQuote {
         /// The socket address of the TS server, eg: `127.0.0.1:3002`
         tss_endpoint: String,
+        /// The context in which this quote will be used. Must be one of
+        #[arg(value_enum)]
+        quote_context: QuoteContextArg,
         /// The filename to write the quote to. Defaults to `quote.dat`
         #[arg(long)]
         output_filename: Option<String>,
@@ -220,20 +213,12 @@ pub async fn run_command(
         std::env::var("ENTROPY_DEVNET").unwrap_or("ws://localhost:9944".to_string())
     });
 
-    let passed_mnemonic = std::env::var("DEPLOYER_MNEMONIC");
-
     let api = get_api(&endpoint_addr).await?;
     let rpc = get_rpc(&endpoint_addr).await?;
 
     match cli.command.clone() {
         CliCommand::Register { mnemonic_option, programs, program_version_numbers } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No mnemonic set")
-            };
-
-            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let program_keypair = handle_mnemonic(mnemonic_option)?;
             let program_account = SubxtAccountId32(program_keypair.public().0);
             cli.log(format!("Program account: {}", program_keypair.public()));
 
@@ -272,13 +257,9 @@ pub async fn run_command(
             }
         },
         CliCommand::Sign { signature_verifying_key, message, auxilary_data, mnemonic_option } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.unwrap_or("//Alice".to_string())
-            };
             // If an account name is not provided, use the Alice key
-            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let user_keypair = handle_mnemonic(mnemonic_option)
+                .unwrap_or(<sr25519::Pair as Pair>::from_string("//Alice", None)?);
 
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
@@ -313,12 +294,7 @@ pub async fn run_command(
             aux_data_interface_file,
             program_version_number,
         } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Storing program using account: {}", keypair.public()));
 
             let program = match program_file {
@@ -368,12 +344,7 @@ pub async fn run_command(
             }
         },
         CliCommand::RemoveProgram { mnemonic_option, hash } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Removing program using account: {}", keypair.public()));
 
             let hash: [u8; 32] = hex::decode(hash)?
@@ -394,12 +365,7 @@ pub async fn run_command(
             programs,
             program_version_numbers,
         } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let program_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let program_keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Program account: {}", program_keypair.public()));
 
             let mut programs_info = Vec::new();
@@ -497,18 +463,12 @@ pub async fn run_command(
                 Ok("Got status".to_string())
             }
         },
-        CliCommand::ChangeEndpoint { new_endpoint, quote, mnemonic_option } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-
-            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+        CliCommand::ChangeEndpoint { new_endpoint, mnemonic_option } => {
+            let user_keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
             let result_event =
-                change_endpoint(&api, &rpc, user_keypair, new_endpoint, quote.into()).await?;
+                get_quote_and_change_endpoint(&api, &rpc, user_keypair, new_endpoint).await?;
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
@@ -520,24 +480,21 @@ pub async fn run_command(
         CliCommand::ChangeThresholdAccounts {
             new_tss_account,
             new_x25519_public_key,
-            quote,
             mnemonic_option,
         } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.expect("No Mnemonic set")
-            };
-            let user_keypair = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let user_keypair = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("User account for current call: {}", user_keypair.public()));
 
-            let result_event = change_threshold_accounts(
+            let new_tss_account = SubxtAccountId32::from_str(&new_tss_account)?;
+            let new_x25519_public_key = hex::decode(new_x25519_public_key)?
+                .try_into()
+                .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
+            let result_event = get_quote_and_change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
-                quote.into(),
             )
             .await?;
             cli.log(format!("Event result: {:?}", result_event));
@@ -549,13 +506,7 @@ pub async fn run_command(
             }
         },
         CliCommand::JumpstartNetwork { mnemonic_option } => {
-            let mnemonic = if let Some(mnemonic_option) = mnemonic_option {
-                mnemonic_option
-            } else {
-                passed_mnemonic.unwrap_or("//Alice".to_string())
-            };
-
-            let signer = <sr25519::Pair as Pair>::from_string(&mnemonic, None)?;
+            let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for jumpstart: {}", signer.public()));
 
             jumpstart_network(&api, &rpc, signer).await?;
@@ -570,9 +521,8 @@ pub async fn run_command(
             let headings = get_oracle_headings(&api, &rpc).await?;
             Ok(serde_json::to_string_pretty(&headings)?)
         },
-        CliCommand::GetTdxQuote { tss_endpoint, output_filename } => {
-            let quote_bytes =
-                reqwest::get(format!("http://{}/attest", tss_endpoint)).await?.bytes().await?;
+        CliCommand::GetTdxQuote { tss_endpoint, output_filename, quote_context } => {
+            let quote_bytes = get_tdx_quote(&tss_endpoint, quote_context.into()).await?;
             let output_filename = output_filename.unwrap_or("quote.dat".into());
 
             std::fs::write(&output_filename, quote_bytes)?;
@@ -705,5 +655,37 @@ impl StatusOutput {
         let programs =
             programs.into_iter().map(|(hash, _program_info)| hex::encode(hash.0)).collect();
         Self { accounts, programs }
+    }
+}
+
+/// Get an sr25519 from a mnemonic given as either option or environment variable
+fn handle_mnemonic(mnemonic_option: Option<String>) -> anyhow::Result<sr25519::Pair> {
+    let mnemonic = if let Some(mnemonic) = mnemonic_option {
+        mnemonic
+    } else {
+        std::env::var("DEPLOYER_MNEMONIC")
+            .map_err(|_| anyhow!("A mnemonic must be given either by the command line option or DEPLOYER_MNEMONIC environment variable"))?
+    };
+    Ok(<sr25519::Pair as Pair>::from_string(&mnemonic, None)?)
+}
+
+/// This is the same as [QuoteContext] but implements [ValueEnum]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+enum QuoteContextArg {
+    /// To be used in the `validate` extrinsic
+    Validate,
+    /// To be used in the `change_endpoint` extrinsic
+    ChangeEndpoint,
+    /// To be used in the `change_threshold_accounts` extrinsic
+    ChangeThresholdAccounts,
+}
+
+impl From<QuoteContextArg> for QuoteContext {
+    fn from(quote_context: QuoteContextArg) -> Self {
+        match quote_context {
+            QuoteContextArg::Validate => QuoteContext::Validate,
+            QuoteContextArg::ChangeEndpoint => QuoteContext::ChangeEndpoint,
+            QuoteContextArg::ChangeThresholdAccounts => QuoteContext::ChangeThresholdAccounts,
+        }
     }
 }
