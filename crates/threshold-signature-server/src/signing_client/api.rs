@@ -82,7 +82,7 @@ pub async fn proactive_refresh(
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    check_in_registration_group(&ocw_data.validators_info, app_state.signer().account_id())
+    check_in_registration_group(&ocw_data.validators_info, &app_state.subxt_account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
 

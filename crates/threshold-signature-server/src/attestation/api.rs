@@ -57,7 +57,7 @@ pub async fn attest(
     validate_new_attestation(block_number, &attestation_requests, &app_state.kv_store).await?;
 
     // Check whether there is an attestion request for us
-    if !attestation_requests.tss_account_ids.contains(&app_state.signer.public().0) {
+    if !attestation_requests.tss_account_ids.contains(&app_state.pair.public().0) {
         return Ok(StatusCode::OK);
     }
 
@@ -96,7 +96,7 @@ pub async fn get_attest(
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
     // Request attestation to get nonce
-    let nonce = request_attestation(&api, &rpc, &app_state.signer).await?;
+    let nonce = request_attestation(&api, &rpc, &app_state.pair).await?;
 
     let context = context_querystring.as_quote_context()?;
 

@@ -16,7 +16,6 @@ use crate::{node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
 use entropy_shared::{types::HashingAlgorithm, X25519PublicKey};
 use serde::{Deserialize, Serialize};
-use sp_core::Pair;
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
 
@@ -43,6 +42,8 @@ pub struct TssPublicKeys {
 /// Returns the TS server's public keys and HTTP endpoint
 #[tracing::instrument(skip_all)]
 pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
-    let tss_account = AccountId32(app_state.signer.public().0);
-    Ok(Json(TssPublicKeys { x25519_public_key: app_state.x25519_public_key, tss_account }))
+    Ok(Json(TssPublicKeys {
+        x25519_public_key: app_state.x25519_public_key(),
+        tss_account: app_state.subxt_account_id(),
+    }))
 }

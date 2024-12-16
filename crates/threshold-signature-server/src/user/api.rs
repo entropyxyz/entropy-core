@@ -111,7 +111,7 @@ pub async fn relay_tx(
 
     signers_info
         .iter()
-        .find(|signer_info| signer_info.tss_account == *app_state.signer().account_id())
+        .find(|signer_info| signer_info.tss_account == app_state.subxt_account_id())
         .map_or(Ok(()), |_| Err(UserErr::RelayMessageSigner))?;
 
     let signed_message = encrypted_msg.decrypt(&app_state.x25519_secret, &[])?;
@@ -152,7 +152,7 @@ pub async fn relay_tx(
                     .iter()
                     .map(|signer_info| async {
                         let signed_message = EncryptedSignedMessage::new(
-                            &app_state.signer,
+                            &app_state.pair,
                             serde_json::to_vec(&relayer_sig_req.clone())?,
                             &signer_info.x25519_public_key,
                             &[],
@@ -338,7 +338,7 @@ pub async fn sign_tx(
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
-        let signer = app_state.clone().signer;
+        let signer = app_state.pair.clone();
         let signing_protocol_output = do_signing(
             &rpc,
             relayer_sig_request,
@@ -394,7 +394,7 @@ pub async fn generate_network_key(
     if in_registration_group.is_err() {
         tracing::warn!(
             "The account {:?} is not in the registration group for block_number {:?}",
-            app_state.signer().account_id(),
+            app_state.subxt_account_id(),
             data.block_number
         );
 
@@ -454,7 +454,7 @@ async fn setup_dkg(
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
     let nonce_call =
-        entropy::apis().account_nonce_api().account_nonce(app_state.signer().account_id().clone());
+        entropy::apis().account_nonce_api().account_nonce(app_state.subxt_account_id());
     let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
     // TODO: Error handling really complex needs to be thought about.

@@ -36,7 +36,6 @@ pub use entropy_protocol::{
 };
 use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
-use sp_core::Pair;
 use std::{collections::BTreeSet, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
@@ -71,7 +70,7 @@ pub async fn new_reshare(
 
     let is_proper_signer = validators_info
         .iter()
-        .any(|validator_info| validator_info.tss_account == *app_state.signer().account_id());
+        .any(|validator_info| validator_info.tss_account == app_state.subxt_account_id());
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
@@ -111,7 +110,7 @@ async fn do_reshare(
             .map_err(|_| ValidatorErr::Conversion("Verifying key conversion"))?,
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
-    let my_stash_address = get_stash_address(api, rpc, app_state.signer().account_id())
+    let my_stash_address = get_stash_address(api, rpc, &app_state.subxt_account_id())
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
@@ -155,7 +154,7 @@ async fn do_reshare(
     };
 
     let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
-    let account_id = AccountId32(app_state.signer.public().0);
+    let account_id = app_state.subxt_account_id();
 
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -178,15 +177,9 @@ async fn do_reshare(
         &app_state.x25519_secret,
     )
     .await?;
-    let (new_key_share, aux_info) = execute_reshare(
-        session_id.clone(),
-        channels,
-        &app_state.signer,
-        inputs,
-        &new_holders,
-        None,
-    )
-    .await?;
+    let (new_key_share, aux_info) =
+        execute_reshare(session_id.clone(), channels, &app_state.pair, inputs, &new_holders, None)
+            .await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
         .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
@@ -227,7 +220,7 @@ pub async fn rotate_network_key(
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let is_proper_signer = is_signer_or_delete_parent_key(
-        app_state.signer().account_id(),
+        &app_state.subxt_account_id(),
         validators_info.clone(),
         &app_state.kv_store,
     )

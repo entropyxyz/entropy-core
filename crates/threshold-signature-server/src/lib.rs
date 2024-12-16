@@ -202,9 +202,8 @@ use crate::{
 #[derive(Clone)]
 pub struct AppState {
     listener_state: ListenerState,
-    signer: sr25519::Pair,
+    pair: sr25519::Pair,
     x25519_secret: StaticSecret,
-    x25519_public_key: [u8; 32],
     pub configuration: Configuration,
     pub kv_store: KvManager,
 }
@@ -215,7 +214,7 @@ impl AppState {
         kv_store: KvManager,
         validator_name: &Option<ValidatorName>,
     ) -> Self {
-        let (signer, x25519_secret) = if cfg!(test) || validator_name.is_some() {
+        let (pair, x25519_secret) = if cfg!(test) || validator_name.is_some() {
             get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
         } else {
             let (pair, _seed) = sr25519::Pair::generate();
@@ -223,28 +222,33 @@ impl AppState {
             (pair, x25519_secret)
         };
 
-        let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret).to_bytes();
-
         Self {
-            signer,
+            pair,
             x25519_secret,
-            x25519_public_key,
             listener_state: ListenerState::default(),
             configuration,
             kv_store,
         }
     }
 
+    /// Get a [PairSigner] for submitting extrinsics with subxt
     pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.signer.clone())
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.pair.clone())
     }
 
+    /// Get the [AccountId32]
     pub fn account_id(&self) -> AccountId32 {
-        AccountId32::new(self.signer.public().0)
+        AccountId32::new(self.pair.public().0)
     }
 
+    /// Get the subxt account ID
     pub fn subxt_account_id(&self) -> SubxtAccountId32 {
-        SubxtAccountId32(self.signer.public().0)
+        SubxtAccountId32(self.pair.public().0)
+    }
+
+    /// Get the x25519 public key
+    pub fn x25519_public_key(&self) -> [u8; 32] {
+        x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
     }
 }
 
