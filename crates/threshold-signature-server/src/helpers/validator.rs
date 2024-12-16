@@ -78,9 +78,10 @@ fn get_x25519_secret_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<StaticSecret, User
 #[cfg(any(test, feature = "test_helpers"))]
 pub fn get_signer_and_x25519_secret_from_mnemonic(
     mnemonic: &str,
-) -> Result<(PairSigner<EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
+) -> Result<(subxt::tx::PairSigner<crate::EntropyConfig, sr25519::Pair>, StaticSecret), UserErr> {
     let hkdf = get_hkdf_from_mnemonic(mnemonic)?;
-    let pair_signer = get_signer_from_hkdf(&hkdf)?;
+    let pair = get_signer_from_hkdf(&hkdf)?;
+    let pair_signer = subxt::tx::PairSigner::new(pair);
     let static_secret = get_x25519_secret_from_hkdf(&hkdf)?;
     Ok((pair_signer, static_secret))
 }
