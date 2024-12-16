@@ -83,6 +83,7 @@ fn prepare_attestation_for_validate<T: Config>(
     threshold: T::AccountId,
     x25519_public_key: [u8; 32],
     endpoint: Vec<u8>,
+    quote_context: QuoteContext,
 ) -> (Vec<u8>, JoiningServerInfo<T::AccountId>) {
     let nonce = NULL_ARR;
     let quote = {
@@ -99,7 +100,7 @@ fn prepare_attestation_for_validate<T: Config>(
             &threshold,
             x25519_public_key,
             nonce,
-            QuoteContext::Validate,
+            quote_context,
         );
         let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
         tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0, pck_encoded.to_vec())
@@ -148,8 +149,12 @@ fn prep_bond_and_validate<T: Config>(
 
     if validate_also {
         let endpoint = b"http://localhost:3001".to_vec();
-        let (quote, joining_server_info) =
-            prepare_attestation_for_validate::<T>(threshold, x25519_public_key, endpoint);
+        let (quote, joining_server_info) = prepare_attestation_for_validate::<T>(
+            threshold,
+            x25519_public_key,
+            endpoint,
+            QuoteContext::Validate,
+        );
 
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
@@ -199,6 +204,7 @@ benchmarks! {
         threshold,
         x25519_public_key,
         endpoint.clone().to_vec(),
+        QuoteContext::ChangeEndpoint,
     )
     .0;
   }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
@@ -240,6 +246,7 @@ benchmarks! {
         new_threshold.clone(),
         x25519_public_key,
         endpoint.clone().to_vec(),
+        QuoteContext::ChangeThresholdAccounts,
     );
 
     let signers = vec![validator_id_signers.clone(); s as usize];
@@ -386,7 +393,7 @@ benchmarks! {
     );
 
     let (quote, joining_server_info) =
-        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone());
+        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone(), QuoteContext::Validate);
   }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), joining_server_info, quote)
   verify {
     assert_last_event::<T>(
