@@ -291,10 +291,17 @@ async fn test_reshare_validation_fail() {
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
+    let value_reshare_info =
+        ReshareInfo { block_number: block_number + 1, new_signers: vec![dave.public().encode()] };
+    // Add reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
 
     ocw_message.block_number = block_number;
-    run_to_block(&rpc, block_number + 1).await;
+    call_set_storage(&api, &rpc, call).await;
 
     let err_incorrect_data =
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
