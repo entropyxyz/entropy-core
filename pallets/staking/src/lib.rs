@@ -738,6 +738,11 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        /// An on-chain hook for TSS servers in the signing committee to report other TSS servers in
+        /// the committee for misbehaviour.
+        ///
+        /// Any "conequences" are handled by the configured Slashing pallet and not this pallet
+        /// itself.
         #[pallet::call_index(7)]
         #[pallet::weight(<T as Config>::WeightInfo::report_unstable_peer(MAX_SIGNERS as u32))]
         pub fn report_unstable_peer(
