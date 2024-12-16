@@ -393,7 +393,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (7, (4, NULL_ARR, vec![50], BoundedVec::with_max_capacity())),
         ],
         proactive_refresh_data: (vec![], vec![]),
-        mock_signer_rotate: (false, vec![], vec![]),
         jump_started_signers: None,
     };
 
