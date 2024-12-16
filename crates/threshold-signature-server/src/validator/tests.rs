@@ -17,8 +17,8 @@ use crate::{
     helpers::{
         launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
         tests::{
-            get_port, initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get,
+            call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
+            spawn_testing_validators, unsafe_get,
         },
     },
     validator::{
@@ -30,11 +30,12 @@ use entropy_client::{self as test_client};
 use entropy_client::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+        entropy::runtime_types::entropy_runtime::RuntimeCall,
+        entropy::runtime_types::entropy_runtime::RuntimeCall::StakingExtension,
         entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
-        entropy::runtime_types::entropy_runtime::RuntimeCall::StakingExtension as StakingExtension,
-        entropy::runtime_types::pallet_staking_extension::pallet::ReshareInfo,
-        entropy::runtime_types::entropy_runtime::RuntimeCall, EntropyConfig
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
+        entropy::runtime_types::pallet_staking_extension::pallet::{ReshareInfo, NextSignerInfo}, get_api, get_rpc,
+        EntropyConfig,
     },
     substrate::query_chain,
     Hasher,
@@ -54,7 +55,7 @@ use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use std::collections::HashSet;
-use subxt::{utils::{AccountId32}, tx::PairSigner, config::PolkadotExtrinsicParamsBuilder as Params};
+use subxt::{config::PolkadotExtrinsicParamsBuilder as Params, tx::PairSigner, utils::AccountId32};
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
@@ -83,18 +84,20 @@ async fn test_reshare_basic() {
     let old_signer_ids: HashSet<[u8; 32]> =
         HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
     let mut signers = Vec::new();
+    let mut next_signers = vec![];
     for signer in signer_stash_accounts.iter() {
+        next_signers.push(signer);
         let query = entropy::storage().staking_extension().threshold_servers(signer);
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
     }
-    
+
     for signer in signers.iter() {
         let port = get_port(signer);
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
-    
+
     let key_share_before = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
 
     let mut i = 0;
@@ -115,7 +118,7 @@ async fn test_reshare_basic() {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     .unwrap();
-    
+
     // wait for roatate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
@@ -188,37 +191,29 @@ async fn test_reshare_basic() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 2;
     let key_share_before_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
 
-    // let storage_hash = get_storage_hash()
-    let storage_address = entropy::storage().staking_extension().reshare_data();
-    let value = ReshareInfo {
-        block_number,
-        new_signers: vec![alice_stash.public().encode()],
-    };
+
+    let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
+    let value_next_signers = NextSignerInfo { confirmations: vec![], next_signers: next_signers };
     // Add another reshare
     let call = RuntimeCall::System(SystemsCall::set_storage {
-        items: vec![(storage_address.to_root_bytes(), value.encode())],
+        items: vec![(storage_address_next_signers.to_root_bytes(), value_next_signers.encode())],
     });
-    let set_storage = entropy::tx().sudo().sudo(call);
+    call_set_storage(&api, &rpc, call).await;
 
-    let signature_request_pair_signer =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+    let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
+    let value_reshare_info = ReshareInfo { block_number, new_signers: vec![alice_stash.public().encode()] };
+    // Add another reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
 
-    let tx_params_balance = Params::new().build();
-    api
-        .tx()
-        .create_signed(&set_storage, &signature_request_pair_signer, tx_params_balance)
-        .await
-        .unwrap()
-        .submit_and_watch()
-        .await
-        .unwrap();
-    
     // wait for roatate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-   
+
     let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
     assert_ne!(key_share_before_2, key_share_after_2);
-    
+
     clean_tests();
 }
 
