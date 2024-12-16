@@ -16,7 +16,6 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
 use super::*;
-use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
 use entropy_shared::{AttestationHandler, QuoteContext, MAX_SIGNERS};
@@ -33,8 +32,14 @@ use pallet_staking::{
     Event as FrameStakingEvent, MaxNominationsOf, MaxValidatorsCount, Nominations,
     Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
 };
+use rand::{rngs::StdRng, SeedableRng};
 use sp_std::{vec, vec::Vec};
+use tdx_quote::SigningKey;
 
+const MOCK_PCK_DERIVED_FROM_NULL_ARRAY: [u8; 33] = [
+    3, 237, 193, 27, 177, 204, 234, 67, 54, 141, 157, 13, 62, 87, 113, 224, 4, 121, 206, 251, 190,
+    151, 134, 87, 68, 46, 37, 163, 127, 97, 252, 174, 108,
+];
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
 
@@ -96,8 +101,10 @@ fn prepare_attestation_for_validate<T: Config>(
             nonce,
             QuoteContext::Validate,
         );
-
-        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
+        let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0, pck_encoded.to_vec())
+            .as_bytes()
+            .to_vec()
     };
 
     let joining_server_info = JoiningServerInfo {
@@ -113,6 +120,11 @@ fn prepare_attestation_for_validate<T: Config>(
     // know to expect one back when we call `validate()`.
     T::AttestationHandler::request_quote(&threshold, nonce);
     (quote, joining_server_info)
+}
+
+fn signing_key_from_seed(input: [u8; 32]) -> SigningKey {
+    let mut pck_seeder = StdRng::from_seed(input);
+    SigningKey::random(&mut pck_seeder)
 }
 
 fn prep_bond_and_validate<T: Config>(
@@ -230,15 +242,12 @@ benchmarks! {
         endpoint.clone().to_vec(),
     );
 
-    let pck_certificate_chain = joining_server_info.pck_certificate_chain;
-
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
   }:  _(
         RawOrigin::Signed(_bonder.clone()),
         new_threshold.clone(),
         x25519_public_key.clone(),
-        pck_certificate_chain,
         quote
     )
   verify {

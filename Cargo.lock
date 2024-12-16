@@ -7509,6 +7509,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
+ "tdx-quote",
 ]
 
 [[package]]

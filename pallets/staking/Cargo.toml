@@ -34,6 +34,9 @@ pallet-parameters={ version="0.3.0", path="../parameters", default-features=fals
 entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse", features=[
+  "mock",
+], optional=true }
 
 [dev-dependencies]
 frame-election-provider-support={ version="29.0.0", default-features=false }
@@ -48,7 +51,7 @@ rand_core="0.6.4"
 
 [features]
 default=['std']
-runtime-benchmarks=['frame-benchmarking']
+runtime-benchmarks=['frame-benchmarking', "tdx-quote"]
 std=[
   "sp-npos-elections/std",
   "sp-staking/std",
