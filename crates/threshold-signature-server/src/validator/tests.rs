@@ -29,13 +29,13 @@ use crate::{
 use entropy_client::{self as test_client};
 use entropy_client::{
     chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::entropy_runtime::RuntimeCall,
-        entropy::runtime_types::entropy_runtime::RuntimeCall::StakingExtension,
         entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
-        entropy::runtime_types::pallet_staking_extension::pallet::{ReshareInfo, NextSignerInfo}, get_api, get_rpc,
-        EntropyConfig,
+        entropy::runtime_types::pallet_staking_extension::pallet::{NextSignerInfo, ReshareInfo},
+        get_api, get_rpc,
     },
     substrate::query_chain,
     Hasher,
@@ -55,7 +55,7 @@ use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use std::collections::HashSet;
-use subxt::{config::PolkadotExtrinsicParamsBuilder as Params, tx::PairSigner, utils::AccountId32};
+use subxt::utils::AccountId32;
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
@@ -74,7 +74,6 @@ async fn test_reshare_basic() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
-    let alice = AccountKeyring::Alice;
     let alice_stash = AccountKeyring::AliceStash;
     let client = reqwest::Client::new();
 
@@ -191,9 +190,8 @@ async fn test_reshare_basic() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 2;
     let key_share_before_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
 
-
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
-    let value_next_signers = NextSignerInfo { confirmations: vec![], next_signers: next_signers };
+    let value_next_signers = NextSignerInfo { confirmations: vec![], next_signers };
     // Add another reshare
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_next_signers.to_root_bytes(), value_next_signers.encode())],
@@ -201,7 +199,8 @@ async fn test_reshare_basic() {
     call_set_storage(&api, &rpc, call).await;
 
     let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
-    let value_reshare_info = ReshareInfo { block_number, new_signers: vec![alice_stash.public().encode()] };
+    let value_reshare_info =
+        ReshareInfo { block_number, new_signers: vec![alice_stash.public().encode()] };
     // Add another reshare
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],

@@ -25,8 +25,8 @@ use crate::{
     chain_api::{
         entropy::{
             self,
-            runtime_types::pallet_staking_extension::pallet::{JumpStartStatus, ServerInfo},
             runtime_types::entropy_runtime::RuntimeCall,
+            runtime_types::pallet_staking_extension::pallet::{JumpStartStatus, ServerInfo},
         },
         EntropyConfig,
     },
@@ -49,14 +49,13 @@ use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
+use sp_keyring::AccountKeyring;
 use std::{fmt, net::SocketAddr, str, time::Duration};
 use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::{PairSigner, TxPayload},
-    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient, config::PolkadotExtrinsicParamsBuilder as Params
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
+    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
-#[cfg(test)]
-use sp_keyring::AccountKeyring;
 
 /// A shared reference to the logger used for tests.
 ///
@@ -374,8 +373,11 @@ pub fn get_port(server_info: &ServerInfo<SubxtAccountId32>) -> u32 {
     socket_address.port().into()
 }
 
-#[cfg(test)]
-pub async fn call_set_storage(api: &OnlineClient<EntropyConfig>, rpc: &LegacyRpcMethods<EntropyConfig>, call: RuntimeCall) {
+pub async fn call_set_storage(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    call: RuntimeCall,
+) {
     let set_storage = entropy::tx().sudo().sudo(call);
     let alice = AccountKeyring::Alice;
 
