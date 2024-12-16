@@ -84,7 +84,7 @@ pub async fn do_signing(
         &session_id,
         signer,
         state,
-        &x25519_secret_key,
+        x25519_secret_key,
     )
     .await?;
 

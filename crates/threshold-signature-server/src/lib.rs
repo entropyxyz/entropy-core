@@ -216,11 +216,10 @@ impl AppState {
         validator_name: &Option<ValidatorName>,
     ) -> Self {
         let (signer, x25519_secret) = if cfg!(test) || validator_name.is_some() {
-            get_signer_and_x25519_secret(&development_mnemonic(&validator_name).to_string())
-                .unwrap()
+            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
         } else {
             let (pair, _seed) = sr25519::Pair::generate();
-            let x25519_secret = StaticSecret::random_from_rng(&mut OsRng);
+            let x25519_secret = StaticSecret::random_from_rng(OsRng);
             (pair, x25519_secret)
         };
 
