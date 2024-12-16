@@ -46,6 +46,7 @@ sp-io                          ={ version="31.0.0", default-features=false }
 sp-npos-elections              ={ version="27.0.0", default-features=false }
 sp-staking                     ={ version="27.0.0", default-features=false }
 pallet-oracle                  ={ version='0.3.0', path='../oracle', default-features=false }
+pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
 
 [features]
 
