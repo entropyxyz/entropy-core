@@ -18,7 +18,10 @@ use entropy_kvdb::clean_tests;
 use serial_test::serial;
 
 use super::api::UnsafeQuery;
-use crate::helpers::tests::{initialize_test_logger, setup_client};
+use crate::helpers::{
+    launch::LATEST_BLOCK_NUMBER_RESHARE,
+    tests::{initialize_test_logger, setup_client},
+};
 
 #[tokio::test]
 #[serial]
@@ -27,7 +30,7 @@ async fn test_unsafe_get_endpoint() {
     setup_client().await;
     let client = reqwest::Client::new();
 
-    let get_query = UnsafeQuery::new("MNEMONIC".to_string(), vec![10]).to_json();
+    let get_query = UnsafeQuery::new(LATEST_BLOCK_NUMBER_RESHARE.to_string(), vec![10]).to_json();
 
     // Test that the get endpoint works
     let response = client
