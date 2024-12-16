@@ -90,7 +90,7 @@ pub mod pallet {
         + frame_system::Config
         + pallet_staking::Config
         + pallet_parameters::Config
-        + pallet_slashing::Config // TODO (Nando) Don't hardcode this
+        + pallet_slashing::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
