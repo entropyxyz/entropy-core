@@ -372,7 +372,6 @@ pub async fn get_quote_and_change_threshold_accounts(
     validator_keypair: sr25519::Pair,
     new_tss_account: SubxtAccountId32,
     new_x25519_public_key: [u8; 32],
-    new_pck_certificate_chain: Vec<Vec<u8>>,
 ) -> Result<ThresholdAccountChanged, ClientError> {
     let quote = get_tdx_quote_with_validator_id(
         api,
@@ -387,7 +386,6 @@ pub async fn get_quote_and_change_threshold_accounts(
         validator_keypair,
         new_tss_account,
         new_x25519_public_key,
-        new_pck_certificate_chain,
         quote,
     )
     .await
