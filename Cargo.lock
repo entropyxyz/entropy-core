@@ -7287,6 +7287,7 @@ dependencies = [
  "pallet-programs",
  "pallet-registry",
  "pallet-session",
+ "pallet-slashing",
  "pallet-staking",
  "pallet-staking-extension",
  "pallet-staking-reward-curve",

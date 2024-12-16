@@ -29,10 +29,11 @@ sp-staking           ={ version="27.0.0", default-features=false }
 entropy-shared={ version="0.3.0", path="../../crates/shared", default-features=false, features=[
   "wasm-no-std",
 ] }
-pallet-registry={ version="0.3.0", path="../registry", default-features=false }
-pallet-programs={ version="0.3.0", path="../programs", default-features=false }
-pallet-staking-extension={ version="0.3.0", path="../staking", default-features=false }
 pallet-attestation={ version="0.3.0", path="../attestation", default-features=false }
+pallet-programs={ version="0.3.0", path="../programs", default-features=false }
+pallet-registry={ version="0.3.0", path="../registry", default-features=false }
+pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
+pallet-staking-extension={ version="0.3.0", path="../staking", default-features=false }
 
 [dev-dependencies]
 parking_lot="0.12.3"
