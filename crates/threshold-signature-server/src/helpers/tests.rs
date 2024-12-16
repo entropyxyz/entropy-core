@@ -373,6 +373,7 @@ pub fn get_port(server_info: &ServerInfo<SubxtAccountId32>) -> u32 {
     socket_address.port().into()
 }
 
+/// Calls set storage from sudo for testing, allows use to manipulate chain storage.
 pub async fn call_set_storage(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
