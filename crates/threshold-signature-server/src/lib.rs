@@ -177,7 +177,7 @@ use axum::{
 };
 use entropy_kvdb::kv_manager::KvManager;
 use rand_core::OsRng;
-use sp_core::{sr25519, Pair};
+use sp_core::{crypto::AccountId32, sr25519, Pair};
 use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -237,6 +237,10 @@ impl AppState {
 
     pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
         PairSigner::<EntropyConfig, sr25519::Pair>::new(self.signer.clone())
+    }
+
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.signer.public().0)
     }
 
     pub fn subxt_account_id(&self) -> SubxtAccountId32 {

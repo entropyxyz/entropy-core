@@ -24,11 +24,6 @@ use entropy_kvdb::{
 };
 use entropy_shared::NETWORK_PARENT_KEY;
 use serde::Deserialize;
-use serde_json::json;
-use subxt::ext::sp_core::{
-    crypto::{AccountId32, Ss58Codec},
-    sr25519, Pair,
-};
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -51,16 +46,7 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 #[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 4] = [
-    FORBIDDEN_KEY_MNEMONIC,
-    FORBIDDEN_KEY_SHARED_SECRET,
-    FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC,
-    NETWORK_PARENT_KEY,
-];
-
-pub const FORBIDDEN_KEY_MNEMONIC: &str = "MNEMONIC";
-pub const FORBIDDEN_KEY_SHARED_SECRET: &str = "SHARED_SECRET";
-pub const FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
+pub const FORBIDDEN_KEYS: [&str; 1] = [NETWORK_PARENT_KEY];
 
 // Deafult name for TSS server
 // Will set mnemonic and db path
@@ -198,23 +184,6 @@ pub struct StartupArgs {
     /// The path to a password file
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
-
-    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to
-    /// stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
-    ///
-    /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
-    #[arg(long = "setup-only")]
-    pub setup_only: bool,
-}
-
-pub async fn has_mnemonic(kv: &KvManager) -> bool {
-    let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
-
-    if exists {
-        tracing::debug!("Existing mnemonic found in keystore.");
-    }
-
-    exists
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
@@ -232,16 +201,6 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
 
     bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic)
         .expect("Unable to parse given mnemonic.")
-}
-
-pub async fn threshold_account_id(kv: &KvManager) -> String {
-    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
-    let pair = <sr25519::Pair as Pair>::from_phrase(
-        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-        None,
-    )
-    .expect("Issue converting mnemonic to pair");
-    AccountId32::new(pair.0.public().into()).to_ss58check()
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
@@ -298,25 +257,6 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
             .expect("failed to update latest block number");
     }
     Ok(())
-}
-
-pub async fn setup_only(kv: &KvManager) {
-    let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
-    let pair = <sr25519::Pair as Pair>::from_phrase(
-        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-        None,
-    )
-    .expect("Issue converting mnemonic to pair");
-    let account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
-
-    let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
-    let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
-    let output = json!({
-        "account_id": account_id,
-        "dh_public_key": dh_public_key,
-    });
-
-    println!("{}", output);
 }
 
 pub async fn check_node_prerequisites(url: &str, account_id: &str) {

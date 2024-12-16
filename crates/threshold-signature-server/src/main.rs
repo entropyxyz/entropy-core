@@ -16,13 +16,11 @@
 use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
+use sp_core::crypto::Ss58Codec;
 
 use entropy_tss::{
     app,
-    launch::{
-        load_kv_store, setup_latest_block_number, setup_only, Configuration, StartupArgs,
-        ValidatorName,
-    },
+    launch::{load_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName},
     AppState,
 };
 
@@ -31,19 +29,15 @@ async fn main() {
     let args = StartupArgs::parse();
     args.logger.setup().await;
 
-    if !args.setup_only {
-        tracing::info!("Starting Threshold Signature Sever");
-        tracing::info!("Starting server on: `{}`", &args.threshold_url);
-    }
+    tracing::info!("Starting Threshold Signature Sever");
+    tracing::info!("Starting server on: `{}`", &args.threshold_url);
 
     if args.logger.loki {
         tracing::info!("Sending logs to Loki server at `{}`", &args.logger.loki_endpoint);
     }
 
     let configuration = Configuration::new(args.chain_endpoint);
-    if !args.setup_only {
-        tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
-    }
+    tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
 
     let mut validator_name = None;
     if args.alice {
@@ -71,21 +65,16 @@ async fn main() {
     // Below deals with syncing the kvdb
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
 
-    if args.setup_only {
-        setup_only(&kv_store).await;
-    } else {
-        let account_id = entropy_tss::launch::threshold_account_id(&kv_store).await;
-        entropy_tss::launch::check_node_prerequisites(
-            &app_state.configuration.endpoint,
-            &account_id,
-        )
-        .await;
+    entropy_tss::launch::check_node_prerequisites(
+        &app_state.configuration.endpoint,
+        &app_state.account_id().to_ss58check(),
+    )
+    .await;
 
-        let listener = tokio::net::TcpListener::bind(&addr)
-            .await
-            .expect("Unable to bind to given server address.");
-        axum::serve(listener, app(app_state).into_make_service())
-            .await
-            .expect("failed to launch axum server.");
-    }
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .expect("Unable to bind to given server address.");
+    axum::serve(listener, app(app_state).into_make_service())
+        .await
+        .expect("failed to launch axum server.");
 }
