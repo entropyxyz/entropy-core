@@ -178,6 +178,7 @@ use axum::{
 use entropy_kvdb::kv_manager::KvManager;
 use rand_core::OsRng;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
+use std::sync::{Arc, RwLock};
 use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -201,6 +202,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct AppState {
+    ready: Arc<RwLock<bool>>,
     listener_state: ListenerState,
     pair: sr25519::Pair,
     x25519_secret: StaticSecret,
@@ -223,12 +225,25 @@ impl AppState {
         };
 
         Self {
+            ready: Arc::new(RwLock::new(false)),
             pair,
             x25519_secret,
             listener_state: ListenerState::default(),
             configuration,
             kv_store,
         }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        match self.ready.read() {
+            Ok(r) => *r,
+            _ => false,
+        }
+    }
+
+    pub fn make_ready(&self) {
+        let mut is_ready = self.ready.write().unwrap();
+        *is_ready = true;
     }
 
     /// Get a [PairSigner] for submitting extrinsics with subxt

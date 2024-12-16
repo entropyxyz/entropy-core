@@ -89,6 +89,9 @@ pub async fn relay_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
+    if !app_state.is_ready() {
+        return Err(UserErr::NotReady);
+    }
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
@@ -217,6 +220,10 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
+    if !app_state.is_ready() {
+        return Err(UserErr::NotReady);
+    }
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
@@ -378,6 +385,10 @@ pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
+    if !app_state.is_ready() {
+        return Err(UserErr::NotReady);
+    }
+
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 

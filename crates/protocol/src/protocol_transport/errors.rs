@@ -40,6 +40,8 @@ pub enum WsError {
     Serialization(#[from] bincode::Error),
     #[error("Received bad subscribe message")]
     BadSubscribeMessage,
+    #[error("Node has started fresh and not yet successfully set up")]
+    NotReady,
 }
 
 /// An error relating to handling a `ProtocolMessage`

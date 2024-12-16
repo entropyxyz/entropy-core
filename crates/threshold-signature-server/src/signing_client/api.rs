@@ -78,6 +78,10 @@ pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ProtocolErr> {
+    if !app_state.is_ready() {
+        return Err(ProtocolErr::NotReady);
+    }
+
     let ocw_data = OcwMessageProactiveRefresh::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;

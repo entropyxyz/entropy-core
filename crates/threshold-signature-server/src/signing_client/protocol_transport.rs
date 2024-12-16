@@ -113,6 +113,10 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
+    if !app_state.is_ready() {
+        return Err(WsError::NotReady);
+    }
+
     let (mut encrypted_connection, serialized_signed_message) =
         noise_handshake_responder(socket, &app_state.x25519_secret)
             .await

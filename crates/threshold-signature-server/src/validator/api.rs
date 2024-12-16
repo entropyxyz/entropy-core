@@ -53,6 +53,10 @@ pub async fn new_reshare(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
+    if !app_state.is_ready() {
+        return Err(ValidatorErr::NotReady);
+    }
+
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -204,6 +208,10 @@ async fn do_reshare(
 pub async fn rotate_network_key(
     State(app_state): State<AppState>,
 ) -> Result<StatusCode, ValidatorErr> {
+    if !app_state.is_ready() {
+        return Err(ValidatorErr::NotReady);
+    }
+
     // validate from chain
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;

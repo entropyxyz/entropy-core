@@ -62,15 +62,21 @@ async fn main() {
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 
-    // Below deals with syncing the kvdb
+    {
+        let app_state = app_state.clone();
+        tokio::spawn(async move {
+            // Check for a connection to the chain node parallel to starting the tss_server so that
+            // we already can expose the `/info` http route
+            entropy_tss::launch::check_node_prerequisites(
+                &app_state.configuration.endpoint,
+                &app_state.account_id().to_ss58check(),
+            )
+            .await;
+            app_state.make_ready();
+        });
+    }
+
     let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
-
-    entropy_tss::launch::check_node_prerequisites(
-        &app_state.configuration.endpoint,
-        &app_state.account_id().to_ss58check(),
-    )
-    .await;
-
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .expect("Unable to bind to given server address.");
