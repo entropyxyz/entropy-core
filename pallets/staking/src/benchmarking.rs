@@ -29,11 +29,11 @@ use frame_support::{
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
+use pallet_slashing::Event as SlashingEvent;
 use pallet_staking::{
     Event as FrameStakingEvent, MaxNominationsOf, MaxValidatorsCount, Nominations,
     Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
 };
-use pallet_slashing::Event as SlashingEvent;
 use sp_std::{vec, vec::Vec};
 
 const NULL_ARR: [u8; 32] = [0; 32];

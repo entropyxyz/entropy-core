@@ -738,13 +738,12 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
-        // TODO (Nando): Real weight
         #[pallet::call_index(7)]
-        #[pallet::weight(<T as Config>::WeightInfo::validate())]
+        #[pallet::weight(<T as Config>::WeightInfo::report_unstable_peer(MAX_SIGNERS as u32))]
         pub fn report_unstable_peer(
             origin: OriginFor<T>,
             offender_tss_account: T::AccountId,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let reporter_tss_account = ensure_signed(origin)?;
 
             // For reporting purposes we need to know the validator account tied to the TSS account.
@@ -780,7 +779,9 @@ pub mod pallet {
                 offending_peer_validator_account,
             )?;
 
-            Ok(())
+            let actual_weight =
+                <T as Config>::WeightInfo::report_unstable_peer(signers.len() as u32);
+            Ok(Some(actual_weight).into())
         }
     }
 
