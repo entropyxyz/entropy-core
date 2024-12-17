@@ -126,14 +126,13 @@ pub mod pallet {
     }
 
     /// Information about a threshold server in the process of joining
-    /// This becomes a [ServerInfo] when the Pck certificate chain has been validated
+    /// This becomes a [ServerInfo] when an attestation has been verified
     #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct JoiningServerInfo<AccountId> {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
-        pub pck_certificate_chain: Vec<Vec<u8>>,
     }
 
     /// Info that is requiered to do a proactive refresh

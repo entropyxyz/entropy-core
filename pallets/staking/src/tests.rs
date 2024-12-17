@@ -61,12 +61,8 @@ fn it_takes_in_an_endpoint() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 3,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -83,7 +79,6 @@ fn it_takes_in_an_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec(),
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_noop!(
             Staking::validate(
@@ -99,7 +94,6 @@ fn it_takes_in_an_endpoint() {
             tss_account: 5,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20, 20],
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_noop!(
             Staking::validate(
@@ -122,12 +116,8 @@ fn it_will_not_allow_validator_to_use_existing_tss_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 3,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -168,7 +158,6 @@ fn it_changes_endpoint() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: endpoint.clone(),
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
@@ -206,7 +195,6 @@ fn it_doesnt_change_endpoint_with_invalid_quote() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: endpoint.clone(),
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
         };
 
         assert_ok!(Staking::validate(
@@ -232,13 +220,8 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let pck_certificate_chain = vec![vec![0u8; 32]];
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 3,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: pck_certificate_chain.clone(),
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -272,12 +255,8 @@ fn it_changes_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 5,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: pck_certificate_chain.clone(),
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -317,13 +296,8 @@ fn it_doesnt_allow_changing_threshold_account_with_invalid_quote() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let pck_certificate_chain = vec![[0u8; 32].to_vec()];
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 3,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: pck_certificate_chain.clone(),
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -352,13 +326,8 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let pck_certificate_chain = vec![[0u8; 32].to_vec()];
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 3,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: pck_certificate_chain.clone(),
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(1),
             pallet_staking::ValidatorPrefs::default(),
@@ -373,12 +342,8 @@ fn it_will_not_allow_existing_tss_account_when_changing_threshold_account() {
             pallet_staking::RewardDestination::Account(2),
         ));
 
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 5,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: pck_certificate_chain.clone(),
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 5, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -410,12 +375,8 @@ fn it_deletes_when_no_bond_left() {
             pallet_staking::RewardDestination::Account(1),
         ));
 
-        let joining_server_info = JoiningServerInfo {
-            tss_account: 3,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: 3, x25519_public_key: NULL_ARR, endpoint: vec![20] };
         assert_ok!(Staking::validate(
             RuntimeOrigin::signed(2),
             pallet_staking::ValidatorPrefs::default(),
@@ -696,12 +657,8 @@ fn it_requires_attestation_before_validate_is_succesful() {
             pallet_staking::RewardDestination::Account(alice),
         ));
 
-        let joining_server_info = JoiningServerInfo {
-            tss_account: bob,
-            x25519_public_key: NULL_ARR,
-            endpoint: vec![20],
-            pck_certificate_chain: vec![[0u8; 32].to_vec()],
-        };
+        let joining_server_info =
+            JoiningServerInfo { tss_account: bob, x25519_public_key: NULL_ARR, endpoint: vec![20] };
 
         // First we test that an invalid attestation doesn't allow us to submit our candidacy.
         assert_noop!(

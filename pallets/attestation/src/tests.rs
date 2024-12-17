@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::mock::*;
-use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData};
+use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError};
 use frame_support::{assert_noop, assert_ok};
 use rand_core::OsRng;
 
@@ -92,7 +92,7 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 quote.as_bytes().to_vec(),
                 QuoteContext::Validate,
             ),
-            crate::Error::<Test>::UnexpectedAttestation,
+            VerifyQuoteError::UnexpectedAttestation,
         );
 
         // The X25519 public key we're comitting to here doesn't match what we used to generate the
@@ -105,7 +105,7 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 quote.as_bytes().to_vec(),
                 QuoteContext::Validate,
             ),
-            crate::Error::<Test>::IncorrectInputData,
+            VerifyQuoteError::IncorrectInputData,
         );
     })
 }

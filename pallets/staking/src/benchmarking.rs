@@ -108,14 +108,8 @@ fn prepare_attestation_for_validate<T: Config>(
             .to_vec()
     };
 
-    let joining_server_info = JoiningServerInfo {
-        tss_account: threshold.clone(),
-        x25519_public_key,
-        endpoint,
-        // Since we are using the mock PckCertChainVerifier, this needs to be the same seed for
-        // generating the PCK as we used to sign the quote above
-        pck_certificate_chain: vec![NULL_ARR.to_vec()],
-    };
+    let joining_server_info =
+        JoiningServerInfo { tss_account: threshold.clone(), x25519_public_key, endpoint };
 
     // We need to tell the attestation handler that we want a quote. This will let the system to
     // know to expect one back when we call `validate()`.
