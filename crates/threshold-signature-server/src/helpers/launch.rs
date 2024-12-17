@@ -302,11 +302,10 @@ pub async fn check_node_prerequisites(app_state: AppState) {
                     tracing::error!("Unable to query the account balance of `{}`", &account_id);
                     "Unable to query account balance".to_string()
                 })?;
-                Ok(if has_minimum_balance {
-                    ()
-                } else {
+                if !has_minimum_balance {
                     Err("Minimum balance not met".to_string())?
-                })
+                }
+                Ok(())
             };
 
             if let Err(error) = backoff::future::retry(backoff.clone(), balance_query).await {
