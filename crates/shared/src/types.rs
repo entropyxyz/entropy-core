@@ -193,7 +193,7 @@ impl<AccountId> AttestationHandler<AccountId> for () {
 
 /// An error when verifying a quote
 #[cfg(not(feature = "wasm"))]
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum VerifyQuoteError {
     /// Quote could not be parsed or verified
     BadQuote,
