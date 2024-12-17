@@ -16,7 +16,6 @@
 use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
-use sp_core::crypto::Ss58Codec;
 
 use entropy_tss::{
     app,
@@ -67,12 +66,7 @@ async fn main() {
         tokio::spawn(async move {
             // Check for a connection to the chain node parallel to starting the tss_server so that
             // we already can expose the `/info` http route
-            entropy_tss::launch::check_node_prerequisites(
-                &app_state.configuration.endpoint,
-                &app_state.account_id().to_ss58check(),
-            )
-            .await;
-            app_state.make_ready();
+            entropy_tss::launch::check_node_prerequisites(app_state).await;
         });
     }
 

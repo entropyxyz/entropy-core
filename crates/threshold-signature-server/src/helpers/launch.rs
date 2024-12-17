@@ -17,13 +17,16 @@
 
 use std::{fs, path::PathBuf};
 
+use crate::{chain_api::entropy, helpers::substrate::query_chain, AppState};
 use clap::Parser;
+use entropy_client::substrate::SubstrateError;
 use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
 use entropy_shared::NETWORK_PARENT_KEY;
 use serde::Deserialize;
+use sp_core::crypto::Ss58Codec;
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -259,8 +262,10 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
     Ok(())
 }
 
-pub async fn check_node_prerequisites(url: &str, account_id: &str) {
+pub async fn check_node_prerequisites(app_state: AppState) {
     use crate::chain_api::{get_api, get_rpc};
+    let url = &app_state.configuration.endpoint;
+    let account_id = app_state.account_id();
 
     let connect_to_substrate_node = || async {
         tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
@@ -277,8 +282,10 @@ pub async fn check_node_prerequisites(url: &str, account_id: &str) {
     };
 
     // Note: By default this will wait 15 minutes before it stops retry attempts.
-    let backoff = backoff::ExponentialBackoff::default();
-    match backoff::future::retry(backoff, connect_to_substrate_node).await {
+    let mut backoff = backoff::ExponentialBackoff::default();
+    // Never give up trying to connect
+    backoff.max_elapsed_time = None;
+    match backoff::future::retry(backoff.clone(), connect_to_substrate_node).await {
         Ok((api, rpc)) => {
             tracing::info!("Sucessfully connected to Substrate node!");
 
@@ -286,7 +293,7 @@ pub async fn check_node_prerequisites(url: &str, account_id: &str) {
             let balance_query = crate::validator::api::check_balance_for_fees(
                 &api,
                 &rpc,
-                account_id.to_string(),
+                account_id.to_ss58check().to_string(),
                 entropy_shared::MIN_BALANCE,
             )
             .await
@@ -312,19 +319,31 @@ pub async fn check_node_prerequisites(url: &str, account_id: &str) {
                 },
             }
 
-            // TODO now check if there exists a threshold server with our details - if there is not,
+            // Now check if there exists a threshold server with our details - if there is not,
             // we need to wait until there is
-            // let stash_address_query = entropy::storage()
-            //     .staking_extension()
-            //     .threshold_to_stash(validator_info.tss_account.clone());
-            //
-            // let stash_address = query_chain(&api, &rpc, stash_address_query, None)
-            //     .await?
-            //     .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
+            let check_for_tss_account_id = || async {
+                let stash_address_query = entropy::storage()
+                    .staking_extension()
+                    .threshold_to_stash(subxt::utils::AccountId32(*account_id.as_ref()));
+
+                let _stash_address = query_chain(&api, &rpc, stash_address_query, None)
+                    .await?
+                    .ok_or_else(|| SubstrateError::NoEvent)?;
+                Ok(())
+            };
+
+            tracing::info!(
+                "Checking if our account ID has been registered on chain `{}`",
+                &account_id
+            );
+            if let Err(error) = backoff::future::retry(backoff, check_for_tss_account_id).await {
+                tracing::error!("This should never happen because backoff has no permanent errors or maximum timeout: {error}");
+            }
+            tracing::info!("TSS node passed all prerequisite checks and is ready");
+            app_state.make_ready();
         },
-        Err(_err) => {
-            tracing::error!("Unable to establish connection with Substrate node at `{}`", url);
-            panic!("Unable to establish connection with Substrate node.");
+        Err(error) => {
+            tracing::error!("This should never happen because backoff has no permanent errors or maximum timeout: {error:?}");
         },
     }
 }
