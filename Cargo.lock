@@ -675,7 +675,7 @@ dependencies = [
  "sha1",
  "sync_wrapper 1.0.1",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.24.0",
  "tower 0.5.1",
  "tower-layer",
  "tower-service",
@@ -2644,7 +2644,7 @@ dependencies = [
  "synedrion",
  "thiserror 2.0.7",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.25.0",
  "tracing",
  "wasm-bindgen",
  "wasm-bindgen-derive",
@@ -2860,7 +2860,7 @@ dependencies = [
  "tdx-quote",
  "thiserror 2.0.7",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.25.0",
  "tower-http 0.6.2",
  "tracing",
  "tracing-bunyan-formatter",
@@ -14558,7 +14558,19 @@ dependencies = [
  "futures-util",
  "log",
  "tokio",
- "tungstenite",
+ "tungstenite 0.24.0",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c28562dd8aea311048ed1ab9372a6b9a59977e1b308afb87c985c1f2b3206938"
+dependencies = [
+ "futures-util",
+ "log",
+ "tokio",
+ "tungstenite 0.25.0",
 ]
 
 [[package]]
@@ -15019,6 +15031,24 @@ dependencies = [
  "rand",
  "sha1",
  "thiserror 1.0.68",
+ "utf-8",
+]
+
+[[package]]
+name = "tungstenite"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "326eb16466ed89221beef69dbc94f517ee888bae959895472133924a25f7070e"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http 1.1.0",
+ "httparse",
+ "log",
+ "rand",
+ "sha1",
+ "thiserror 2.0.7",
  "utf-8",
 ]
 
