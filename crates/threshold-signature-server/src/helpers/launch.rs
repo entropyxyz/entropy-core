@@ -283,39 +283,40 @@ pub async fn check_node_prerequisites(app_state: AppState) {
 
     // Never give up trying to connect
     let backoff = backoff::ExponentialBackoff { max_elapsed_time: None, ..Default::default() };
+
     match backoff::future::retry(backoff.clone(), connect_to_substrate_node).await {
         Ok((api, rpc)) => {
             tracing::info!("Sucessfully connected to Substrate node!");
 
             tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
-            let balance_query = crate::validator::api::check_balance_for_fees(
-                &api,
-                &rpc,
-                account_id.to_ss58check().to_string(),
-                entropy_shared::MIN_BALANCE,
-            )
-            .await
-            .map_err(|_| Err::<bool, String>("Failed to get balance of account.".to_string()));
 
-            match balance_query {
-                Ok(has_minimum_balance) => {
-                    if has_minimum_balance {
-                        tracing::info!(
-                            "The account `{}` has enough funds for submitting extrinsics.",
-                            &account_id
-                        )
-                    } else {
-                        tracing::warn!(
-                            "The account `{}` does not meet the minimum balance of `{}`",
-                            &account_id,
-                            entropy_shared::MIN_BALANCE,
-                        )
-                    }
-                },
-                Err(_) => {
-                    tracing::warn!("Unable to query the account balance of `{}`", &account_id)
-                },
+            let balance_query = || async {
+                let has_minimum_balance = crate::validator::api::check_balance_for_fees(
+                    &api,
+                    &rpc,
+                    account_id.to_ss58check().to_string(),
+                    entropy_shared::MIN_BALANCE,
+                )
+                .await
+                .map_err(|_| {
+                    tracing::error!("Unable to query the account balance of `{}`", &account_id);
+                    "Unable to query account balance".to_string()
+                })?;
+                Ok(if has_minimum_balance {
+                    ()
+                } else {
+                    Err("Minimum balance not met".to_string())?
+                })
+            };
+
+            if let Err(error) = backoff::future::retry(backoff.clone(), balance_query).await {
+                tracing::error!("This should never happen because backoff has no permanent errors or maximum timeout: {error}");
             }
+
+            tracing::info!(
+                "The account `{}` has enough funds for submitting extrinsics.",
+                &account_id
+            );
 
             // Now check if there exists a threshold server with our details - if there is not,
             // we need to wait until there is
