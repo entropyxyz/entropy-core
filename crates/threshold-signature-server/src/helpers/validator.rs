@@ -27,16 +27,6 @@ use crate::user::UserErr;
 const KDF_SR25519: &[u8] = b"sr25519-threshold-account";
 const KDF_X25519: &[u8] = b"X25519-keypair";
 
-// Returns a PairSigner for this node's threshold server.
-// The PairSigner is stored as an encrypted mnemonic in the kvdb and
-// is used to sign encrypted messages and to submit extrinsics on chain.
-// pub async fn get_signer(
-//     kv: &KvManager,
-// ) -> Result<PairSigner<EntropyConfig, sr25519::Pair>, UserErr> {
-//     let hkdf = get_hkdf(kv).await?;
-//     get_signer_from_hkdf(&hkdf)
-// }
-
 /// Get the PairSigner as above, and also the x25519 encryption keypair for
 /// this threshold server
 pub fn get_signer_and_x25519_secret(

@@ -202,15 +202,24 @@ use crate::{
 
 #[derive(Clone)]
 pub struct AppState {
+    /// Tracks whether prerequisite checks have passed.
+    /// This means:
+    /// - Communication has been established with the chain node
+    /// - The TSS account is funded
+    /// - The TSS account is registered with the staking extension pallet
     ready: Arc<RwLock<bool>>,
+    /// Tracks incoming protocol connections with other TSS nodes
     listener_state: ListenerState,
+    /// Keypair for TSS account
     pair: sr25519::Pair,
+    /// Secret encryption key
     x25519_secret: StaticSecret,
     pub configuration: Configuration,
     pub kv_store: KvManager,
 }
 
 impl AppState {
+    /// Setup AppState, generating new keypairs unless a test validator name is passed
     pub fn new(
         configuration: Configuration,
         kv_store: KvManager,
@@ -234,6 +243,8 @@ impl AppState {
         }
     }
 
+    /// Returns true if all prerequisite checks have passed.
+    /// Is is not possible to participate in the protocols before this is true.
     pub fn is_ready(&self) -> bool {
         match self.ready.read() {
             Ok(r) => *r,
@@ -241,6 +252,7 @@ impl AppState {
         }
     }
 
+    /// Mark the node as ready. This is called once when the prerequisite checks have passed.
     pub fn make_ready(&self) {
         let mut is_ready = self.ready.write().unwrap();
         *is_ready = true;
