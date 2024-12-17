@@ -35,7 +35,8 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
 /// Public signing and encryption keys associated with a TS server
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TssPublicKeys {
-    pub connected_to_chain: bool,
+    /// Indicates that all prerequisite checks have passed
+    pub ready: bool,
     pub tss_account: AccountId32,
     pub x25519_public_key: X25519PublicKey,
 }
@@ -44,7 +45,7 @@ pub struct TssPublicKeys {
 #[tracing::instrument(skip_all)]
 pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
     Ok(Json(TssPublicKeys {
-        connected_to_chain: app_state.is_ready(),
+        ready: app_state.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
         tss_account: app_state.subxt_account_id(),
     }))

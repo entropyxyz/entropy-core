@@ -179,7 +179,10 @@ use entropy_kvdb::kv_manager::KvManager;
 use rand_core::OsRng;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::sync::{Arc, RwLock};
-use subxt::{tx::PairSigner, utils::AccountId32 as SubxtAccountId32};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
+    OnlineClient,
+};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
@@ -190,7 +193,7 @@ use x25519_dalek::StaticSecret;
 pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
 use crate::{
     attestation::api::{attest, get_attest},
-    chain_api::EntropyConfig,
+    chain_api::{get_api, get_rpc, EntropyConfig},
     health::api::healthz,
     launch::{development_mnemonic, Configuration, ValidatorName},
     node_info::api::{hashes, info, version as get_version},
@@ -276,6 +279,16 @@ impl AppState {
     /// Get the x25519 public key
     pub fn x25519_public_key(&self) -> [u8; 32] {
         x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
+    }
+
+    /// Convenience function to get chain api and rpc
+    pub async fn get_api_rpc(
+        &self,
+    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), subxt::Error> {
+        Ok((
+            get_api(&self.configuration.endpoint).await?,
+            get_rpc(&self.configuration.endpoint).await?,
+        ))
     }
 }
 
