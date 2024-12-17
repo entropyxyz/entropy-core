@@ -90,6 +90,7 @@ pub mod pallet {
         + frame_system::Config
         + pallet_staking::Config
         + pallet_parameters::Config
+        + pallet_slashing::Config
     {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -336,6 +337,7 @@ pub mod pallet {
         InvalidValidatorId,
         SigningGroupError,
         TssAccountAlreadyExists,
+        NotSigner,
         NotNextSigner,
         ReshareNotInProgress,
         AlreadyConfirmed,
@@ -734,6 +736,57 @@ pub mod pallet {
             // TODO: Weight is `Pays::No` but want a more accurate weight for max signers vs current
             // signers see https://github.com/entropyxyz/entropy-core/issues/985
             Ok(Pays::No.into())
+        }
+
+        /// An on-chain hook for TSS servers in the signing committee to report other TSS servers in
+        /// the committee for misbehaviour.
+        ///
+        /// Any "conequences" are handled by the configured Slashing pallet and not this pallet
+        /// itself.
+        #[pallet::call_index(7)]
+        #[pallet::weight(<T as Config>::WeightInfo::report_unstable_peer(MAX_SIGNERS as u32))]
+        pub fn report_unstable_peer(
+            origin: OriginFor<T>,
+            offender_tss_account: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            let reporter_tss_account = ensure_signed(origin)?;
+
+            // For reporting purposes we need to know the validator account tied to the TSS account.
+            let reporter_validator_id = Self::threshold_to_stash(&reporter_tss_account)
+                .ok_or(Error::<T>::NoThresholdKey)?;
+            let offender_validator_id = Self::threshold_to_stash(&offender_tss_account)
+                .ok_or(Error::<T>::NoThresholdKey)?;
+
+            // Note: This operation is O(n), but with a small enough Signer group this should be
+            // fine to do on-chain.
+            let signers = Self::signers();
+            ensure!(signers.contains(&reporter_validator_id), Error::<T>::NotSigner);
+            ensure!(signers.contains(&offender_validator_id), Error::<T>::NotSigner);
+
+            // We do a bit of a weird conversion here since we want the validator's underlying
+            // `AccountId` for the reporting mechanism, not their `ValidatorId`.
+            //
+            // The Session pallet should have this configured to be the same thing, but we can't
+            // prove that to the compiler.
+            let encoded_validator_id = T::ValidatorId::encode(&reporter_validator_id);
+            let reporter_validator_account = T::AccountId::decode(&mut &encoded_validator_id[..])
+                .expect("A `ValidatorId` should be equivalent to an `AccountId`.");
+
+            let encoded_validator_id = T::ValidatorId::encode(&offender_validator_id);
+            let offending_peer_validator_account =
+                T::AccountId::decode(&mut &encoded_validator_id[..])
+                    .expect("A `ValidatorId` should be equivalent to an `AccountId`.");
+
+            // We don't actually take any action here, we offload the reporting to the Slashing
+            // pallet.
+            pallet_slashing::Pallet::<T>::note_report(
+                reporter_validator_account,
+                offending_peer_validator_account,
+            )?;
+
+            let actual_weight =
+                <T as Config>::WeightInfo::report_unstable_peer(signers.len() as u32);
+            Ok(Some(actual_weight).into())
         }
     }
 

@@ -34,6 +34,7 @@ p256              ={ version="0.13.2", default-features=false, features=["ecdsa"
 rand              ={ version="0.8.5", default-features=false, features=["alloc"] }
 
 pallet-parameters={ version="0.3.0", path="../parameters", default-features=false }
+pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
 entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
@@ -69,6 +70,7 @@ std=[
   'pallet-balances/std',
   'pallet-parameters/std',
   'pallet-session/std',
+  'pallet-slashing/std',
   'pallet-staking/std',
   'scale-info/std',
   'sp-consensus-babe/std',

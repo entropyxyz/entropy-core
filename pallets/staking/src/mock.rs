@@ -63,6 +63,7 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
+    Slashing: pallet_slashing,
   }
 );
 
@@ -416,6 +417,43 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
     }
 
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
+}
+
+type IdentificationTuple = (u64, pallet_staking::Exposure<AccountId, Balance>);
+type Offence = pallet_slashing::UnresponsivenessOffence<IdentificationTuple>;
+
+parameter_types! {
+    pub static Offences: Vec<Offence> = vec![];
+}
+
+/// A mock offence report handler.
+pub struct OffenceHandler;
+impl sp_staking::offence::ReportOffence<AccountId, IdentificationTuple, Offence>
+    for OffenceHandler
+{
+    fn report_offence(
+        _reporters: Vec<u64>,
+        offence: Offence,
+    ) -> Result<(), sp_staking::offence::OffenceError> {
+        Offences::mutate(|l| l.push(offence));
+        Ok(())
+    }
+
+    fn is_known_offence(_offenders: &[IdentificationTuple], _time_slot: &SessionIndex) -> bool {
+        false
+    }
+}
+
+parameter_types! {
+    pub const ReportThreshold: u32 = 5;
+}
+
+impl pallet_slashing::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type AuthorityId = UintAuthorityId;
+    type ReportThreshold = ReportThreshold;
+    type ValidatorSet = Historical;
+    type ReportUnresponsiveness = OffenceHandler;
 }
 
 impl pallet_staking_extension::Config for Test {
