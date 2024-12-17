@@ -281,10 +281,8 @@ pub async fn check_node_prerequisites(app_state: AppState) {
         Ok((api, rpc))
     };
 
-    // Note: By default this will wait 15 minutes before it stops retry attempts.
-    let mut backoff = backoff::ExponentialBackoff::default();
     // Never give up trying to connect
-    backoff.max_elapsed_time = None;
+    let backoff = backoff::ExponentialBackoff { max_elapsed_time: None, ..Default::default() };
     match backoff::future::retry(backoff.clone(), connect_to_substrate_node).await {
         Ok((api, rpc)) => {
             tracing::info!("Sucessfully connected to Substrate node!");
