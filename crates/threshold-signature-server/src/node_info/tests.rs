@@ -74,7 +74,7 @@ async fn info_test() {
         TssPublicKeys {
             tss_account: TSS_ACCOUNTS[0].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
-            connected_to_chain: false,
+            connected_to_chain: true,
         }
     );
     clean_tests();
