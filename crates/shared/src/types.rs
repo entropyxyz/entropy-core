@@ -167,7 +167,7 @@ pub trait AttestationHandler<AccountId> {
         x25519_public_key: X25519PublicKey,
         quote: Vec<u8>,
         context: QuoteContext,
-    ) -> Result<BoundedVecEncodedVerifyingKey, sp_runtime::DispatchError>;
+    ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError>;
 
     /// Indicate to the attestation handler that a quote is desired.
     ///
@@ -184,9 +184,35 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         _x25519_public_key: X25519PublicKey,
         _quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<BoundedVecEncodedVerifyingKey, sp_runtime::DispatchError> {
+    ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
         Ok(sp_runtime::BoundedVec::new())
     }
 
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
+}
+
+/// An error when verifying a quote
+#[cfg(not(feature = "wasm"))]
+#[derive(Eq, PartialEq)]
+pub enum VerifyQuoteError {
+    /// Quote could not be parsed or verified
+    BadQuote,
+    /// Attestation extrinsic submitted when not requested
+    UnexpectedAttestation,
+    /// Hashed input data does not match what was expected
+    IncorrectInputData,
+    /// Unacceptable VM image running
+    BadMrtdValue,
+    /// Cannot encode verifying key (PCK)
+    CannotEncodeVerifyingKey,
+    /// Cannot decode verifying key (PCK)
+    CannotDecodeVerifyingKey,
+    /// PCK certificate chain cannot be parsed
+    PckCertificateParse,
+    /// PCK certificate chain cannot be verified
+    PckCertificateVerify,
+    /// PCK certificate chain public key is not well formed
+    PckCertificateBadPublicKey,
+    /// Pck certificate could not be extracted from quote
+    PckCertificateNoCertificate,
 }

@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData};
+    use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError};
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
@@ -209,28 +209,28 @@ pub mod pallet {
             x25519_public_key: entropy_shared::X25519PublicKey,
             quote: Vec<u8>,
             context: QuoteContext,
-        ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, DispatchError> {
+        ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
-            let nonce =
-                PendingAttestations::<T>::get(attestee).ok_or(Error::<T>::UnexpectedAttestation)?;
+            let nonce = PendingAttestations::<T>::get(attestee)
+                .ok_or(VerifyQuoteError::UnexpectedAttestation)?;
 
             // Parse the quote (which internally verifies the attestation key signature)
-            let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
+            let quote = Quote::from_bytes(&quote).map_err(|_| VerifyQuoteError::BadQuote)?;
 
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
                 QuoteInputData::new(attestee, x25519_public_key, nonce, context);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
-                Error::<T>::IncorrectInputData
+                VerifyQuoteError::IncorrectInputData
             );
 
             // Check build-time measurement matches a current-supported release of entropy-tss
             let mrtd_value = BoundedVec::try_from(quote.mrtd().to_vec())
-                .map_err(|_| Error::<T>::BadMrtdValue)?;
+                .map_err(|_| VerifyQuoteError::BadMrtdValue)?;
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
-            ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
+            ensure!(accepted_mrtd_values.contains(&mrtd_value), VerifyQuoteError::BadMrtdValue);
 
             let pck = verify_pck_certificate_chain::<T>(&quote)?;
 
@@ -240,10 +240,10 @@ pub mod pallet {
 
             Ok(BoundedVec::try_from(
                 encode_verifying_key(&pck)
-                    .map_err(|_| Error::<T>::CannotEncodeVerifyingKey)?
+                    .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)?
                     .to_vec(),
             )
-            .map_err(|_| Error::<T>::CannotEncodeVerifyingKey)?)
+            .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)?)
         }
 
         fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
@@ -254,8 +254,8 @@ pub mod pallet {
     #[cfg(feature = "production")]
     fn verify_pck_certificate_chain<T: Config>(
         quote: &Quote,
-    ) -> Result<VerifyingKey, DispatchError> {
-        Ok(quote.verify().map_err(|_| Error::<T>::PckVerification)?)
+    ) -> Result<VerifyingKey, VerifyQuoteError> {
+        Ok(quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)?)
     }
 
     /// A mock version of verifying the PCK certificate chain.
@@ -264,19 +264,19 @@ pub mod pallet {
     #[cfg(not(feature = "production"))]
     fn verify_pck_certificate_chain<T: Config>(
         quote: &Quote,
-    ) -> Result<VerifyingKey, DispatchError> {
+    ) -> Result<VerifyingKey, VerifyQuoteError> {
         let provisioning_certification_key =
-            quote.pck_cert_chain().map_err(|_| Error::<T>::NoPckCertChain)?;
+            quote.pck_cert_chain().map_err(|_| VerifyQuoteError::PckCertificateNoCertificate)?;
         let provisioning_certification_key = tdx_quote::decode_verifying_key(
             &provisioning_certification_key
                 .try_into()
-                .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
+                .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?,
         )
-        .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
+        .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?;
 
         ensure!(
             quote.verify_with_pck(&provisioning_certification_key).is_ok(),
-            Error::<T>::PckVerification
+            VerifyQuoteError::PckCertificateVerify
         );
         Ok(provisioning_certification_key)
     }

@@ -58,7 +58,7 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        QuoteContext, ValidatorInfo, X25519PublicKey, MAX_SIGNERS,
+        QuoteContext, ValidatorInfo, VerifyQuoteError, X25519PublicKey, MAX_SIGNERS,
         PREGENERATED_NETWORK_VERIFYING_KEY, TEST_RESHARE_BLOCK_NUMBER, VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
@@ -339,23 +339,48 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        /// Quote could not be parsed or verified
+        BadQuote,
+        /// Attestation extrinsic submitted when not requested
+        UnexpectedAttestation,
+        /// Hashed input data does not match what was expected
+        IncorrectInputData,
+        /// Unacceptable VM image running
+        BadMrtdValue,
+        /// Cannot encode verifying key (PCK)
+        CannotEncodeVerifyingKey,
+        /// Cannot decode verifying key (PCK)
+        CannotDecodeVerifyingKey,
+        /// PCK certificate chain cannot be parsed
         PckCertificateParse,
+        /// PCK certificate chain cannot be verified
         PckCertificateVerify,
+        /// PCK certificate chain public key is not well formed
         PckCertificateBadPublicKey,
+        /// Pck certificate could not be extracted from quote
         PckCertificateNoCertificate,
-        FailedAttestationCheck,
     }
 
-    // impl<T> From<pck::PckParseVerifyError> for Error<T> {
-    //     fn from(error: pck::PckParseVerifyError) -> Self {
-    //         match error {
-    //             pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
-    //             pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
-    //             pck::PckParseVerifyError::BadPublicKey => Error::<T>::PckCertificateBadPublicKey,
-    //             pck::PckParseVerifyError::NoCertificate => Error::<T>::PckCertificateNoCertificate,
-    //         }
-    //     }
-    // }
+    impl<T> From<VerifyQuoteError> for Error<T> {
+        fn from(error: VerifyQuoteError) -> Self {
+            match error {
+                VerifyQuoteError::BadQuote => Error::<T>::BadQuote,
+                VerifyQuoteError::UnexpectedAttestation => Error::<T>::UnexpectedAttestation,
+                VerifyQuoteError::IncorrectInputData => Error::<T>::IncorrectInputData,
+                VerifyQuoteError::BadMrtdValue => Error::<T>::BadMrtdValue,
+                VerifyQuoteError::CannotEncodeVerifyingKey => Error::<T>::CannotEncodeVerifyingKey,
+                VerifyQuoteError::PckCertificateParse => Error::<T>::PckCertificateParse,
+                VerifyQuoteError::PckCertificateVerify => Error::<T>::PckCertificateVerify,
+                VerifyQuoteError::PckCertificateBadPublicKey => {
+                    Error::<T>::PckCertificateBadPublicKey
+                },
+                VerifyQuoteError::PckCertificateNoCertificate => {
+                    Error::<T>::PckCertificateNoCertificate
+                },
+                VerifyQuoteError::CannotDecodeVerifyingKey => Error::<T>::CannotDecodeVerifyingKey,
+            }
+        }
+    }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -422,16 +447,12 @@ pub mod pallet {
                 if let Some(server_info) = maybe_server_info {
                     // Before we modify the `server_info`, we want to check that the validator is
                     // still running TDX hardware.
-                    ensure!(
-                        <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
-                            &server_info.tss_account.clone(),
-                            server_info.x25519_public_key,
-                            quote,
-                            QuoteContext::ChangeEndpoint,
-                        )
-                        .is_ok(),
-                        Error::<T>::FailedAttestationCheck
-                    );
+                    <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                        &server_info.tss_account.clone(),
+                        server_info.x25519_public_key,
+                        quote,
+                        QuoteContext::ChangeEndpoint,
+                    )?;
 
                     server_info.endpoint.clone_from(&endpoint);
 
@@ -495,7 +516,7 @@ pub mod pallet {
                                 x25519_public_key,
                                 quote,
                                 QuoteContext::ChangeThresholdAccounts,
-                            ).map_err(|_| Error::<T>::FailedAttestationCheck)?;
+                            )?;
 
                         server_info.tss_account = tss_account;
                         server_info.x25519_public_key = x25519_public_key;
@@ -631,7 +652,7 @@ pub mod pallet {
                     quote,
                     QuoteContext::Validate,
                 )
-                .map_err(|_| Error::<T>::FailedAttestationCheck)?;
+                .map_err(|e| <VerifyQuoteError as Into<Error<T>>>::into(e))?;
 
             let server_info = ServerInfo::<T::AccountId> {
                 tss_account: joining_server_info.tss_account,
