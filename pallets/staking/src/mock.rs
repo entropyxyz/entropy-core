@@ -400,11 +400,12 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
         _x25519_public_key: entropy_shared::X25519PublicKey,
         quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, sp_runtime::DispatchError> {
+    ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, entropy_shared::VerifyQuoteError>
+    {
         let quote: Result<[u8; 32], _> = quote.try_into();
         match quote {
             Ok(q) if q == VALID_QUOTE => Ok([0; 33].to_vec().try_into().unwrap()),
-            Ok(q) if q == INVALID_QUOTE => Err(sp_runtime::DispatchError::Other("Invalid quote")),
+            Ok(q) if q == INVALID_QUOTE => Err(entropy_shared::VerifyQuoteError::BadQuote),
             _ => {
                 // We don't really want to verify quotes for tests in this pallet, so if we get
                 // something else we'll just accept it.

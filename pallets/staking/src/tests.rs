@@ -218,7 +218,7 @@ fn it_doesnt_change_endpoint_with_invalid_quote() {
 
         assert_noop!(
             Staking::change_endpoint(RuntimeOrigin::signed(1), endpoint, INVALID_QUOTE.to_vec()),
-            Error::<Test>::FailedAttestationCheck
+            Error::<Test>::BadQuote
         );
     })
 }
@@ -338,7 +338,7 @@ fn it_doesnt_allow_changing_threshold_account_with_invalid_quote() {
                 NULL_ARR,
                 INVALID_QUOTE.to_vec()
             ),
-            Error::<Test>::FailedAttestationCheck
+            Error::<Test>::BadQuote
         );
     })
 }
@@ -711,7 +711,7 @@ fn it_requires_attestation_before_validate_is_succesful() {
                 joining_server_info.clone(),
                 INVALID_QUOTE.to_vec(),
             ),
-            Error::<Test>::FailedAttestationCheck
+            Error::<Test>::BadQuote
         );
 
         assert_eq!(Staking::threshold_server(bob), None);
