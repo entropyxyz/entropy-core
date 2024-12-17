@@ -232,18 +232,18 @@ pub mod pallet {
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
             ensure!(accepted_mrtd_values.contains(&mrtd_value), VerifyQuoteError::BadMrtdValue);
 
-            let pck = verify_pck_certificate_chain::<T>(&quote)?;
+            let pck = verify_pck_certificate_chain(&quote)?;
 
             PendingAttestations::<T>::remove(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
-            Ok(BoundedVec::try_from(
+            BoundedVec::try_from(
                 encode_verifying_key(&pck)
                     .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)?
                     .to_vec(),
             )
-            .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)?)
+            .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)
         }
 
         fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
@@ -252,19 +252,15 @@ pub mod pallet {
     }
 
     #[cfg(feature = "production")]
-    fn verify_pck_certificate_chain<T: Config>(
-        quote: &Quote,
-    ) -> Result<VerifyingKey, VerifyQuoteError> {
-        Ok(quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)?)
+    fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
+        quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)
     }
 
     /// A mock version of verifying the PCK certificate chain.
     /// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
     /// so this function just decodes it, checks it was used to sign the quote, and returns it
     #[cfg(not(feature = "production"))]
-    fn verify_pck_certificate_chain<T: Config>(
-        quote: &Quote,
-    ) -> Result<VerifyingKey, VerifyQuoteError> {
+    fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
         let provisioning_certification_key =
             quote.pck_cert_chain().map_err(|_| VerifyQuoteError::PckCertificateNoCertificate)?;
         let provisioning_certification_key = tdx_quote::decode_verifying_key(
