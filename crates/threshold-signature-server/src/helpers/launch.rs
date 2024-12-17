@@ -311,6 +311,16 @@ pub async fn check_node_prerequisites(url: &str, account_id: &str) {
                     tracing::warn!("Unable to query the account balance of `{}`", &account_id)
                 },
             }
+
+            // TODO now check if there exists a threshold server with our details - if there is not,
+            // we need to wait until there is
+            // let stash_address_query = entropy::storage()
+            //     .staking_extension()
+            //     .threshold_to_stash(validator_info.tss_account.clone());
+            //
+            // let stash_address = query_chain(&api, &rpc, stash_address_query, None)
+            //     .await?
+            //     .ok_or_else(|| UserErr::ChainFetch("Stash Fetch Error"))?;
         },
         Err(_err) => {
             tracing::error!("Unable to establish connection with Substrate node at `{}`", url);

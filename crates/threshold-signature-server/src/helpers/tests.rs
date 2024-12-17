@@ -72,6 +72,7 @@ pub async fn setup_client() -> KvManager {
     let _ = setup_latest_block_number(&kv_store).await;
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let app_state = AppState::new(configuration, kv_store.clone(), &Some(ValidatorName::Alice));
+    // Mock making the pre-requisite checks by setting the application state to ready
     app_state.make_ready();
 
     let app = app(app_state).into_make_service();
@@ -108,6 +109,7 @@ pub async fn create_clients(
     }
 
     let app_state = AppState::new(configuration, kv_store.clone(), validator_name);
+    // Mock making the pre-requisite checks by setting the application state to ready
     app_state.make_ready();
 
     let account_id = app_state.subxt_account_id();
