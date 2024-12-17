@@ -651,7 +651,7 @@ pub mod pallet {
                     quote,
                     QuoteContext::Validate,
                 )
-                .map_err(|e| <VerifyQuoteError as Into<Error<T>>>::into(e))?;
+                .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
 
             let server_info = ServerInfo::<T::AccountId> {
                 tss_account: joining_server_info.tss_account,
