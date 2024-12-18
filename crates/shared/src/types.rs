@@ -162,6 +162,8 @@ impl std::fmt::Display for QuoteContext {
 #[cfg(not(feature = "wasm"))]
 pub trait AttestationHandler<AccountId> {
     /// Verify that the given quote is valid and matches the given information about the attestee.
+    /// The Provisioning Certification Key (PCK) certifcate chain is extracted from the quote and
+    /// verified. If successful, the PCK public key used to sign the quote is returned.
     fn verify_quote(
         attestee: &AccountId,
         x25519_public_key: X25519PublicKey,
@@ -185,7 +187,8 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         _quote: Vec<u8>,
         _context: QuoteContext,
     ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
-        Ok(sp_runtime::BoundedVec::new())
+        // Ok(sp_runtime::BoundedVec::new())
+        Ok(BoundedVecEncodedVerifyingKey::try_from([0; 33].to_vec()).unwrap())
     }
 
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}

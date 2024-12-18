@@ -361,6 +361,9 @@ pub mod pallet {
     }
 
     impl<T> From<VerifyQuoteError> for Error<T> {
+        /// As there are many reasons why quote verification can fail we want these error types to
+        /// be reflected in the dispatch errors from extrinsics in this pallet which do quote
+        /// verification
         fn from(error: VerifyQuoteError) -> Self {
             match error {
                 VerifyQuoteError::BadQuote => Error::<T>::BadQuote,
