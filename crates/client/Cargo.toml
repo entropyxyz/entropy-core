@@ -41,7 +41,7 @@ tokio ={ version="1.42", features=["time"] }
 serial_test="3.2.0"
 sp-keyring="34.0.0"
 entropy-testing-utils={ path="../testing-utils" }
-tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse", features=[
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6", features=[
   "mock",
 ] }
 

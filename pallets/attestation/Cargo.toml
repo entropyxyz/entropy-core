@@ -28,7 +28,7 @@ entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
 pallet-staking-extension={ version="0.3.0", path="../staking", default-features=false }
-tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse" }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6" }
 
 [dev-dependencies]
 pallet-session={ version="29.0.0", default-features=false }
@@ -39,7 +39,7 @@ pallet-timestamp={ version="28.0.0", default-features=false }
 sp-npos-elections={ version="27.0.0", default-features=false }
 frame-election-provider-support={ version="29.0.0", default-features=false }
 pallet-staking-reward-curve={ version="11.0.0" }
-tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse", features=[
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6", features=[
   "mock",
 ] }
 rand_core="0.6.4"

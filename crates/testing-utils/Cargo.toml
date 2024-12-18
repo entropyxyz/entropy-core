@@ -26,7 +26,7 @@ synedrion="0.2.0"
 hex="0.4.3"
 rand_core="0.6.4"
 rand="0.8.5"
-tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-chain-parse", features=[
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6", features=[
   "mock",
 ] }
 
