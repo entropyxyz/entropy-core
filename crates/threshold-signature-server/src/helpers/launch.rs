@@ -298,9 +298,9 @@ pub async fn check_node_prerequisites(app_state: AppState) {
                     entropy_shared::MIN_BALANCE,
                 )
                 .await
-                .map_err(|_| {
-                    tracing::error!("Unable to query the account balance of `{}`", &account_id);
-                    "Unable to query account balance".to_string()
+                .map_err(|e| {
+                    tracing::error!("Account: {} {}", &account_id, e);
+                    e.to_string()
                 })?;
                 if !has_minimum_balance {
                     Err("Minimum balance not met".to_string())?
