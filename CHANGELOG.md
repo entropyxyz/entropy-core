@@ -40,6 +40,9 @@ runtime
 - Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
 - Add TDX test network chainspec ([#1204](https://github.com/entropyxyz/entropy-core/pull/1204))
 - Test CLI command to retrieve quote and change endpoint / TSS account in one command ([#1198](https://github.com/entropyxyz/entropy-core/pull/1198))
+- In ([#1209]()) a `production` feature flag was added to `entropy` which if enabled will use
+  non-mock verification of PCK certificate chains in TDX quotes, meaning TSS servers must be running
+  on TDX hardware
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
