@@ -59,7 +59,7 @@ use sp_staking::SessionIndex;
 pub mod pallet {
     use entropy_shared::{
         QuoteContext, ValidatorInfo, VerifyQuoteError, X25519PublicKey, MAX_SIGNERS,
-        PREGENERATED_NETWORK_VERIFYING_KEY, TEST_RESHARE_BLOCK_NUMBER, VERIFICATION_KEY_LENGTH,
+        PREGENERATED_NETWORK_VERIFYING_KEY, VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -256,8 +256,6 @@ pub mod pallet {
         pub threshold_servers: Vec<ThresholdServersConfig<T>>,
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
-        /// validator info and account new signer to take part in a reshare
-        pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
         /// Whether to begin in an already jumpstarted state in order to be able to test signing
         /// using pre-generated keyshares
         pub jump_started_signers: Option<Vec<T::ValidatorId>>,
@@ -289,22 +287,6 @@ pub mod pallet {
                 proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
             };
             ProactiveRefresh::<T>::put(refresh_info);
-            // mocks a signer rotation for tss new_reshare tests
-            if self.mock_signer_rotate.0 {
-                let next_signers = &mut self.mock_signer_rotate.1.clone();
-                let mut new_signers = vec![];
-                for new_signer in self.mock_signer_rotate.2.clone() {
-                    next_signers.push(new_signer.clone());
-                    new_signers.push(new_signer.encode())
-                }
-                let next_signers = next_signers.to_vec();
-                NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-                ReshareData::<T>::put(ReshareInfo {
-                    // To give enough time for test_reshare setup
-                    block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    new_signers,
-                })
-            }
 
             if let Some(jump_started_signers) = &self.jump_started_signers {
                 Signers::<T>::put(jump_started_signers.clone());
@@ -922,7 +904,7 @@ pub mod pallet {
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
-                block_number: current_block_number + sp_runtime::traits::One::one(),
+                block_number: current_block_number - sp_runtime::traits::One::one(),
                 new_signers,
             };
 
