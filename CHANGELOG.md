@@ -32,6 +32,9 @@ runtime
 - In [#1147](https://github.com/entropyxyz/entropy-core/pull/1147) a field is added to the
   chainspec: `jump_started_signers` which allows the chain to be started in a pre-jumpstarted state
   for testing. If this is not desired it should be set to `None`.
+- In [#1216](https://github.com/entropyxyz/entropy-core/pull/1216) the `--setup-only` option for `entropy-tss`
+  was removed. `entropy-tss` should be started only once, and the public keys retrieved using the `/info`
+  http route.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -52,6 +55,7 @@ runtime
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
 - Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
+- Non persistent TSS signer and x25519 keypair ([#1216](https://github.com/entropyxyz/entropy-core/pull/1216))
 
 ### Fixed
 

@@ -37,7 +37,6 @@ use subxt::{
     utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
-use x25519_dalek::StaticSecret;
 
 use super::UserErr;
 use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
@@ -51,7 +50,6 @@ use crate::{
             submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg},
-        validator::get_signer_and_x25519_secret,
     },
     validation::{check_stale, EncryptedSignedMessage},
     AppState,
@@ -91,7 +89,9 @@ pub async fn relay_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    if !app_state.is_ready() {
+        return Err(UserErr::NotReady);
+    }
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
@@ -105,7 +105,7 @@ pub async fn relay_tx(
 
     validators_info
         .iter()
-        .find(|validator| validator.tss_account == *signer.account_id())
+        .find(|validator| validator.tss_account == *app_state.signer().account_id())
         .ok_or_else(|| UserErr::NotValidator)?;
 
     let (selected_signers, all_signers) = get_signers_from_chain(&api, &rpc).await?;
@@ -114,10 +114,10 @@ pub async fn relay_tx(
 
     signers_info
         .iter()
-        .find(|signer_info| signer_info.tss_account == *signer.account_id())
+        .find(|signer_info| signer_info.tss_account == app_state.subxt_account_id())
         .map_or(Ok(()), |_| Err(UserErr::RelayMessageSigner))?;
 
-    let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
+    let signed_message = encrypted_msg.decrypt(&app_state.x25519_secret, &[])?;
 
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
 
@@ -155,7 +155,7 @@ pub async fn relay_tx(
                     .iter()
                     .map(|signer_info| async {
                         let signed_message = EncryptedSignedMessage::new(
-                            signer.signer(),
+                            &app_state.pair,
                             serde_json::to_vec(&relayer_sig_req.clone())?,
                             &signer_info.x25519_public_key,
                             &[],
@@ -220,12 +220,14 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
+    if !app_state.is_ready() {
+        return Err(UserErr::NotReady);
+    }
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
-    let signed_message = encrypted_msg.decrypt(&x25519_secret, &[])?;
+    let signed_message = encrypted_msg.decrypt(&app_state.x25519_secret, &[])?;
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
     tracing::Span::current().record("request_author", signed_message.account_id().to_string());
@@ -343,6 +345,7 @@ pub async fn sign_tx(
 
     // Do the signing protocol in another task, so we can already respond
     tokio::spawn(async move {
+        let signer = app_state.pair.clone();
         let signing_protocol_output = do_signing(
             &rpc,
             relayer_sig_request,
@@ -355,7 +358,7 @@ pub async fn sign_tx(
         .map(|signature| {
             (
                 BASE64_STANDARD.encode(signature.to_rsv_bytes()),
-                signer.signer().sign(&signature.to_rsv_bytes()),
+                signer.sign(&signature.to_rsv_bytes()),
             )
         })
         .map_err(|error| error.to_string());
@@ -382,6 +385,10 @@ pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
+    if !app_state.is_ready() {
+        return Err(UserErr::NotReady);
+    }
+
     let data = OcwMessageDkg::decode(&mut encoded_data.as_ref())?;
     tracing::Span::current().record("block_number", data.block_number);
 
@@ -391,15 +398,14 @@ pub async fn generate_network_key(
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
 
     let in_registration_group =
-        check_in_registration_group(&data.validators_info, signer.account_id());
+        check_in_registration_group(&data.validators_info, app_state.signer().account_id());
 
     if in_registration_group.is_err() {
         tracing::warn!(
             "The account {:?} is not in the registration group for block_number {:?}",
-            signer.account_id(),
+            app_state.subxt_account_id(),
             data.block_number
         );
 
@@ -408,9 +414,10 @@ pub async fn generate_network_key(
 
     validate_jump_start(&data, &api, &rpc, &app_state.kv_store).await?;
 
+    let app_state = app_state.clone();
     // Do the DKG protocol in another task, so we can already respond
     tokio::spawn(async move {
-        if let Err(err) = setup_dkg(api, &rpc, signer, &x25519_secret_key, data, app_state).await {
+        if let Err(err) = setup_dkg(api, &rpc, data, app_state).await {
             // TODO here we would check the error and if it relates to a misbehaving node,
             // use the slashing mechanism
             tracing::error!("User registration failed {:?}", err);
@@ -431,16 +438,14 @@ pub async fn generate_network_key(
 async fn setup_dkg(
     api: OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: PairSigner<EntropyConfig, sr25519::Pair>,
-    x25519_secret_key: &StaticSecret,
     data: OcwMessageDkg,
     app_state: AppState,
 ) -> Result<(), UserErr> {
     tracing::debug!("Preparing to execute DKG");
     let (key_share, aux_info) = do_dkg(
         &data.validators_info,
-        &signer,
-        x25519_secret_key,
+        &app_state.signer(),
+        &app_state.x25519_secret,
         &app_state.listener_state,
         data.block_number,
     )
@@ -459,11 +464,12 @@ async fn setup_dkg(
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Error getting block hash".to_string()))?;
 
-    let nonce_call = entropy::apis().account_nonce_api().account_nonce(signer.account_id().clone());
+    let nonce_call =
+        entropy::apis().account_nonce_api().account_nonce(app_state.subxt_account_id());
     let nonce = api.runtime_api().at(block_hash).call(nonce_call).await?;
 
     // TODO: Error handling really complex needs to be thought about.
-    confirm_jump_start(&api, rpc, &signer, verifying_key, nonce).await?;
+    confirm_jump_start(&api, rpc, &app_state.signer(), verifying_key, nonce).await?;
     Ok(())
 }
 

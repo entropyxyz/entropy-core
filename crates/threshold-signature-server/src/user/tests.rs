@@ -52,16 +52,12 @@ use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, Pair as OtherPair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::PolkadotExtrinsicParamsBuilder as Params,
-    ext::{
-        sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
-        sp_runtime::AccountId32,
-    },
+    ext::sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,
@@ -78,12 +74,8 @@ use crate::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
-    get_signer,
     helpers::{
-        launch::{
-            development_mnemonic, load_kv_store, setup_mnemonic, threshold_account_id,
-            ValidatorName,
-        },
+        launch::{development_mnemonic, load_kv_store, ValidatorName},
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
@@ -100,26 +92,6 @@ use crate::{
     },
     validation::EncryptedSignedMessage,
 };
-
-#[tokio::test]
-#[serial]
-async fn test_get_signer_does_not_throw_err() {
-    initialize_test_logger().await;
-    clean_tests();
-
-    let pair = <sr25519::Pair as Pair>::from_phrase(crate::helpers::launch::DEFAULT_MNEMONIC, None)
-        .expect("Issue converting mnemonic to pair");
-    let expected_account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
-
-    let kv_store = load_kv_store(&None, None).await;
-    setup_mnemonic(&kv_store, development_mnemonic(&None)).await;
-    development_mnemonic(&None).to_string();
-    let account = threshold_account_id(&kv_store).await;
-
-    assert_eq!(account, expected_account_id);
-    get_signer(&kv_store).await.unwrap();
-    clean_tests();
-}
 
 #[tokio::test]
 #[serial]
