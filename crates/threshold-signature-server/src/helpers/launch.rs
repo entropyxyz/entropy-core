@@ -299,7 +299,7 @@ pub async fn check_node_prerequisites(app_state: AppState) {
                 )
                 .await
                 .map_err(|e| {
-                    tracing::error!("Account: {} {}", &account_id, e);
+                    tracing::warn!("Account: {} {}", &account_id, e);
                     e.to_string()
                 })?;
                 if !has_minimum_balance {
@@ -326,7 +326,9 @@ pub async fn check_node_prerequisites(app_state: AppState) {
 
                 let _stash_address = query_chain(&api, &rpc, stash_address_query, None)
                     .await?
-                    .ok_or_else(|| SubstrateError::NoEvent)?;
+                    .ok_or_else(|| {
+                        tracing::warn!("TSS account ID {account_id} not yet registered on-chain - you need to call `validate` or `change_threshold_accounts`");
+                        SubstrateError::NoEvent})?;
                 Ok(())
             };
 
