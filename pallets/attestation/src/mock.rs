@@ -64,6 +64,7 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
+    Slashing: pallet_slashing,
   }
 );
 
@@ -340,6 +341,18 @@ impl pallet_parameters::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<Self::AccountId>;
     type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const ReportThreshold: u32 = 5;
+}
+
+impl pallet_slashing::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type AuthorityId = UintAuthorityId;
+    type ReportThreshold = ReportThreshold;
+    type ValidatorSet = Historical;
+    type ReportUnresponsiveness = ();
 }
 
 // Build genesis storage according to the mock runtime.

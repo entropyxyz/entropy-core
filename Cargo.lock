@@ -1358,12 +1358,12 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "colored"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
+checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2547,7 +2547,7 @@ dependencies = [
  "subxt",
  "synedrion",
  "tdx-quote",
- "thiserror 2.0.6",
+ "thiserror 2.0.8",
  "tokio",
  "tracing",
  "x25519-dalek 2.0.1",
@@ -2582,7 +2582,7 @@ dependencies = [
  "sled",
  "sp-core 31.0.0",
  "synedrion",
- "thiserror 2.0.6",
+ "thiserror 2.0.8",
  "tokio",
  "tracing",
  "zeroize",
@@ -2642,7 +2642,7 @@ dependencies = [
  "sp-keyring 34.0.0",
  "subxt",
  "synedrion",
- "thiserror 2.0.6",
+ "thiserror 2.0.8",
  "tokio",
  "tokio-tungstenite",
  "tracing",
@@ -2858,7 +2858,7 @@ dependencies = [
  "subxt-signer",
  "synedrion",
  "tdx-quote",
- "thiserror 2.0.6",
+ "thiserror 2.0.8",
  "tokio",
  "tokio-tungstenite",
  "tower-http 0.6.2",
@@ -6768,6 +6768,7 @@ dependencies = [
  "pallet-balances",
  "pallet-parameters",
  "pallet-session",
+ "pallet-slashing",
  "pallet-staking",
  "pallet-staking-extension",
  "pallet-staking-reward-curve",
@@ -7287,6 +7288,7 @@ dependencies = [
  "pallet-programs",
  "pallet-registry",
  "pallet-session",
+ "pallet-slashing",
  "pallet-staking",
  "pallet-staking-extension",
  "pallet-staking-reward-curve",
@@ -7353,6 +7355,7 @@ dependencies = [
  "pallet-parameters",
  "pallet-programs",
  "pallet-session",
+ "pallet-slashing",
  "pallet-staking",
  "pallet-staking-extension",
  "pallet-staking-reward-curve",
@@ -7494,6 +7497,7 @@ dependencies = [
  "pallet-balances",
  "pallet-parameters",
  "pallet-session",
+ "pallet-slashing",
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-timestamp",
@@ -14334,11 +14338,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.6"
+version = "2.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fec2a1820ebd077e2b90c4df007bebf344cd394098a13c563957d0afc83ea47"
+checksum = "08f5383f3e0071702bf93ab5ee99b52d26936be9dedd9413067cbdcddcb6141a"
 dependencies = [
- "thiserror-impl 2.0.6",
+ "thiserror-impl 2.0.8",
 ]
 
 [[package]]
@@ -14354,9 +14358,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.6"
+version = "2.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d65750cab40f4ff1929fb1ba509e9914eb756131cef4210da8d5d700d26f6312"
+checksum = "f2f357fcec90b3caef6623a099691be676d033b40a058ac95d2a6ade6fa0c943"
 dependencies = [
  "proc-macro2",
  "quote",

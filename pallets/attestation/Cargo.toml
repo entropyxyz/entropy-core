@@ -42,6 +42,8 @@ pallet-staking-reward-curve    ={ version="11.0.0" }
 tdx-quote                      ={ version="0.0.1", features=["mock"] }
 rand_core                      ="0.6.4"
 
+pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
+
 [features]
 default=['std']
 runtime-benchmarks=['frame-benchmarking', 'tdx-quote/mock', 'pallet-session']
