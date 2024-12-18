@@ -59,8 +59,11 @@ async fn test_change_endpoint() {
 
         let mut pck_seeder = StdRng::from_seed(public_key.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+        let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
 
-        tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0).as_bytes().to_vec()
+        tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded)
+            .as_bytes()
+            .to_vec()
     };
 
     let result =
@@ -116,14 +119,12 @@ async fn test_change_threshold_accounts() {
     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer()).await.unwrap();
     let nonce: [u8; 32] = nonce.try_into().unwrap();
 
-    let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
-    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
-    let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
-
     // Our runtime is using the mock `PckCertChainVerifier`, which means that the expected
     // "certificate" basically is just our TSS account ID. This account needs to match the one
     // used to sign the following `quote`.
-    let pck_certificate_chain = vec![tss_public_key.0.to_vec()];
+    let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
+    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+    let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
 
     let quote = {
         let input_data = entropy_shared::QuoteInputData::new(
@@ -134,7 +135,10 @@ async fn test_change_threshold_accounts() {
         );
 
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0).as_bytes().to_vec()
+
+        tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0, encoded_pck.clone())
+            .as_bytes()
+            .to_vec()
     };
 
     let result = change_threshold_accounts(
@@ -143,7 +147,6 @@ async fn test_change_threshold_accounts() {
         one.into(),
         tss_public_key.into(),
         *x25519_public_key.as_bytes(),
-        pck_certificate_chain,
         quote,
     )
     .await

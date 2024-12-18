@@ -273,3 +273,6 @@ try-runtime=[
   "pallet-utility/try-runtime",
   "pallet-vesting/try-runtime",
 ]
+# Enables real PCK certificate chain verification - which means TSS nodes must be runnning on TDX
+# hardware
+production=["pallet-attestation/production"]

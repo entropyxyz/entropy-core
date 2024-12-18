@@ -160,8 +160,6 @@ enum CliCommand {
         new_tss_account: String,
         /// New x25519 public key
         new_x25519_public_key: String,
-        /// The new Provisioning Certification Key (PCK) certificate chain to be used for the TSS.
-        new_pck_certificate_chain: Vec<String>,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -482,7 +480,6 @@ pub async fn run_command(
         CliCommand::ChangeThresholdAccounts {
             new_tss_account,
             new_x25519_public_key,
-            new_pck_certificate_chain,
             mnemonic_option,
         } => {
             let user_keypair = handle_mnemonic(mnemonic_option)?;
@@ -492,15 +489,12 @@ pub async fn run_command(
             let new_x25519_public_key = hex::decode(new_x25519_public_key)?
                 .try_into()
                 .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
-            let new_pck_certificate_chain =
-                new_pck_certificate_chain.iter().cloned().map(|i| i.into()).collect::<_>();
             let result_event = get_quote_and_change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
-                new_pck_certificate_chain,
             )
             .await?;
             cli.log(format!("Event result: {:?}", result_event));

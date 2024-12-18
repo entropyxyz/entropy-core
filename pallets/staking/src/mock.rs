@@ -38,7 +38,6 @@ use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec;
 
 use crate as pallet_staking_extension;
-use pallet_staking_extension::pck::MockPckCertChainVerifier;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -400,18 +399,18 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
     fn verify_quote(
         _attestee: &AccountId,
         _x25519_public_key: entropy_shared::X25519PublicKey,
-        _provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<(), sp_runtime::DispatchError> {
+    ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, entropy_shared::VerifyQuoteError>
+    {
         let quote: Result<[u8; 32], _> = quote.try_into();
         match quote {
-            Ok(q) if q == VALID_QUOTE => Ok(()),
-            Ok(q) if q == INVALID_QUOTE => Err(sp_runtime::DispatchError::Other("Invalid quote")),
+            Ok(q) if q == VALID_QUOTE => Ok([0; 33].to_vec().try_into().unwrap()),
+            Ok(q) if q == INVALID_QUOTE => Err(entropy_shared::VerifyQuoteError::BadQuote),
             _ => {
                 // We don't really want to verify quotes for tests in this pallet, so if we get
                 // something else we'll just accept it.
-                Ok(())
+                Ok(BoundedVec::new())
             },
         }
     }
@@ -460,7 +459,6 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type PckCertChainVerifier = MockPckCertChainVerifier;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();

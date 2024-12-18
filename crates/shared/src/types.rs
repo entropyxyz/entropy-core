@@ -162,13 +162,14 @@ impl std::fmt::Display for QuoteContext {
 #[cfg(not(feature = "wasm"))]
 pub trait AttestationHandler<AccountId> {
     /// Verify that the given quote is valid and matches the given information about the attestee.
+    /// The Provisioning Certification Key (PCK) certifcate chain is extracted from the quote and
+    /// verified. If successful, the PCK public key used to sign the quote is returned.
     fn verify_quote(
         attestee: &AccountId,
         x25519_public_key: X25519PublicKey,
-        provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
         context: QuoteContext,
-    ) -> Result<(), sp_runtime::DispatchError>;
+    ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError>;
 
     /// Indicate to the attestation handler that a quote is desired.
     ///
@@ -183,12 +184,38 @@ impl<AccountId> AttestationHandler<AccountId> for () {
     fn verify_quote(
         _attestee: &AccountId,
         _x25519_public_key: X25519PublicKey,
-        _provisioning_certification_key: BoundedVecEncodedVerifyingKey,
         _quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<(), sp_runtime::DispatchError> {
-        Ok(())
+    ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
+        // Ok(sp_runtime::BoundedVec::new())
+        Ok(BoundedVecEncodedVerifyingKey::try_from([0; 33].to_vec()).unwrap())
     }
 
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
+}
+
+/// An error when verifying a quote
+#[cfg(not(feature = "wasm"))]
+#[derive(Debug, Eq, PartialEq)]
+pub enum VerifyQuoteError {
+    /// Quote could not be parsed or verified
+    BadQuote,
+    /// Attestation extrinsic submitted when not requested
+    UnexpectedAttestation,
+    /// Hashed input data does not match what was expected
+    IncorrectInputData,
+    /// Unacceptable VM image running
+    BadMrtdValue,
+    /// Cannot encode verifying key (PCK)
+    CannotEncodeVerifyingKey,
+    /// Cannot decode verifying key (PCK)
+    CannotDecodeVerifyingKey,
+    /// PCK certificate chain cannot be parsed
+    PckCertificateParse,
+    /// PCK certificate chain cannot be verified
+    PckCertificateVerify,
+    /// PCK certificate chain public key is not well formed
+    PckCertificateBadPublicKey,
+    /// Pck certificate could not be extracted from quote
+    PckCertificateNoCertificate,
 }

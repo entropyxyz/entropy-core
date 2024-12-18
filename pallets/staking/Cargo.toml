@@ -28,9 +28,6 @@ sp-runtime        ={ version="32.0.0", default-features=false }
 sp-staking        ={ version="27.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 sp-consensus-babe ={ version="0.33.0", default-features=false }
-x509-verify       ={ version="0.4.6", features=["x509"] }
-spki              ="0.7.3"
-p256              ={ version="0.13.2", default-features=false, features=["ecdsa"] }
 rand              ={ version="0.8.5", default-features=false, features=["alloc"] }
 
 pallet-parameters={ version="0.3.0", path="../parameters", default-features=false }
@@ -38,10 +35,9 @@ pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
 entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
-
-# We only use this in benchmarks and tests. Since the benches don't run with the `test` feature we need to
-# import it here _and_ as a `dev-dependency`.
-tdx-quote={ version="0.0.1", features=["mock"], optional=true }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6", features=[
+  "mock",
+], optional=true }
 
 [dev-dependencies]
 frame-election-provider-support={ version="29.0.0", default-features=false }
@@ -53,11 +49,10 @@ sp-io                          ={ version="31.0.0", default-features=false }
 sp-npos-elections              ={ version="27.0.0", default-features=false }
 
 rand_core="0.6.4"
-tdx-quote={ version="0.0.1", features=["mock"] }
 
 [features]
 default=['std']
-runtime-benchmarks=['frame-benchmarking', 'tdx-quote']
+runtime-benchmarks=['frame-benchmarking', "tdx-quote"]
 std=[
   "sp-npos-elections/std",
   "sp-staking/std",
