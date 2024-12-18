@@ -28,6 +28,7 @@ use frame_support::{
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
+use pallet_slashing::Event as SlashingEvent;
 use pallet_staking::{
     Event as FrameStakingEvent, MaxNominationsOf, MaxValidatorsCount, Nominations,
     Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
@@ -53,6 +54,16 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 fn assert_last_event_frame_staking<T: Config>(
     generic_event: <T as pallet_staking::Config>::RuntimeEvent,
+) {
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
+}
+
+fn assert_last_event_slashing<T: Config>(
+    generic_event: <T as pallet_slashing::Config>::RuntimeEvent,
 ) {
     let events = frame_system::Pallet::<T>::events();
     let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
@@ -527,6 +538,37 @@ benchmarks! {
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());
+  }
+
+  report_unstable_peer {
+    // We subtract `2` here to give room to our test signers
+    let s in 0 .. (MAX_SIGNERS - 2) as u32;
+
+    let threshold_reporter: T::AccountId = whitelisted_caller();
+    let threshold_offender: T::AccountId = account("threshold_offender", 0, SEED);
+
+    let reporter_validator_id = <T as pallet_session::Config>::ValidatorId::try_from(threshold_reporter.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    let offender_validator_id = <T as pallet_session::Config>::ValidatorId::try_from(threshold_offender.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    ThresholdToStash::<T>::insert(&threshold_reporter, &reporter_validator_id);
+    ThresholdToStash::<T>::insert(&threshold_offender, &offender_validator_id);
+
+    let mut signers = vec![reporter_validator_id.clone(); s as usize];
+    signers.push(reporter_validator_id);
+    signers.push(offender_validator_id);
+
+    Signers::<T>::put(signers.clone());
+
+  }:  _(RawOrigin::Signed(threshold_reporter.clone()), threshold_offender.clone())
+  verify {
+    assert_last_event_slashing::<T>(
+        pallet_slashing::Event::NoteReport(threshold_reporter, threshold_offender).into(),
+    );
   }
 }
 

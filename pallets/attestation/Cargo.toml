@@ -44,6 +44,8 @@ tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", branch="peg/cert-
 ] }
 rand_core="0.6.4"
 
+pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
+
 [features]
 default=['std']
 runtime-benchmarks=['frame-benchmarking', 'tdx-quote/mock', 'pallet-session']
