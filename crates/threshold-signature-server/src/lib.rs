@@ -110,6 +110,11 @@
 //!   http://127.0.0.1:3001/user/sign_tx
 //! ```
 //!
+//! ### For the node operator
+//!
+//! [`/info`](crate::node_info::api::info()) - Get - get a Json object of type
+//! [crate::node_info::api::TssPublicKeys] which contains the TSS account ID and x25519 public key.
+//!
 //! ### For the blockchain node
 //!
 //! ### For other instances of the threshold server
@@ -185,7 +190,7 @@ use crate::{
     attestation::api::{attest, get_attest},
     health::api::healthz,
     launch::Configuration,
-    node_info::api::{hashes, version as get_version},
+    node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
     user::api::*,
@@ -218,6 +223,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))
+        .route("/info", get(info))
         .route("/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only

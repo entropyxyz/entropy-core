@@ -61,6 +61,7 @@ frame_support::construct_runtime!(
     Parameters: pallet_parameters,
     Attestation: pallet_attestation,
     Oracle: pallet_oracle,
+    Slashing: pallet_slashing,
   }
 );
 
@@ -310,7 +311,6 @@ impl pallet_staking_extension::Config for Test {
     type AttestationHandler = ();
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type PckCertChainVerifier = pallet_staking_extension::pck::MockPckCertChainVerifier;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
@@ -392,6 +392,18 @@ impl pallet_attestation::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Randomness = TestPastRandomness;
+}
+
+parameter_types! {
+    pub const ReportThreshold: u32 = 5;
+}
+
+impl pallet_slashing::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type AuthorityId = UintAuthorityId;
+    type ReportThreshold = ReportThreshold;
+    type ValidatorSet = Historical;
+    type ReportUnresponsiveness = ();
 }
 
 // Build genesis storage according to the mock runtime.

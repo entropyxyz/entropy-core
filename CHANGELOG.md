@@ -24,16 +24,31 @@ At the moment this project **does not** adhere to
 - In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
+- In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) mnemonics can no longer be passed
+  in to `entropy-tss` via the `--mnemonic` command line argument, a file, or an environment variable.
+  Instead they are randomly generated internally and can be retrieved with the `/info` HTTP route.
 - In [#1179](https://github.com/entropyxyz/entropy-core/pull/1179) the format of TDX Quote input data has
   been changed.
 - In [#1147](https://github.com/entropyxyz/entropy-core/pull/1147) a field is added to the
   chainspec: `jump_started_signers` which allows the chain to be started in a pre-jumpstarted state
   for testing. If this is not desired it should be set to `None`.
+- In [#1209](https://github.com/entropyxyz/entropy-core/pull/1209) the `validate` and `change_threshold_accounts`
+  extrinsics no longer take a PCK certificate chain. Rather, the certificate chain is extracted from the
+  provided quote. The test CLI `change-threshold-accounts` command also no longer takes a PCK
+  certificate chain.
 
 ### Added
+- In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
+  which can be used to get the TSS account ID and x25519 public key.
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
 - CLI command to get oracle headings ([#1170](https://github.com/entropyxyz/entropy-core/pull/1170))
 - Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
+- Add TDX test network chainspec ([#1204](https://github.com/entropyxyz/entropy-core/pull/1204))
+- Test CLI command to retrieve quote and change endpoint / TSS account in one command ([#1198](https://github.com/entropyxyz/entropy-core/pull/1198))
+- In ([#1209]()) a `production` feature flag was added to `entropy` which if enabled will use
+  non-mock verification of PCK certificate chains in TDX quotes, meaning TSS servers must be running
+  on TDX hardware
+- On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
@@ -44,6 +59,7 @@ runtime
 - Update programs to accept multiple oracle data ([#1153](https://github.com/entropyxyz/entropy-core/pull/1153/))
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
 - Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
+- Extract PCK certificate chain from quotes ([#1209](https://github.com/entropyxyz/entropy-core/pull/1209))
 
 ### Fixed
 

@@ -216,7 +216,7 @@ benchmarks! {
     let network_verifying_key =
         synedrion::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
 
-    // We substract one from the count since this gets incremented after a succesful registration,
+    // We subtract one from the count since this gets incremented after a succesful registration,
     // and we're interested in the account we just registered.
     let count = <Registered<T>>::count() - 1;
     let derivation_path =
