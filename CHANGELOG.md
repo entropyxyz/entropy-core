@@ -24,6 +24,9 @@ At the moment this project **does not** adhere to
 - In [#1153](https://github.com/entropyxyz/entropy-core/pull/1153/) the program runtime was updated to accept
 multiple oracle inputs, this means any programs that were compiled and used need to be recompiled to the new
 runtime
+- In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) mnemonics can no longer be passed
+  in to `entropy-tss` via the `--mnemonic` command line argument, a file, or an environment variable.
+  Instead they are randomly generated internally and can be retrieved with the `/info` HTTP route.
 - In [#1179](https://github.com/entropyxyz/entropy-core/pull/1179) the format of TDX Quote input data has
   been changed.
 - In [#1147](https://github.com/entropyxyz/entropy-core/pull/1147) a field is added to the
@@ -31,6 +34,8 @@ runtime
   for testing. If this is not desired it should be set to `None`.
 
 ### Added
+- In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
+  which can be used to get the TSS account ID and x25519 public key.
 - Protocol message versioning ([#1140](https://github.com/entropyxyz/entropy-core/pull/1140))
 - CLI command to get oracle headings ([#1170](https://github.com/entropyxyz/entropy-core/pull/1170))
 - Add TSS endpoint to get TDX quote ([#1173](https://github.com/entropyxyz/entropy-core/pull/1173))
