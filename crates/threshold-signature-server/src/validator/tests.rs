@@ -218,7 +218,7 @@ async fn test_reshare_basic() {
 
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
     let value_next_signers = NextSignerInfo { confirmations: vec![], next_signers };
-    // Add another reshare
+    // Add another reshare by adding next signer info
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_next_signers.to_root_bytes(), value_next_signers.encode())],
     });
@@ -227,7 +227,7 @@ async fn test_reshare_basic() {
     let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
     let value_reshare_info =
         ReshareInfo { block_number, new_signers: vec![alice_stash.public().encode()] };
-    // Add another reshare
+    // Same reshare needs reshare data too
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
     });
