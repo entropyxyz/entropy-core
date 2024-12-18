@@ -2768,6 +2768,7 @@ dependencies = [
  "entropy-client",
  "entropy-shared",
  "hex",
+ "parity-scale-codec",
  "reqwest",
  "serde",
  "serde_json",
