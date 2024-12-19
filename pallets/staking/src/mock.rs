@@ -38,7 +38,6 @@ use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec;
 
 use crate as pallet_staking_extension;
-use pallet_staking_extension::pck::MockPckCertChainVerifier;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -63,6 +62,7 @@ frame_support::construct_runtime!(
     Historical: pallet_session_historical,
     BagsList: pallet_bags_list,
     Parameters: pallet_parameters,
+    Slashing: pallet_slashing,
   }
 );
 
@@ -399,18 +399,18 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
     fn verify_quote(
         _attestee: &AccountId,
         _x25519_public_key: entropy_shared::X25519PublicKey,
-        _provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
         quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<(), sp_runtime::DispatchError> {
+    ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, entropy_shared::VerifyQuoteError>
+    {
         let quote: Result<[u8; 32], _> = quote.try_into();
         match quote {
-            Ok(q) if q == VALID_QUOTE => Ok(()),
-            Ok(q) if q == INVALID_QUOTE => Err(sp_runtime::DispatchError::Other("Invalid quote")),
+            Ok(q) if q == VALID_QUOTE => Ok([0; 33].to_vec().try_into().unwrap()),
+            Ok(q) if q == INVALID_QUOTE => Err(entropy_shared::VerifyQuoteError::BadQuote),
             _ => {
                 // We don't really want to verify quotes for tests in this pallet, so if we get
                 // something else we'll just accept it.
-                Ok(())
+                Ok(BoundedVec::new())
             },
         }
     }
@@ -418,11 +418,47 @@ impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
 }
 
+type IdentificationTuple = (u64, pallet_staking::Exposure<AccountId, Balance>);
+type Offence = pallet_slashing::UnresponsivenessOffence<IdentificationTuple>;
+
+parameter_types! {
+    pub static Offences: Vec<Offence> = vec![];
+}
+
+/// A mock offence report handler.
+pub struct OffenceHandler;
+impl sp_staking::offence::ReportOffence<AccountId, IdentificationTuple, Offence>
+    for OffenceHandler
+{
+    fn report_offence(
+        _reporters: Vec<u64>,
+        offence: Offence,
+    ) -> Result<(), sp_staking::offence::OffenceError> {
+        Offences::mutate(|l| l.push(offence));
+        Ok(())
+    }
+
+    fn is_known_offence(_offenders: &[IdentificationTuple], _time_slot: &SessionIndex) -> bool {
+        false
+    }
+}
+
+parameter_types! {
+    pub const ReportThreshold: u32 = 5;
+}
+
+impl pallet_slashing::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type AuthorityId = UintAuthorityId;
+    type ReportThreshold = ReportThreshold;
+    type ValidatorSet = Historical;
+    type ReportUnresponsiveness = OffenceHandler;
+}
+
 impl pallet_staking_extension::Config for Test {
     type AttestationHandler = MockAttestationHandler;
     type Currency = Balances;
     type MaxEndpointLength = MaxEndpointLength;
-    type PckCertChainVerifier = MockPckCertChainVerifier;
     type Randomness = TestPastRandomness;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
@@ -441,7 +477,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (6, (8, NULL_ARR, vec![40], BoundedVec::with_max_capacity())),
         ],
         proactive_refresh_data: (vec![], vec![]),
-        mock_signer_rotate: (false, vec![], vec![]),
         jump_started_signers: None,
     };
     pallet_balances.assimilate_storage(&mut t).unwrap();

@@ -295,7 +295,7 @@ pub async fn validate_new_reshare(
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
 
-    if chain_data.block_number != reshare_data.block_number.saturating_sub(1)
+    if chain_data.block_number != reshare_data.block_number
         || chain_data.new_signers != reshare_data.new_signers
     {
         return Err(ValidatorErr::InvalidData);

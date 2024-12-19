@@ -28,19 +28,23 @@ entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
 pallet-staking-extension={ version="0.3.0", path="../staking", default-features=false }
-tdx-quote="0.0.1"
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6" }
 
 [dev-dependencies]
-pallet-session                 ={ version="29.0.0", default-features=false }
-pallet-staking                 ={ version="29.0.0", default-features=false }
-pallet-balances                ={ version="29.0.0", default-features=false }
-pallet-bags-list               ={ version="28.0.0", default-features=false }
-pallet-timestamp               ={ version="28.0.0", default-features=false }
-sp-npos-elections              ={ version="27.0.0", default-features=false }
+pallet-session={ version="29.0.0", default-features=false }
+pallet-staking={ version="29.0.0", default-features=false }
+pallet-balances={ version="29.0.0", default-features=false }
+pallet-bags-list={ version="28.0.0", default-features=false }
+pallet-timestamp={ version="28.0.0", default-features=false }
+sp-npos-elections={ version="27.0.0", default-features=false }
 frame-election-provider-support={ version="29.0.0", default-features=false }
-pallet-staking-reward-curve    ={ version="11.0.0" }
-tdx-quote                      ={ version="0.0.1", features=["mock"] }
-rand_core                      ="0.6.4"
+pallet-staking-reward-curve={ version="11.0.0" }
+tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6", features=[
+  "mock",
+] }
+rand_core="0.6.4"
+
+pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
 
 [features]
 default=['std']
@@ -58,3 +62,5 @@ std=[
   "rand_chacha/std",
 ]
 try-runtime=['frame-support/try-runtime']
+# When enabled, use real PCK certificate chain verification
+production=[]

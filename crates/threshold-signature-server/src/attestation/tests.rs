@@ -63,7 +63,7 @@ async fn test_get_attest() {
         decode_verifying_key(&server_info.provisioning_certification_key.0.try_into().unwrap())
             .unwrap();
 
-    assert!(quote.verify_with_pck(provisioning_certification_key).is_ok())
+    assert!(quote.verify_with_pck(&provisioning_certification_key).is_ok())
 }
 
 #[ignore]

@@ -16,7 +16,6 @@
 //! Benchmarking setup for pallet-propgation
 #![allow(unused_imports)]
 use super::*;
-use crate::pck::{signing_key_from_seed, MOCK_PCK_DERIVED_FROM_NULL_ARRAY};
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
 use entropy_shared::{AttestationHandler, QuoteContext, MAX_SIGNERS};
@@ -29,12 +28,19 @@ use frame_support::{
 };
 use frame_system::{EventRecord, RawOrigin};
 use pallet_parameters::{SignersInfo, SignersSize};
+use pallet_slashing::Event as SlashingEvent;
 use pallet_staking::{
     Event as FrameStakingEvent, MaxNominationsOf, MaxValidatorsCount, Nominations,
     Pallet as FrameStaking, RewardDestination, ValidatorPrefs,
 };
+use rand::{rngs::StdRng, SeedableRng};
 use sp_std::{vec, vec::Vec};
+use tdx_quote::SigningKey;
 
+const MOCK_PCK_DERIVED_FROM_NULL_ARRAY: [u8; 33] = [
+    3, 237, 193, 27, 177, 204, 234, 67, 54, 141, 157, 13, 62, 87, 113, 224, 4, 121, 206, 251, 190,
+    151, 134, 87, 68, 46, 37, 163, 127, 97, 252, 174, 108,
+];
 const NULL_ARR: [u8; 32] = [0; 32];
 const SEED: u32 = 0;
 
@@ -48,6 +54,16 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 
 fn assert_last_event_frame_staking<T: Config>(
     generic_event: <T as pallet_staking::Config>::RuntimeEvent,
+) {
+    let events = frame_system::Pallet::<T>::events();
+    let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
+    // compare to the last event record
+    let EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
+}
+
+fn assert_last_event_slashing<T: Config>(
+    generic_event: <T as pallet_slashing::Config>::RuntimeEvent,
 ) {
     let events = frame_system::Pallet::<T>::events();
     let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
@@ -78,6 +94,7 @@ fn prepare_attestation_for_validate<T: Config>(
     threshold: T::AccountId,
     x25519_public_key: [u8; 32],
     endpoint: Vec<u8>,
+    quote_context: QuoteContext,
 ) -> (Vec<u8>, JoiningServerInfo<T::AccountId>) {
     let nonce = NULL_ARR;
     let quote = {
@@ -94,25 +111,26 @@ fn prepare_attestation_for_validate<T: Config>(
             &threshold,
             x25519_public_key,
             nonce,
-            QuoteContext::Validate,
+            quote_context,
         );
-
-        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0).as_bytes().to_vec()
+        let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+        tdx_quote::Quote::mock(attestation_key.clone(), pck, input_data.0, pck_encoded.to_vec())
+            .as_bytes()
+            .to_vec()
     };
 
-    let joining_server_info = JoiningServerInfo {
-        tss_account: threshold.clone(),
-        x25519_public_key,
-        endpoint,
-        // Since we are using the mock PckCertChainVerifier, this needs to be the same seed for
-        // generating the PCK as we used to sign the quote above
-        pck_certificate_chain: vec![NULL_ARR.to_vec()],
-    };
+    let joining_server_info =
+        JoiningServerInfo { tss_account: threshold.clone(), x25519_public_key, endpoint };
 
     // We need to tell the attestation handler that we want a quote. This will let the system to
     // know to expect one back when we call `validate()`.
     T::AttestationHandler::request_quote(&threshold, nonce);
     (quote, joining_server_info)
+}
+
+fn signing_key_from_seed(input: [u8; 32]) -> SigningKey {
+    let mut pck_seeder = StdRng::from_seed(input);
+    SigningKey::random(&mut pck_seeder)
 }
 
 fn prep_bond_and_validate<T: Config>(
@@ -136,8 +154,12 @@ fn prep_bond_and_validate<T: Config>(
 
     if validate_also {
         let endpoint = b"http://localhost:3001".to_vec();
-        let (quote, joining_server_info) =
-            prepare_attestation_for_validate::<T>(threshold, x25519_public_key, endpoint);
+        let (quote, joining_server_info) = prepare_attestation_for_validate::<T>(
+            threshold,
+            x25519_public_key,
+            endpoint,
+            QuoteContext::Validate,
+        );
 
         assert_ok!(<Staking<T>>::validate(
             RawOrigin::Signed(bonder.clone()).into(),
@@ -187,6 +209,7 @@ benchmarks! {
         threshold,
         x25519_public_key,
         endpoint.clone().to_vec(),
+        QuoteContext::ChangeEndpoint,
     )
     .0;
   }:  _(RawOrigin::Signed(bonder.clone()), endpoint.to_vec(), quote)
@@ -228,9 +251,8 @@ benchmarks! {
         new_threshold.clone(),
         x25519_public_key,
         endpoint.clone().to_vec(),
+        QuoteContext::ChangeThresholdAccounts,
     );
-
-    let pck_certificate_chain = joining_server_info.pck_certificate_chain;
 
     let signers = vec![validator_id_signers.clone(); s as usize];
     Signers::<T>::put(signers.clone());
@@ -238,7 +260,6 @@ benchmarks! {
         RawOrigin::Signed(_bonder.clone()),
         new_threshold.clone(),
         x25519_public_key.clone(),
-        pck_certificate_chain,
         quote
     )
   verify {
@@ -377,7 +398,7 @@ benchmarks! {
     );
 
     let (quote, joining_server_info) =
-        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone());
+        prepare_attestation_for_validate::<T>(threshold_account.clone(), x25519_public_key, endpoint.clone(), QuoteContext::Validate);
   }:  _(RawOrigin::Signed(bonder.clone()), ValidatorPrefs::default(), joining_server_info, quote)
   verify {
     assert_last_event::<T>(
@@ -517,6 +538,37 @@ benchmarks! {
   }
   verify {
     assert!(NextSigners::<T>::get().is_some());
+  }
+
+  report_unstable_peer {
+    // We subtract `2` here to give room to our test signers
+    let s in 0 .. (MAX_SIGNERS - 2) as u32;
+
+    let threshold_reporter: T::AccountId = whitelisted_caller();
+    let threshold_offender: T::AccountId = account("threshold_offender", 0, SEED);
+
+    let reporter_validator_id = <T as pallet_session::Config>::ValidatorId::try_from(threshold_reporter.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    let offender_validator_id = <T as pallet_session::Config>::ValidatorId::try_from(threshold_offender.clone())
+        .or(Err(Error::<T>::InvalidValidatorId))
+        .unwrap();
+
+    ThresholdToStash::<T>::insert(&threshold_reporter, &reporter_validator_id);
+    ThresholdToStash::<T>::insert(&threshold_offender, &offender_validator_id);
+
+    let mut signers = vec![reporter_validator_id.clone(); s as usize];
+    signers.push(reporter_validator_id);
+    signers.push(offender_validator_id);
+
+    Signers::<T>::put(signers.clone());
+
+  }:  _(RawOrigin::Signed(threshold_reporter.clone()), threshold_offender.clone())
+  verify {
+    assert_last_event_slashing::<T>(
+        pallet_slashing::Event::NoteReport(threshold_reporter, threshold_offender).into(),
+    );
   }
 }
 
