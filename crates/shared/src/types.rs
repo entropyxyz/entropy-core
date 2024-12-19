@@ -187,7 +187,6 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         _quote: Vec<u8>,
         _context: QuoteContext,
     ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
-        // Ok(sp_runtime::BoundedVec::new())
         Ok(BoundedVecEncodedVerifyingKey::try_from([0; 33].to_vec()).unwrap())
     }
 
