@@ -139,6 +139,8 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     if let Err(err) = handle_socket(socket, app_state).await {
         tracing::warn!("Websocket connection closed unexpectedly {:?}", err);
         // TODO here we should inform the chain that signing failed
+        //
+        // TODO (Nando): Report error up here?
     };
 }
 
