@@ -14,12 +14,12 @@ serde         ={ version="1.0", default-features=false, features=["derive"] }
 entropy-shared={ version="0.3.0", path="../shared", default-features=false }
 subxt         ={ version="0.35.3", default-features=false, features=["jsonrpsee"] }
 num           ="0.4.3"
-thiserror     ="2.0.8"
+thiserror     ="2.0.9"
 futures       ="0.3"
 sp-core       ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
 tracing       ="0.1.41"
 rand          ={ version="0.8", default-features=false }
-anyhow        ="1.0.94"
+anyhow        ="1.0.95"
 
 # Present when "full-client" feature is active
 blake2            ={ version="0.10.4", optional=true }
