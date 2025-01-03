@@ -83,14 +83,14 @@ impl WsConnection for axum::extract::ws::WebSocket {
             .ok_or(WsError::ConnectionClosed)?
             .map_err(|e| WsError::ConnectionError(e.to_string()))?
         {
-            Ok(msg)
+            Ok(msg.to_vec())
         } else {
             Err(WsError::UnexpectedMessageType)
         }
     }
 
     async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        self.send(axum::extract::ws::Message::Binary(msg))
+        self.send(axum::extract::ws::Message::Binary(msg.into()))
             .await
             .map_err(|_| WsError::ConnectionClosed)
     }
