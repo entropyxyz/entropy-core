@@ -41,8 +41,6 @@ pub enum ValidatorErr {
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
-    #[error("Forbidden Key")]
-    ForbiddenKey,
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
     #[error("anyhow error: {0}")]
