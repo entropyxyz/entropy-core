@@ -92,6 +92,14 @@ Optionally, you can also run it with detailed logging:
 RUST_BACKTRACE=1 ./target/release/entropy -ldebug --dev --rpc-external
 ```
 
+### Running a TSS server 
+
+To run a TSS server you need to first provide a password file. The default password file is ```.password.txt``` you can overwrite this if you want. After the file is created and password added you can run 
+
+```sh
+./target/release/entropy-tss
+```
+
 ### Testing
 
 Testing is done via `cargo test`.

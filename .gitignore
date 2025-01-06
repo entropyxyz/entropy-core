@@ -45,3 +45,4 @@ test_db_3002
 
 # Keyshare files from the test CLI
 crates/test-cli/keyshare-*
+.password.*

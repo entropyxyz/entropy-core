@@ -136,16 +136,14 @@ pub async fn load_kv_store(
         return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
     };
 
-    let password = if let Some(password_path) = password_path {
-        std::str::from_utf8(&fs::read(password_path).expect("error reading password file"))
-            .expect("failed to convert password to string")
-            .trim()
-            .to_string()
-            .into()
-    } else {
-        PasswordMethod::Prompt.execute().unwrap()
-    };
-
+    let password = std::str::from_utf8(
+        &fs::read(password_path.expect("no password path found"))
+            .expect("error reading password file"),
+    )
+    .expect("failed to convert password to string")
+    .trim()
+    .to_string()
+    .into();
     // this step takes a long time due to password-based decryption
     KvManager::new(root, password).unwrap()
 }
@@ -198,7 +196,7 @@ pub struct StartupArgs {
     pub logger: crate::helpers::logger::Instrumentation,
 
     /// The path to a password file
-    #[arg(short = 'f', long = "password-file")]
+    #[arg(short = 'f', long = "password-file", default_value = ".password.txt")]
     pub password_file: Option<PathBuf>,
 
     /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to
