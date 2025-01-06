@@ -12,19 +12,16 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use super::api::{check_balance_for_fees, check_forbidden_key};
+use super::api::check_balance_for_fees;
 use crate::{
     helpers::{
-        launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
+        launch::LATEST_BLOCK_NUMBER_RESHARE,
         tests::{
             call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
             spawn_testing_validators, unsafe_get,
         },
     },
-    validator::{
-        api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
-        errors::ValidatorErr,
-    },
+    validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
 };
 use entropy_client::{self as test_client};
 use entropy_client::{
@@ -385,16 +382,6 @@ async fn test_check_balance_for_fees() {
     let _ = check_balance_for_fees(&api, &rpc, (&RANDOM_ACCOUNT).to_string(), MIN_BALANCE)
         .await
         .unwrap();
-}
-
-#[tokio::test]
-async fn test_forbidden_keys() {
-    initialize_test_logger().await;
-    let should_fail = check_forbidden_key(FORBIDDEN_KEYS[0]);
-    assert_eq!(should_fail.unwrap_err().to_string(), ValidatorErr::ForbiddenKey.to_string());
-
-    let should_pass = check_forbidden_key("test");
-    assert_eq!(should_pass.unwrap(), ());
 }
 
 #[tokio::test]

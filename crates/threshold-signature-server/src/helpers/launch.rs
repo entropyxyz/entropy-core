@@ -22,7 +22,6 @@ use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
-use entropy_shared::NETWORK_PARENT_KEY;
 use serde::Deserialize;
 use serde_json::json;
 use subxt::ext::sp_core::{
@@ -53,16 +52,9 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 #[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 4] = [
-    FORBIDDEN_KEY_MNEMONIC,
-    FORBIDDEN_KEY_SHARED_SECRET,
-    FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC,
-    NETWORK_PARENT_KEY,
-];
-
-pub const FORBIDDEN_KEY_MNEMONIC: &str = "MNEMONIC";
-pub const FORBIDDEN_KEY_SHARED_SECRET: &str = "SHARED_SECRET";
-pub const FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
+pub const KEY_MNEMONIC: &str = "MNEMONIC";
+pub const KEY_SHARED_SECRET: &str = "SHARED_SECRET";
+pub const KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
 
 // Deafult name for TSS server
 // Will set mnemonic and db path
@@ -210,7 +202,7 @@ pub struct StartupArgs {
 }
 
 pub async fn has_mnemonic(kv: &KvManager) -> bool {
-    let exists = kv.kv().exists(FORBIDDEN_KEY_MNEMONIC).await.expect("issue querying DB");
+    let exists = kv.kv().exists(KEY_MNEMONIC).await.expect("issue querying DB");
 
     if exists {
         tracing::debug!("Existing mnemonic found in keystore.");
@@ -240,16 +232,10 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     if has_mnemonic(kv).await {
         tracing::warn!("Deleting account related keys from KVDB.");
 
+        kv.kv().delete(KEY_MNEMONIC).await.expect("Error deleting existing mnemonic from KVDB.");
+        kv.kv().delete(KEY_SHARED_SECRET).await.expect("Error deleting shared secret from KVDB.");
         kv.kv()
-            .delete(FORBIDDEN_KEY_MNEMONIC)
-            .await
-            .expect("Error deleting existing mnemonic from KVDB.");
-        kv.kv()
-            .delete(FORBIDDEN_KEY_SHARED_SECRET)
-            .await
-            .expect("Error deleting shared secret from KVDB.");
-        kv.kv()
-            .delete(FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC)
+            .delete(KEY_DIFFIE_HELLMAN_PUBLIC)
             .await
             .expect("Error deleting X25519 public key from KVDB.");
     }
@@ -257,11 +243,8 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     tracing::info!("Writing new mnemonic to KVDB.");
 
     // Write our new mnemonic to the KVDB.
-    let reservation = kv
-        .kv()
-        .reserve_key(FORBIDDEN_KEY_MNEMONIC.to_string())
-        .await
-        .expect("Issue reserving mnemonic");
+    let reservation =
+        kv.kv().reserve_key(KEY_MNEMONIC.to_string()).await.expect("Issue reserving mnemonic");
     kv.kv()
         .put(reservation, mnemonic.to_string().as_bytes().to_vec())
         .await
@@ -272,11 +255,8 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
 
     // Write the shared secret in the KVDB
-    let shared_secret_reservation = kv
-        .kv()
-        .reserve_key(FORBIDDEN_KEY_SHARED_SECRET.to_string())
-        .await
-        .expect("Issue reserving ss key");
+    let shared_secret_reservation =
+        kv.kv().reserve_key(KEY_SHARED_SECRET.to_string()).await.expect("Issue reserving ss key");
     kv.kv()
         .put(shared_secret_reservation, static_secret.to_bytes().to_vec())
         .await
@@ -285,7 +265,7 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
     // Write the Diffie-Hellman key in the KVDB
     let diffie_hellman_reservation = kv
         .kv()
-        .reserve_key(FORBIDDEN_KEY_DIFFIE_HELLMAN_PUBLIC.to_string())
+        .reserve_key(KEY_DIFFIE_HELLMAN_PUBLIC.to_string())
         .await
         .expect("Issue reserving DH key");
 
@@ -305,7 +285,7 @@ pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
 }
 
 pub async fn threshold_account_id(kv: &KvManager) -> String {
-    let mnemonic = kv.kv().get(FORBIDDEN_KEY_MNEMONIC).await.expect("Issue getting mnemonic");
+    let mnemonic = kv.kv().get(KEY_MNEMONIC).await.expect("Issue getting mnemonic");
     let pair = <sr25519::Pair as Pair>::from_phrase(
         &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
         None,
@@ -371,7 +351,7 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
 }
 
 pub async fn setup_only(kv: &KvManager) {
-    let mnemonic = kv.kv().get(FORBIDDEN_KEYS[0]).await.expect("Issue getting mnemonic");
+    let mnemonic = kv.kv().get(KEY_MNEMONIC).await.expect("Issue getting mnemonic");
     let pair = <sr25519::Pair as Pair>::from_phrase(
         &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
         None,
@@ -379,7 +359,8 @@ pub async fn setup_only(kv: &KvManager) {
     .expect("Issue converting mnemonic to pair");
     let account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
 
-    let dh_public_key = kv.kv().get(FORBIDDEN_KEYS[2]).await.expect("Issue getting dh public key");
+    let dh_public_key =
+        kv.kv().get(KEY_DIFFIE_HELLMAN_PUBLIC).await.expect("Issue getting dh public key");
     let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
     let output = json!({
         "account_id": account_id,

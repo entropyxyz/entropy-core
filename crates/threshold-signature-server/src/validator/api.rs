@@ -20,7 +20,7 @@ use crate::{
     },
     get_signer_and_x25519_secret,
     helpers::{
-        launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
+        launch::LATEST_BLOCK_NUMBER_RESHARE,
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
     signing_client::{api::get_channels, ProtocolErr},
@@ -373,14 +373,6 @@ pub async fn check_balance_for_fees(
         is_min_balance = true
     };
     Ok(is_min_balance)
-}
-
-pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
-    let forbidden = FORBIDDEN_KEYS.contains(&key);
-    if forbidden {
-        return Err(ValidatorErr::ForbiddenKey);
-    }
-    Ok(())
 }
 
 /// Filters out new signer from next signers to get old holders
