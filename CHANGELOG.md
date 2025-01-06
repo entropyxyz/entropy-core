@@ -36,6 +36,8 @@ runtime
   extrinsics no longer take a PCK certificate chain. Rather, the certificate chain is extracted from the
   provided quote. The test CLI `change-threshold-accounts` command also no longer takes a PCK
   certificate chain.
+- In [#1237](https://github.com/entropyxyz/entropy-core/pull/1237) manual password input is removed and a
+ password file is now necessary (unless running alice, bob etc).
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -46,6 +48,7 @@ runtime
 - Add TDX test network chainspec ([#1204](https://github.com/entropyxyz/entropy-core/pull/1204))
 - Test CLI command to retrieve quote and change endpoint / TSS account in one command ([#1198](https://github.com/entropyxyz/entropy-core/pull/1198))
 - On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
+- Remove manual password input [(#1237)](https://github.com/entropyxyz/entropy-core/pull/1237)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
