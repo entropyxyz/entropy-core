@@ -1,4 +1,5 @@
 use crate::{
+    bond_account,
     chain_api::{
         entropy::{
             self,
@@ -7,6 +8,7 @@ use crate::{
                 pallet_registry::pallet::ProgramInstance,
                 pallet_staking_extension::pallet::ServerInfo,
             },
+            staking::events as staking_events,
             staking_extension::events,
         },
         get_api, get_rpc,
@@ -281,4 +283,24 @@ async fn test_get_oracle_headings() {
     let headings = get_oracle_headings(&api, &rpc).await.unwrap();
 
     assert_eq!(headings, vec!["block_number_entropy".to_string()]);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bond_accounts() {
+    let one = AccountKeyring::Ferdie;
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let bond_amount = 10000000000u128;
+    let reward_destination = AccountId32(one.public().0);
+    let result = bond_account(&api, &rpc, one.into(), bond_amount, reward_destination.clone())
+        .await
+        .unwrap();
+
+    assert_eq!(
+        format!("{:?}", result),
+        format!("{:?}", staking_events::Bonded { stash: reward_destination, amount: bond_amount })
+    );
 }
