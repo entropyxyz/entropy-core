@@ -324,11 +324,14 @@ pub async fn check_node_prerequisites(app_state: AppState) -> Result<(), &'stati
             .staking_extension()
             .threshold_to_stash(subxt::utils::AccountId32(*account_id.as_ref()));
 
-        let _stash_address = query_chain(&api, &rpc, stash_address_query, None)
-            .await?
-            .ok_or_else(|| {
-                tracing::warn!("TSS account ID {account_id} not yet registered on-chain - you need to call `validate` or `change_threshold_accounts`");
-                SubstrateError::NoEvent})?;
+        let _stash_address =
+            query_chain(&api, &rpc, stash_address_query, None).await?.ok_or_else(|| {
+                tracing::warn!(
+                    "TSS account ID {account_id} not yet registered on-chain - you need to \
+                    call `validate` or `change_threshold_accounts`"
+                );
+                SubstrateError::NoEvent
+            })?;
         Ok(())
     };
 
