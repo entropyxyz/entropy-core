@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{net::SocketAddr, str::FromStr};
+use std::{net::SocketAddr, process, str::FromStr};
 
 use clap::Parser;
 
@@ -66,7 +66,10 @@ async fn main() {
         tokio::spawn(async move {
             // Check for a connection to the chain node parallel to starting the tss_server so that
             // we already can expose the `/info` http route
-            entropy_tss::launch::check_node_prerequisites(app_state).await;
+            if let Err(error) = entropy_tss::launch::check_node_prerequisites(app_state).await {
+                tracing::error!("Prerequistite checks failed: {} - terminating.", error);
+                process::exit(1);
+            }
         });
     }
 

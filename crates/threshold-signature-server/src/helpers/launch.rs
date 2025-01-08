@@ -262,7 +262,7 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
     Ok(())
 }
 
-pub async fn check_node_prerequisites(app_state: AppState) {
+pub async fn check_node_prerequisites(app_state: AppState) -> Result<(), &'static str> {
     use crate::chain_api::{get_api, get_rpc};
     let url = &app_state.configuration.endpoint;
     let account_id = app_state.account_id();
@@ -281,69 +281,62 @@ pub async fn check_node_prerequisites(app_state: AppState) {
         Ok((api, rpc))
     };
 
-    // Never give up trying to connect
-    let backoff = backoff::ExponentialBackoff { max_elapsed_time: None, ..Default::default() };
+    // Use the default maximum elapsed time of 15 minutes.
+    // This means if we do not get a connection within 15 minutes the process will terminate and the
+    // keypair will be lost.
+    let backoff = backoff::ExponentialBackoff::default();
 
-    match backoff::future::retry(backoff.clone(), connect_to_substrate_node).await {
-        Ok((api, rpc)) => {
-            tracing::info!("Sucessfully connected to Substrate node!");
+    let (api, rpc) = backoff::future::retry(backoff.clone(), connect_to_substrate_node)
+        .await
+        .map_err(|_| "Timed out waiting for connection to chain")?;
+    tracing::info!("Sucessfully connected to Substrate node!");
 
-            tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+    tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
 
-            let balance_query = || async {
-                let has_minimum_balance = crate::validator::api::check_balance_for_fees(
-                    &api,
-                    &rpc,
-                    account_id.to_ss58check().to_string(),
-                    entropy_shared::MIN_BALANCE,
-                )
-                .await
-                .map_err(|e| {
-                    tracing::warn!("Account: {} {}", &account_id, e);
-                    e.to_string()
-                })?;
-                if !has_minimum_balance {
-                    Err("Minimum balance not met".to_string())?
-                }
-                Ok(())
-            };
+    let balance_query = || async {
+        let has_minimum_balance = crate::validator::api::check_balance_for_fees(
+            &api,
+            &rpc,
+            account_id.to_ss58check().to_string(),
+            entropy_shared::MIN_BALANCE,
+        )
+        .await
+        .map_err(|e| {
+            tracing::warn!("Account: {} {}", &account_id, e);
+            e.to_string()
+        })?;
+        if !has_minimum_balance {
+            Err("Minimum balance not met".to_string())?
+        }
+        Ok(())
+    };
 
-            if let Err(error) = backoff::future::retry(backoff.clone(), balance_query).await {
-                tracing::error!("This should never happen because backoff has no permanent errors or maximum timeout: {error}");
-            }
+    backoff::future::retry(backoff.clone(), balance_query)
+        .await
+        .map_err(|_| "Timed out waiting for account to be funded")?;
 
-            tracing::info!(
-                "The account `{}` has enough funds for submitting extrinsics.",
-                &account_id
-            );
+    tracing::info!("The account `{}` has enough funds for submitting extrinsics.", &account_id);
 
-            // Now check if there exists a threshold server with our details - if there is not,
-            // we need to wait until there is
-            let check_for_tss_account_id = || async {
-                let stash_address_query = entropy::storage()
-                    .staking_extension()
-                    .threshold_to_stash(subxt::utils::AccountId32(*account_id.as_ref()));
+    // Now check if there exists a threshold server with our details - if there is not,
+    // we need to wait until there is
+    let check_for_tss_account_id = || async {
+        let stash_address_query = entropy::storage()
+            .staking_extension()
+            .threshold_to_stash(subxt::utils::AccountId32(*account_id.as_ref()));
 
-                let _stash_address = query_chain(&api, &rpc, stash_address_query, None)
-                    .await?
-                    .ok_or_else(|| {
-                        tracing::warn!("TSS account ID {account_id} not yet registered on-chain - you need to call `validate` or `change_threshold_accounts`");
-                        SubstrateError::NoEvent})?;
-                Ok(())
-            };
+        let _stash_address = query_chain(&api, &rpc, stash_address_query, None)
+            .await?
+            .ok_or_else(|| {
+                tracing::warn!("TSS account ID {account_id} not yet registered on-chain - you need to call `validate` or `change_threshold_accounts`");
+                SubstrateError::NoEvent})?;
+        Ok(())
+    };
 
-            tracing::info!(
-                "Checking if our account ID has been registered on chain `{}`",
-                &account_id
-            );
-            if let Err(error) = backoff::future::retry(backoff, check_for_tss_account_id).await {
-                tracing::error!("This should never happen because backoff has no permanent errors or maximum timeout: {error}");
-            }
-            tracing::info!("TSS node passed all prerequisite checks and is ready");
-            app_state.make_ready();
-        },
-        Err(error) => {
-            tracing::error!("This should never happen because backoff has no permanent errors or maximum timeout: {error:?}");
-        },
-    }
+    tracing::info!("Checking if our account ID has been registered on chain `{}`", &account_id);
+    backoff::future::retry(backoff, check_for_tss_account_id)
+        .await
+        .map_err(|_| "Timed out waiting for TSS account to be registered on chain")?;
+    tracing::info!("TSS node passed all prerequisite checks and is ready");
+    app_state.make_ready();
+    Ok(())
 }
