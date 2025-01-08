@@ -33,10 +33,12 @@ use crate::{
                 bounded_collections::bounded_vec::BoundedVec,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+                pallet_staking::RewardDestination,
             },
         },
         EntropyConfig,
     },
+    client::entropy::staking::events::Bonded,
     client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
     substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
     user::{
@@ -524,4 +526,22 @@ pub async fn get_tdx_quote(
         return Err(ClientError::QuoteGet(response.text().await?));
     }
     Ok(response.bytes().await?.to_vec())
+}
+
+pub async fn bond_account(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    amount: u128,
+    reward_destination: SubxtAccountId32,
+) -> Result<Bonded, ClientError> {
+    let bond_account_request =
+        entropy::tx().staking().bond(amount, RewardDestination::Account(reward_destination));
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &signer, &bond_account_request, None).await?;
+
+    let result_event = in_block
+        .find_first::<entropy::staking::events::Bonded>()?
+        .ok_or(SubstrateError::NoEvent)?;
+    Ok(result_event)
 }

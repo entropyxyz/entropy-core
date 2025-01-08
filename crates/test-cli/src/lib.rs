@@ -27,9 +27,10 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        get_accounts, get_api, get_oracle_headings, get_programs, get_quote_and_change_endpoint,
-        get_quote_and_change_threshold_accounts, get_rpc, get_tdx_quote, jumpstart_network,
-        register, remove_program, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
+        bond_account, get_accounts, get_api, get_oracle_headings, get_programs,
+        get_quote_and_change_endpoint, get_quote_and_change_threshold_accounts, get_rpc,
+        get_tdx_quote, jumpstart_network, register, remove_program, sign, store_program,
+        update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
@@ -194,6 +195,14 @@ enum CliCommand {
         /// The filename to write the quote to. Defaults to `quote.dat`
         #[arg(long)]
         output_filename: Option<String>,
+    },
+    /// Bonds an account.
+    BondAccount {
+        amount: u128,
+        reward_destination: String,
+        /// The mnemonic for the signer which will trigger the call.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
     },
 }
 
@@ -545,6 +554,21 @@ pub async fn run_command(
                 Ok("{}".to_string())
             } else {
                 Ok(format!("Succesfully written quote to {}", output_filename))
+            }
+        },
+        CliCommand::BondAccount { amount, reward_destination, mnemonic_option } => {
+            let signer = handle_mnemonic(mnemonic_option)?;
+            cli.log(format!("Account being used for bonding: {}", signer.public()));
+            let reward_destination_account = SubxtAccountId32::from_str(&reward_destination)?;
+
+            let result_event =
+                bond_account(&api, &rpc, signer, amount, reward_destination_account).await?;
+            cli.log(format!("Event result: {:?}", result_event));
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Acouunt bonded".to_string())
             }
         },
     }
