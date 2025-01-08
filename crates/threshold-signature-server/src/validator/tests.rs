@@ -12,25 +12,27 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use super::api::{check_balance_for_fees, check_forbidden_key};
+use super::api::check_balance_for_fees;
 use crate::{
     helpers::{
-        launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
+        launch::LATEST_BLOCK_NUMBER_RESHARE,
         tests::{
-            get_port, initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get,
+            call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
+            spawn_testing_validators, unsafe_get,
         },
     },
-    validator::{
-        api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
-        errors::ValidatorErr,
-    },
+    validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
 };
 use entropy_client::{self as test_client};
 use entropy_client::{
     chain_api::{
-        entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
-        entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
+        entropy,
+        entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
+        entropy::runtime_types::entropy_runtime::RuntimeCall,
+        entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
+        entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
+        entropy::runtime_types::pallet_staking_extension::pallet::{NextSignerInfo, ReshareInfo},
+        get_api, get_rpc,
     },
     substrate::query_chain,
     Hasher,
@@ -69,7 +71,8 @@ async fn test_reshare_basic() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
-
+    let alice_stash = AccountKeyring::AliceStash;
+    let dave_stash = AccountKeyring::DaveStash;
     let client = reqwest::Client::new();
 
     // Get current signers
@@ -78,7 +81,9 @@ async fn test_reshare_basic() {
     let old_signer_ids: HashSet<[u8; 32]> =
         HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
     let mut signers = Vec::new();
+    let mut next_signers = vec![];
     for signer in signer_stash_accounts.iter() {
+        next_signers.push(signer);
         let query = entropy::storage().staking_extension().threshold_servers(signer);
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
@@ -89,6 +94,29 @@ async fn test_reshare_basic() {
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
+    next_signers.remove(0);
+    let binding = dave_stash.to_account_id().into();
+    next_signers.push(&binding);
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
+    let value_next_signers =
+        NextSignerInfo { confirmations: vec![], next_signers: next_signers.clone() };
+    // Add reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_next_signers.to_root_bytes(), value_next_signers.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+
+    let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
+    let value_reshare_info =
+        ReshareInfo { block_number, new_signers: vec![dave_stash.public().encode()] };
+    // Add reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+
+    let key_share_before = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
 
     let mut i = 0;
     // Wait up to 2min for reshare to complete: check once every second if we have a new set of signers.
@@ -101,7 +129,7 @@ async fn test_reshare_basic() {
         if new_signer_ids != old_signer_ids {
             break Ok(new_signer_ids);
         }
-        if i > 120 {
+        if i > 240 {
             break Err("Timed out waiting for reshare");
         }
         i += 1;
@@ -109,6 +137,11 @@ async fn test_reshare_basic() {
     }
     .unwrap();
 
+    // wait for roatate keyshare
+    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+
+    let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
+    assert_ne!(key_share_before, key_share_after);
     // At this point the signing set has changed on-chain, but the keyshares haven't been rotated
     // but by the time we have stored a program and registered, the rotation should have happened
 
@@ -173,6 +206,36 @@ async fn test_reshare_basic() {
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let key_share_before_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3003).await;
+
+    next_signers.remove(0);
+    let binding = alice_stash.to_account_id().into();
+    next_signers.push(&binding);
+
+    let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
+    let value_next_signers = NextSignerInfo { confirmations: vec![], next_signers };
+    // Add another reshare by adding next signer info
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_next_signers.to_root_bytes(), value_next_signers.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+
+    let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
+    let value_reshare_info =
+        ReshareInfo { block_number, new_signers: vec![alice_stash.public().encode()] };
+    // Same reshare needs reshare data too
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+
+    // wait for roatate keyshare
+    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+
+    let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3003).await;
+    assert_ne!(key_share_before_2, key_share_after_2);
+
     clean_tests();
 }
 
@@ -225,9 +288,17 @@ async fn test_reshare_validation_fail() {
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
+    let value_reshare_info =
+        ReshareInfo { block_number: block_number + 1, new_signers: vec![dave.public().encode()] };
+    // Add reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
+
     ocw_message.block_number = block_number;
-    run_to_block(&rpc, block_number + 1).await;
+    call_set_storage(&api, &rpc, call).await;
 
     let err_incorrect_data =
         validate_new_reshare(&api, &rpc, &ocw_message, &kv).await.map_err(|e| e.to_string());
@@ -311,16 +382,6 @@ async fn test_check_balance_for_fees() {
     let _ = check_balance_for_fees(&api, &rpc, (&RANDOM_ACCOUNT).to_string(), MIN_BALANCE)
         .await
         .unwrap();
-}
-
-#[tokio::test]
-async fn test_forbidden_keys() {
-    initialize_test_logger().await;
-    let should_fail = check_forbidden_key(FORBIDDEN_KEYS[0]);
-    assert_eq!(should_fail.unwrap_err().to_string(), ValidatorErr::ForbiddenKey.to_string());
-
-    let should_pass = check_forbidden_key("test");
-    assert_eq!(should_pass.unwrap(), ());
 }
 
 #[tokio::test]

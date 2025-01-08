@@ -24,7 +24,6 @@ use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
-use entropy_shared::NETWORK_PARENT_KEY;
 use serde::Deserialize;
 use sp_core::crypto::Ss58Codec;
 
@@ -49,7 +48,7 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 #[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
-pub const FORBIDDEN_KEYS: [&str; 1] = [NETWORK_PARENT_KEY];
+pub const KEY_MNEMONIC: &str = "MNEMONIC";
 
 // Deafult name for TSS server
 // Will set mnemonic and db path

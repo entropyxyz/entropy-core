@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     let now = Instant::now();
     let cli = Cli::parse();
     let json_ouput = cli.json;
-    match run_command(cli, None, None, None, None).await {
+    match run_command(cli, None, None, None, None, None).await {
         Ok(output) => {
             if json_ouput {
                 println!("{}", output);

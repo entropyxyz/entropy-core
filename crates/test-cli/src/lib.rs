@@ -33,6 +33,7 @@ use entropy_client::{
     },
 };
 pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
+use parity_scale_codec::Decode;
 use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::{traits::BlakeTwo256, Serialize};
 use std::{fs, path::PathBuf, str::FromStr};
@@ -132,6 +133,8 @@ enum CliCommand {
         config_interface_file: Option<PathBuf>,
         /// The path to a file containing the program aux interface (defaults to empty)
         aux_data_interface_file: Option<PathBuf>,
+        /// The path to a file containing the program oracle data headings (defaults to empty)
+        oracle_data_file: Option<PathBuf>,
         /// The version number of the program's runtime you compiled with
         program_version_number: Option<u8>,
         /// The mnemonic to use for the call
@@ -160,8 +163,6 @@ enum CliCommand {
         new_tss_account: String,
         /// New x25519 public key
         new_x25519_public_key: String,
-        /// The new Provisioning Certification Key (PCK) certificate chain to be used for the TSS.
-        new_pck_certificate_chain: Vec<String>,
         /// The mnemonic for the validator stash account to use for the call, should be stash address
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -209,6 +210,7 @@ pub async fn run_command(
     program_file_option: Option<PathBuf>,
     config_interface_file_option: Option<PathBuf>,
     aux_data_interface_file_option: Option<PathBuf>,
+    oracle_data_file_option: Option<PathBuf>,
     program_version_number_option: Option<u8>,
 ) -> anyhow::Result<String> {
     let endpoint_addr = cli.chain_endpoint.clone().unwrap_or_else(|| {
@@ -294,6 +296,7 @@ pub async fn run_command(
             program_file,
             config_interface_file,
             aux_data_interface_file,
+            oracle_data_file,
             program_version_number,
         } => {
             let keypair = handle_mnemonic(mnemonic_option)?;
@@ -320,6 +323,16 @@ pub async fn run_command(
                 },
             };
 
+            let oracle_data: Vec<Vec<u8>> = match oracle_data_file {
+                Some(file_name) => Vec::<Vec<u8>>::decode(&mut (fs::read(file_name)?).as_ref())?,
+                None => match oracle_data_file_option {
+                    Some(oracle_data_file) => {
+                        Vec::<Vec<u8>>::decode(&mut (fs::read(oracle_data_file)?).as_ref())?
+                    },
+                    None => vec![],
+                },
+            };
+
             let program_version_number = match program_version_number_option {
                 Some(program_version_number) => program_version_number,
                 None => program_version_number.unwrap_or(0u8),
@@ -332,7 +345,7 @@ pub async fn run_command(
                 program,
                 config_interface,
                 aux_data_interface,
-                vec![],
+                oracle_data,
                 program_version_number,
             )
             .await?;
@@ -482,7 +495,6 @@ pub async fn run_command(
         CliCommand::ChangeThresholdAccounts {
             new_tss_account,
             new_x25519_public_key,
-            new_pck_certificate_chain,
             mnemonic_option,
         } => {
             let user_keypair = handle_mnemonic(mnemonic_option)?;
@@ -492,15 +504,12 @@ pub async fn run_command(
             let new_x25519_public_key = hex::decode(new_x25519_public_key)?
                 .try_into()
                 .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
-            let new_pck_certificate_chain =
-                new_pck_certificate_chain.iter().cloned().map(|i| i.into()).collect::<_>();
             let result_event = get_quote_and_change_threshold_accounts(
                 &api,
                 &rpc,
                 user_keypair,
                 new_tss_account,
                 new_x25519_public_key,
-                new_pck_certificate_chain,
             )
             .await?;
             cli.log(format!("Event result: {:?}", result_event));

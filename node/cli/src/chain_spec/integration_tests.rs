@@ -66,10 +66,6 @@ pub fn integration_tests_config(jumpstarted: bool) -> ChainSpec {
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            vec![
-                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-            ],
             jump_started_signers,
         ))
         .build()
@@ -87,7 +83,6 @@ pub fn integration_tests_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    mock_signer_rotate_data: Vec<AccountId>,
     jump_started_signers: Option<Vec<AccountId>>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
@@ -229,7 +224,6 @@ pub fn integration_tests_genesis_config(
                 ],
                 vec![PREGENERATED_NETWORK_VERIFYING_KEY.to_vec(), DAVE_VERIFYING_KEY.to_vec()],
             ),
-            mock_signer_rotate: (true, mock_signer_rotate_data, vec![get_account_id_from_seed::<sr25519::Public>("Dave//stash")]),
             jump_started_signers,
         },
         "elections": ElectionsConfig {

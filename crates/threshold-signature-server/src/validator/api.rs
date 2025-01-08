@@ -19,7 +19,7 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
-        launch::{FORBIDDEN_KEYS, LATEST_BLOCK_NUMBER_RESHARE},
+        launch::LATEST_BLOCK_NUMBER_RESHARE,
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
     signing_client::{api::get_channels, ProtocolErr},
@@ -288,7 +288,7 @@ pub async fn validate_new_reshare(
         .await?
         .ok_or_else(|| ValidatorErr::ChainFetch("Not Currently in a reshare"))?;
 
-    if chain_data.block_number != reshare_data.block_number.saturating_sub(1)
+    if chain_data.block_number != reshare_data.block_number
         || chain_data.new_signers != reshare_data.new_signers
     {
         return Err(ValidatorErr::InvalidData);
@@ -366,14 +366,6 @@ pub async fn check_balance_for_fees(
         is_min_balance = true
     };
     Ok(is_min_balance)
-}
-
-pub fn check_forbidden_key(key: &str) -> Result<(), ValidatorErr> {
-    let forbidden = FORBIDDEN_KEYS.contains(&key);
-    if forbidden {
-        return Err(ValidatorErr::ForbiddenKey);
-    }
-    Ok(())
 }
 
 /// Filters out new signer from next signers to get old holders

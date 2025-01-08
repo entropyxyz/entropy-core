@@ -41,8 +41,6 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::weights::WeightInfo;
 
-pub mod pck;
-
 #[cfg(test)]
 mod mock;
 
@@ -60,8 +58,8 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        QuoteContext, ValidatorInfo, X25519PublicKey, MAX_SIGNERS,
-        PREGENERATED_NETWORK_VERIFYING_KEY, TEST_RESHARE_BLOCK_NUMBER, VERIFICATION_KEY_LENGTH,
+        QuoteContext, ValidatorInfo, VerifyQuoteError, X25519PublicKey, MAX_SIGNERS,
+        PREGENERATED_NETWORK_VERIFYING_KEY, VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -70,7 +68,6 @@ pub mod pallet {
         DefaultNoBound,
     };
     use frame_system::pallet_prelude::*;
-    use pck::PckCertChainVerifier;
     use rand_chacha::{
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
@@ -97,9 +94,6 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
-
-        /// A type that verifies a provisioning certification key (PCK) certificate chain.
-        type PckCertChainVerifier: PckCertChainVerifier;
 
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
@@ -133,14 +127,13 @@ pub mod pallet {
     }
 
     /// Information about a threshold server in the process of joining
-    /// This becomes a [ServerInfo] when the Pck certificate chain has been validated
+    /// This becomes a [ServerInfo] when an attestation has been verified
     #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct JoiningServerInfo<AccountId> {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
-        pub pck_certificate_chain: Vec<Vec<u8>>,
     }
 
     /// Info that is requiered to do a proactive refresh
@@ -263,8 +256,6 @@ pub mod pallet {
         pub threshold_servers: Vec<ThresholdServersConfig<T>>,
         /// validator info and accounts to take part in proactive refresh
         pub proactive_refresh_data: (Vec<ValidatorInfo>, Vec<Vec<u8>>),
-        /// validator info and account new signer to take part in a reshare
-        pub mock_signer_rotate: (bool, Vec<T::ValidatorId>, Vec<T::ValidatorId>),
         /// Whether to begin in an already jumpstarted state in order to be able to test signing
         /// using pre-generated keyshares
         pub jump_started_signers: Option<Vec<T::ValidatorId>>,
@@ -296,22 +287,6 @@ pub mod pallet {
                 proactive_refresh_keys: self.proactive_refresh_data.1.clone(),
             };
             ProactiveRefresh::<T>::put(refresh_info);
-            // mocks a signer rotation for tss new_reshare tests
-            if self.mock_signer_rotate.0 {
-                let next_signers = &mut self.mock_signer_rotate.1.clone();
-                let mut new_signers = vec![];
-                for new_signer in self.mock_signer_rotate.2.clone() {
-                    next_signers.push(new_signer.clone());
-                    new_signers.push(new_signer.encode())
-                }
-                let next_signers = next_signers.to_vec();
-                NextSigners::<T>::put(NextSignerInfo { next_signers, confirmations: vec![] });
-                ReshareData::<T>::put(ReshareInfo {
-                    // To give enough time for test_reshare setup
-                    block_number: TEST_RESHARE_BLOCK_NUMBER.into(),
-                    new_signers,
-                })
-            }
 
             if let Some(jump_started_signers) = &self.jump_started_signers {
                 Signers::<T>::put(jump_started_signers.clone());
@@ -347,20 +322,48 @@ pub mod pallet {
         NoUnnominatingWhenSigner,
         NoUnnominatingWhenNextSigner,
         NoChangingThresholdAccountWhenSigner,
+        /// Quote could not be parsed or verified
+        BadQuote,
+        /// Attestation extrinsic submitted when not requested
+        UnexpectedAttestation,
+        /// Hashed input data does not match what was expected
+        IncorrectInputData,
+        /// Unacceptable VM image running
+        BadMrtdValue,
+        /// Cannot encode verifying key (PCK)
+        CannotEncodeVerifyingKey,
+        /// Cannot decode verifying key (PCK)
+        CannotDecodeVerifyingKey,
+        /// PCK certificate chain cannot be parsed
         PckCertificateParse,
+        /// PCK certificate chain cannot be verified
         PckCertificateVerify,
+        /// PCK certificate chain public key is not well formed
         PckCertificateBadPublicKey,
+        /// Pck certificate could not be extracted from quote
         PckCertificateNoCertificate,
-        FailedAttestationCheck,
     }
 
-    impl<T> From<pck::PckParseVerifyError> for Error<T> {
-        fn from(error: pck::PckParseVerifyError) -> Self {
+    impl<T> From<VerifyQuoteError> for Error<T> {
+        /// As there are many reasons why quote verification can fail we want these error types to
+        /// be reflected in the dispatch errors from extrinsics in this pallet which do quote
+        /// verification
+        fn from(error: VerifyQuoteError) -> Self {
             match error {
-                pck::PckParseVerifyError::Parse => Error::<T>::PckCertificateParse,
-                pck::PckParseVerifyError::Verify => Error::<T>::PckCertificateVerify,
-                pck::PckParseVerifyError::BadPublicKey => Error::<T>::PckCertificateBadPublicKey,
-                pck::PckParseVerifyError::NoCertificate => Error::<T>::PckCertificateNoCertificate,
+                VerifyQuoteError::BadQuote => Error::<T>::BadQuote,
+                VerifyQuoteError::UnexpectedAttestation => Error::<T>::UnexpectedAttestation,
+                VerifyQuoteError::IncorrectInputData => Error::<T>::IncorrectInputData,
+                VerifyQuoteError::BadMrtdValue => Error::<T>::BadMrtdValue,
+                VerifyQuoteError::CannotEncodeVerifyingKey => Error::<T>::CannotEncodeVerifyingKey,
+                VerifyQuoteError::PckCertificateParse => Error::<T>::PckCertificateParse,
+                VerifyQuoteError::PckCertificateVerify => Error::<T>::PckCertificateVerify,
+                VerifyQuoteError::PckCertificateBadPublicKey => {
+                    Error::<T>::PckCertificateBadPublicKey
+                },
+                VerifyQuoteError::PckCertificateNoCertificate => {
+                    Error::<T>::PckCertificateNoCertificate
+                },
+                VerifyQuoteError::CannotDecodeVerifyingKey => Error::<T>::CannotDecodeVerifyingKey,
             }
         }
     }
@@ -430,17 +433,12 @@ pub mod pallet {
                 if let Some(server_info) = maybe_server_info {
                     // Before we modify the `server_info`, we want to check that the validator is
                     // still running TDX hardware.
-                    ensure!(
-                        <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
-                            &server_info.tss_account.clone(),
-                            server_info.x25519_public_key,
-                            server_info.provisioning_certification_key.clone(),
-                            quote,
-                            QuoteContext::ChangeEndpoint,
-                        )
-                        .is_ok(),
-                        Error::<T>::FailedAttestationCheck
-                    );
+                    <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                        &server_info.tss_account.clone(),
+                        server_info.x25519_public_key,
+                        quote,
+                        QuoteContext::ChangeEndpoint,
+                    )?;
 
                     server_info.endpoint.clone_from(&endpoint);
 
@@ -473,7 +471,6 @@ pub mod pallet {
             origin: OriginFor<T>,
             tss_account: T::AccountId,
             x25519_public_key: X25519PublicKey,
-            pck_certificate_chain: Vec<Vec<u8>>,
             quote: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -493,30 +490,19 @@ pub mod pallet {
                 Error::<T>::NoChangingThresholdAccountWhenSigner
             );
 
-            let provisioning_certification_key =
-                T::PckCertChainVerifier::verify_pck_certificate_chain(pck_certificate_chain)
-                    .map_err(|error| {
-                        let e: Error<T> = error.into();
-                        e
-                    })?;
-
             let new_server_info: ServerInfo<T::AccountId> = ThresholdServers::<T>::try_mutate(
                 &validator_id,
                 |maybe_server_info| {
                     if let Some(server_info) = maybe_server_info {
                         // Before we modify the `server_info`, we want to check that the validator is
                         // still running TDX hardware.
-                        ensure!(
+                        let provisioning_certification_key =
                             <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
                                 &tss_account.clone(),
                                 x25519_public_key,
-                                provisioning_certification_key.clone(),
                                 quote,
                                 QuoteContext::ChangeThresholdAccounts,
-                            )
-                            .is_ok(),
-                            Error::<T>::FailedAttestationCheck
-                        );
+                            )?;
 
                         server_info.tss_account = tss_account;
                         server_info.x25519_public_key = x25519_public_key;
@@ -635,14 +621,24 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
+            ensure!(
+                joining_server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                Error::<T>::EndpointTooLong
+            );
+
+            ensure!(
+                !ThresholdToStash::<T>::contains_key(&joining_server_info.tss_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
+
             let provisioning_certification_key =
-                T::PckCertChainVerifier::verify_pck_certificate_chain(
-                    joining_server_info.pck_certificate_chain,
+                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                    &joining_server_info.tss_account.clone(),
+                    joining_server_info.x25519_public_key,
+                    quote,
+                    QuoteContext::Validate,
                 )
-                .map_err(|error| {
-                    let e: Error<T> = error.into();
-                    e
-                })?;
+                .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
 
             let server_info = ServerInfo::<T::AccountId> {
                 tss_account: joining_server_info.tss_account,
@@ -650,27 +646,6 @@ pub mod pallet {
                 endpoint: joining_server_info.endpoint,
                 provisioning_certification_key,
             };
-            ensure!(
-                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
-                Error::<T>::EndpointTooLong
-            );
-
-            ensure!(
-                !ThresholdToStash::<T>::contains_key(&server_info.tss_account),
-                Error::<T>::TssAccountAlreadyExists
-            );
-
-            ensure!(
-                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
-                    &server_info.tss_account.clone(),
-                    server_info.x25519_public_key,
-                    server_info.provisioning_certification_key.clone(),
-                    quote,
-                    QuoteContext::Validate,
-                )
-                .is_ok(),
-                Error::<T>::FailedAttestationCheck
-            );
 
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
 
@@ -929,7 +904,7 @@ pub mod pallet {
             // trigger reshare at next block
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             let reshare_info = ReshareInfo {
-                block_number: current_block_number + sp_runtime::traits::One::one(),
+                block_number: current_block_number - sp_runtime::traits::One::one(),
                 new_signers,
             };
 

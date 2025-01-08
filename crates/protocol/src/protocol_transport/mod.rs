@@ -83,14 +83,14 @@ impl WsConnection for axum::extract::ws::WebSocket {
             .ok_or(WsError::ConnectionClosed)?
             .map_err(|e| WsError::ConnectionError(e.to_string()))?
         {
-            Ok(msg)
+            Ok(msg.to_vec())
         } else {
             Err(WsError::UnexpectedMessageType)
         }
     }
 
     async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        self.send(axum::extract::ws::Message::Binary(msg))
+        self.send(axum::extract::ws::Message::Binary(msg.into()))
             .await
             .map_err(|_| WsError::ConnectionClosed)
     }
@@ -106,14 +106,14 @@ impl WsConnection for tokio_tungstenite::WebSocketStream<MaybeTlsStream<tokio::n
             .ok_or(WsError::ConnectionClosed)?
             .map_err(|e| WsError::ConnectionError(e.to_string()))?
         {
-            Ok(msg)
+            Ok(msg.to_vec())
         } else {
             Err(WsError::UnexpectedMessageType)
         }
     }
 
     async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        SinkExt::send(&mut self, tungstenite::Message::Binary(msg))
+        SinkExt::send(&mut self, tungstenite::Message::Binary(msg.into()))
             .await
             .map_err(|_| WsError::ConnectionClosed)
     }
@@ -130,14 +130,14 @@ impl WsConnection for tokio_tungstenite::WebSocketStream<tokio::net::TcpStream> 
             .ok_or(WsError::ConnectionClosed)?
             .map_err(|e| WsError::ConnectionError(e.to_string()))?
         {
-            Ok(msg)
+            Ok(msg.to_vec())
         } else {
             Err(WsError::UnexpectedMessageType)
         }
     }
 
     async fn send(&mut self, msg: Vec<u8>) -> Result<(), WsError> {
-        SinkExt::send(&mut self, tungstenite::Message::Binary(msg))
+        SinkExt::send(&mut self, tungstenite::Message::Binary(msg.into()))
             .await
             .map_err(|_| WsError::ConnectionClosed)
     }

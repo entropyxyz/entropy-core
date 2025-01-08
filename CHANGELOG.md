@@ -35,6 +35,10 @@ runtime
 - In [#1216](https://github.com/entropyxyz/entropy-core/pull/1216) the `--setup-only` option for `entropy-tss`
   was removed. `entropy-tss` should be started only once, and the public keys retrieved using the `/info`
   http route.
+- In [#1209](https://github.com/entropyxyz/entropy-core/pull/1209) the `validate` and `change_threshold_accounts`
+  extrinsics no longer take a PCK certificate chain. Rather, the certificate chain is extracted from the
+  provided quote. The test CLI `change-threshold-accounts` command also no longer takes a PCK
+  certificate chain.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -56,6 +60,7 @@ runtime
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
 - Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
 - Non persistent TSS signer and x25519 keypair ([#1216](https://github.com/entropyxyz/entropy-core/pull/1216))
+- Extract PCK certificate chain from quotes ([#1209](https://github.com/entropyxyz/entropy-core/pull/1209))
 
 ### Fixed
 

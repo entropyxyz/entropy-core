@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData};
+    use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError};
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
@@ -58,7 +58,7 @@ pub mod pallet {
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
     };
-    use tdx_quote::{decode_verifying_key, Quote};
+    use tdx_quote::{encode_verifying_key, Quote, VerifyingKey};
 
     pub use crate::weights::WeightInfo;
 
@@ -133,12 +133,16 @@ pub mod pallet {
         NoPCKForAccount,
         /// Unacceptable VM image running
         BadMrtdValue,
+        /// Cannot encode verifying key (PCK)
+        CannotEncodeVerifyingKey,
         /// Cannot decode verifying key (PCK)
         CannotDecodeVerifyingKey,
         /// Could not verify PCK signature
         PckVerification,
         /// There's an existing attestation request for this account ID.
         OutstandingAttestationRequest,
+        /// PCK certificate chain cannot be extracted from quote
+        NoPckCertChain,
     }
 
     #[pallet::call]
@@ -203,54 +207,73 @@ pub mod pallet {
         fn verify_quote(
             attestee: &T::AccountId,
             x25519_public_key: entropy_shared::X25519PublicKey,
-            provisioning_certification_key: entropy_shared::BoundedVecEncodedVerifyingKey,
             quote: Vec<u8>,
             context: QuoteContext,
-        ) -> Result<(), DispatchError> {
+        ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
-            let nonce =
-                PendingAttestations::<T>::get(attestee).ok_or(Error::<T>::UnexpectedAttestation)?;
+            let nonce = PendingAttestations::<T>::get(attestee)
+                .ok_or(VerifyQuoteError::UnexpectedAttestation)?;
 
             // Parse the quote (which internally verifies the attestation key signature)
-            let quote = Quote::from_bytes(&quote).map_err(|_| Error::<T>::BadQuote)?;
+            let quote = Quote::from_bytes(&quote).map_err(|_| VerifyQuoteError::BadQuote)?;
 
             // Check report input data matches the nonce, TSS details and block number
             let expected_input_data =
                 QuoteInputData::new(attestee, x25519_public_key, nonce, context);
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
-                Error::<T>::IncorrectInputData
+                VerifyQuoteError::IncorrectInputData
             );
 
             // Check build-time measurement matches a current-supported release of entropy-tss
             let mrtd_value = BoundedVec::try_from(quote.mrtd().to_vec())
-                .map_err(|_| Error::<T>::BadMrtdValue)?;
+                .map_err(|_| VerifyQuoteError::BadMrtdValue)?;
             let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
-            ensure!(accepted_mrtd_values.contains(&mrtd_value), Error::<T>::BadMrtdValue);
+            ensure!(accepted_mrtd_values.contains(&mrtd_value), VerifyQuoteError::BadMrtdValue);
 
-            // Check that the attestation public key is signed with the PCK
-            let provisioning_certification_key = decode_verifying_key(
-                &provisioning_certification_key
-                    .to_vec()
-                    .try_into()
-                    .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?,
-            )
-            .map_err(|_| Error::<T>::CannotDecodeVerifyingKey)?;
-
-            quote
-                .verify_with_pck(provisioning_certification_key)
-                .map_err(|_| Error::<T>::PckVerification)?;
+            let pck = verify_pck_certificate_chain(&quote)?;
 
             PendingAttestations::<T>::remove(attestee);
 
             // TODO #982 If anything fails, don't just return an error - do something mean
 
-            Ok(())
+            BoundedVec::try_from(
+                encode_verifying_key(&pck)
+                    .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)?
+                    .to_vec(),
+            )
+            .map_err(|_| VerifyQuoteError::CannotEncodeVerifyingKey)
         }
 
         fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
             PendingAttestations::<T>::insert(who, nonce)
         }
+    }
+
+    #[cfg(feature = "production")]
+    fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
+        quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)
+    }
+
+    /// A mock version of verifying the PCK certificate chain.
+    /// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
+    /// so this function just decodes it, checks it was used to sign the quote, and returns it
+    #[cfg(not(feature = "production"))]
+    fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
+        let provisioning_certification_key =
+            quote.pck_cert_chain().map_err(|_| VerifyQuoteError::PckCertificateNoCertificate)?;
+        let provisioning_certification_key = tdx_quote::decode_verifying_key(
+            &provisioning_certification_key
+                .try_into()
+                .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?,
+        )
+        .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?;
+
+        ensure!(
+            quote.verify_with_pck(&provisioning_certification_key).is_ok(),
+            VerifyQuoteError::PckCertificateVerify
+        );
+        Ok(provisioning_certification_key)
     }
 }
