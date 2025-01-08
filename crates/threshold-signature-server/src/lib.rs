@@ -217,7 +217,9 @@ pub struct AppState {
     pair: sr25519::Pair,
     /// Secret encryption key
     x25519_secret: StaticSecret,
+    /// Configuation containing the chain endpoint
     pub configuration: Configuration,
+    /// Key-value store
     pub kv_store: KvManager,
 }
 

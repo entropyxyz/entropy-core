@@ -32,7 +32,6 @@ use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{OcwMessageAttestationRequest, QuoteContext};
 use parity_scale_codec::Decode;
 use serde::Deserialize;
-use sp_core::Pair;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
 
@@ -57,7 +56,7 @@ pub async fn attest(
     validate_new_attestation(block_number, &attestation_requests, &app_state.kv_store).await?;
 
     // Check whether there is an attestion request for us
-    if !attestation_requests.tss_account_ids.contains(&app_state.pair.public().0) {
+    if !attestation_requests.tss_account_ids.contains(&app_state.subxt_account_id().0) {
         return Ok(StatusCode::OK);
     }
 

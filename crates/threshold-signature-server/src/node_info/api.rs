@@ -37,7 +37,9 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
 pub struct TssPublicKeys {
     /// Indicates that all prerequisite checks have passed
     pub ready: bool,
+    /// The TSS account ID
     pub tss_account: AccountId32,
+    /// The public encryption key
     pub x25519_public_key: X25519PublicKey,
 }
 
