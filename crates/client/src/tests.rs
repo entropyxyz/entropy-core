@@ -14,7 +14,7 @@ use crate::{
         get_api, get_rpc,
     },
     change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
-    request_attestation, store_program,
+    request_attestation, set_session_keys, store_program,
     substrate::query_chain,
     update_programs,
 };
@@ -303,4 +303,25 @@ async fn test_bond_accounts() {
         format!("{:?}", result),
         format!("{:?}", staking_events::Bonded { stash: reward_destination, amount: bond_amount })
     );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_set_session_key() {
+    let one = AccountKeyring::Ferdie;
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let session_key = "0x833b9e467823236c10348fd26f114ecf10f46e1be41b6a2ba4fab0b915a0b0affc9d3031694d1c65b711b8c5f79d57f734c9fa01366164ecc3ff8d84a04759160c2cf916dcabb8135c7605106052f9baf8e45a4f348cef2785f83a9674bec964ac3013772500af6236b1f6491a7024cacf69557b4b89779afdbc017de364e166".to_string();
+
+    // need to bond first
+    let bond_amount = 10000000000u128;
+    let reward_destination = AccountId32(one.public().0);
+    let _ = bond_account(&api, &rpc, one.into(), bond_amount, reward_destination.clone())
+        .await
+        .unwrap();
+
+    let result = set_session_keys(&api, &rpc, one.into(), session_key).await;
+    assert!(result.is_ok());
 }

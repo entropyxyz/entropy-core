@@ -553,7 +553,12 @@ pub async fn set_session_keys(
     signer: sr25519::Pair,
     session_key: String,
 ) -> Result<(), ClientError> {
-    let session_keys_decoded = deconstruct_session_keys_string(session_key).unwrap();
+    let striped_session_key = if session_key.starts_with("0x") {
+        session_key.strip_prefix("0x").unwrap().to_string()
+    } else {
+        session_key
+    };
+    let session_keys_decoded = deconstruct_session_keys_string(striped_session_key).unwrap();
     let session_key_request = entropy::tx().session().set_keys(session_keys_decoded, vec![]);
     let _ = submit_transaction_with_pair(api, rpc, &signer, &session_key_request, None).await?;
 
