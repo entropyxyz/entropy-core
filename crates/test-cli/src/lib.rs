@@ -198,8 +198,17 @@ enum CliCommand {
     },
     /// Bonds an account.
     BondAccount {
+        /// Amount to bond
         amount: u128,
+        /// Destination to gert rewards
         reward_destination: String,
+        /// The mnemonic for the signer which will trigger the call.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Bonds an account.
+    SetSessionKeys {
+        session_keys: String,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -568,7 +577,21 @@ pub async fn run_command(
             if cli.json {
                 Ok("{}".to_string())
             } else {
-                Ok("Acouunt bonded".to_string())
+                Ok("Acount bonded".to_string())
+            }
+        },
+        CliCommand::SetSessionKeys { keys, mnemonic_option } => {
+            let signer = handle_mnemonic(mnemonic_option)?;
+            cli.log(format!("Account being used for session keys: {}", signer.public()));
+
+            let result_event =
+                set_session_keys(&api, &rpc, signer, keys).await?;
+            cli.log(format!("Event result: {:?}", result_event));
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Session Keys updates".to_string())
             }
         },
     }
