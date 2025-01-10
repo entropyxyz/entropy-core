@@ -35,9 +35,7 @@ pallet-slashing={ version="0.3.0", path="../slashing", default-features=false }
 entropy-shared={ version="0.3.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
-tdx-quote={ git="https://github.com/entropyxyz/tdx-quote.git", rev="67a9d011809d0c9109d1ac42aeb809a84b663be6", features=[
-  "mock",
-], optional=true }
+tdx-quote={ version="0.0.3", features=["mock"], optional=true }
 
 [dev-dependencies]
 frame-election-provider-support={ version="29.0.0", default-features=false }
