@@ -34,13 +34,16 @@ use crate::{
                 entropy_runtime::SessionKeys,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
-                pallet_staking::RewardDestination,
+                pallet_staking::{RewardDestination, ValidatorPrefs},
+                pallet_staking_extension::pallet::JoiningServerInfo,
             },
         },
         EntropyConfig,
     },
     client::entropy::staking::events::Bonded,
-    client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
+    client::entropy::staking_extension::events::{
+        EndpointChanged, ThresholdAccountChanged, ValidatorCandidateAccepted,
+    },
     substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
     user::{
         self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
@@ -563,6 +566,22 @@ pub async fn set_session_keys(
     let _ = submit_transaction_with_pair(api, rpc, &signer, &session_key_request, None).await?;
 
     Ok(())
+}
+
+pub async fn declare_validate(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    prefs: ValidatorPrefs,
+    joining_server_info: JoiningServerInfo<SubxtAccountId32>,
+    quote: Vec<u8>,
+) -> Result<ValidatorCandidateAccepted, ClientError> {
+    let validate_request =
+        entropy::tx().staking_extension().validate(prefs, joining_server_info, quote);
+    let in_block = submit_transaction_with_pair(api, rpc, &signer, &validate_request, None).await?;
+    let result_event =
+        in_block.find_first::<ValidatorCandidateAccepted>()?.ok_or(SubstrateError::NoEvent)?;
+    Ok(result_event)
 }
 
 pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, String> {

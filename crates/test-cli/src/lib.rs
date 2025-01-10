@@ -30,7 +30,7 @@ use entropy_client::{
         bond_account, get_accounts, get_api, get_oracle_headings, get_programs,
         get_quote_and_change_endpoint, get_quote_and_change_threshold_accounts, get_rpc,
         get_tdx_quote, jumpstart_network, register, remove_program, sign, store_program,
-        update_programs, VERIFYING_KEY_LENGTH,
+        update_programs, VERIFYING_KEY_LENGTH, declare_validate
     },
 };
 pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
@@ -206,9 +206,15 @@ enum CliCommand {
         #[arg(short, long)]
         mnemonic_option: Option<String>,
     },
-    /// Bonds an account.
+    /// Sets session keys for an account.
     SetSessionKeys {
         session_keys: String,
+        /// The mnemonic for the signer which will trigger the call.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Declares intention to validate
+    DeclareValidate {
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -592,6 +598,20 @@ pub async fn run_command(
                 Ok("{}".to_string())
             } else {
                 Ok("Session Keys updates".to_string())
+            }
+        },
+        CliCommand::DeclareValidate { mnemonic_option } => {
+            let signer = handle_mnemonic(mnemonic_option)?;
+            cli.log(format!("Account being used for session keys: {}", signer.public()));
+
+            // let result_event =
+            //     declare_validate(&api, &rpc, signer).await?;
+            // cli.log(format!("Event result: {:?}", result_event));
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Validation declared succefully".to_string())
             }
         },
     }
