@@ -6,7 +6,9 @@ use crate::{
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec,
                 pallet_registry::pallet::ProgramInstance,
-                pallet_staking_extension::pallet::ServerInfo,
+                pallet_staking_extension::pallet::{ServerInfo, JoiningServerInfo},
+                pallet_staking::ValidatorPrefs,
+                sp_arithmetic::per_things::Perbill,
             },
             staking::events as staking_events,
             staking_extension::events,
@@ -14,7 +16,7 @@ use crate::{
         get_api, get_rpc,
     },
     change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
-    request_attestation, set_session_keys, store_program,
+    request_attestation, set_session_keys, store_program, declare_validate,
     substrate::query_chain,
     update_programs,
 };
@@ -307,7 +309,7 @@ async fn test_bond_accounts() {
 
 #[tokio::test]
 #[serial]
-async fn test_set_session_key() {
+async fn test_set_session_key_and_declare_validate() {
     let one = AccountKeyring::Ferdie;
     let substrate_context = test_context_stationary().await;
 
@@ -322,6 +324,29 @@ async fn test_set_session_key() {
         .await
         .unwrap();
 
-    let result = set_session_keys(&api, &rpc, one.into(), session_key).await;
-    assert!(result.is_ok());
+    let result_session_key = set_session_keys(&api, &rpc, one.into(), session_key).await;
+    assert!(result_session_key.is_ok());
+
+   // We need to use an account that's not a validator (so not our default development/test accounts)
+    // otherwise we're not able to update the TSS and X25519 keys for our existing validator.
+    let non_validator_seed =
+        "gospel prosper cactus remember snap enact refuse review bind rescue guard sock";
+    let (tss_signer_pair, x25519_secret) =
+        entropy_testing_utils::get_signer_and_x25519_secret_from_mnemonic(non_validator_seed)
+            .unwrap();
+
+    let tss_account = AccountId32(tss_signer_pair.signer().public().0);
+    let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
+    let endpoint = "test".to_string();
+
+        let joining_server_info =
+                JoiningServerInfo { tss_account, x25519_public_key: *x25519_public_key.as_bytes(), endpoint: endpoint.into() };
+            
+    let validator_prefs = ValidatorPrefs {
+                    commission: Perbill(0),
+                    blocked: false,
+                };
+    let result_declare_validate = declare_validate(&api, &rpc, one.into(), validator_prefs, joining_server_info, vec![]).await;
+    dbg!(&result_declare_validate);
+    assert!(result_declare_validate.is_ok());
 }

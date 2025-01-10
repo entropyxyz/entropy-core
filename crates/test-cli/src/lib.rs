@@ -25,6 +25,7 @@ use entropy_client::{
             pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
             pallet_staking::{ValidatorPrefs},
             pallet_staking_extension::pallet::JoiningServerInfo,
+            sp_arithmetic::per_things::Perbill,
         },
         EntropyConfig,
     },
@@ -611,14 +612,20 @@ pub async fn run_command(
         CliCommand::DeclareValidate { tss_account, x25519_public_key, endpoint, mnemonic_option } => {
             let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for session keys: {}", signer.public()));
+            
             let tss_account = SubxtAccountId32::from_str(&tss_account)?;
             let x25519_public_key = hex::decode(x25519_public_key)?
                 .try_into()
                 .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
             let joining_server_info =
-            JoiningServerInfo { tss_account, x25519_public_key, endpoint };
+                JoiningServerInfo { tss_account, x25519_public_key, endpoint };
+            // TODO have these passed in
+            let validator_prefs = ValidatorPrefs {
+                    commission: Perbill(0),
+                    blocked: false,
+                };
             let result_event =
-                declare_validate(&api, &rpc, signer , joining_server_info, ValidatorPrefs::default(), vec![]).await?;
+                declare_validate(&api, &rpc, signer , joining_server_info, validator_prefs, vec![]).await?;
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
