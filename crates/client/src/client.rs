@@ -568,6 +568,18 @@ pub async fn set_session_keys(
     Ok(())
 }
 
+pub async fn get_quote_and_declare_validate(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    prefs: ValidatorPrefs,
+    joining_server_info: JoiningServerInfo<SubxtAccountId32>,
+) -> Result<ValidatorCandidateAccepted, ClientError> {
+    let quote =
+        get_tdx_quote(std::str::from_utf8(&joining_server_info.endpoint)?, QuoteContext::Validate)
+            .await?;
+    declare_validate(api, rpc, signer, prefs, joining_server_info, quote).await
+}
 pub async fn declare_validate(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,

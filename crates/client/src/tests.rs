@@ -6,8 +6,8 @@ use crate::{
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec,
                 pallet_registry::pallet::ProgramInstance,
-                pallet_staking_extension::pallet::{ServerInfo, JoiningServerInfo},
                 pallet_staking::ValidatorPrefs,
+                pallet_staking_extension::pallet::{JoiningServerInfo, ServerInfo},
                 sp_arithmetic::per_things::Perbill,
             },
             staking::events as staking_events,
@@ -15,8 +15,8 @@ use crate::{
         },
         get_api, get_rpc,
     },
-    change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
-    request_attestation, set_session_keys, store_program, declare_validate,
+    change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
+    remove_program, request_attestation, set_session_keys, store_program,
     substrate::query_chain,
     update_programs,
 };
@@ -327,7 +327,7 @@ async fn test_set_session_key_and_declare_validate() {
     let result_session_key = set_session_keys(&api, &rpc, one.into(), session_key).await;
     assert!(result_session_key.is_ok());
 
-   // We need to use an account that's not a validator (so not our default development/test accounts)
+    // We need to use an account that's not a validator (so not our default development/test accounts)
     // otherwise we're not able to update the TSS and X25519 keys for our existing validator.
     let non_validator_seed =
         "gospel prosper cactus remember snap enact refuse review bind rescue guard sock";
@@ -337,16 +337,60 @@ async fn test_set_session_key_and_declare_validate() {
 
     let tss_account = AccountId32(tss_signer_pair.signer().public().0);
     let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
+    let tss_public_key = tss_signer_pair.signer().public();
     let endpoint = "test".to_string();
 
-        let joining_server_info =
-                JoiningServerInfo { tss_account, x25519_public_key: *x25519_public_key.as_bytes(), endpoint: endpoint.into() };
-            
-    let validator_prefs = ValidatorPrefs {
-                    commission: Perbill(0),
-                    blocked: false,
-                };
-    let result_declare_validate = declare_validate(&api, &rpc, one.into(), validator_prefs, joining_server_info, vec![]).await;
+    let joining_server_info = JoiningServerInfo {
+        tss_account,
+        x25519_public_key: *x25519_public_key.as_bytes(),
+        endpoint: endpoint.into(),
+    };
+
+    let validator_prefs = ValidatorPrefs { commission: Perbill(0), blocked: false };
+
+    // We need to give our new TSS account some funds before it can request an attestation.
+    let dest = tss_signer_pair.account_id().clone().into();
+    let amount = 10 * entropy_shared::MIN_BALANCE;
+    let balance_transfer_tx = entropy::tx().balances().transfer_allow_death(dest, amount);
+    let _transfer_result = crate::substrate::submit_transaction_with_pair(
+        &api,
+        &rpc,
+        &one.pair(),
+        &balance_transfer_tx,
+        None,
+    )
+    .await
+    .unwrap();
+
+     // When we request an attestation we get a nonce back that we must use when generating our quote.
+     let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer()).await.unwrap();
+     let nonce: [u8; 32] = nonce.try_into().unwrap();
+ 
+     // Our runtime is using the mock `PckCertChainVerifier`, which means that the expected
+     // "certificate" basically is just our TSS account ID. This account needs to match the one
+     // used to sign the following `quote`.
+     let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
+     let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+     let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
+ 
+     let quote = {
+         let input_data = entropy_shared::QuoteInputData::new(
+             tss_public_key,
+             *x25519_public_key.as_bytes(),
+             nonce,
+             QuoteContext::Validate,
+         );
+ 
+         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
+ 
+         tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0, encoded_pck.clone())
+             .as_bytes()
+             .to_vec()
+     };
+
+    let result_declare_validate =
+        declare_validate(&api, &rpc, one.into(), validator_prefs, joining_server_info, quote).await;
     dbg!(&result_declare_validate);
+    // TODO: better assert_eq statment
     assert!(result_declare_validate.is_ok());
 }

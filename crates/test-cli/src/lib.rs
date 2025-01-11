@@ -224,6 +224,8 @@ enum CliCommand {
         x25519_public_key: String,
         /// Endpoint to change to (ex. "127.0.0.1:3001")
         endpoint: String,
+        comission: usize, 
+        blocked: bool,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
         mnemonic_option: Option<String>,
@@ -609,23 +611,24 @@ pub async fn run_command(
                 Ok("Session Keys updates".to_string())
             }
         },
-        CliCommand::DeclareValidate { tss_account, x25519_public_key, endpoint, mnemonic_option } => {
+        CliCommand::DeclareValidate { tss_account, x25519_public_key, endpoint, comission, blocked, mnemonic_option } => {
             let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for session keys: {}", signer.public()));
             
+            // TODO move this into declare validate function for better testing
             let tss_account = SubxtAccountId32::from_str(&tss_account)?;
             let x25519_public_key = hex::decode(x25519_public_key)?
                 .try_into()
                 .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
             let joining_server_info =
                 JoiningServerInfo { tss_account, x25519_public_key, endpoint };
-            // TODO have these passed in
+
             let validator_prefs = ValidatorPrefs {
-                    commission: Perbill(0),
-                    blocked: false,
+                    commission: Perbill(comission),
+                    blocked,
                 };
             let result_event =
-                declare_validate(&api, &rpc, signer , joining_server_info, validator_prefs, vec![]).await?;
+                get_quote_and_declare_validate(&api, &rpc, signer , joining_server_info, validator_prefs).await?;
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
