@@ -569,6 +569,7 @@ pub async fn set_session_keys(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn get_quote_and_declare_validate(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -593,6 +594,8 @@ pub async fn get_quote_and_declare_validate(
     )
     .await
 }
+
+#[allow(clippy::too_many_arguments)]
 pub async fn declare_validate(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -656,13 +659,10 @@ pub fn deconstruct_session_keys_string(session_keys: String) -> Result<SessionKe
     let mut session_keys_u8: Vec<u8> = Vec::with_capacity(128);
     let mut iter = session_keys.chars();
     for _ in (0..len).step_by(2) {
-        let value_1: u8 = iter
-            .next()
-            .and_then(|v| v.to_digit(16))
-            .and_then(|v| Some((v * 16) as u8))
-            .ok_or_else(err)?;
+        let value_1: u8 =
+            iter.next().and_then(|v| v.to_digit(16)).map(|v| (v * 16) as u8).ok_or_else(err)?;
         let value_2: u8 =
-            iter.next().and_then(|v| v.to_digit(16)).and_then(|v| Some(v as u8)).ok_or_else(err)?;
+            iter.next().and_then(|v| v.to_digit(16)).map(|v| v as u8).ok_or_else(err)?;
         session_keys_u8.push(value_1 + value_2);
     }
 

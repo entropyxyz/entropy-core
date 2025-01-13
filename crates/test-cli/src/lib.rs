@@ -23,17 +23,15 @@ use entropy_client::{
             bounded_collections::bounded_vec::BoundedVec,
             pallet_programs::pallet::ProgramInfo,
             pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
-            pallet_staking::{ValidatorPrefs},
-            pallet_staking_extension::pallet::JoiningServerInfo,
-            sp_arithmetic::per_things::Perbill,
         },
         EntropyConfig,
     },
     client::{
         bond_account, get_accounts, get_api, get_oracle_headings, get_programs,
-        get_quote_and_change_endpoint, get_quote_and_change_threshold_accounts, get_rpc,
-        get_tdx_quote, jumpstart_network, register, remove_program, sign, store_program,
-        update_programs, VERIFYING_KEY_LENGTH, declare_validate
+        get_quote_and_change_endpoint, get_quote_and_change_threshold_accounts,
+        get_quote_and_declare_validate, get_rpc, get_tdx_quote, jumpstart_network, register,
+        remove_program, set_session_keys, sign, store_program, update_programs,
+        VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
@@ -224,7 +222,7 @@ enum CliCommand {
         x25519_public_key: String,
         /// Endpoint to change to (ex. "127.0.0.1:3001")
         endpoint: String,
-        comission: usize, 
+        comission: u32,
         blocked: bool,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
@@ -597,13 +595,11 @@ pub async fn run_command(
                 Ok("Acount bonded".to_string())
             }
         },
-        CliCommand::SetSessionKeys { keys, mnemonic_option } => {
+        CliCommand::SetSessionKeys { session_keys, mnemonic_option } => {
             let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for session keys: {}", signer.public()));
 
-            let result_event =
-                set_session_keys(&api, &rpc, signer, keys).await?;
-            cli.log(format!("Event result: {:?}", result_event));
+            set_session_keys(&api, &rpc, signer, session_keys).await?;
 
             if cli.json {
                 Ok("{}".to_string())
@@ -611,12 +607,28 @@ pub async fn run_command(
                 Ok("Session Keys updates".to_string())
             }
         },
-        CliCommand::DeclareValidate { tss_account, x25519_public_key, endpoint, comission, blocked, mnemonic_option } => {
+        CliCommand::DeclareValidate {
+            tss_account,
+            x25519_public_key,
+            endpoint,
+            comission,
+            blocked,
+            mnemonic_option,
+        } => {
             let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for session keys: {}", signer.public()));
-            
-            let result_event =
-                get_quote_and_declare_validate(api, rpc, signer, comission, blocked, tss_account, x25519_public_key, endpoint).await
+
+            let result_event = get_quote_and_declare_validate(
+                &api,
+                &rpc,
+                signer,
+                comission,
+                blocked,
+                tss_account,
+                x25519_public_key,
+                endpoint,
+            )
+            .await?;
 
             cli.log(format!("Event result: {:?}", result_event));
 
