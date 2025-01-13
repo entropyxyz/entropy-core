@@ -127,4 +127,10 @@ pub enum ClientError {
     QuoteGet(String),
     #[error("Unable to get info for TSS server from chain")]
     NoServerInfo,
+    #[error("From Hex Error: {0}")]
+    FromHex(#[from] hex::FromHexError),
+    #[error("From Ss58 Error: {0}")]
+    FromSs58(String),
+    #[error("Vec<u8> Conversion Error: {0}")]
+    Conversion(&'static str),
 }

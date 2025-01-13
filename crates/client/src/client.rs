@@ -15,16 +15,6 @@
 
 //! Simple client for Entropy.
 //! Used in integration tests and for the test-cli
-pub use crate::{
-    chain_api::{get_api, get_rpc},
-    errors::{ClientError, SubstrateError},
-};
-pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
-pub use entropy_shared::{HashingAlgorithm, QuoteContext};
-use parity_scale_codec::Decode;
-use rand::Rng;
-pub use synedrion::KeyShare;
-
 use crate::{
     chain_api::{
         entropy::{
@@ -36,6 +26,7 @@ use crate::{
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
                 pallet_staking_extension::pallet::JoiningServerInfo,
+                sp_arithmetic::per_things::Perbill,
             },
         },
         EntropyConfig,
@@ -50,6 +41,16 @@ use crate::{
     },
     Hasher,
 };
+pub use crate::{
+    chain_api::{get_api, get_rpc},
+    errors::{ClientError, SubstrateError},
+};
+pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
+pub use entropy_shared::{HashingAlgorithm, QuoteContext};
+use parity_scale_codec::Decode;
+use rand::Rng;
+use std::str::FromStr;
+pub use synedrion::KeyShare;
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
@@ -572,24 +573,49 @@ pub async fn get_quote_and_declare_validate(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: sr25519::Pair,
-    prefs: ValidatorPrefs,
-    joining_server_info: JoiningServerInfo<SubxtAccountId32>,
+    comission: u32,
+    blocked: bool,
+    tss_account: String,
+    x25519_public_key: String,
+    endpoint: String,
 ) -> Result<ValidatorCandidateAccepted, ClientError> {
-    let quote =
-        get_tdx_quote(std::str::from_utf8(&joining_server_info.endpoint)?, QuoteContext::Validate)
-            .await?;
-    declare_validate(api, rpc, signer, prefs, joining_server_info, quote).await
+    let quote = get_tdx_quote(&endpoint, QuoteContext::Validate).await?;
+    declare_validate(
+        api,
+        rpc,
+        signer,
+        comission,
+        blocked,
+        tss_account,
+        x25519_public_key,
+        endpoint,
+        quote,
+    )
+    .await
 }
 pub async fn declare_validate(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: sr25519::Pair,
-    prefs: ValidatorPrefs,
-    joining_server_info: JoiningServerInfo<SubxtAccountId32>,
+    comission: u32,
+    blocked: bool,
+    tss_account: String,
+    x25519_public_key: String,
+    endpoint: String,
     quote: Vec<u8>,
 ) -> Result<ValidatorCandidateAccepted, ClientError> {
+    let tss_account = SubxtAccountId32::from_str(&tss_account)
+        .map_err(|e| ClientError::FromSs58(e.to_string()))?;
+    let x25519_public_key = hex::decode(x25519_public_key)?
+        .try_into()
+        .map_err(|_| ClientError::Conversion("Error converting x25519_public_key"))?;
+    let joining_server_info =
+        JoiningServerInfo { tss_account, x25519_public_key, endpoint: endpoint.into() };
+
+    let validator_prefs = ValidatorPrefs { commission: Perbill(comission), blocked };
+
     let validate_request =
-        entropy::tx().staking_extension().validate(prefs, joining_server_info, quote);
+        entropy::tx().staking_extension().validate(validator_prefs, joining_server_info, quote);
     let in_block = submit_transaction_with_pair(api, rpc, &signer, &validate_request, None).await?;
     let result_event =
         in_block.find_first::<ValidatorCandidateAccepted>()?.ok_or(SubstrateError::NoEvent)?;

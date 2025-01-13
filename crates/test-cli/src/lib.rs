@@ -615,20 +615,9 @@ pub async fn run_command(
             let signer = handle_mnemonic(mnemonic_option)?;
             cli.log(format!("Account being used for session keys: {}", signer.public()));
             
-            // TODO move this into declare validate function for better testing
-            let tss_account = SubxtAccountId32::from_str(&tss_account)?;
-            let x25519_public_key = hex::decode(x25519_public_key)?
-                .try_into()
-                .map_err(|_| anyhow!("X25519 pub key needs to be 32 bytes"))?;
-            let joining_server_info =
-                JoiningServerInfo { tss_account, x25519_public_key, endpoint };
-
-            let validator_prefs = ValidatorPrefs {
-                    commission: Perbill(comission),
-                    blocked,
-                };
             let result_event =
-                get_quote_and_declare_validate(&api, &rpc, signer , joining_server_info, validator_prefs).await?;
+                get_quote_and_declare_validate(api, rpc, signer, comission, blocked, tss_account, x25519_public_key, endpoint).await
+
             cli.log(format!("Event result: {:?}", result_event));
 
             if cli.json {
