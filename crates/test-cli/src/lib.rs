@@ -209,6 +209,7 @@ enum CliCommand {
     },
     /// Sets session keys for an account.
     SetSessionKeys {
+        /// Session key recieved from a node
         session_keys: String,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
@@ -222,7 +223,9 @@ enum CliCommand {
         x25519_public_key: String,
         /// Endpoint to change to (ex. "127.0.0.1:3001")
         endpoint: String,
+        /// Comission amount
         comission: u32,
+        /// Block from nominating
         blocked: bool,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]

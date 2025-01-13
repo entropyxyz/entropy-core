@@ -22,11 +22,15 @@ use crate::{
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec,
                 entropy_runtime::SessionKeys,
+                pallet_im_online,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
                 pallet_staking_extension::pallet::JoiningServerInfo,
                 sp_arithmetic::per_things::Perbill,
+                sp_authority_discovery, sp_consensus_babe, sp_consensus_grandpa,
+                sp_core::ed25519::Public as EDPublic,
+                sp_core::sr25519::Public as SRPublic,
             },
         },
         EntropyConfig,
@@ -533,6 +537,7 @@ pub async fn get_tdx_quote(
     Ok(response.bytes().await?.to_vec())
 }
 
+/// Bonds the signer to an account
 pub async fn bond_account(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -551,6 +556,7 @@ pub async fn bond_account(
     Ok(result_event)
 }
 
+/// Sets the session key for a validator
 pub async fn set_session_keys(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -569,6 +575,7 @@ pub async fn set_session_keys(
     Ok(())
 }
 
+/// Gets a TDX quote then declares intention to validate
 #[allow(clippy::too_many_arguments)]
 pub async fn get_quote_and_declare_validate(
     api: &OnlineClient<EntropyConfig>,
@@ -595,6 +602,7 @@ pub async fn get_quote_and_declare_validate(
     .await
 }
 
+/// Declares intention to validate
 #[allow(clippy::too_many_arguments)]
 pub async fn declare_validate(
     api: &OnlineClient<EntropyConfig>,
@@ -625,13 +633,8 @@ pub async fn declare_validate(
     Ok(result_event)
 }
 
+/// Deconstructs a session key into SessionKeys type
 pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, String> {
-    use crate::chain_api::entropy::runtime_types::sp_core::ed25519::Public as EDPublic;
-    use crate::chain_api::entropy::runtime_types::sp_core::sr25519::Public as SRPublic;
-    use crate::chain_api::entropy::runtime_types::{
-        pallet_im_online, sp_authority_discovery, sp_consensus_babe, sp_consensus_grandpa,
-    };
-
     if session_keys.len() != 128 {
         return Err(String::from("Session keys len cannot have length be more or less than 128"));
     }
@@ -649,6 +652,7 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, St
     })
 }
 
+/// Deconstructs a string session key into SessionKeys type
 pub fn deconstruct_session_keys_string(session_keys: String) -> Result<SessionKeys, String> {
     if session_keys.len() != 256 {
         return Err(String::from("Session keys len cannot have length be more or less than 256"));
