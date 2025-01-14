@@ -68,23 +68,6 @@ impl EncryptedDb {
         Ok(encrypted_db)
     }
 
-    // fn chacha20poly1305_kdf(
-    //     password: Password,
-    //     salt: PasswordSalt,
-    // ) -> EncryptedDbResult<chacha20poly1305::Key> {
-    //     let mut output = chacha20poly1305::Key::default();
-    //
-    //     // default params: log_n = 15, r = 8, p = 1
-    //     scrypt::scrypt(
-    //         password.as_ref(),
-    //         salt.as_ref(),
-    //         &scrypt::Params::default(),
-    //         output.as_mut_slice(),
-    //     )?;
-    //
-    //     Ok(output)
-    // }
-
     /// get a new random nonce to use for value encryption using [rand::thread_rng]
     fn generate_nonce() -> chacha20poly1305::XNonce {
         let mut bytes = chacha20poly1305::XNonce::default();
