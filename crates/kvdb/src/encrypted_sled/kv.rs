@@ -19,8 +19,6 @@
 //! to be inserted, forming a [EncryptedRecord]:<encrypted value, nonce>. The nonce is later
 //! used to decrypt and retrieve the originally inserted value.
 
-use std::convert::TryInto;
-
 use chacha20poly1305::{
     self,
     aead::{AeadInPlace, NewAead},
@@ -32,7 +30,6 @@ use zeroize::Zeroize;
 
 use super::{
     constants::*,
-    password::{Password, PasswordSalt},
     record::EncryptedRecord,
     result::{EncryptedDbError::*, EncryptedDbResult},
 };
@@ -48,26 +45,13 @@ impl EncryptedDb {
     /// Creates an XChaCha20 stream cipher from a password-based-key-derivation-function and
     /// verifies that the password is valid.
     /// See [super::Password] for more info on pdkdf.
-    pub fn open<P>(db_name: P, password: Password) -> EncryptedDbResult<Self>
+    pub fn open<P>(db_name: P, mut key: [u8; 32]) -> EncryptedDbResult<Self>
     where
         P: AsRef<std::path::Path>,
     {
         let kv = sled::open(db_name).map_err(CorruptedKv)?;
 
-        let password_salt: PasswordSalt = if kv.was_recovered() {
-            // existing kv: get the existing password salt
-            kv.get(PASSWORD_SALT_KEY)?.ok_or(MissingPasswordSalt)?.try_into()?
-        } else {
-            // new kv: choose a new password salt and store it
-            let mut password_salt = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut password_salt);
-            kv.insert(PASSWORD_SALT_KEY, &password_salt)?;
-            password_salt.into()
-        };
-
-        // zeroize key since we are no longer using it after creating cipher
-        let mut key = Self::chacha20poly1305_kdf(password, password_salt)?;
-        let cipher = XChaCha20Poly1305::new(&key);
+        let cipher = XChaCha20Poly1305::new(&key.into());
         key.zeroize();
 
         let encrypted_db = EncryptedDb { kv, cipher };
@@ -84,22 +68,22 @@ impl EncryptedDb {
         Ok(encrypted_db)
     }
 
-    fn chacha20poly1305_kdf(
-        password: Password,
-        salt: PasswordSalt,
-    ) -> EncryptedDbResult<chacha20poly1305::Key> {
-        let mut output = chacha20poly1305::Key::default();
-
-        // default params: log_n = 15, r = 8, p = 1
-        scrypt::scrypt(
-            password.as_ref(),
-            salt.as_ref(),
-            &scrypt::Params::default(),
-            output.as_mut_slice(),
-        )?;
-
-        Ok(output)
-    }
+    // fn chacha20poly1305_kdf(
+    //     password: Password,
+    //     salt: PasswordSalt,
+    // ) -> EncryptedDbResult<chacha20poly1305::Key> {
+    //     let mut output = chacha20poly1305::Key::default();
+    //
+    //     // default params: log_n = 15, r = 8, p = 1
+    //     scrypt::scrypt(
+    //         password.as_ref(),
+    //         salt.as_ref(),
+    //         &scrypt::Params::default(),
+    //         output.as_mut_slice(),
+    //     )?;
+    //
+    //     Ok(output)
+    // }
 
     /// get a new random nonce to use for value encryption using [rand::thread_rng]
     fn generate_nonce() -> chacha20poly1305::XNonce {
