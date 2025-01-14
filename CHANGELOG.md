@@ -57,6 +57,7 @@ runtime
 - Use context, not block number in TDX quote input data ([#1179](https://github.com/entropyxyz/entropy-core/pull/1179))
 - Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
 - Extract PCK certificate chain from quotes ([#1209](https://github.com/entropyxyz/entropy-core/pull/1209))
+- Allow different versions for programs ([#1250](https://github.com/entropyxyz/entropy-core/pull/1250))
 
 ### Fixed
 

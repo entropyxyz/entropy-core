@@ -161,6 +161,7 @@ pub async fn compute_hash(
     }
 }
 
+/// Gets and launches a runtime for a program version
 pub fn get_programs_runtime(version: u8, fuel: u64) -> Result<Runtime, UserErr> {
     match version {
         0 => Ok(Runtime::new(ProgramConfig { fuel })),
