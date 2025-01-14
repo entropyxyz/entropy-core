@@ -1,0 +1,38 @@
+// Copyright (C) 2023 Entropy Cryptography Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use entropy_kvdb::kv_manager::error::KvError;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum KeyProviderError {
+    #[error("HTTP request: {0}")]
+    HttpRequest(#[from] reqwest::Error),
+    #[error("Key-value store: {0}")]
+    Kv(#[from] KvError),
+    #[error("Encryption key must be 32 bytes")]
+    BadKeyLength,
+}
+
+impl IntoResponse for KeyProviderError {
+    fn into_response(self) -> Response {
+        tracing::error!("{:?}", format!("{self}"));
+        let body = format!("{self}").into_bytes();
+        (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}

@@ -15,15 +15,12 @@
 
 //! Utilities for starting and running the server.
 
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{chain_api::entropy, helpers::substrate::query_chain, AppState};
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
-use entropy_kvdb::{
-    encrypted_sled::PasswordMethod,
-    kv_manager::{error::KvError, KvManager},
-};
+use entropy_kvdb::kv_manager::{error::KvError, KvManager};
 use serde::Deserialize;
 use sp_core::crypto::Ss58Codec;
 
@@ -85,55 +82,60 @@ impl Configuration {
     }
 }
 
+pub async fn setup_kv_store() {
+    let path: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
+    let exists = std::fs::metadata(path).is_ok();
+    if exists {
+        // Read key provider details
+        // Make provider request
+        // open store with retrieved key
+        // load_kv_store(validator_name, key);
+    } else {
+        // Generate TSS account (or use ValidatorName)
+        // Select a provider by making chain query and choosing a tss node
+        // Make provider request
+        // Store provider details
+        // open store with retrived key
+        // load_kv_store(validator_name, key);
+    }
+    // return TSS account private keys to be used in appstate
+}
+
 pub async fn load_kv_store(
     validator_name: &Option<ValidatorName>,
-    password_path: Option<PathBuf>,
+    key: Option<[u8; 32]>,
 ) -> KvManager {
+    let key = key.unwrap_or_default();
     let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
     if cfg!(test) {
-        return KvManager::new(
-            entropy_kvdb::get_db_path(true).into(),
-            PasswordMethod::NoPassword.execute().unwrap(),
-        )
-        .unwrap();
+        return KvManager::new(entropy_kvdb::get_db_path(true).into(), key).unwrap();
     }
 
     if validator_name == &Some(ValidatorName::Alice) {
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Charlie) {
         root.push("charlie");
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Dave) {
         root.push("dave");
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Eve) {
         root.push("eve");
-        return KvManager::new(root, PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+        return KvManager::new(root, key).unwrap();
     };
 
-    let password = if let Some(password_path) = password_path {
-        std::str::from_utf8(&fs::read(password_path).expect("error reading password file"))
-            .expect("failed to convert password to string")
-            .trim()
-            .to_string()
-            .into()
-    } else {
-        PasswordMethod::Prompt.execute().unwrap()
-    };
-
-    // this step takes a long time due to password-based decryption
-    KvManager::new(root, password).unwrap()
+    KvManager::new(root, key).unwrap()
 }
 
 #[derive(Parser, Debug, Clone)]

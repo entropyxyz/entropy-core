@@ -162,6 +162,7 @@ pub use entropy_client::chain_api;
 pub(crate) mod attestation;
 pub(crate) mod health;
 pub mod helpers;
+pub(crate) mod key_provider;
 pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
@@ -195,6 +196,7 @@ use crate::{
     attestation::api::{attest, get_attest},
     chain_api::{get_api, get_rpc, EntropyConfig},
     health::api::healthz,
+    key_provider::api::request_encryption_key,
     launch::{development_mnemonic, Configuration, ValidatorName},
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
@@ -304,6 +306,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/attest", get(get_attest))
+        .route("/request_encryption_key", post(request_encryption_key))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

@@ -39,7 +39,7 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_client::substrate::query_chain;
-use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
+use entropy_kvdb::{get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
@@ -67,9 +67,7 @@ pub async fn initialize_test_logger() {
 }
 
 pub async fn setup_client() -> KvManager {
-    let kv_store =
-        KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
-            .unwrap();
+    let kv_store = KvManager::new(get_db_path(true).into(), [0; 32]).unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
@@ -100,8 +98,7 @@ pub async fn create_clients(
     let path = format!(".entropy/testing/test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
-    let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    let kv_store = KvManager::new(path.into(), [0; 32]).unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
 

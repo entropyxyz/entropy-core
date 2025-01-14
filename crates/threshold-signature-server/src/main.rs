@@ -55,7 +55,7 @@ async fn main() {
         validator_name = Some(ValidatorName::Eve);
     }
 
-    let kv_store = load_kv_store(&validator_name, args.password_file).await;
+    let kv_store = load_kv_store(&validator_name, None).await;
 
     let app_state = AppState::new(configuration.clone(), kv_store.clone(), &validator_name);
 
