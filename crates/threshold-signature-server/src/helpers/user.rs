@@ -16,7 +16,7 @@
 //! Utilities relating to the user
 use std::time::Duration;
 
-use entropy_programs_runtime::Runtime;
+use entropy_programs_runtime::{Config as ProgramConfig, Runtime};
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
     KeyShareWithAuxInfo, Listener, SessionId, ValidatorInfo,
@@ -114,7 +114,7 @@ pub async fn compute_hash(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     hashing_algorithm: &HashingAlgorithm,
-    runtime: &mut Runtime,
+    fuel: u64,
     programs_data: &[ProgramInstance],
     message: &[u8],
 ) -> Result<[u8; 32], UserErr> {
@@ -154,8 +154,16 @@ pub async fn compute_hash(
         HashingAlgorithm::Blake2_256 => Ok(blake2_256(message)),
         HashingAlgorithm::Custom(i) => {
             let program_info = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
+            let mut runtime = get_programs_runtime(program_info.version_number, fuel)?;
             runtime.custom_hash(program_info.bytecode.as_slice(), message).map_err(|e| e.into())
         },
         _ => Err(UserErr::UnknownHashingAlgorithm),
+    }
+}
+
+pub fn get_programs_runtime(version: u8, fuel: u64) -> Result<Runtime, UserErr> {
+    match version {
+        0 => Ok(Runtime::new(ProgramConfig { fuel })),
+        _ => Err(UserErr::ProgramVersion),
     }
 }

@@ -931,7 +931,6 @@ async fn test_compute_hash() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let mut runtime = Runtime::default();
     let program_hash = test_client::store_program(
         &api,
         &rpc,
@@ -949,7 +948,7 @@ async fn test_compute_hash() {
         &api,
         &rpc,
         &HashingAlgorithm::Custom(0),
-        &mut runtime,
+        10000000u64,
         &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         PREIMAGE_SHOULD_SUCCEED,
     )

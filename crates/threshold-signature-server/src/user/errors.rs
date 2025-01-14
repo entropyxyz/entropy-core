@@ -177,6 +177,8 @@ pub enum UserErr {
     TooFewSigners,
     #[error("Non signer sent from relayer")]
     IncorrectSigner,
+    #[error("Program Version not supported")]
+    ProgramVersion,
 }
 
 impl From<hkdf::InvalidLength> for UserErr {
