@@ -15,6 +15,36 @@
 
 //! Simple client for Entropy.
 //! Used in integration tests and for the test-cli
+use crate::{
+    chain_api::{
+        entropy::{
+            self,
+            runtime_types::{
+                bounded_collections::bounded_vec::BoundedVec,
+                entropy_runtime::SessionKeys,
+                pallet_im_online,
+                pallet_programs::pallet::ProgramInfo,
+                pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
+                pallet_staking::{RewardDestination, ValidatorPrefs},
+                pallet_staking_extension::pallet::JoiningServerInfo,
+                sp_arithmetic::per_things::Perbill,
+                sp_authority_discovery, sp_consensus_babe, sp_consensus_grandpa,
+                sp_core::ed25519::Public as EDPublic,
+                sp_core::sr25519::Public as SRPublic,
+            },
+        },
+        EntropyConfig,
+    },
+    client::entropy::staking::events::Bonded,
+    client::entropy::staking_extension::events::{
+        EndpointChanged, ThresholdAccountChanged, ValidatorCandidateAccepted,
+    },
+    substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
+    user::{
+        self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
+    },
+    Hasher,
+};
 pub use crate::{
     chain_api::{get_api, get_rpc},
     errors::{ClientError, SubstrateError},
@@ -23,27 +53,8 @@ pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 pub use entropy_shared::{HashingAlgorithm, QuoteContext};
 use parity_scale_codec::Decode;
 use rand::Rng;
+use std::str::FromStr;
 pub use synedrion::KeyShare;
-
-use crate::{
-    chain_api::{
-        entropy::{
-            self,
-            runtime_types::{
-                bounded_collections::bounded_vec::BoundedVec,
-                pallet_programs::pallet::ProgramInfo,
-                pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
-            },
-        },
-        EntropyConfig,
-    },
-    client::entropy::staking_extension::events::{EndpointChanged, ThresholdAccountChanged},
-    substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
-    user::{
-        self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
-    },
-    Hasher,
-};
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
@@ -524,4 +535,119 @@ pub async fn get_tdx_quote(
         return Err(ClientError::QuoteGet(response.text().await?));
     }
     Ok(response.bytes().await?.to_vec())
+}
+
+/// Bonds the signer to an account
+pub async fn bond_account(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    amount: u128,
+    reward_destination: SubxtAccountId32,
+) -> Result<Bonded, ClientError> {
+    let bond_account_request =
+        entropy::tx().staking().bond(amount, RewardDestination::Account(reward_destination));
+    let in_block =
+        submit_transaction_with_pair(api, rpc, &signer, &bond_account_request, None).await?;
+
+    let result_event = in_block
+        .find_first::<entropy::staking::events::Bonded>()?
+        .ok_or(SubstrateError::NoEvent)?;
+    Ok(result_event)
+}
+
+/// Sets the session key for a validator
+pub async fn set_session_keys(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    session_key: String,
+) -> Result<(), ClientError> {
+    let striped_session_key = if session_key.starts_with("0x") {
+        session_key.strip_prefix("0x").ok_or(ClientError::StripPrefix)?.to_string()
+    } else {
+        session_key
+    };
+    let session_keys_decoded = deconstruct_session_keys(hex::decode(striped_session_key)?)?;
+    let session_key_request = entropy::tx().session().set_keys(session_keys_decoded, vec![]);
+    let _ = submit_transaction_with_pair(api, rpc, &signer, &session_key_request, None).await?;
+
+    Ok(())
+}
+
+/// Gets a TDX quote then declares intention to validate
+#[allow(clippy::too_many_arguments)]
+pub async fn get_quote_and_declare_validate(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    comission: u32,
+    blocked: bool,
+    tss_account: String,
+    x25519_public_key: String,
+    endpoint: String,
+) -> Result<ValidatorCandidateAccepted, ClientError> {
+    let quote = get_tdx_quote(&endpoint, QuoteContext::Validate).await?;
+    declare_validate(
+        api,
+        rpc,
+        signer,
+        comission,
+        blocked,
+        tss_account,
+        x25519_public_key,
+        endpoint,
+        quote,
+    )
+    .await
+}
+
+/// Declares intention to validate
+#[allow(clippy::too_many_arguments)]
+pub async fn declare_validate(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: sr25519::Pair,
+    comission: u32,
+    blocked: bool,
+    tss_account: String,
+    x25519_public_key: String,
+    endpoint: String,
+    quote: Vec<u8>,
+) -> Result<ValidatorCandidateAccepted, ClientError> {
+    let tss_account = SubxtAccountId32::from_str(&tss_account)
+        .map_err(|e| ClientError::FromSs58(e.to_string()))?;
+    let x25519_public_key = hex::decode(x25519_public_key)?
+        .try_into()
+        .map_err(|_| ClientError::Conversion("Error converting x25519_public_key"))?;
+    let joining_server_info =
+        JoiningServerInfo { tss_account, x25519_public_key, endpoint: endpoint.into() };
+
+    let validator_prefs = ValidatorPrefs { commission: Perbill(comission), blocked };
+
+    let validate_request =
+        entropy::tx().staking_extension().validate(validator_prefs, joining_server_info, quote);
+    let in_block = submit_transaction_with_pair(api, rpc, &signer, &validate_request, None).await?;
+    let result_event =
+        in_block.find_first::<ValidatorCandidateAccepted>()?.ok_or(SubstrateError::NoEvent)?;
+    Ok(result_event)
+}
+
+/// Deconstructs a session key into SessionKeys type
+pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, ClientError> {
+    if session_keys.len() != 128 {
+        return Err(ClientError::SessionKeyLength);
+    }
+
+    let babe: [u8; 32] = session_keys[0..32].try_into()?;
+    let grandpa: [u8; 32] = session_keys[32..64].try_into()?;
+    let im_online: [u8; 32] = session_keys[64..96].try_into()?;
+    let authority_discovery: [u8; 32] = session_keys[96..128].try_into()?;
+
+    Ok(SessionKeys {
+        babe: sp_consensus_babe::app::Public(SRPublic(babe)),
+        grandpa: sp_consensus_grandpa::app::Public(EDPublic(grandpa)),
+        im_online: pallet_im_online::sr25519::app_sr25519::Public(SRPublic(im_online)),
+        authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
+    })
 }
