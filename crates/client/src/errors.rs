@@ -133,4 +133,8 @@ pub enum ClientError {
     FromSs58(String),
     #[error("Vec<u8> Conversion Error: {0}")]
     Conversion(&'static str),
+    #[error("Session keys len cannot have length be more or less than 128")]
+    SessionKeyLength,
+    #[error("Strip prefix error")]
+    StripPrefix,
 }

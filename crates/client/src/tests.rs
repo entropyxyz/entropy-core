@@ -313,6 +313,7 @@ async fn test_set_session_key_and_declare_validate() {
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    // taken from calling rotate key on node
     let session_key = "0x833b9e467823236c10348fd26f114ecf10f46e1be41b6a2ba4fab0b915a0b0affc9d3031694d1c65b711b8c5f79d57f734c9fa01366164ecc3ff8d84a04759160c2cf916dcabb8135c7605106052f9baf8e45a4f348cef2785f83a9674bec964ac3013772500af6236b1f6491a7024cacf69557b4b89779afdbc017de364e166".to_string();
 
     // need to bond first

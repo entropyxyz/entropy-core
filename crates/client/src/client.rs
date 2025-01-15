@@ -564,11 +564,11 @@ pub async fn set_session_keys(
     session_key: String,
 ) -> Result<(), ClientError> {
     let striped_session_key = if session_key.starts_with("0x") {
-        session_key.strip_prefix("0x").unwrap().to_string()
+        session_key.strip_prefix("0x").ok_or(ClientError::StripPrefix)?.to_string()
     } else {
         session_key
     };
-    let session_keys_decoded = deconstruct_session_keys_string(striped_session_key).unwrap();
+    let session_keys_decoded = deconstruct_session_keys(hex::decode(striped_session_key)?)?;
     let session_key_request = entropy::tx().session().set_keys(session_keys_decoded, vec![]);
     let _ = submit_transaction_with_pair(api, rpc, &signer, &session_key_request, None).await?;
 
@@ -634,15 +634,15 @@ pub async fn declare_validate(
 }
 
 /// Deconstructs a session key into SessionKeys type
-pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, String> {
+pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, ClientError> {
     if session_keys.len() != 128 {
-        return Err(String::from("Session keys len cannot have length be more or less than 128"));
+        return Err(ClientError::SessionKeyLength);
     }
 
-    let babe: [u8; 32] = session_keys[0..32].try_into().unwrap();
-    let grandpa: [u8; 32] = session_keys[32..64].try_into().unwrap();
-    let im_online: [u8; 32] = session_keys[64..96].try_into().unwrap();
-    let authority_discovery: [u8; 32] = session_keys[96..128].try_into().unwrap();
+    let babe: [u8; 32] = session_keys[0..32].try_into()?;
+    let grandpa: [u8; 32] = session_keys[32..64].try_into()?;
+    let im_online: [u8; 32] = session_keys[64..96].try_into()?;
+    let authority_discovery: [u8; 32] = session_keys[96..128].try_into()?;
 
     Ok(SessionKeys {
         babe: sp_consensus_babe::app::Public(SRPublic(babe)),
@@ -650,31 +650,4 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, St
         im_online: pallet_im_online::sr25519::app_sr25519::Public(SRPublic(im_online)),
         authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
     })
-}
-
-/// Deconstructs a string session key into SessionKeys type
-pub fn deconstruct_session_keys_string(session_keys: String) -> Result<SessionKeys, String> {
-    if session_keys.len() != 256 {
-        return Err(String::from("Session keys len cannot have length be more or less than 256"));
-    }
-
-    let err = || String::from("Session keys must be given as hex");
-    let len = session_keys.len();
-    let mut session_keys_u8: Vec<u8> = Vec::with_capacity(128);
-    let mut iter = session_keys.chars();
-    for _ in (0..len).step_by(2) {
-        let value_1: u8 =
-            iter.next().and_then(|v| v.to_digit(16)).map(|v| (v * 16) as u8).ok_or_else(err)?;
-        let value_2: u8 =
-            iter.next().and_then(|v| v.to_digit(16)).map(|v| v as u8).ok_or_else(err)?;
-        session_keys_u8.push(value_1 + value_2);
-    }
-
-    if session_keys_u8.len() != 128 {
-        return Err(String::from(
-            "Something went wrong and the length of the calculated session keys is wrong",
-        ));
-    }
-
-    deconstruct_session_keys(session_keys_u8)
 }

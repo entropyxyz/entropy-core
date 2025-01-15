@@ -201,7 +201,7 @@ enum CliCommand {
     BondAccount {
         /// Amount to bond
         amount: u128,
-        /// Destination to get rewards
+        /// Destination to get rewards encoded as ss58
         reward_destination: String,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
