@@ -16,7 +16,7 @@
 //! Utilities relating to the user
 use std::time::Duration;
 
-use entropy_programs_runtime::{Config as ProgramConfig, Runtime};
+use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
 use entropy_protocol::{
     execute_protocol::{execute_dkg, Channels},
     KeyShareWithAuxInfo, Listener, SessionId, ValidatorInfo,
@@ -32,7 +32,12 @@ use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
 use crate::{
-    chain_api::{entropy::runtime_types::pallet_registry::pallet::ProgramInstance, EntropyConfig},
+    chain_api::{
+        entropy::runtime_types::{
+            pallet_programs::pallet::ProgramInfo, pallet_registry::pallet::ProgramInstance,
+        },
+        EntropyConfig,
+    },
     helpers::substrate::get_program,
     signing_client::{protocol_transport::open_protocol_connections, ListenerState},
     user::errors::UserErr,
@@ -154,17 +159,47 @@ pub async fn compute_hash(
         HashingAlgorithm::Blake2_256 => Ok(blake2_256(message)),
         HashingAlgorithm::Custom(i) => {
             let program_info = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
-            let mut runtime = get_programs_runtime(program_info.version_number, fuel)?;
-            runtime.custom_hash(program_info.bytecode.as_slice(), message).map_err(|e| e.into())
+            evaluate_custom_hash(fuel, program_info, message)
         },
         _ => Err(UserErr::UnknownHashingAlgorithm),
     }
 }
 
-/// Gets and launches a runtime for a program version
-pub fn get_programs_runtime(version: u8, fuel: u64) -> Result<Runtime, UserErr> {
-    match version {
-        0 => Ok(Runtime::new(ProgramConfig { fuel })),
+/// Gets a runtime and evaluates a program for a specific runtime version.
+pub fn evaluate_program(
+    fuel: u64,
+    program_info: ProgramInfo,
+    signature_request: SignatureRequest,
+    program_config: Vec<u8>,
+    oracle_data: Vec<Vec<u8>>,
+) -> Result<(), UserErr> {
+    match program_info.version_number {
+        0 => {
+            let mut runtime = Runtime::new(ProgramConfig { fuel });
+            runtime
+                .evaluate(
+                    &program_info.bytecode,
+                    &signature_request,
+                    Some(&program_config),
+                    Some(&oracle_data),
+                )
+                .map_err(|e| e.into())
+        },
+        _ => Err(UserErr::ProgramVersion),
+    }
+}
+
+/// Gets a runtime and evaluates a custom hash for a specific runtime version.
+pub fn evaluate_custom_hash(
+    fuel: u64,
+    program_info: ProgramInfo,
+    message: &[u8],
+) -> Result<[u8; 32], UserErr> {
+    match program_info.version_number {
+        0 => {
+            let mut runtime = Runtime::new(ProgramConfig { fuel });
+            runtime.custom_hash(program_info.bytecode.as_slice(), message).map_err(|e| e.into())
+        },
         _ => Err(UserErr::ProgramVersion),
     }
 }
