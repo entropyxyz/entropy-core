@@ -17,12 +17,20 @@
 
 use std::path::PathBuf;
 
-use crate::{chain_api::entropy, helpers::substrate::query_chain, AppState};
+use crate::{
+    chain_api::entropy,
+    helpers::{substrate::query_chain, validator::get_signer_and_x25519_secret},
+    key_provider::api::{get_key_provider_details, make_provider_request},
+    AppState,
+};
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
 use entropy_kvdb::kv_manager::{error::KvError, KvManager};
+use rand_core::OsRng;
 use serde::Deserialize;
 use sp_core::crypto::Ss58Codec;
+use sp_core::{sr25519, Pair};
+use x25519_dalek::StaticSecret;
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -41,6 +49,9 @@ pub const LATEST_BLOCK_NUMBER_RESHARE: &str = "LATEST_BLOCK_NUMBER_RESHARE";
 pub const LATEST_BLOCK_NUMBER_ATTEST: &str = "LATEST_BLOCK_NUMBER_ATTEST";
 
 pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
+
+const X25519_SECRET: &str = "X25519_SECRET";
+const SR25519_SEED: &str = "SR25519_SEED";
 
 #[cfg(any(test, feature = "test_helpers"))]
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
@@ -82,23 +93,66 @@ impl Configuration {
     }
 }
 
-pub async fn setup_kv_store() {
+pub enum StoreSetupOutput {
+    Exists,
+    New([u8; 32]),
+}
+
+pub async fn setup_kv_store(
+    validator_name: &Option<ValidatorName>,
+) -> (StoreSetupOutput, KvManager, sr25519::Pair, StaticSecret) {
+    // Check for existing database
     let path: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
-    let exists = std::fs::metadata(path).is_ok();
+    let exists = std::fs::metadata(path.clone()).is_ok();
     if exists {
         // Read key provider details
-        // Make provider request
-        // open store with retrieved key
-        // load_kv_store(validator_name, key);
+        let key_provider_details = get_key_provider_details(path).unwrap();
+        // Retrieve encryption key from another TSS node
+        let key = make_provider_request(key_provider_details).await.unwrap();
+        let kv_manager = load_kv_store(validator_name, Some(key)).await;
+        let x25519_secret: [u8; 32] =
+            kv_manager.kv().get(X25519_SECRET).await.unwrap().try_into().unwrap();
+        let sr25519_seed: [u8; 32] =
+            kv_manager.kv().get(SR25519_SEED).await.unwrap().try_into().unwrap();
+        let pair = sr25519::Pair::from_seed(&sr25519_seed);
+        (StoreSetupOutput::Exists, kv_manager, pair, x25519_secret.into())
     } else {
         // Generate TSS account (or use ValidatorName)
-        // Select a provider by making chain query and choosing a tss node
-        // Make provider request
-        // Store provider details
-        // open store with retrived key
-        // load_kv_store(validator_name, key);
+        let (pair, seed, x25519_secret) = if cfg!(test) || validator_name.is_some() {
+            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
+        } else {
+            let (pair, seed) = sr25519::Pair::generate();
+            let x25519_secret = StaticSecret::random_from_rng(OsRng);
+            (pair, seed, x25519_secret)
+        };
+        // TODO randomly generate key
+        let encryption_key = [0; 32];
+        // open store with generated key
+        let kv_manager = load_kv_store(validator_name, Some(encryption_key)).await;
+        // store TSS keys in kv store
+        let reservation = kv_manager
+            .kv()
+            .reserve_key(X25519_SECRET.to_string())
+            .await
+            .expect("Issue reserving x25519 secret key");
+        kv_manager
+            .kv()
+            .put(reservation, x25519_secret.to_bytes().to_vec())
+            .await
+            .expect("failed to store x25519 secret");
+
+        let reservation = kv_manager
+            .kv()
+            .reserve_key(SR25519_SEED.to_string())
+            .await
+            .expect("Issue reserving sr25519 seed");
+        kv_manager
+            .kv()
+            .put(reservation, seed.to_vec())
+            .await
+            .expect("failed to store sr25519 seed");
+        (StoreSetupOutput::New(encryption_key), kv_manager, pair, x25519_secret)
     }
-    // return TSS account private keys to be used in appstate
 }
 
 pub async fn load_kv_store(

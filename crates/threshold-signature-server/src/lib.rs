@@ -232,12 +232,12 @@ impl AppState {
         kv_store: KvManager,
         validator_name: &Option<ValidatorName>,
     ) -> Self {
-        let (pair, x25519_secret) = if cfg!(test) || validator_name.is_some() {
+        let (pair, _seed, x25519_secret) = if cfg!(test) || validator_name.is_some() {
             get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
         } else {
-            let (pair, _seed) = sr25519::Pair::generate();
+            let (pair, seed) = sr25519::Pair::generate();
             let x25519_secret = StaticSecret::random_from_rng(OsRng);
-            (pair, x25519_secret)
+            (pair, seed, x25519_secret)
         };
 
         Self {
