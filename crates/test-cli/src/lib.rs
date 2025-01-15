@@ -201,7 +201,7 @@ enum CliCommand {
     BondAccount {
         /// Amount to bond
         amount: u128,
-        /// Destination to gert rewards
+        /// Destination to get rewards
         reward_destination: String,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
@@ -209,7 +209,7 @@ enum CliCommand {
     },
     /// Sets session keys for an account.
     SetSessionKeys {
-        /// Session key recieved from a node
+        /// Session key received from a node
         session_keys: String,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
@@ -217,15 +217,15 @@ enum CliCommand {
     },
     /// Declares intention to validate
     DeclareValidate {
-        /// Threshold account
+        /// Threshold account encoded as ss58
         tss_account: String,
-        ///  X25519 public key
+        ///  X25519 public key encoded as hex
         x25519_public_key: String,
-        /// Endpoint to change to (ex. "127.0.0.1:3001")
+        /// Endpoint of TSS node (ex. "127.0.0.1:3001")
         endpoint: String,
-        /// Comission amount
+        /// Commission amount
         comission: u32,
-        /// Block from nominating
+        /// Whether to block from nominating
         blocked: bool,
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]

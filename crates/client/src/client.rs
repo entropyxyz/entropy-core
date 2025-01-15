@@ -658,7 +658,7 @@ pub fn deconstruct_session_keys_string(session_keys: String) -> Result<SessionKe
         return Err(String::from("Session keys len cannot have length be more or less than 256"));
     }
 
-    let err = || String::from("Internal Math Error");
+    let err = || String::from("Session keys must be given as hex");
     let len = session_keys.len();
     let mut session_keys_u8: Vec<u8> = Vec::with_capacity(128);
     let mut iter = session_keys.chars();
