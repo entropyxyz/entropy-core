@@ -55,20 +55,23 @@ impl fmt::Debug for PartyInfo {
 #[derive(Clone)]
 pub struct KvManager {
     kv: Kv<KvValue>,
-    encryption_key: [u8; 32],
+    storage_path: PathBuf,
 }
 
 impl KvManager {
-    pub fn new(root: PathBuf, encryption_key: [u8; 32]) -> KvResult<Self> {
-        Ok(KvManager { kv: Kv::<KvValue>::new(root, encryption_key)?, encryption_key })
+    pub fn new(storage_path: PathBuf, encryption_key: [u8; 32]) -> KvResult<Self> {
+        Ok(KvManager {
+            kv: Kv::<KvValue>::new(storage_path.clone(), encryption_key)?,
+            storage_path,
+        })
     }
 
     pub fn kv(&self) -> &Kv<KvValue> {
         &self.kv
     }
 
-    pub fn encryption_key(&self) -> [u8; 32] {
-        self.encryption_key
+    pub fn storage_path(&self) -> &PathBuf {
+        &self.storage_path
     }
 }
 

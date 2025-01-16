@@ -57,7 +57,7 @@ async fn main() {
         validator_name = Some(ValidatorName::Eve);
     }
 
-    let (kv_store, sr25519_pair, x25519_secret, should_backup) =
+    let (kv_store, sr25519_pair, x25519_secret, key_option) =
         setup_kv_store(&validator_name, None).await;
 
     let app_state =
@@ -70,7 +70,9 @@ async fn main() {
         tokio::spawn(async move {
             // Check for a connection to the chain node parallel to starting the tss_server so that
             // we already can expose the `/info` http route
-            if let Err(error) = entropy_tss::launch::check_node_prerequisites(app_state).await {
+            if let Err(error) =
+                entropy_tss::launch::check_node_prerequisites(app_state, key_option).await
+            {
                 tracing::error!("Prerequistite checks failed: {} - terminating.", error);
                 process::exit(1);
             }
