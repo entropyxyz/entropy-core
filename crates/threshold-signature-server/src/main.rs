@@ -19,7 +19,9 @@ use clap::Parser;
 
 use entropy_tss::{
     app,
-    launch::{load_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName},
+    launch::{
+        setup_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName,
+    },
     AppState,
 };
 
@@ -55,9 +57,11 @@ async fn main() {
         validator_name = Some(ValidatorName::Eve);
     }
 
-    let kv_store = load_kv_store(&validator_name, None).await;
+    let (kv_store, sr25519_pair, x25519_secret, should_backup) =
+        setup_kv_store(&validator_name, None).await;
 
-    let app_state = AppState::new(configuration.clone(), kv_store.clone(), &validator_name);
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
     setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
 

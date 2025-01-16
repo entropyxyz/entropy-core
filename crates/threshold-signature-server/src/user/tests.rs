@@ -21,6 +21,7 @@ use entropy_client::{
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
 use entropy_kvdb::clean_tests;
+use entropy_kvdb::kv_manager::KvManager;
 use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     decode_verifying_key,
@@ -75,7 +76,7 @@ use crate::{
         EntropyConfig,
     },
     helpers::{
-        launch::{development_mnemonic, load_kv_store, ValidatorName},
+        launch::{build_db_path, development_mnemonic, ValidatorName},
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
@@ -1516,7 +1517,8 @@ async fn test_increment_or_wipe_request_limit() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let kv_store = load_kv_store(&None, None).await;
+
+    let kv_store = KvManager::new(build_db_path(&None), [0; 32]).unwrap();
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();

@@ -15,12 +15,19 @@
 
 use crate::{
     helpers::tests::{initialize_test_logger, setup_client},
-    key_provider::api::make_provider_request,
+    key_provider::api::{
+        make_key_backup, request_backup_encryption_key, request_recover_encryption_key,
+        KeyProviderDetails,
+    },
     SubxtAccountId32,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::ValidatorInfo;
-use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
+use entropy_shared::user::ValidatorInfo;
+use entropy_testing_utils::{
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    helpers::spawn_tss_nodes_and_start_chain,
+    ChainSpecType,
+};
 use serial_test::serial;
 use sp_keyring::AccountKeyring;
 
@@ -29,13 +36,33 @@ use sp_keyring::AccountKeyring;
 async fn key_provider_test() {
     clean_tests();
     initialize_test_logger().await;
+
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    let storage_path = ".entropy/testing/test_db_validator1".into();
+    let key = [0; 32]; // TODO this should be the actual key used. Since we dont have access to
+                       // kvmanager, alice bob etc. should use known keys
+    make_key_backup(&api, &rpc, key, TSS_ACCOUNTS[0].clone(), storage_path).await;
+}
+
+#[tokio::test]
+#[serial]
+async fn key_provider_unit_test() {
+    clean_tests();
+    initialize_test_logger().await;
     setup_client().await;
-    let validator_info = ValidatorInfo {
-        tss_account: TSS_ACCOUNTS[0].0.to_vec(),
-        x25519_public_key: X25519_PUBLIC_KEYS[0],
-        ip_address: b"127.0.0.1:3001".to_vec(),
+    let key_provider_details = KeyProviderDetails {
+        provider: ValidatorInfo {
+            tss_account: TSS_ACCOUNTS[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            ip_address: "127.0.0.1:3001".to_string(),
+        },
+        tss_account: SubxtAccountId32(AccountKeyring::Bob.to_raw_public()),
     };
-    let tss_account = SubxtAccountId32(AccountKeyring::Bob.to_raw_public());
-    let _key = make_provider_request(validator_info, tss_account).await.unwrap();
-    // TODO now do it a second time and check key is identical
+    let key = [1; 32];
+
+    request_backup_encryption_key(key, key_provider_details.clone()).await.unwrap();
+    let recovered_key = request_recover_encryption_key(key_provider_details).await.unwrap();
+    assert_eq!(key, recovered_key);
 }

@@ -177,7 +177,6 @@ use axum::{
     Router,
 };
 use entropy_kvdb::kv_manager::KvManager;
-use rand_core::OsRng;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::sync::{Arc, RwLock};
 use subxt::{
@@ -196,8 +195,8 @@ use crate::{
     attestation::api::{attest, get_attest},
     chain_api::{get_api, get_rpc, EntropyConfig},
     health::api::healthz,
-    key_provider::api::request_encryption_key,
-    launch::{development_mnemonic, Configuration, ValidatorName},
+    key_provider::api::{backup_encryption_key, recover_encryption_key},
+    launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
@@ -226,20 +225,13 @@ pub struct AppState {
 }
 
 impl AppState {
-    /// Setup AppState, generating new keypairs unless a test validator name is passed
+    /// Setup AppState with given secret keys
     pub fn new(
         configuration: Configuration,
         kv_store: KvManager,
-        validator_name: &Option<ValidatorName>,
+        pair: sr25519::Pair,
+        x25519_secret: StaticSecret,
     ) -> Self {
-        let (pair, _seed, x25519_secret) = if cfg!(test) || validator_name.is_some() {
-            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
-        } else {
-            let (pair, seed) = sr25519::Pair::generate();
-            let x25519_secret = StaticSecret::random_from_rng(OsRng);
-            (pair, seed, x25519_secret)
-        };
-
         Self {
             ready: Arc::new(RwLock::new(false)),
             pair,
@@ -306,7 +298,8 @@ pub fn app(app_state: AppState) -> Router {
         .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/attest", get(get_attest))
-        .route("/request_encryption_key", post(request_encryption_key))
+        .route("/backup_encryption_key", post(backup_encryption_key))
+        .route("/recover_encryption_key", post(recover_encryption_key))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

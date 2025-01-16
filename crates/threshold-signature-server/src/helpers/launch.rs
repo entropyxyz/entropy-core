@@ -20,7 +20,7 @@ use std::path::PathBuf;
 use crate::{
     chain_api::entropy,
     helpers::{substrate::query_chain, validator::get_signer_and_x25519_secret},
-    key_provider::api::{get_key_provider_details, make_provider_request},
+    key_provider::api::{get_key_provider_details, request_recover_encryption_key},
     AppState,
 };
 use clap::Parser;
@@ -93,29 +93,26 @@ impl Configuration {
     }
 }
 
-pub enum StoreSetupOutput {
-    Exists,
-    New([u8; 32]),
-}
-
 pub async fn setup_kv_store(
     validator_name: &Option<ValidatorName>,
-) -> (StoreSetupOutput, KvManager, sr25519::Pair, StaticSecret) {
+    storage_path: Option<PathBuf>,
+) -> (KvManager, sr25519::Pair, StaticSecret, bool) {
+    let storage_path = storage_path.unwrap_or_else(|| build_db_path(validator_name));
+
     // Check for existing database
-    let path: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
-    let exists = std::fs::metadata(path.clone()).is_ok();
+    let exists = std::fs::metadata(storage_path.clone()).is_ok();
     if exists {
         // Read key provider details
-        let key_provider_details = get_key_provider_details(path).unwrap();
+        let key_provider_details = get_key_provider_details(storage_path.clone()).unwrap();
         // Retrieve encryption key from another TSS node
-        let key = make_provider_request(key_provider_details).await.unwrap();
-        let kv_manager = load_kv_store(validator_name, Some(key)).await;
+        let key = request_recover_encryption_key(key_provider_details).await.unwrap();
+        let kv_manager = KvManager::new(storage_path, key).unwrap();
         let x25519_secret: [u8; 32] =
             kv_manager.kv().get(X25519_SECRET).await.unwrap().try_into().unwrap();
         let sr25519_seed: [u8; 32] =
             kv_manager.kv().get(SR25519_SEED).await.unwrap().try_into().unwrap();
         let pair = sr25519::Pair::from_seed(&sr25519_seed);
-        (StoreSetupOutput::Exists, kv_manager, pair, x25519_secret.into())
+        (kv_manager, pair, x25519_secret.into(), false)
     } else {
         // Generate TSS account (or use ValidatorName)
         let (pair, seed, x25519_secret) = if cfg!(test) || validator_name.is_some() {
@@ -128,7 +125,7 @@ pub async fn setup_kv_store(
         // TODO randomly generate key
         let encryption_key = [0; 32];
         // open store with generated key
-        let kv_manager = load_kv_store(validator_name, Some(encryption_key)).await;
+        let kv_manager = KvManager::new(storage_path, encryption_key).unwrap();
         // store TSS keys in kv store
         let reservation = kv_manager
             .kv()
@@ -151,45 +148,33 @@ pub async fn setup_kv_store(
             .put(reservation, seed.to_vec())
             .await
             .expect("failed to store sr25519 seed");
-        (StoreSetupOutput::New(encryption_key), kv_manager, pair, x25519_secret)
+        (kv_manager, pair, x25519_secret, true)
     }
 }
 
-pub async fn load_kv_store(
-    validator_name: &Option<ValidatorName>,
-    key: Option<[u8; 32]>,
-) -> KvManager {
-    let key = key.unwrap_or_default();
-    let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
+pub fn build_db_path(validator_name: &Option<ValidatorName>) -> PathBuf {
     if cfg!(test) {
-        return KvManager::new(entropy_kvdb::get_db_path(true).into(), key).unwrap();
+        return PathBuf::from(entropy_kvdb::get_db_path(true));
     }
 
-    if validator_name == &Some(ValidatorName::Alice) {
-        return KvManager::new(root, key).unwrap();
-    };
-
+    let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
+    // Alice has no extra subdirectory
     if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
-        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Charlie) {
         root.push("charlie");
-        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Dave) {
         root.push("dave");
-        return KvManager::new(root, key).unwrap();
     };
 
     if validator_name == &Some(ValidatorName::Eve) {
         root.push("eve");
-        return KvManager::new(root, key).unwrap();
     };
-
-    KvManager::new(root, key).unwrap()
+    root
 }
 
 #[derive(Parser, Debug, Clone)]

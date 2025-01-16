@@ -23,10 +23,40 @@ use entropy_shared::{user::ValidatorInfo, X25519PublicKey};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 use x25519_dalek::{PublicKey, StaticSecret};
 
-pub async fn make_provider_request(
+const KEY_PROVIDER_FILENAME: &str = "key-provider-details.json";
+
+/// Make a request to a given TSS node to backup a given encryption key
+pub async fn request_backup_encryption_key(
+    key: [u8; 32],
+    key_provider_details: KeyProviderDetails,
+) -> Result<(), KeyProviderError> {
+    let quote = Vec::new(); // TODO
+
+    let key_request =
+        BackupEncryptionKeyRequest { tss_account: key_provider_details.tss_account, quote, key };
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("http://{}/backup_encryption_key", key_provider_details.provider.ip_address))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&key_request).unwrap())
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        let text = response.text().await.unwrap();
+        panic!("Bad status code {}: {}", status, text);
+    }
+    Ok(())
+}
+
+/// Make a request to a given TSS node to recover an encryption key
+pub async fn request_recover_encryption_key(
     key_provider_details: KeyProviderDetails,
 ) -> Result<[u8; 32], KeyProviderError> {
     let quote = Vec::new(); // TODO
@@ -35,12 +65,15 @@ pub async fn make_provider_request(
     let response_secret_key = StaticSecret::random_from_rng(OsRng);
     let response_key = PublicKey::from(&response_secret_key).to_bytes();
 
-    let key_request =
-        EncryptionKeyRequest { tss_account: key_provider_details.tss_account, response_key, quote };
+    let key_request = RecoverEncryptionKeyRequest {
+        tss_account: key_provider_details.tss_account,
+        response_key,
+        quote,
+    };
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("http://{}/request_encryption_key", key_provider_details.provider.ip_address))
+        .post(format!("http://{}/recover_encryption_key", key_provider_details.provider.ip_address))
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&key_request).unwrap())
         .send()
@@ -67,30 +100,46 @@ pub struct KeyProviderDetails {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EncryptionKeyRequest {
+pub struct BackupEncryptionKeyRequest {
+    key: [u8; 32],
+    tss_account: SubxtAccountId32,
+    quote: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecoverEncryptionKeyRequest {
     tss_account: SubxtAccountId32,
     response_key: X25519PublicKey,
     quote: Vec<u8>,
 }
 
-pub async fn request_encryption_key(
+/// HTTP to backup an encryption key on initial launch
+pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
-    Json(key_request): Json<EncryptionKeyRequest>,
-) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
+    Json(key_request): Json<BackupEncryptionKeyRequest>,
+) -> Result<(), KeyProviderError> {
     // Build quote input
     // Verify quote
     // Check kvdb for existing key - or generate and store one
-    let lookup_key = format!("BACKUP_KEY:{}", key_request.tss_account.to_string());
-    let key: [u8; 32] = match app_state.kv_store.kv().get(&lookup_key).await {
-        Ok(existing_key) => existing_key.try_into().map_err(|_| KeyProviderError::BadKeyLength)?,
-        Err(_) => {
-            // TODO Generate random 32 byte key
-            let encryption_key = [0; 32];
-            let reservation = app_state.kv_store.kv().reserve_key(lookup_key).await?;
-            app_state.kv_store.kv().put(reservation, encryption_key.to_vec()).await?;
-            encryption_key
-        },
-    };
+    let lookup_key = format!("BACKUP_KEY:{}", key_request.tss_account);
+
+    let reservation = app_state.kv_store.kv().reserve_key(lookup_key).await?;
+    app_state.kv_store.kv().put(reservation, key_request.key.to_vec()).await?;
+
+    Ok(())
+}
+
+/// HTTP endpoint to recover an encryption key following a process restart
+pub async fn recover_encryption_key(
+    State(app_state): State<AppState>,
+    Json(key_request): Json<RecoverEncryptionKeyRequest>,
+) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
+    // TODO Build quote input
+    // TODO Verify quote
+    let lookup_key = format!("BACKUP_KEY:{}", key_request.tss_account);
+    let existing_key = app_state.kv_store.kv().get(&lookup_key).await?;
+    let key: [u8; 32] = existing_key.try_into().map_err(|_| KeyProviderError::BadKeyLength)?;
+
     // Encrypt response
     let signed_message =
         EncryptedSignedMessage::new(&app_state.pair, key.to_vec(), &key_request.response_key, &[])
@@ -98,27 +147,25 @@ pub async fn request_encryption_key(
     Ok(Json(signed_message))
 }
 
-pub fn store_key_provider_details(
-    mut path: std::path::PathBuf,
+fn store_key_provider_details(
+    mut path: PathBuf,
     key_provider_details: KeyProviderDetails,
 ) -> std::io::Result<()> {
-    path.push("key-provider-details.json");
-    std::fs::write(path, &serde_json::to_vec(&key_provider_details).unwrap())
+    path.push(KEY_PROVIDER_FILENAME);
+    std::fs::write(path, serde_json::to_vec(&key_provider_details).unwrap())
 }
 
-pub fn get_key_provider_details(
-    mut path: std::path::PathBuf,
-) -> std::io::Result<KeyProviderDetails> {
-    path.push("key-provider-details.json");
+pub fn get_key_provider_details(mut path: PathBuf) -> std::io::Result<KeyProviderDetails> {
+    path.push(KEY_PROVIDER_FILENAME);
     let bytes = std::fs::read(path)?;
     Ok(serde_json::from_slice(&bytes).unwrap())
 }
 
-pub async fn select_key_provider(
+async fn select_key_provider(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     tss_account: SubxtAccountId32,
-) -> ValidatorInfo {
+) -> KeyProviderDetails {
     let validators_query = entropy::storage().session().validators();
     let validators = query_chain(api, rpc, validators_query, None).await.unwrap().unwrap();
     // .ok_or_else(|| SubgroupGetError::ChainFetch("Error getting validators"))?;
@@ -129,24 +176,29 @@ pub async fn select_key_provider(
 
     let threshold_address_query =
         entropy::storage().staking_extension().threshold_servers(validator);
-    let server_info =
-        query_chain(&api, &rpc, threshold_address_query, None).await.unwrap().unwrap();
+    let server_info = query_chain(api, rpc, threshold_address_query, None).await.unwrap().unwrap();
     // .ok_or_else(|| SubgroupGetError::ChainFetch("threshold_servers query error"))?;
-    ValidatorInfo {
-        x25519_public_key: server_info.x25519_public_key,
-        ip_address: std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
-        tss_account: server_info.tss_account,
+    KeyProviderDetails {
+        provider: ValidatorInfo {
+            x25519_public_key: server_info.x25519_public_key,
+            ip_address: std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),
+            tss_account: server_info.tss_account,
+        },
+        tss_account,
     }
 }
 
-// pub async fn make_key_backup() {
-//         // Select a provider by making chain query and choosing a tss node
-//
-//         let key_provider_details =
-//             KeyProviderDetails { tss_account: SubxtAccountId32(pair.public().0), provider };
-//         // Make provider request
-//         // p
-//         let key = make_provider_request(key_provider_details).await.unwrap();
-//         // Store provider details
-//         store_key_provider_details(path, key_provider_details).unwrap();
-// }
+pub async fn make_key_backup(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    key: [u8; 32],
+    tss_account: SubxtAccountId32,
+    storage_path: PathBuf,
+) {
+    // Select a provider by making chain query and choosing a tss node
+    let key_provider_details = select_key_provider(api, rpc, tss_account).await;
+    // Get them to backup the key
+    request_backup_encryption_key(key, key_provider_details.clone()).await.unwrap();
+    // Store provider details so we know who to ask when recovering
+    store_key_provider_details(storage_path, key_provider_details).unwrap();
+}
