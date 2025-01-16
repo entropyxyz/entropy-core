@@ -54,12 +54,12 @@ where
     /// Creates a kvstore at `full_db_name` and spawns a new kv_manager. Returns [InitErr] on
     /// failure. `full_db_name` is the name of the path of the kvstrore + its name
     /// Example: ~/entropy/kvstore/database_1
-    pub fn with_db_name(full_db_name: String, key: [u8; 32]) -> KvResult<Self> {
+    pub fn with_db_name(full_db_name: String, encryption_key: [u8; 32]) -> KvResult<Self> {
         let (sender, rx) = mpsc::unbounded_channel();
 
         // get kv store from db name before entering the kv_cmd_handler because
         // it's more convenient to return an error from outside of a tokio::span
-        let kv = get_kv_store(&full_db_name, key)?;
+        let kv = get_kv_store(&full_db_name, encryption_key)?;
 
         tokio::spawn(kv_cmd_handler(rx, kv));
         Ok(Self { sender })
