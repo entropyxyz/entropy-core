@@ -144,6 +144,8 @@ pub enum QuoteContext {
     ChangeEndpoint,
     /// To be used in the `change_threshold_accounts` extrinsic
     ChangeThresholdAccounts,
+    /// To be use when requesting to recover an encryption key
+    EncryptionKeyRecoveryRequest,
 }
 
 #[cfg(feature = "std")]
@@ -154,6 +156,9 @@ impl std::fmt::Display for QuoteContext {
             QuoteContext::Validate => write!(f, "validate"),
             QuoteContext::ChangeEndpoint => write!(f, "change_endpoint"),
             QuoteContext::ChangeThresholdAccounts => write!(f, "change_threshold_accounts"),
+            QuoteContext::EncryptionKeyRecoveryRequest => {
+                write!(f, "encryption_key_recovery_request")
+            },
         }
     }
 }

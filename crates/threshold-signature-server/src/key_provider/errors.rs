@@ -27,6 +27,28 @@ pub enum KeyProviderError {
     Kv(#[from] KvError),
     #[error("Encryption key is not present in backup store")]
     NoKeyInStore,
+    #[error("Panic while holding lock on backup store")]
+    RwLockPoison,
+    #[error("JSON: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    #[error("Encryption: {0}")]
+    Encryption(#[from] crate::validation::EncryptedSignedMessageErr),
+    #[error("Attestation: {0}")]
+    Attestation(#[from] crate::attestation::errors::AttestationErr),
+    #[error("Generic Substrate error: {0}")]
+    GenericSubstrate(#[from] subxt::error::Error),
+    #[error("Bad response from backup provider: {0} {1}")]
+    BadProviderResponse(reqwest::StatusCode, String),
+    #[error("Provider responded with a key which is not 32 bytes")]
+    BadKeyLength,
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("The account requesting to recover a key is not registered with the staking pallet")]
+    NotRegisteredWithStakingPallet,
+    #[error("Filesystem IO: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Utf8Error: {0:?}")]
+    Utf8(#[from] std::str::Utf8Error),
 }
 
 impl IntoResponse for KeyProviderError {

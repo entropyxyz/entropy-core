@@ -52,7 +52,7 @@ async fn key_provider_test() {
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path).await;
+    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path).await.unwrap();
 }
 
 #[tokio::test]

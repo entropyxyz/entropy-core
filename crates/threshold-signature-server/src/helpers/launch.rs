@@ -396,7 +396,11 @@ pub async fn check_node_prerequisites(
             &app_state.pair,
             app_state.kv_store.storage_path().to_path_buf(),
         )
-        .await;
+        .await
+        .map_err(|e| {
+            tracing::error!("Could not make key backup: {}", e);
+            "Could not make key backup"
+        })?;
         tracing::info!("Successfully backed up keyshare");
     }
 
