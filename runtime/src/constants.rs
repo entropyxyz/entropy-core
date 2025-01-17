@@ -80,7 +80,7 @@ pub mod time {
     //       Attempting to do so will brick block production.
     #[cfg(not(feature = "reshare-test"))]
     pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 4 * HOURS;
-    #[cfg(any(feature = "reshare-test"))]
+    #[cfg(feature = "reshare-test")]
     pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 15 / (SECS_PER_BLOCK as BlockNumber);
     pub const EPOCH_DURATION_IN_SLOTS: u64 = {
         const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;

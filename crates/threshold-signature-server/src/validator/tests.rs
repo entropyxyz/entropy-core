@@ -239,7 +239,7 @@ async fn test_reshare_basic() {
     clean_tests();
 }
 
-#[cfg(any(feature = "reshare-test"))]
+#[cfg(feature = "reshare-test")]
 #[tokio::test]
 #[serial]
 async fn test_reshare_e2e() {
