@@ -102,7 +102,7 @@ pub async fn setup_kv_store(
 ) -> (KvManager, sr25519::Pair, StaticSecret, Option<[u8; 32]>) {
     let storage_path = storage_path.unwrap_or_else(|| build_db_path(validator_name));
 
-    // Check for existing database
+    // Check for existing database with backup details
     if let Ok(key_provider_details) = get_key_provider_details(storage_path.clone()) {
         // Retrieve encryption key from another TSS node
         let key = request_recover_encryption_key(key_provider_details).await.unwrap();
@@ -122,13 +122,13 @@ pub async fn setup_kv_store(
             let x25519_secret = StaticSecret::random_from_rng(OsRng);
             (pair, seed, x25519_secret)
         };
-        // TODO randomly generate key
+        // Generate new encryption key
         let mut encryption_key = [0; 32];
         OsRng.fill_bytes(&mut encryption_key);
 
-        // open store with generated key
+        // Open store with generated key
         let kv_manager = KvManager::new(storage_path, encryption_key).unwrap();
-        // store TSS keys in kv store
+        // Store TSS secret keys in kv store
         let reservation = kv_manager
             .kv()
             .reserve_key(X25519_SECRET.to_string())
@@ -150,6 +150,8 @@ pub async fn setup_kv_store(
             .put(reservation, seed.to_vec())
             .await
             .expect("failed to store sr25519 seed");
+
+        // Return the encryption key so that it can be backed up as part of the pre-requisite checks
         (kv_manager, pair, x25519_secret, Some(encryption_key))
     }
 }
@@ -391,7 +393,7 @@ pub async fn check_node_prerequisites(
             &api,
             &rpc,
             key_to_backup,
-            app_state.subxt_account_id(),
+            &app_state.pair,
             app_state.kv_store.storage_path().to_path_buf(),
         )
         .await;

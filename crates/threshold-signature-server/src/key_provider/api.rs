@@ -23,6 +23,7 @@ use entropy_shared::{user::ValidatorInfo, X25519PublicKey};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+use sp_core::{sr25519, Pair};
 use std::path::PathBuf;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -30,29 +31,30 @@ use x25519_dalek::{PublicKey, StaticSecret};
 const KEY_PROVIDER_FILENAME: &str = "key-provider-details.json";
 
 /// Make a request to a given TSS node to backup a given encryption key
+/// This makes a client request to [backup_encryption_key]
 pub async fn request_backup_encryption_key(
     key: [u8; 32],
     key_provider_details: KeyProviderDetails,
+    sr25519_pair: &sr25519::Pair,
 ) -> Result<(), KeyProviderError> {
     let quote = Vec::new(); // TODO
 
     let key_request =
         BackupEncryptionKeyRequest { tss_account: key_provider_details.tss_account, quote, key };
 
-    // TODO this should be encrypted
-    // let signed_message = EncryptedSignedMessage::new(
-    //     &pair,
-    //     serde_json::to_vec(&key_request).unwrap(),
-    //     &key_provider_details.provider.x25519_public_key,
-    //     &[],
-    // )
-    // .unwrap();
+    let signed_message = EncryptedSignedMessage::new(
+        sr25519_pair,
+        serde_json::to_vec(&key_request).unwrap(),
+        &key_provider_details.provider.x25519_public_key,
+        &[],
+    )
+    .unwrap();
 
     let client = reqwest::Client::new();
     let response = client
         .post(format!("http://{}/backup_encryption_key", key_provider_details.provider.ip_address))
         .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&key_request).unwrap())
+        .body(serde_json::to_string(&signed_message).unwrap())
         .send()
         .await?;
 
@@ -135,14 +137,17 @@ pub struct RecoverEncryptionKeyRequest {
 /// HTTP to backup an encryption key on initial launch
 pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
-    // TODO this should be encrypted
-    Json(key_request): Json<BackupEncryptionKeyRequest>,
+    Json(encrypted_backup_request): Json<EncryptedSignedMessage>,
 ) -> Result<(), KeyProviderError> {
     // Build quote input
     // Verify quote
 
+    let signed_message = encrypted_backup_request.decrypt(&app_state.x25519_secret, &[]).unwrap();
+    let backup_request: BackupEncryptionKeyRequest =
+        serde_json::from_slice(&signed_message.message.0).unwrap();
+
     let mut backups = app_state.encryption_key_backups.write().unwrap();
-    backups.insert(key_request.tss_account.0, key_request.key);
+    backups.insert(backup_request.tss_account.0, backup_request.key);
 
     Ok(())
 }
@@ -170,13 +175,14 @@ pub async fn make_key_backup(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     key: [u8; 32],
-    tss_account: SubxtAccountId32,
+    sr25519_pair: &sr25519::Pair,
     storage_path: PathBuf,
 ) {
+    let tss_account = SubxtAccountId32(sr25519_pair.public().0);
     // Select a provider by making chain query and choosing a tss node
     let key_provider_details = select_key_provider(api, rpc, tss_account).await;
     // Get them to backup the key
-    request_backup_encryption_key(key, key_provider_details.clone()).await.unwrap();
+    request_backup_encryption_key(key, key_provider_details.clone(), sr25519_pair).await.unwrap();
     // Store provider details so we know who to ask when recovering
     store_key_provider_details(storage_path, key_provider_details).unwrap();
 }

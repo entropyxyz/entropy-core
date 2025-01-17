@@ -14,11 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    helpers::tests::{initialize_test_logger, setup_client},
+    helpers::{
+        tests::{initialize_test_logger, setup_client},
+        validator::get_signer_and_x25519_secret_from_mnemonic,
+    },
     key_provider::api::{
         make_key_backup, request_backup_encryption_key, request_recover_encryption_key,
         KeyProviderDetails,
     },
+    launch::{development_mnemonic, ValidatorName},
     SubxtAccountId32,
 };
 use entropy_kvdb::clean_tests;
@@ -43,7 +47,12 @@ async fn key_provider_test() {
     let storage_path = ".entropy/testing/test_db_validator1".into();
     let key = [0; 32]; // TODO this should be the actual key used. Since we dont have access to
                        // kvmanager, alice bob etc. should use known keys
-    make_key_backup(&api, &rpc, key, TSS_ACCOUNTS[0].clone(), storage_path).await;
+
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path).await;
 }
 
 #[tokio::test]
@@ -62,7 +71,13 @@ async fn key_provider_unit_test() {
     };
     let key = [1; 32];
 
-    request_backup_encryption_key(key, key_provider_details.clone()).await.unwrap();
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Bob));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    request_backup_encryption_key(key, key_provider_details.clone(), tss_signer.signer())
+        .await
+        .unwrap();
     let recovered_key = request_recover_encryption_key(key_provider_details).await.unwrap();
     assert_eq!(key, recovered_key);
 }
