@@ -275,5 +275,5 @@ try-runtime=[
 ]
 # Enables real PCK certificate chain verification - which means TSS nodes must be runnning on TDX
 # hardware
-production=["pallet-attestation/production"]
+production  =["pallet-attestation/production"]
 reshare-test=[]
