@@ -60,14 +60,17 @@ async fn key_provider_test() {
 async fn key_provider_unit_test() {
     clean_tests();
     initialize_test_logger().await;
-    setup_client().await;
+
+    let (_ctx, _api, _rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
     let key_provider_details = KeyProviderDetails {
         provider: ValidatorInfo {
             tss_account: TSS_ACCOUNTS[0].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             ip_address: "127.0.0.1:3001".to_string(),
         },
-        tss_account: SubxtAccountId32(AccountKeyring::Bob.to_raw_public()),
+        tss_account: TSS_ACCOUNTS[1].clone(),
     };
     let key = [1; 32];
 
