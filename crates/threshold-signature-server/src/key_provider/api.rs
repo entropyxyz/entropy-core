@@ -39,6 +39,15 @@ pub async fn request_backup_encryption_key(
     let key_request =
         BackupEncryptionKeyRequest { tss_account: key_provider_details.tss_account, quote, key };
 
+    // TODO this should be encrypted
+    // let signed_message = EncryptedSignedMessage::new(
+    //     &pair,
+    //     serde_json::to_vec(&key_request).unwrap(),
+    //     &key_provider_details.provider.x25519_public_key,
+    //     &[],
+    // )
+    // .unwrap();
+
     let client = reqwest::Client::new();
     let response = client
         .post(format!("http://{}/backup_encryption_key", key_provider_details.provider.ip_address))
@@ -93,29 +102,40 @@ pub async fn request_recover_encryption_key(
     Ok(signed_message.message.0.try_into().unwrap())
 }
 
+/// [ValidatorInfo] of a TSS node chosen to make a key backup, together with the account ID of the TSS
+/// node who the backup is for
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyProviderDetails {
     pub provider: ValidatorInfo,
     pub tss_account: SubxtAccountId32,
 }
 
+/// Payload of the encrypted POST request body for the `/backup_encryption_key` HTTP route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupEncryptionKeyRequest {
     key: [u8; 32],
     tss_account: SubxtAccountId32,
+    // TODO im not sure we need a quote here, as we should have registered with the staking pallet
+    // by the time we make this request, so they can just check that which proves we have done an
+    // attestation on chain
     quote: Vec<u8>,
 }
 
+/// POST request body for thse `/recover_encryption_key` HTTP route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecoverEncryptionKeyRequest {
+    /// The account ID of the TSS node requesting to recover their encryption key
     tss_account: SubxtAccountId32,
+    /// An ephemeral encryption public key used to receive and encrypted response
     response_key: X25519PublicKey,
+    /// A TDX quote
     quote: Vec<u8>,
 }
 
 /// HTTP to backup an encryption key on initial launch
 pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
+    // TODO this should be encrypted
     Json(key_request): Json<BackupEncryptionKeyRequest>,
 ) -> Result<(), KeyProviderError> {
     // Build quote input
@@ -147,6 +167,23 @@ pub async fn recover_encryption_key(
     Ok(Json(signed_message))
 }
 
+/// Create a backup of our key-value store encryption key by sending it to another TSS node to store
+pub async fn make_key_backup(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    key: [u8; 32],
+    tss_account: SubxtAccountId32,
+    storage_path: PathBuf,
+) {
+    // Select a provider by making chain query and choosing a tss node
+    let key_provider_details = select_key_provider(api, rpc, tss_account).await;
+    // Get them to backup the key
+    request_backup_encryption_key(key, key_provider_details.clone()).await.unwrap();
+    // Store provider details so we know who to ask when recovering
+    store_key_provider_details(storage_path, key_provider_details).unwrap();
+}
+
+/// Store the details of a TSS node who has a backup of our encryption key in a file
 fn store_key_provider_details(
     mut path: PathBuf,
     key_provider_details: KeyProviderDetails,
@@ -155,12 +192,14 @@ fn store_key_provider_details(
     std::fs::write(path, serde_json::to_vec(&key_provider_details).unwrap())
 }
 
+/// Retrieve the details of a TSS node who has a backup of our encryption key from a file
 pub fn get_key_provider_details(mut path: PathBuf) -> std::io::Result<KeyProviderDetails> {
     path.push(KEY_PROVIDER_FILENAME);
     let bytes = std::fs::read(path)?;
     Ok(serde_json::from_slice(&bytes).unwrap())
 }
 
+/// Choose a TSS node to request to make a backup from
 async fn select_key_provider(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -186,19 +225,4 @@ async fn select_key_provider(
         },
         tss_account,
     }
-}
-
-pub async fn make_key_backup(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    key: [u8; 32],
-    tss_account: SubxtAccountId32,
-    storage_path: PathBuf,
-) {
-    // Select a provider by making chain query and choosing a tss node
-    let key_provider_details = select_key_provider(api, rpc, tss_account).await;
-    // Get them to backup the key
-    request_backup_encryption_key(key, key_provider_details.clone()).await.unwrap();
-    // Store provider details so we know who to ask when recovering
-    store_key_provider_details(storage_path, key_provider_details).unwrap();
 }
