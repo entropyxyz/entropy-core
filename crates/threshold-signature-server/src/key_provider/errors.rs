@@ -25,8 +25,8 @@ pub enum KeyProviderError {
     HttpRequest(#[from] reqwest::Error),
     #[error("Key-value store: {0}")]
     Kv(#[from] KvError),
-    #[error("Encryption key must be 32 bytes")]
-    BadKeyLength,
+    #[error("Encryption key is not present in backup store")]
+    NoKeyInStore,
 }
 
 impl IntoResponse for KeyProviderError {

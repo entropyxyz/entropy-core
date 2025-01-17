@@ -103,10 +103,7 @@ pub async fn setup_kv_store(
     let storage_path = storage_path.unwrap_or_else(|| build_db_path(validator_name));
 
     // Check for existing database
-    let exists = std::fs::metadata(storage_path.clone()).is_ok();
-    if exists {
-        // Read key provider details
-        let key_provider_details = get_key_provider_details(storage_path.clone()).unwrap();
+    if let Ok(key_provider_details) = get_key_provider_details(storage_path.clone()) {
         // Retrieve encryption key from another TSS node
         let key = request_recover_encryption_key(key_provider_details).await.unwrap();
         let kv_manager = KvManager::new(storage_path, key).unwrap();

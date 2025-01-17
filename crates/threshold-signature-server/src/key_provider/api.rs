@@ -140,11 +140,9 @@ pub async fn backup_encryption_key(
 ) -> Result<(), KeyProviderError> {
     // Build quote input
     // Verify quote
-    // Check kvdb for existing key - or generate and store one
-    let lookup_key = format!("BACKUP_KEY:{}", key_request.tss_account);
 
-    let reservation = app_state.kv_store.kv().reserve_key(lookup_key).await?;
-    app_state.kv_store.kv().put(reservation, key_request.key.to_vec()).await?;
+    let mut backups = app_state.encryption_key_backups.write().unwrap();
+    backups.insert(key_request.tss_account.0, key_request.key);
 
     Ok(())
 }
@@ -156,9 +154,9 @@ pub async fn recover_encryption_key(
 ) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
     // TODO Build quote input
     // TODO Verify quote
-    let lookup_key = format!("BACKUP_KEY:{}", key_request.tss_account);
-    let existing_key = app_state.kv_store.kv().get(&lookup_key).await?;
-    let key: [u8; 32] = existing_key.try_into().map_err(|_| KeyProviderError::BadKeyLength)?;
+    //
+    let backups = app_state.encryption_key_backups.read().unwrap();
+    let key = backups.get(&key_request.tss_account.0).ok_or(KeyProviderError::NoKeyInStore)?;
 
     // Encrypt response
     let signed_message =

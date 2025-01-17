@@ -178,7 +178,10 @@ use axum::{
 };
 use entropy_kvdb::kv_manager::KvManager;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
@@ -222,6 +225,8 @@ pub struct AppState {
     pub configuration: Configuration,
     /// Key-value store
     pub kv_store: KvManager,
+    /// Storage for encryption key backups for other TSS nodes
+    pub encryption_key_backups: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
 }
 
 impl AppState {
@@ -239,6 +244,7 @@ impl AppState {
             listener_state: ListenerState::default(),
             configuration,
             kv_store,
+            encryption_key_backups: Default::default(),
         }
     }
 
