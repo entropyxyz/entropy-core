@@ -162,7 +162,6 @@ pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
 ) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
-    // TODO verify quote - and move verifying quote logic to the attestation module
     let quote = Quote::from_bytes(&key_request.quote).unwrap();
 
     let nonce = [0; 32]; // TODO
@@ -235,7 +234,12 @@ async fn select_key_provider(
     tss_account: SubxtAccountId32,
 ) -> Result<KeyProviderDetails, KeyProviderError> {
     let validators_query = entropy::storage().session().validators();
-    let validators = query_chain(api, rpc, validators_query, None).await?.unwrap();
+    let validators = query_chain(api, rpc, validators_query, None)
+        .await?
+        .ok_or(KeyProviderError::NoValidators)?;
+    if validators.is_empty() {
+        return Err(KeyProviderError::NoValidators);
+    }
 
     let mut deterministic_rng = StdRng::from_seed(tss_account.0);
     let random_index = deterministic_rng.gen_range(0..validators.len());
@@ -243,7 +247,9 @@ async fn select_key_provider(
 
     let threshold_address_query =
         entropy::storage().staking_extension().threshold_servers(validator);
-    let server_info = query_chain(api, rpc, threshold_address_query, None).await?.unwrap();
+    let server_info = query_chain(api, rpc, threshold_address_query, None)
+        .await?
+        .ok_or(KeyProviderError::NoServerInfo)?;
 
     Ok(KeyProviderDetails {
         provider: ValidatorInfo {

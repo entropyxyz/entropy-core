@@ -99,24 +99,34 @@ impl Configuration {
 pub async fn setup_kv_store(
     validator_name: &Option<ValidatorName>,
     storage_path: Option<PathBuf>,
-) -> (KvManager, sr25519::Pair, StaticSecret, Option<[u8; 32]>) {
+) -> anyhow::Result<(KvManager, sr25519::Pair, StaticSecret, Option<[u8; 32]>)> {
     let storage_path = storage_path.unwrap_or_else(|| build_db_path(validator_name));
 
     // Check for existing database with backup details
     if let Ok(key_provider_details) = get_key_provider_details(storage_path.clone()) {
         // Retrieve encryption key from another TSS node
-        let key = request_recover_encryption_key(key_provider_details).await.unwrap();
-        let kv_manager = KvManager::new(storage_path, key).unwrap();
-        let x25519_secret: [u8; 32] =
-            kv_manager.kv().get(X25519_SECRET).await.unwrap().try_into().unwrap();
-        let sr25519_seed: [u8; 32] =
-            kv_manager.kv().get(SR25519_SEED).await.unwrap().try_into().unwrap();
+        let key = request_recover_encryption_key(key_provider_details).await?;
+
+        let kv_manager = KvManager::new(storage_path, key)?;
+
+        let x25519_secret: [u8; 32] = kv_manager
+            .kv()
+            .get(X25519_SECRET)
+            .await?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("X25519 secret from db is not 32 bytes"))?;
+        let sr25519_seed: [u8; 32] = kv_manager
+            .kv()
+            .get(SR25519_SEED)
+            .await?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("sr25519 seed from db is not 32 bytes"))?;
         let pair = sr25519::Pair::from_seed(&sr25519_seed);
-        (kv_manager, pair, x25519_secret.into(), None)
+        Ok((kv_manager, pair, x25519_secret.into(), None))
     } else {
         // Generate TSS account (or use ValidatorName)
         let (pair, seed, x25519_secret) = if cfg!(test) || validator_name.is_some() {
-            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
+            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string())?
         } else {
             let (pair, seed) = sr25519::Pair::generate();
             let x25519_secret = StaticSecret::random_from_rng(OsRng);
@@ -127,7 +137,7 @@ pub async fn setup_kv_store(
         OsRng.fill_bytes(&mut encryption_key);
 
         // Open store with generated key
-        let kv_manager = KvManager::new(storage_path, encryption_key).unwrap();
+        let kv_manager = KvManager::new(storage_path, encryption_key)?;
         // Store TSS secret keys in kv store
         let reservation = kv_manager
             .kv()
@@ -152,7 +162,7 @@ pub async fn setup_kv_store(
             .expect("failed to store sr25519 seed");
 
         // Return the encryption key so that it can be backed up as part of the pre-requisite checks
-        (kv_manager, pair, x25519_secret, Some(encryption_key))
+        Ok((kv_manager, pair, x25519_secret, Some(encryption_key)))
     }
 }
 

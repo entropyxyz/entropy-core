@@ -175,19 +175,14 @@ pub async fn validate_new_attestation(
 #[cfg(feature = "production")]
 pub async fn create_quote(
     nonce: [u8; 32],
-    // TODO change this to SubxtAccountId32
-    signer: &PairSigner<EntropyConfig, sp_core::sr25519::Pair>,
+    tss_account: SubxtAccountId32,
     x25519_secret: &StaticSecret,
     context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
-    let input_data = entropy_shared::QuoteInputData::new(
-        signer.signer().public(),
-        *public_key.as_bytes(),
-        nonce,
-        context,
-    );
+    let input_data =
+        entropy_shared::QuoteInputData::new(tss_account, *public_key.as_bytes(), nonce, context);
 
     Ok(configfs_tsm::create_quote(input_data.0)
         .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?)

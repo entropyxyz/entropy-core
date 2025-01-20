@@ -58,7 +58,7 @@ async fn main() {
     }
 
     let (kv_store, sr25519_pair, x25519_secret, key_option) =
-        setup_kv_store(&validator_name, None).await;
+        setup_kv_store(&validator_name, None).await.unwrap();
 
     let app_state =
         AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);

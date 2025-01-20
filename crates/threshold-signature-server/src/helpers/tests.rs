@@ -74,7 +74,7 @@ pub async fn setup_client() -> KvManager {
 
     let storage_path: PathBuf = get_db_path(true).into();
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
-        setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await;
+        setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
@@ -106,7 +106,7 @@ pub async fn create_clients(
     let _ = std::fs::remove_dir_all(path.clone());
 
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
-        setup_kv_store(validator_name, Some(path.into())).await;
+        setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);

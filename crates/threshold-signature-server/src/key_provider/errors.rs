@@ -55,6 +55,10 @@ pub enum KeyProviderError {
     BadQuoteInputData,
     #[error("Quote verify: {0}")]
     VerifyQuote(#[from] entropy_shared::VerifyQuoteError),
+    #[error("Could not find another TSS node to request backup")]
+    NoValidators,
+    #[error("Could not get server info for TSS node chosen for backup")]
+    NoServerInfo,
 }
 
 impl IntoResponse for KeyProviderError {
