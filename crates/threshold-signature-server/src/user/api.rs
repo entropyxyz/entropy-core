@@ -50,7 +50,6 @@ use crate::{
             submit_transaction,
         },
         user::{check_in_registration_group, compute_hash, do_dkg, evaluate_program},
-        validator::get_signer_and_x25519_secret,
     },
     validation::{check_stale, EncryptedSignedMessage},
     AppState,
