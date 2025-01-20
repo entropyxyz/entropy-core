@@ -22,7 +22,6 @@ use entropy_client::{
 };
 use entropy_kvdb::clean_tests;
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_programs_runtime::Runtime;
 use entropy_protocol::{
     decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
@@ -904,7 +903,6 @@ async fn test_compute_hash() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let mut runtime = Runtime::default();
     let program_hash = test_client::store_program(
         &api,
         &rpc,
@@ -922,7 +920,7 @@ async fn test_compute_hash() {
         &api,
         &rpc,
         &HashingAlgorithm::Custom(0),
-        &mut runtime,
+        10000000u64,
         &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         PREIMAGE_SHOULD_SUCCEED,
     )
