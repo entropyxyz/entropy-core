@@ -15,15 +15,13 @@
 
 use crate::{
     helpers::{
-        tests::{initialize_test_logger, setup_client},
-        validator::get_signer_and_x25519_secret_from_mnemonic,
+        tests::initialize_test_logger, validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     key_provider::api::{
         make_key_backup, request_backup_encryption_key, request_recover_encryption_key,
         KeyProviderDetails,
     },
     launch::{development_mnemonic, ValidatorName},
-    SubxtAccountId32,
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::user::ValidatorInfo;
@@ -33,7 +31,6 @@ use entropy_testing_utils::{
     ChainSpecType,
 };
 use serial_test::serial;
-use sp_keyring::AccountKeyring;
 
 #[tokio::test]
 #[serial]

@@ -37,12 +37,9 @@ pub async fn request_backup_encryption_key(
     key_provider_details: KeyProviderDetails,
     sr25519_pair: &sr25519::Pair,
 ) -> Result<(), KeyProviderError> {
-    let key_request =
-        BackupEncryptionKeyRequest { tss_account: key_provider_details.tss_account, key };
-
     let signed_message = EncryptedSignedMessage::new(
         sr25519_pair,
-        serde_json::to_vec(&key_request)?,
+        key.to_vec(),
         &key_provider_details.provider.x25519_public_key,
         &[],
     )?;
@@ -120,15 +117,6 @@ pub struct KeyProviderDetails {
     pub tss_account: SubxtAccountId32,
 }
 
-/// Payload of the encrypted POST request body for the `/backup_encryption_key` HTTP route
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BackupEncryptionKeyRequest {
-    /// The encryption key to be backed-up
-    key: [u8; 32],
-    /// The account ID of the TSS node for whom the backup should be made
-    tss_account: SubxtAccountId32,
-}
-
 /// POST request body for thse `/recover_encryption_key` HTTP route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecoverEncryptionKeyRequest {
@@ -140,18 +128,19 @@ pub struct RecoverEncryptionKeyRequest {
     quote: Vec<u8>,
 }
 
-/// HTTP to backup an encryption key on initial launch
+/// HTTP endpoint to backup an encryption key on initial launch
 pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
     Json(encrypted_backup_request): Json<EncryptedSignedMessage>,
 ) -> Result<(), KeyProviderError> {
     let signed_message = encrypted_backup_request.decrypt(&app_state.x25519_secret, &[])?;
-    let backup_request: BackupEncryptionKeyRequest =
-        serde_json::from_slice(&signed_message.message.0)?;
+    let key: [u8; 32] =
+        signed_message.message.0.try_into().map_err(|_| KeyProviderError::BadKeyLength)?;
 
+    let tss_account = SubxtAccountId32(signed_message.sender.0);
     // Check for tss account on the staking pallet - which proves they have made an on-chain attestation
     let threshold_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(&backup_request.tss_account);
+        entropy::storage().staking_extension().threshold_to_stash(&tss_account);
     let (api, rpc) = app_state.get_api_rpc().await?;
     query_chain(&api, &rpc, threshold_address_query, None)
         .await?
@@ -159,7 +148,7 @@ pub async fn backup_encryption_key(
 
     let mut backups =
         app_state.encryption_key_backups.write().map_err(|_| KeyProviderError::RwLockPoison)?;
-    backups.insert(backup_request.tss_account.0, backup_request.key);
+    backups.insert(tss_account.0, key);
 
     Ok(())
 }
