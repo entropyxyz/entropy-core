@@ -133,6 +133,7 @@ pub struct RecoverEncryptionKeyRequest {
 }
 
 /// HTTP endpoint to backup an encryption key on initial launch
+/// The request body should be an encryption key to backup as a [u8; 32] wrapped in an [EncryptedSignedMessage]
 pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
     Json(encrypted_backup_request): Json<EncryptedSignedMessage>,
@@ -157,11 +158,16 @@ pub async fn backup_encryption_key(
     Ok(())
 }
 
-/// HTTP endpoint to recover an encryption key following a process restart
+/// HTTP endpoint to recover an encryption key following a process restart.
+/// The request body should contain a JSON encoded [RecoverEncryptionKeyRequest].
+/// If successfull, the response body will contain the encryption key as a [u8; 32] wrapped in an
+/// [EncryptedSignedMessage].
 pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
 ) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
+    // TODO we can correctly handle this error once we have merged the latest commits which give us
+    // the latest version of tdx_quote
     let quote = Quote::from_bytes(&key_request.quote).unwrap();
 
     let nonce = [0; 32]; // TODO
@@ -176,11 +182,21 @@ pub async fn recover_encryption_key(
     }
 
     // Check build-time measurement matches a current-supported release of entropy-tss
-    // let mrtd_value =
-    //     BoundedVec::try_from(quote.mrtd().to_vec()).map_err(|_| VerifyQuoteError::BadMrtdValue)?;
-    // let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
-    // ensure!(accepted_mrtd_values.contains(&mrtd_value), VerifyQuoteError::BadMrtdValue);
-    //
+    // This bit differs slightly in the attestation pallet implementation vs entropy-tss
+    // because here we don't have direct access to the parameters pallet - we need to make a query
+    let mrtd_value = quote.mrtd().to_vec();
+    let query = entropy::storage().parameters().accepted_mrtd_values();
+    let (api, rpc) = app_state.get_api_rpc().await?;
+    let accepted_mrtd_values: Vec<_> = query_chain(&api, &rpc, query, None)
+        .await?
+        .ok_or(KeyProviderError::NoMeasurementValues)?
+        .into_iter()
+        .map(|v| v.0)
+        .collect();
+    if !accepted_mrtd_values.contains(&mrtd_value) {
+        return Err(entropy_shared::VerifyQuoteError::BadMrtdValue.into());
+    };
+
     let _pck = verify_pck_certificate_chain(&quote)?;
 
     let backups =

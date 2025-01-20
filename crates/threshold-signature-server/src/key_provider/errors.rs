@@ -59,6 +59,8 @@ pub enum KeyProviderError {
     NoValidators,
     #[error("Could not get server info for TSS node chosen for backup")]
     NoServerInfo,
+    #[error("Could not get accepted measurement values from on-chain parameters")]
+    NoMeasurementValues,
 }
 
 impl IntoResponse for KeyProviderError {
