@@ -29,9 +29,10 @@ use axum::{
 };
 use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::{OcwMessageAttestationRequest, QuoteContext};
+use entropy_shared::{OcwMessageAttestationRequest, QuoteContext, VerifyQuoteError};
 use parity_scale_codec::Decode;
 use serde::Deserialize;
+use tdx_quote::{Quote, VerifyingKey};
 use x25519_dalek::StaticSecret;
 
 /// HTTP POST endpoint to initiate a TDX attestation.
@@ -211,4 +212,32 @@ impl QuoteContextQuery {
             _ => Err(AttestationErr::UnknownContext),
         }
     }
+}
+
+// TODO these functions are duplicated in the attestation pallet, maybe move somewhere common eg:
+// entropy-shared
+/// Verify a PCK certificate chain from a quote in production
+#[cfg(feature = "production")]
+pub fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
+    quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)
+}
+
+/// A mock version of verifying the PCK certificate chain.
+/// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
+/// so this function just decodes it, checks it was used to sign the quote, and returns it
+#[cfg(not(feature = "production"))]
+pub fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
+    let provisioning_certification_key =
+        quote.pck_cert_chain().map_err(|_| VerifyQuoteError::PckCertificateNoCertificate)?;
+    let provisioning_certification_key = tdx_quote::decode_verifying_key(
+        &provisioning_certification_key
+            .try_into()
+            .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?,
+    )
+    .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?;
+
+    quote
+        .verify_with_pck(&provisioning_certification_key)
+        .map_err(|_| VerifyQuoteError::PckCertificateVerify)?;
+    Ok(provisioning_certification_key)
 }

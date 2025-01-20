@@ -14,8 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::api::create_quote, chain_api::entropy, key_provider::errors::KeyProviderError,
-    validation::EncryptedSignedMessage, AppState, EntropyConfig, SubxtAccountId32,
+    attestation::api::{create_quote, verify_pck_certificate_chain},
+    chain_api::entropy,
+    key_provider::errors::KeyProviderError,
+    validation::EncryptedSignedMessage,
+    AppState, EntropyConfig, SubxtAccountId32,
 };
 use axum::{extract::State, Json};
 use entropy_client::substrate::query_chain;
@@ -26,6 +29,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
 use std::path::PathBuf;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
+use tdx_quote::Quote;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 const KEY_PROVIDER_FILENAME: &str = "key-provider-details.json";
@@ -72,7 +76,7 @@ pub async fn request_recover_encryption_key(
     // key
     let quote_nonce = [0; 32];
 
-    // Quote input should contain: key_provider_details.tss_account, and response_key
+    // Quote input contains: key_provider_details.tss_account, and response_key
     let quote = create_quote(
         quote_nonce,
         key_provider_details.tss_account.clone(),
@@ -159,18 +163,18 @@ pub async fn recover_encryption_key(
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
 ) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
     // TODO verify quote - and move verifying quote logic to the attestation module
-    // let quote = Quote::from_bytes(&quote).map_err(|_| VerifyQuoteError::BadQuote)?;
+    let quote = Quote::from_bytes(&key_request.quote).unwrap();
 
     let nonce = [0; 32]; // TODO
-    let _expected_input_data = QuoteInputData::new(
+    let expected_input_data = QuoteInputData::new(
         key_request.tss_account.clone(),
         key_request.response_key,
         nonce,
         QuoteContext::EncryptionKeyRecoveryRequest,
     );
-    // if quote.report_input_data() != expected_input_data.0 {
-    //     return Err(KeyProviderError::BadQuoteInputData);
-    // }
+    if quote.report_input_data() != expected_input_data.0 {
+        return Err(KeyProviderError::BadQuoteInputData);
+    }
 
     // Check build-time measurement matches a current-supported release of entropy-tss
     // let mrtd_value =
@@ -178,7 +182,7 @@ pub async fn recover_encryption_key(
     // let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
     // ensure!(accepted_mrtd_values.contains(&mrtd_value), VerifyQuoteError::BadMrtdValue);
     //
-    // let pck = verify_pck_certificate_chain(&quote)?;
+    let _pck = verify_pck_certificate_chain(&quote)?;
 
     let backups =
         app_state.encryption_key_backups.read().map_err(|_| KeyProviderError::RwLockPoison)?;

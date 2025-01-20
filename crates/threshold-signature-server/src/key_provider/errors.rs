@@ -49,6 +49,12 @@ pub enum KeyProviderError {
     Io(#[from] std::io::Error),
     #[error("Utf8Error: {0:?}")]
     Utf8(#[from] std::str::Utf8Error),
+    // #[error("Quote parse: {0}")]
+    // QuoteParse(#[from] tdx_quote::QuoteParseError),
+    #[error("Bad quote input data: TSS account, response public key, or nonce are incorrect")]
+    BadQuoteInputData,
+    #[error("Quote verify: {0}")]
+    VerifyQuote(#[from] entropy_shared::VerifyQuoteError),
 }
 
 impl IntoResponse for KeyProviderError {

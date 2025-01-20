@@ -223,3 +223,40 @@ pub enum VerifyQuoteError {
     /// Pck certificate could not be extracted from quote
     PckCertificateNoCertificate,
 }
+
+#[cfg(feature = "std")]
+impl std::fmt::Display for VerifyQuoteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VerifyQuoteError::BadQuote => write!(f, "Quote could not be parsed of verified"),
+            VerifyQuoteError::UnexpectedAttestation => {
+                write!(f, "Attestation extrinsic submitted when not requested")
+            },
+            VerifyQuoteError::IncorrectInputData => {
+                write!(f, "Hashed input data does not match what was expected")
+            },
+            VerifyQuoteError::BadMrtdValue => write!(f, "Unacceptable VM image running"),
+            VerifyQuoteError::CannotEncodeVerifyingKey => {
+                write!(f, "Cannot encode verifying key (PCK)")
+            },
+            VerifyQuoteError::CannotDecodeVerifyingKey => {
+                write!(f, "Cannot decode verifying key (PCK)")
+            },
+            VerifyQuoteError::PckCertificateParse => {
+                write!(f, "PCK certificate chain cannot be parsed")
+            },
+            VerifyQuoteError::PckCertificateVerify => {
+                write!(f, "PCK certificate chain cannot be verified")
+            },
+            VerifyQuoteError::PckCertificateBadPublicKey => {
+                write!(f, "PCK certificate chain public key is not well formed")
+            },
+            VerifyQuoteError::PckCertificateNoCertificate => {
+                write!(f, "PCK certificate could not be extracted from quote")
+            },
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for VerifyQuoteError {}
