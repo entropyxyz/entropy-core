@@ -179,6 +179,8 @@ pub enum UserErr {
     IncorrectSigner,
     #[error("Node has started fresh and not yet successfully set up")]
     NotReady,
+    #[error("Program Version not supported")]
+    ProgramVersion,
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

@@ -1,4 +1,5 @@
 use crate::{
+    bond_account,
     chain_api::{
         entropy::{
             self,
@@ -7,12 +8,13 @@ use crate::{
                 pallet_registry::pallet::ProgramInstance,
                 pallet_staking_extension::pallet::ServerInfo,
             },
+            staking::events as staking_events,
             staking_extension::events,
         },
         get_api, get_rpc,
     },
-    change_endpoint, change_threshold_accounts, get_oracle_headings, register, remove_program,
-    request_attestation, store_program,
+    change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
+    remove_program, request_attestation, set_session_keys, store_program,
     substrate::query_chain,
     update_programs,
 };
@@ -281,4 +283,129 @@ async fn test_get_oracle_headings() {
     let headings = get_oracle_headings(&api, &rpc).await.unwrap();
 
     assert_eq!(headings, vec!["block_number_entropy".to_string()]);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bond_accounts() {
+    let one = AccountKeyring::Ferdie;
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let bond_amount = 10000000000u128;
+    let reward_destination = AccountId32(one.public().0);
+    let result = bond_account(&api, &rpc, one.into(), bond_amount, reward_destination.clone())
+        .await
+        .unwrap();
+
+    assert_eq!(
+        format!("{:?}", result),
+        format!("{:?}", staking_events::Bonded { stash: reward_destination, amount: bond_amount })
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_set_session_key_and_declare_validate() {
+    let one = AccountKeyring::Ferdie;
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    // taken from calling rotate key on node
+    let session_key = "0x833b9e467823236c10348fd26f114ecf10f46e1be41b6a2ba4fab0b915a0b0affc9d3031694d1c65b711b8c5f79d57f734c9fa01366164ecc3ff8d84a04759160c2cf916dcabb8135c7605106052f9baf8e45a4f348cef2785f83a9674bec964ac3013772500af6236b1f6491a7024cacf69557b4b89779afdbc017de364e166".to_string();
+
+    // need to bond first
+    let bond_amount = 10000000000u128;
+    let reward_destination = AccountId32(one.public().0);
+    let _ = bond_account(&api, &rpc, one.into(), bond_amount, reward_destination.clone())
+        .await
+        .unwrap();
+
+    let result_session_key = set_session_keys(&api, &rpc, one.into(), session_key).await;
+    assert!(result_session_key.is_ok());
+
+    // We need to use an account that's not a validator (so not our default development/test accounts)
+    // otherwise we're not able to update the TSS and X25519 keys for our existing validator.
+    let non_validator_seed =
+        "gospel prosper cactus remember snap enact refuse review bind rescue guard sock";
+    let (tss_signer_pair, x25519_secret) =
+        entropy_testing_utils::get_signer_and_x25519_secret_from_mnemonic(non_validator_seed)
+            .unwrap();
+
+    let tss_account = AccountId32(tss_signer_pair.signer().public().0);
+    let x25519_public_key = x25519_dalek::PublicKey::from(&x25519_secret);
+    let tss_public_key = tss_signer_pair.signer().public();
+    let endpoint = "test".to_string();
+
+    let commission = 0;
+    let blocked = false;
+
+    // We need to give our new TSS account some funds before it can request an attestation.
+    let dest = tss_signer_pair.account_id().clone().into();
+    let amount = 10 * entropy_shared::MIN_BALANCE;
+    let balance_transfer_tx = entropy::tx().balances().transfer_allow_death(dest, amount);
+    let _transfer_result = crate::substrate::submit_transaction_with_pair(
+        &api,
+        &rpc,
+        &one.pair(),
+        &balance_transfer_tx,
+        None,
+    )
+    .await
+    .unwrap();
+
+    // When we request an attestation we get a nonce back that we must use when generating our quote.
+    let nonce = request_attestation(&api, &rpc, tss_signer_pair.signer()).await.unwrap();
+    let nonce: [u8; 32] = nonce.try_into().unwrap();
+
+    // Our runtime is using the mock `PckCertChainVerifier`, which means that the expected
+    // "certificate" basically is just our TSS account ID. This account needs to match the one
+    // used to sign the following `quote`.
+    let mut pck_seeder = StdRng::from_seed(tss_public_key.0.clone());
+    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+    let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
+
+    let quote = {
+        let input_data = entropy_shared::QuoteInputData::new(
+            tss_public_key,
+            *x25519_public_key.as_bytes(),
+            nonce,
+            QuoteContext::Validate,
+        );
+
+        let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
+
+        tdx_quote::Quote::mock(signing_key.clone(), pck.clone(), input_data.0, encoded_pck.clone())
+            .as_bytes()
+            .to_vec()
+    };
+
+    let result_declare_validate = declare_validate(
+        &api,
+        &rpc,
+        one.into(),
+        commission,
+        blocked,
+        tss_account.to_string(),
+        hex::encode(*x25519_public_key.as_bytes()),
+        endpoint.clone(),
+        quote,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        format!("{:?}", result_declare_validate),
+        format!(
+            "{:?}",
+            events::ValidatorCandidateAccepted(
+                AccountId32(one.pair().public().0),
+                AccountId32(one.pair().public().0),
+                AccountId32(tss_public_key.0),
+                endpoint.as_bytes().to_vec()
+            )
+        )
+    );
 }

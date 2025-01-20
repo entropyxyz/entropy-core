@@ -49,6 +49,7 @@ runtime
 - Add TDX test network chainspec ([#1204](https://github.com/entropyxyz/entropy-core/pull/1204))
 - Test CLI command to retrieve quote and change endpoint / TSS account in one command ([#1198](https://github.com/entropyxyz/entropy-core/pull/1198))
 - On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
+- Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
@@ -61,6 +62,7 @@ runtime
 - Allow offchain worker requests to all TSS nodes in entropy-tss test environment ([#1147](https://github.com/entropyxyz/entropy-core/pull/1147))
 - Non persistent TSS signer and x25519 keypair ([#1216](https://github.com/entropyxyz/entropy-core/pull/1216))
 - Extract PCK certificate chain from quotes ([#1209](https://github.com/entropyxyz/entropy-core/pull/1209))
+- Allow different versions for programs ([#1250](https://github.com/entropyxyz/entropy-core/pull/1250))
 
 ### Fixed
 

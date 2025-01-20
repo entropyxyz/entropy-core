@@ -27,9 +27,11 @@ use entropy_client::{
         EntropyConfig,
     },
     client::{
-        get_accounts, get_api, get_oracle_headings, get_programs, get_quote_and_change_endpoint,
-        get_quote_and_change_threshold_accounts, get_rpc, get_tdx_quote, jumpstart_network,
-        register, remove_program, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
+        bond_account, get_accounts, get_api, get_oracle_headings, get_programs,
+        get_quote_and_change_endpoint, get_quote_and_change_threshold_accounts,
+        get_quote_and_declare_validate, get_rpc, get_tdx_quote, jumpstart_network, register,
+        remove_program, set_session_keys, sign, store_program, update_programs,
+        VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
@@ -194,6 +196,40 @@ enum CliCommand {
         /// The filename to write the quote to. Defaults to `quote.dat`
         #[arg(long)]
         output_filename: Option<String>,
+    },
+    /// Bonds an account.
+    BondAccount {
+        /// Amount to bond
+        amount: u128,
+        /// Destination to get rewards encoded as ss58
+        reward_destination: String,
+        /// The mnemonic for the signer which will trigger the call.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Sets session keys for an account.
+    SetSessionKeys {
+        /// Session key received from a node
+        session_keys: String,
+        /// The mnemonic for the signer which will trigger the call.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+    },
+    /// Declares intention to validate
+    DeclareValidate {
+        /// Threshold account encoded as ss58
+        tss_account: String,
+        ///  X25519 public key encoded as hex
+        x25519_public_key: String,
+        /// Endpoint of TSS node (ex. "127.0.0.1:3001")
+        endpoint: String,
+        /// Commission amount
+        comission: u32,
+        /// Whether to block from nominating
+        blocked: bool,
+        /// The mnemonic for the signer which will trigger the call.
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
     },
 }
 
@@ -545,6 +581,64 @@ pub async fn run_command(
                 Ok("{}".to_string())
             } else {
                 Ok(format!("Succesfully written quote to {}", output_filename))
+            }
+        },
+        CliCommand::BondAccount { amount, reward_destination, mnemonic_option } => {
+            let signer = handle_mnemonic(mnemonic_option)?;
+            cli.log(format!("Account being used for bonding: {}", signer.public()));
+            let reward_destination_account = SubxtAccountId32::from_str(&reward_destination)?;
+
+            let result_event =
+                bond_account(&api, &rpc, signer, amount, reward_destination_account).await?;
+            cli.log(format!("Event result: {:?}", result_event));
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Acount bonded".to_string())
+            }
+        },
+        CliCommand::SetSessionKeys { session_keys, mnemonic_option } => {
+            let signer = handle_mnemonic(mnemonic_option)?;
+            cli.log(format!("Account being used for session keys: {}", signer.public()));
+
+            set_session_keys(&api, &rpc, signer, session_keys).await?;
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Session Keys updates".to_string())
+            }
+        },
+        CliCommand::DeclareValidate {
+            tss_account,
+            x25519_public_key,
+            endpoint,
+            comission,
+            blocked,
+            mnemonic_option,
+        } => {
+            let signer = handle_mnemonic(mnemonic_option)?;
+            cli.log(format!("Account being used for session keys: {}", signer.public()));
+
+            let result_event = get_quote_and_declare_validate(
+                &api,
+                &rpc,
+                signer,
+                comission,
+                blocked,
+                tss_account,
+                x25519_public_key,
+                endpoint,
+            )
+            .await?;
+
+            cli.log(format!("Event result: {:?}", result_event));
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Validation declared succefully".to_string())
             }
         },
     }

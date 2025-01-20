@@ -24,7 +24,7 @@ use axum::{
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_client::substrate::get_registered_details;
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
-use entropy_programs_runtime::{Config as ProgramConfig, Runtime, SignatureRequest};
+use entropy_programs_runtime::SignatureRequest;
 use entropy_protocol::SigningSessionInfo;
 use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
 use futures::{channel::mpsc, future::join_all, StreamExt};
@@ -49,7 +49,8 @@ use crate::{
             get_oracle_data, get_program, get_signers_from_chain, get_validators_info, query_chain,
             submit_transaction,
         },
-        user::{check_in_registration_group, compute_hash, do_dkg},
+        user::{check_in_registration_group, compute_hash, do_dkg, evaluate_program},
+        validator::get_signer_and_x25519_secret,
     },
     validation::{check_stale, EncryptedSignedMessage},
     AppState,
@@ -304,7 +305,7 @@ pub async fn sign_tx(
         .ok_or_else(|| UserErr::OptionUnwrapError("Error Getting Block Number".to_string()))?
         .number;
 
-    let (mut runtime, user_details, message) = pre_sign_checks(
+    let (fuel, user_details, message) = pre_sign_checks(
         &api,
         &rpc,
         relayer_sig_request.user_signature_request.clone(),
@@ -317,7 +318,7 @@ pub async fn sign_tx(
         &api,
         &rpc,
         &relayer_sig_request.user_signature_request.hash,
-        &mut runtime,
+        fuel,
         &user_details.programs_data.0,
         message.as_slice(),
     )
@@ -655,7 +656,7 @@ pub async fn pre_sign_checks(
     user_sig_req: UserSignatureRequest,
     block_number: u32,
     string_verifying_key: String,
-) -> Result<(Runtime, RegisteredInfo, Vec<u8>), UserErr> {
+) -> Result<(u64, RegisteredInfo, Vec<u8>), UserErr> {
     check_stale(user_sig_req.block_number, block_number).await?;
 
     // Probably impossible but block signing from parent key anyways
@@ -691,20 +692,20 @@ pub async fn pre_sign_checks(
         .await?
         .ok_or_else(|| UserErr::ChainFetch("Max instructions per program error"))?;
 
-    let mut runtime = Runtime::new(ProgramConfig { fuel });
-
     for (i, program_data) in user_details.programs_data.0.iter().enumerate() {
         let program_info = get_program(api, rpc, &program_data.program_pointer).await?;
-        let oracle_data = get_oracle_data(api, rpc, program_info.oracle_data_pointers.0).await?;
+        let oracle_data =
+            get_oracle_data(api, rpc, program_info.oracle_data_pointers.0.clone()).await?;
         let auxilary_data = auxilary_data_vec[i].as_ref().map(hex::decode).transpose()?;
         let signature_request = SignatureRequest { message: message.clone(), auxilary_data };
-        runtime.evaluate(
-            &program_info.bytecode,
-            &signature_request,
-            Some(&program_data.program_config),
-            Some(&oracle_data),
-        )?;
+        evaluate_program(
+            fuel,
+            program_info,
+            signature_request,
+            program_data.program_config.clone(),
+            oracle_data,
+        )?
     }
 
-    Ok((runtime, user_details, message))
+    Ok((fuel, user_details, message))
 }
