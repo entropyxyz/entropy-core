@@ -166,9 +166,7 @@ pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
 ) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
-    // TODO we can correctly handle this error once we have merged the latest commits which give us
-    // the latest version of tdx_quote
-    let quote = Quote::from_bytes(&key_request.quote).unwrap();
+    let quote = Quote::from_bytes(&key_request.quote)?;
 
     let nonce = [0; 32]; // TODO
     let expected_input_data = QuoteInputData::new(
