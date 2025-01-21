@@ -13,13 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::path::PathBuf;
+
 use crate::{
     helpers::{
         tests::initialize_test_logger, validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     key_provider::api::{
-        make_key_backup, request_backup_encryption_key, request_recover_encryption_key,
-        KeyProviderDetails,
+        get_key_provider_details, make_key_backup, request_backup_encryption_key,
+        request_recover_encryption_key, KeyProviderDetails,
     },
     launch::{development_mnemonic, ValidatorName},
 };
@@ -32,29 +34,35 @@ use entropy_testing_utils::{
 };
 use serial_test::serial;
 
+/// This tests the whole process of selecting and using a backup provider
 #[tokio::test]
 #[serial]
-async fn key_provider_test() {
+async fn key_backup_provider_test() {
     clean_tests();
     initialize_test_logger().await;
 
     let (_ctx, api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let storage_path = ".entropy/testing/test_db_validator1".into();
-    let key = [0; 32]; // TODO this should be the actual key used. Since we dont have access to
-                       // kvmanager, alice bob etc. should use known keys
+    let storage_path: PathBuf = ".entropy/testing/test_db_validator1".into();
+    // For testing we use TSS account ID as the db encryption key
+    let key = TSS_ACCOUNTS[0].0;
 
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path).await.unwrap();
+    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path.clone()).await.unwrap();
+
+    let key_provider_details = get_key_provider_details(storage_path).unwrap();
+    let recovered_key = request_recover_encryption_key(key_provider_details).await.unwrap();
+    assert_eq!(key, recovered_key);
 }
 
+/// More low-level version of key_backup_provider_test
 #[tokio::test]
 #[serial]
-async fn key_provider_unit_test() {
+async fn key_backup_provider_unit_test() {
     clean_tests();
     initialize_test_logger().await;
 
@@ -69,7 +77,8 @@ async fn key_provider_unit_test() {
         },
         tss_account: TSS_ACCOUNTS[1].clone(),
     };
-    let key = [1; 32];
+    // For testing we use TSS account ID as the db encryption key
+    let key = TSS_ACCOUNTS[1].0;
 
     let mnemonic = development_mnemonic(&Some(ValidatorName::Bob));
     let (tss_signer, _static_secret) =

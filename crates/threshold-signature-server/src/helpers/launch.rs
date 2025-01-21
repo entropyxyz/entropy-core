@@ -124,17 +124,22 @@ pub async fn setup_kv_store(
         let pair = sr25519::Pair::from_seed(&sr25519_seed);
         Ok((kv_manager, pair, x25519_secret.into(), None))
     } else {
-        // Generate TSS account (or use ValidatorName)
-        let (pair, seed, x25519_secret) = if cfg!(test) || validator_name.is_some() {
-            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string())?
+        // Generate TSS account (or use ValidatorName to get a test account)
+        let (pair, seed, x25519_secret, encryption_key) = if cfg!(test) || validator_name.is_some()
+        {
+            let (pair, seed, x25519_secret) =
+                get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string())?;
+            // For testing the db encryption key is just the TSS account id
+            let encryption_key = pair.public().0;
+            (pair, seed, x25519_secret, encryption_key)
         } else {
+            // Generate new keys
             let (pair, seed) = sr25519::Pair::generate();
             let x25519_secret = StaticSecret::random_from_rng(OsRng);
-            (pair, seed, x25519_secret)
+            let mut encryption_key = [0; 32];
+            OsRng.fill_bytes(&mut encryption_key);
+            (pair, seed, x25519_secret, encryption_key)
         };
-        // Generate new encryption key
-        let mut encryption_key = [0; 32];
-        OsRng.fill_bytes(&mut encryption_key);
 
         // Open store with generated key
         let kv_manager = KvManager::new(storage_path, encryption_key)?;
