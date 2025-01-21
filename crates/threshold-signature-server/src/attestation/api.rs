@@ -209,8 +209,6 @@ impl QuoteContextQuery {
     }
 }
 
-// TODO these functions are duplicated in the attestation pallet, maybe move somewhere common eg:
-// entropy-shared
 /// Verify a PCK certificate chain from a quote in production
 #[cfg(feature = "production")]
 pub fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {

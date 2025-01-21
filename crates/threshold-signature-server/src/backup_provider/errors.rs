@@ -63,6 +63,8 @@ pub enum BackupProviderError {
     NoServerInfo,
     #[error("Could not get accepted measurement values from on-chain parameters")]
     NoMeasurementValues,
+    #[error("Node has started fresh and not yet successfully set up")]
+    NotReady,
 }
 
 impl IntoResponse for BackupProviderError {

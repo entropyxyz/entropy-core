@@ -34,13 +34,14 @@ use x25519_dalek::{PublicKey, StaticSecret};
 
 const BACKUP_PROVIDER_FILENAME: &str = "backup-provider-details.json";
 
-/// Make a request to a given TSS node to backup a given encryption key
+/// Client function to make a request to a given TSS node to backup a given encryption key
 /// This makes a client request to [backup_encryption_key]
 pub async fn request_backup_encryption_key(
     key: [u8; 32],
     backup_provider_details: BackupProviderDetails,
     sr25519_pair: &sr25519::Pair,
 ) -> Result<(), BackupProviderError> {
+    // Encrypt the key to the backup provider's public x25519 key
     let signed_message = EncryptedSignedMessage::new(
         sr25519_pair,
         key.to_vec(),
@@ -48,6 +49,7 @@ pub async fn request_backup_encryption_key(
         &[],
     )?;
 
+    // Make the request
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
@@ -111,6 +113,7 @@ pub async fn request_recover_encryption_key(
 
     let response_bytes = response.bytes().await?;
 
+    // Decrypt the response
     let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
     let signed_message = encrypted_response.decrypt(&response_secret_key, &[])?;
 
@@ -142,12 +145,17 @@ pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
     Json(encrypted_backup_request): Json<EncryptedSignedMessage>,
 ) -> Result<(), BackupProviderError> {
+    if !app_state.is_ready() {
+        return Err(BackupProviderError::NotReady);
+    }
+
+    // Decrypt the request body to get the key to be backed-up
     let signed_message = encrypted_backup_request.decrypt(&app_state.x25519_secret, &[])?;
     let key: [u8; 32] =
         signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)?;
 
     let tss_account = SubxtAccountId32(signed_message.sender.0);
-    // Check for tss account on the staking pallet - which proves they have made an on-chain attestation
+    // Check for TSS account on the staking pallet - which proves they have made an on-chain attestation
     let threshold_address_query =
         entropy::storage().staking_extension().threshold_to_stash(&tss_account);
     let (api, rpc) = app_state.get_api_rpc().await?;
@@ -170,12 +178,16 @@ pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
 ) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
+    if !app_state.is_ready() {
+        return Err(BackupProviderError::NotReady);
+    }
+
     let quote = Quote::from_bytes(&key_request.quote)?;
 
     let nonce = {
-        let nonces =
-            app_state.attestation_nonces.read().map_err(|_| BackupProviderError::RwLockPoison)?;
-        *nonces.get(&key_request.response_key).ok_or(BackupProviderError::NoNonceInStore)?
+        let mut nonces =
+            app_state.attestation_nonces.write().map_err(|_| BackupProviderError::RwLockPoison)?;
+        nonces.remove(&key_request.response_key).ok_or(BackupProviderError::NoNonceInStore)?
     };
 
     let expected_input_data = QuoteInputData::new(
@@ -206,9 +218,13 @@ pub async fn recover_encryption_key(
 
     let _pck = verify_pck_certificate_chain(&quote)?;
 
-    let backups =
-        app_state.encryption_key_backups.read().map_err(|_| BackupProviderError::RwLockPoison)?;
-    let key = backups.get(&key_request.tss_account.0).ok_or(BackupProviderError::NoKeyInStore)?;
+    let key = {
+        let backups = app_state
+            .encryption_key_backups
+            .read()
+            .map_err(|_| BackupProviderError::RwLockPoison)?;
+        *backups.get(&key_request.tss_account.0).ok_or(BackupProviderError::NoKeyInStore)?
+    };
 
     // Encrypt response
     let signed_message =
@@ -258,6 +274,7 @@ async fn select_backup_provider(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     tss_account: SubxtAccountId32,
 ) -> Result<BackupProviderDetails, BackupProviderError> {
+    // Get all active validators
     let validators_query = entropy::storage().session().validators();
     let validators = query_chain(api, rpc, validators_query, None)
         .await?
@@ -266,10 +283,12 @@ async fn select_backup_provider(
         return Err(BackupProviderError::NoValidators);
     }
 
+    // Choose one deterministically based on account ID
     let mut deterministic_rng = StdRng::from_seed(tss_account.0);
     let random_index = deterministic_rng.gen_range(0..validators.len());
     let validator = &validators[random_index];
 
+    // Get associated details
     let threshold_address_query =
         entropy::storage().staking_extension().threshold_servers(validator);
     let server_info = query_chain(api, rpc, threshold_address_query, None)
@@ -286,21 +305,34 @@ async fn select_backup_provider(
     })
 }
 
+/// HTTP POST route which provides a quote nonce to be used in the quote when requesting to recover
+/// an encryption key.
+/// The nonce is returned encrypted with the given ephemeral public key. This key is also used as a
+/// lookup key for the nonce.
 pub async fn quote_nonce(
     State(app_state): State<AppState>,
     Json(response_key): Json<X25519PublicKey>,
 ) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
+    if !app_state.is_ready() {
+        return Err(BackupProviderError::NotReady);
+    }
+
     let mut nonce = [0; 32];
     OsRng.fill_bytes(&mut nonce);
-    let mut nonces =
-        app_state.attestation_nonces.write().map_err(|_| BackupProviderError::RwLockPoison)?;
-    nonces.insert(response_key, nonce);
+
+    {
+        let mut nonces =
+            app_state.attestation_nonces.write().map_err(|_| BackupProviderError::RwLockPoison)?;
+        nonces.insert(response_key, nonce);
+    }
+
     // Encrypt response
     let signed_message =
         EncryptedSignedMessage::new(&app_state.pair, nonce.to_vec(), &response_key, &[])?;
     Ok(Json(signed_message))
 }
 
+/// Client function used to make a POST request to `backup_provider/quote_nonce`
 async fn request_quote_nonce(
     response_secret_key: &StaticSecret,
     backup_provider_details: &BackupProviderDetails,
