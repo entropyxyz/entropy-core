@@ -19,6 +19,7 @@ use axum::{
 use entropy_kvdb::kv_manager::error::KvError;
 use thiserror::Error;
 
+/// An error relating to backing-up or recovering a key-value database encryption key
 #[derive(Debug, Error)]
 pub enum BackupProviderError {
     #[error("HTTP request: {0}")]
@@ -61,10 +62,10 @@ pub enum BackupProviderError {
     NoValidators,
     #[error("Could not get server info for TSS node chosen for backup")]
     NoServerInfo,
-    #[error("Could not get accepted measurement values from on-chain parameters")]
-    NoMeasurementValues,
     #[error("Node has started fresh and not yet successfully set up")]
     NotReady,
+    #[error("Quote measurement: {0}")]
+    QuoteMeasurement(#[from] crate::attestation::errors::QuoteMeasurementErr),
 }
 
 impl IntoResponse for BackupProviderError {

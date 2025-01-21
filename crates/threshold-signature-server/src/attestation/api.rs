@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::errors::AttestationErr,
+    attestation::errors::{AttestationErr, QuoteMeasurementErr},
     chain_api::{entropy, get_api, get_rpc},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_ATTEST,
@@ -27,11 +27,12 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
 };
-use entropy_client::user::request_attestation;
+use entropy_client::{chain_api::EntropyConfig, user::request_attestation};
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{OcwMessageAttestationRequest, QuoteContext, VerifyQuoteError};
 use parity_scale_codec::Decode;
 use serde::Deserialize;
+use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 use tdx_quote::{Quote, VerifyingKey};
 use x25519_dalek::StaticSecret;
 
@@ -233,4 +234,26 @@ pub fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, Verif
         .verify_with_pck(&provisioning_certification_key)
         .map_err(|_| VerifyQuoteError::PckCertificateVerify)?;
     Ok(provisioning_certification_key)
+}
+
+/// Check build-time measurement matches a current-supported release of entropy-tss
+/// This differs slightly from the attestation pallet implementation because here we don't have direct
+/// access to the parameters pallet - we need to make a query
+pub async fn check_quote_measurement(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    quote: &Quote,
+) -> Result<(), QuoteMeasurementErr> {
+    let mrtd_value = quote.mrtd().to_vec();
+    let query = entropy::storage().parameters().accepted_mrtd_values();
+    let accepted_mrtd_values: Vec<_> = query_chain(api, rpc, query, None)
+        .await?
+        .ok_or(QuoteMeasurementErr::NoMeasurementValues)?
+        .into_iter()
+        .map(|v| v.0)
+        .collect();
+    if !accepted_mrtd_values.contains(&mrtd_value) {
+        return Err(entropy_shared::VerifyQuoteError::BadMrtdValue.into());
+    };
+    Ok(())
 }

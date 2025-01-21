@@ -64,3 +64,14 @@ impl IntoResponse for AttestationErr {
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
 }
+
+/// Error when checking quote measurement value
+#[derive(Debug, Error)]
+pub enum QuoteMeasurementErr {
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
+    #[error("Could not get accepted measurement values from on-chain parameters")]
+    NoMeasurementValues,
+    #[error("Quote verification: {0}")]
+    Kv(#[from] entropy_shared::VerifyQuoteError),
+}

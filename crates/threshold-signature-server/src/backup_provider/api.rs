@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::api::{create_quote, verify_pck_certificate_chain},
+    attestation::api::{check_quote_measurement, create_quote, verify_pck_certificate_chain},
     backup_provider::errors::BackupProviderError,
     chain_api::entropy,
     validation::EncryptedSignedMessage,
@@ -200,21 +200,8 @@ pub async fn recover_encryption_key(
         return Err(BackupProviderError::BadQuoteInputData);
     }
 
-    // Check build-time measurement matches a current-supported release of entropy-tss
-    // This bit differs slightly in the attestation pallet implementation vs entropy-tss
-    // because here we don't have direct access to the parameters pallet - we need to make a query
-    let mrtd_value = quote.mrtd().to_vec();
-    let query = entropy::storage().parameters().accepted_mrtd_values();
     let (api, rpc) = app_state.get_api_rpc().await?;
-    let accepted_mrtd_values: Vec<_> = query_chain(&api, &rpc, query, None)
-        .await?
-        .ok_or(BackupProviderError::NoMeasurementValues)?
-        .into_iter()
-        .map(|v| v.0)
-        .collect();
-    if !accepted_mrtd_values.contains(&mrtd_value) {
-        return Err(entropy_shared::VerifyQuoteError::BadMrtdValue.into());
-    };
+    check_quote_measurement(&api, &rpc, &quote).await?;
 
     let _pck = verify_pck_certificate_chain(&quote)?;
 
