@@ -96,6 +96,8 @@ impl Configuration {
     }
 }
 
+/// Setup the encrypted key-value store, recovering the encryption key if needed
+/// Returns the kv store, the TSS keypairs, and the encryption key if it needs to be backed-up
 pub async fn setup_kv_store(
     validator_name: &Option<ValidatorName>,
     storage_path: Option<PathBuf>,
@@ -107,8 +109,10 @@ pub async fn setup_kv_store(
         // Retrieve encryption key from another TSS node
         let key = request_recover_encryption_key(key_provider_details).await?;
 
+        // Open existing db with recovered key
         let kv_manager = KvManager::new(storage_path, key)?;
 
+        // Get keypairs from existing db
         let x25519_secret: [u8; 32] = kv_manager
             .kv()
             .get(X25519_SECRET)
@@ -129,7 +133,7 @@ pub async fn setup_kv_store(
         {
             let (pair, seed, x25519_secret) =
                 get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string())?;
-            // For testing the db encryption key is just the TSS account id
+            // For testing, the db encryption key is just the TSS account id
             let encryption_key = pair.public().0;
             (pair, seed, x25519_secret, encryption_key)
         } else {
@@ -143,34 +147,20 @@ pub async fn setup_kv_store(
 
         // Open store with generated key
         let kv_manager = KvManager::new(storage_path, encryption_key)?;
-        // Store TSS secret keys in kv store
-        let reservation = kv_manager
-            .kv()
-            .reserve_key(X25519_SECRET.to_string())
-            .await
-            .expect("Issue reserving x25519 secret key");
-        kv_manager
-            .kv()
-            .put(reservation, x25519_secret.to_bytes().to_vec())
-            .await
-            .expect("failed to store x25519 secret");
 
-        let reservation = kv_manager
-            .kv()
-            .reserve_key(SR25519_SEED.to_string())
-            .await
-            .expect("Issue reserving sr25519 seed");
-        kv_manager
-            .kv()
-            .put(reservation, seed.to_vec())
-            .await
-            .expect("failed to store sr25519 seed");
+        // Store TSS secret keys in kv store
+        let reservation = kv_manager.kv().reserve_key(X25519_SECRET.to_string()).await?;
+        kv_manager.kv().put(reservation, x25519_secret.to_bytes().to_vec()).await?;
+        let reservation = kv_manager.kv().reserve_key(SR25519_SEED.to_string()).await?;
+        kv_manager.kv().put(reservation, seed.to_vec()).await?;
 
         // Return the encryption key so that it can be backed up as part of the pre-requisite checks
         Ok((kv_manager, pair, x25519_secret, Some(encryption_key)))
     }
 }
 
+/// Build the storage path for the key-value store, providing separate subdirectories for the
+/// different test accounts when testing
 pub fn build_db_path(validator_name: &Option<ValidatorName>) -> PathBuf {
     if cfg!(test) {
         return PathBuf::from(entropy_kvdb::get_db_path(true));

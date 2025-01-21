@@ -15,6 +15,7 @@
 
 use std::{net::SocketAddr, process, str::FromStr};
 
+use anyhow::{anyhow, ensure};
 use clap::Parser;
 
 use entropy_tss::{
@@ -26,7 +27,7 @@ use entropy_tss::{
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let args = StartupArgs::parse();
     args.logger.setup().await;
 
@@ -58,12 +59,15 @@ async fn main() {
     }
 
     let (kv_store, sr25519_pair, x25519_secret, key_option) =
-        setup_kv_store(&validator_name, None).await.unwrap();
+        setup_kv_store(&validator_name, None).await?;
 
     let app_state =
         AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
-    setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
+    ensure!(
+        setup_latest_block_number(&kv_store).await.is_ok(),
+        "Issue setting up Latest Block Number"
+    );
 
     {
         let app_state = app_state.clone();
@@ -79,11 +83,11 @@ async fn main() {
         });
     }
 
-    let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
+    let addr = SocketAddr::from_str(&args.threshold_url)
+        .map_err(|_| anyhow!("Failed to parse threshold url"))?;
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
-        .expect("Unable to bind to given server address.");
-    axum::serve(listener, app(app_state).into_make_service())
-        .await
-        .expect("failed to launch axum server.");
+        .map_err(|_| anyhow!("Unable to bind to given server address"))?;
+    axum::serve(listener, app(app_state).into_make_service()).await?;
+    Ok(())
 }
