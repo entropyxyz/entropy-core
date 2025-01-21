@@ -175,7 +175,7 @@ pub async fn recover_encryption_key(
     let nonce = {
         let nonces =
             app_state.attestation_nonces.read().map_err(|_| BackupProviderError::RwLockPoison)?;
-        nonces.get(&key_request.response_key).ok_or(BackupProviderError::NoNonceInStore)?.clone()
+        *nonces.get(&key_request.response_key).ok_or(BackupProviderError::NoNonceInStore)?
     };
 
     let expected_input_data = QuoteInputData::new(
