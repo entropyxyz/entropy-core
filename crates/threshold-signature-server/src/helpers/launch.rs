@@ -18,11 +18,11 @@
 use std::path::PathBuf;
 
 use crate::{
-    chain_api::entropy,
-    helpers::{substrate::query_chain, validator::get_signer_and_x25519_secret},
-    key_provider::api::{
+    backup_provider::api::{
         get_key_provider_details, make_key_backup, request_recover_encryption_key,
     },
+    chain_api::entropy,
+    helpers::{substrate::query_chain, validator::get_signer_and_x25519_secret},
     AppState,
 };
 use clap::Parser;

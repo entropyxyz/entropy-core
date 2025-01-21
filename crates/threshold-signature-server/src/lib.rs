@@ -160,9 +160,9 @@
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub use entropy_client::chain_api;
 pub(crate) mod attestation;
+pub(crate) mod backup_provider;
 pub(crate) mod health;
 pub mod helpers;
-pub(crate) mod key_provider;
 pub(crate) mod node_info;
 pub(crate) mod sign_init;
 pub(crate) mod signing_client;
@@ -196,9 +196,9 @@ use x25519_dalek::StaticSecret;
 pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
 use crate::{
     attestation::api::{attest, get_attest},
+    backup_provider::api::{backup_encryption_key, quote_nonce, recover_encryption_key},
     chain_api::{get_api, get_rpc, EntropyConfig},
     health::api::healthz,
-    key_provider::api::{backup_encryption_key, recover_encryption_key},
     launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
@@ -226,7 +226,11 @@ pub struct AppState {
     /// Key-value store
     pub kv_store: KvManager,
     /// Storage for encryption key backups for other TSS nodes
+    /// Maps TSS account id to encryption key
     pub encryption_key_backups: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
+    /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
+    /// Maps TSS account ID to quote nonce
+    pub attestation_nonces: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
 }
 
 impl AppState {
@@ -245,6 +249,7 @@ impl AppState {
             configuration,
             kv_store,
             encryption_key_backups: Default::default(),
+            attestation_nonces: Default::default(),
         }
     }
 
@@ -304,8 +309,9 @@ pub fn app(app_state: AppState) -> Router {
         .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/attest", get(get_attest))
-        .route("/backup_encryption_key", post(backup_encryption_key))
-        .route("/recover_encryption_key", post(recover_encryption_key))
+        .route("/backup_provider/backup_encryption_key", post(backup_encryption_key))
+        .route("/backup_provider/recover_encryption_key", post(recover_encryption_key))
+        .route("/backup_provider/quote_nonce", post(quote_nonce))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

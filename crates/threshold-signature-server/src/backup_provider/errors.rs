@@ -20,13 +20,15 @@ use entropy_kvdb::kv_manager::error::KvError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum KeyProviderError {
+pub enum BackupProviderError {
     #[error("HTTP request: {0}")]
     HttpRequest(#[from] reqwest::Error),
     #[error("Key-value store: {0}")]
     Kv(#[from] KvError),
     #[error("Encryption key is not present in backup store")]
     NoKeyInStore,
+    #[error("Cannot retrieve associated nonce for this backup")]
+    NoNonceInStore,
     #[error("Panic while holding lock on backup store")]
     RwLockPoison,
     #[error("JSON: {0}")]
@@ -63,7 +65,7 @@ pub enum KeyProviderError {
     NoMeasurementValues,
 }
 
-impl IntoResponse for KeyProviderError {
+impl IntoResponse for BackupProviderError {
     fn into_response(self) -> Response {
         tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();

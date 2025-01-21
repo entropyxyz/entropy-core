@@ -15,15 +15,15 @@
 
 use crate::{
     attestation::api::{create_quote, verify_pck_certificate_chain},
+    backup_provider::errors::BackupProviderError,
     chain_api::entropy,
-    key_provider::errors::KeyProviderError,
     validation::EncryptedSignedMessage,
     AppState, EntropyConfig, SubxtAccountId32,
 };
 use axum::{extract::State, Json};
 use entropy_client::substrate::query_chain;
 use entropy_shared::{user::ValidatorInfo, QuoteContext, QuoteInputData, X25519PublicKey};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, Rng, RngCore, SeedableRng};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
@@ -32,25 +32,28 @@ use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 use tdx_quote::Quote;
 use x25519_dalek::{PublicKey, StaticSecret};
 
-const KEY_PROVIDER_FILENAME: &str = "key-provider-details.json";
+const BACKUP_PROVIDER_FILENAME: &str = "backup-provider-details.json";
 
 /// Make a request to a given TSS node to backup a given encryption key
 /// This makes a client request to [backup_encryption_key]
 pub async fn request_backup_encryption_key(
     key: [u8; 32],
-    key_provider_details: KeyProviderDetails,
+    backup_provider_details: BackupProviderDetails,
     sr25519_pair: &sr25519::Pair,
-) -> Result<(), KeyProviderError> {
+) -> Result<(), BackupProviderError> {
     let signed_message = EncryptedSignedMessage::new(
         sr25519_pair,
         key.to_vec(),
-        &key_provider_details.provider.x25519_public_key,
+        &backup_provider_details.provider.x25519_public_key,
         &[],
     )?;
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("http://{}/backup_encryption_key", key_provider_details.provider.ip_address))
+        .post(format!(
+            "http://{}/backup_provider/backup_encryption_key",
+            backup_provider_details.provider.ip_address
+        ))
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&signed_message)?)
         .send()
@@ -59,41 +62,42 @@ pub async fn request_backup_encryption_key(
     let status = response.status();
     if status != reqwest::StatusCode::OK {
         let text = response.text().await?;
-        return Err(KeyProviderError::BadProviderResponse(status, text));
+        return Err(BackupProviderError::BadProviderResponse(status, text));
     }
     Ok(())
 }
 
 /// Make a request to a given TSS node to recover an encryption key
 pub async fn request_recover_encryption_key(
-    key_provider_details: KeyProviderDetails,
-) -> Result<[u8; 32], KeyProviderError> {
+    backup_provider_details: BackupProviderDetails,
+) -> Result<[u8; 32], BackupProviderError> {
     // Generate encryption keypair used for receiving the key
     let response_secret_key = StaticSecret::random_from_rng(OsRng);
     let response_key = PublicKey::from(&response_secret_key).to_bytes();
 
-    // TODO This is tricky as having to request a nonce means we need 2 request-responses to recover the
-    // key
-    let quote_nonce = [0; 32];
+    let quote_nonce = request_quote_nonce(&response_secret_key, &backup_provider_details).await?;
 
     // Quote input contains: key_provider_details.tss_account, and response_key
     let quote = create_quote(
         quote_nonce,
-        key_provider_details.tss_account.clone(),
+        backup_provider_details.tss_account.clone(),
         &response_secret_key,
         QuoteContext::EncryptionKeyRecoveryRequest,
     )
     .await?;
 
     let key_request = RecoverEncryptionKeyRequest {
-        tss_account: key_provider_details.tss_account,
+        tss_account: backup_provider_details.tss_account,
         response_key,
         quote,
     };
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("http://{}/recover_encryption_key", key_provider_details.provider.ip_address))
+        .post(format!(
+            "http://{}/backup_provider/recover_encryption_key",
+            backup_provider_details.provider.ip_address
+        ))
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&key_request)?)
         .send()
@@ -102,7 +106,7 @@ pub async fn request_recover_encryption_key(
     let status = response.status();
     if status != reqwest::StatusCode::OK {
         let text = response.text().await?;
-        return Err(KeyProviderError::BadProviderResponse(status, text));
+        return Err(BackupProviderError::BadProviderResponse(status, text));
     }
 
     let response_bytes = response.bytes().await?;
@@ -110,13 +114,13 @@ pub async fn request_recover_encryption_key(
     let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
     let signed_message = encrypted_response.decrypt(&response_secret_key, &[])?;
 
-    signed_message.message.0.try_into().map_err(|_| KeyProviderError::BadKeyLength)
+    signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)
 }
 
 /// [ValidatorInfo] of a TSS node chosen to make a key backup, together with the account ID of the TSS
 /// node who the backup is for
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KeyProviderDetails {
+pub struct BackupProviderDetails {
     pub provider: ValidatorInfo,
     pub tss_account: SubxtAccountId32,
 }
@@ -137,10 +141,10 @@ pub struct RecoverEncryptionKeyRequest {
 pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
     Json(encrypted_backup_request): Json<EncryptedSignedMessage>,
-) -> Result<(), KeyProviderError> {
+) -> Result<(), BackupProviderError> {
     let signed_message = encrypted_backup_request.decrypt(&app_state.x25519_secret, &[])?;
     let key: [u8; 32] =
-        signed_message.message.0.try_into().map_err(|_| KeyProviderError::BadKeyLength)?;
+        signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)?;
 
     let tss_account = SubxtAccountId32(signed_message.sender.0);
     // Check for tss account on the staking pallet - which proves they have made an on-chain attestation
@@ -149,10 +153,10 @@ pub async fn backup_encryption_key(
     let (api, rpc) = app_state.get_api_rpc().await?;
     query_chain(&api, &rpc, threshold_address_query, None)
         .await?
-        .ok_or(KeyProviderError::NotRegisteredWithStakingPallet)?;
+        .ok_or(BackupProviderError::NotRegisteredWithStakingPallet)?;
 
     let mut backups =
-        app_state.encryption_key_backups.write().map_err(|_| KeyProviderError::RwLockPoison)?;
+        app_state.encryption_key_backups.write().map_err(|_| BackupProviderError::RwLockPoison)?;
     backups.insert(tss_account.0, key);
 
     Ok(())
@@ -165,10 +169,15 @@ pub async fn backup_encryption_key(
 pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
-) -> Result<Json<EncryptedSignedMessage>, KeyProviderError> {
+) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
     let quote = Quote::from_bytes(&key_request.quote)?;
 
-    let nonce = [0; 32]; // TODO
+    let nonce = {
+        let nonces =
+            app_state.attestation_nonces.read().map_err(|_| BackupProviderError::RwLockPoison)?;
+        nonces.get(&key_request.response_key).ok_or(BackupProviderError::NoNonceInStore)?.clone()
+    };
+
     let expected_input_data = QuoteInputData::new(
         key_request.tss_account.clone(),
         key_request.response_key,
@@ -176,7 +185,7 @@ pub async fn recover_encryption_key(
         QuoteContext::EncryptionKeyRecoveryRequest,
     );
     if quote.report_input_data() != expected_input_data.0 {
-        return Err(KeyProviderError::BadQuoteInputData);
+        return Err(BackupProviderError::BadQuoteInputData);
     }
 
     // Check build-time measurement matches a current-supported release of entropy-tss
@@ -187,7 +196,7 @@ pub async fn recover_encryption_key(
     let (api, rpc) = app_state.get_api_rpc().await?;
     let accepted_mrtd_values: Vec<_> = query_chain(&api, &rpc, query, None)
         .await?
-        .ok_or(KeyProviderError::NoMeasurementValues)?
+        .ok_or(BackupProviderError::NoMeasurementValues)?
         .into_iter()
         .map(|v| v.0)
         .collect();
@@ -198,8 +207,8 @@ pub async fn recover_encryption_key(
     let _pck = verify_pck_certificate_chain(&quote)?;
 
     let backups =
-        app_state.encryption_key_backups.read().map_err(|_| KeyProviderError::RwLockPoison)?;
-    let key = backups.get(&key_request.tss_account.0).ok_or(KeyProviderError::NoKeyInStore)?;
+        app_state.encryption_key_backups.read().map_err(|_| BackupProviderError::RwLockPoison)?;
+    let key = backups.get(&key_request.tss_account.0).ok_or(BackupProviderError::NoKeyInStore)?;
 
     // Encrypt response
     let signed_message =
@@ -214,10 +223,10 @@ pub async fn make_key_backup(
     key: [u8; 32],
     sr25519_pair: &sr25519::Pair,
     storage_path: PathBuf,
-) -> Result<(), KeyProviderError> {
+) -> Result<(), BackupProviderError> {
     let tss_account = SubxtAccountId32(sr25519_pair.public().0);
     // Select a provider by making chain query and choosing a tss node
-    let key_provider_details = select_key_provider(api, rpc, tss_account).await?;
+    let key_provider_details = select_backup_provider(api, rpc, tss_account).await?;
     // Get them to backup the key
     request_backup_encryption_key(key, key_provider_details.clone(), sr25519_pair).await?;
     // Store provider details so we know who to ask when recovering
@@ -228,31 +237,33 @@ pub async fn make_key_backup(
 /// Store the details of a TSS node who has a backup of our encryption key in a file
 fn store_key_provider_details(
     mut path: PathBuf,
-    key_provider_details: KeyProviderDetails,
-) -> Result<(), KeyProviderError> {
-    path.push(KEY_PROVIDER_FILENAME);
-    Ok(std::fs::write(path, serde_json::to_vec(&key_provider_details)?)?)
+    backup_provider_details: BackupProviderDetails,
+) -> Result<(), BackupProviderError> {
+    path.push(BACKUP_PROVIDER_FILENAME);
+    Ok(std::fs::write(path, serde_json::to_vec(&backup_provider_details)?)?)
 }
 
 /// Retrieve the details of a TSS node who has a backup of our encryption key from a file
-pub fn get_key_provider_details(mut path: PathBuf) -> Result<KeyProviderDetails, KeyProviderError> {
-    path.push(KEY_PROVIDER_FILENAME);
+pub fn get_key_provider_details(
+    mut path: PathBuf,
+) -> Result<BackupProviderDetails, BackupProviderError> {
+    path.push(BACKUP_PROVIDER_FILENAME);
     let bytes = std::fs::read(path)?;
     Ok(serde_json::from_slice(&bytes)?)
 }
 
-/// Choose a TSS node to request to make a backup from
-async fn select_key_provider(
+/// Choose a TSS node to request to make a backup
+async fn select_backup_provider(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     tss_account: SubxtAccountId32,
-) -> Result<KeyProviderDetails, KeyProviderError> {
+) -> Result<BackupProviderDetails, BackupProviderError> {
     let validators_query = entropy::storage().session().validators();
     let validators = query_chain(api, rpc, validators_query, None)
         .await?
-        .ok_or(KeyProviderError::NoValidators)?;
+        .ok_or(BackupProviderError::NoValidators)?;
     if validators.is_empty() {
-        return Err(KeyProviderError::NoValidators);
+        return Err(BackupProviderError::NoValidators);
     }
 
     let mut deterministic_rng = StdRng::from_seed(tss_account.0);
@@ -263,9 +274,9 @@ async fn select_key_provider(
         entropy::storage().staking_extension().threshold_servers(validator);
     let server_info = query_chain(api, rpc, threshold_address_query, None)
         .await?
-        .ok_or(KeyProviderError::NoServerInfo)?;
+        .ok_or(BackupProviderError::NoServerInfo)?;
 
-    Ok(KeyProviderDetails {
+    Ok(BackupProviderDetails {
         provider: ValidatorInfo {
             x25519_public_key: server_info.x25519_public_key,
             ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),
@@ -273,4 +284,50 @@ async fn select_key_provider(
         },
         tss_account,
     })
+}
+
+pub async fn quote_nonce(
+    State(app_state): State<AppState>,
+    Json(response_key): Json<X25519PublicKey>,
+) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
+    let mut nonce = [0; 32];
+    OsRng.fill_bytes(&mut nonce);
+    let mut nonces =
+        app_state.attestation_nonces.write().map_err(|_| BackupProviderError::RwLockPoison)?;
+    nonces.insert(response_key, nonce);
+    // Encrypt response
+    let signed_message =
+        EncryptedSignedMessage::new(&app_state.pair, nonce.to_vec(), &response_key, &[])?;
+    Ok(Json(signed_message))
+}
+
+async fn request_quote_nonce(
+    response_secret_key: &StaticSecret,
+    backup_provider_details: &BackupProviderDetails,
+) -> Result<[u8; 32], BackupProviderError> {
+    let response_key = PublicKey::from(response_secret_key).to_bytes();
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!(
+            "http://{}/backup_provider/quote_nonce",
+            backup_provider_details.provider.ip_address
+        ))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&response_key)?)
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        let text = response.text().await?;
+        return Err(BackupProviderError::BadProviderResponse(status, text));
+    }
+
+    let response_bytes = response.bytes().await?;
+
+    let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
+    let signed_message = encrypted_response.decrypt(response_secret_key, &[])?;
+
+    signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)
 }

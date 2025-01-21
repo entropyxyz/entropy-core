@@ -16,12 +16,12 @@
 use std::path::PathBuf;
 
 use crate::{
+    backup_provider::api::{
+        get_key_provider_details, make_key_backup, request_backup_encryption_key,
+        request_recover_encryption_key, BackupProviderDetails,
+    },
     helpers::{
         tests::initialize_test_logger, validator::get_signer_and_x25519_secret_from_mnemonic,
-    },
-    key_provider::api::{
-        get_key_provider_details, make_key_backup, request_backup_encryption_key,
-        request_recover_encryption_key, KeyProviderDetails,
     },
     launch::{development_mnemonic, ValidatorName},
 };
@@ -37,7 +37,7 @@ use serial_test::serial;
 /// This tests the whole process of selecting and using a backup provider
 #[tokio::test]
 #[serial]
-async fn key_backup_provider_test() {
+async fn backup_provider_test() {
     clean_tests();
     initialize_test_logger().await;
 
@@ -62,14 +62,14 @@ async fn key_backup_provider_test() {
 /// More low-level version of key_backup_provider_test
 #[tokio::test]
 #[serial]
-async fn key_backup_provider_unit_test() {
+async fn backup_provider_unit_test() {
     clean_tests();
     initialize_test_logger().await;
 
     let (_ctx, _api, _rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let key_provider_details = KeyProviderDetails {
+    let key_provider_details = BackupProviderDetails {
         provider: ValidatorInfo {
             tss_account: TSS_ACCOUNTS[0].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],

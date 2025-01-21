@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Key provider service
+//! Backup encryption key provider service
 pub mod api;
 pub mod errors;
 
