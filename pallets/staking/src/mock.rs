@@ -16,7 +16,7 @@
 use core::convert::{TryFrom, TryInto};
 use std::cell::RefCell;
 
-use entropy_shared::QuoteContext;
+use entropy_shared::attestation::QuoteContext;
 use frame_election_provider_support::{
     bounds::{ElectionBounds, ElectionBoundsBuilder},
     onchain, SequentialPhragmen, VoteWeight,
@@ -395,18 +395,22 @@ pub(crate) const INVALID_QUOTE: [u8; 32] = [1; 32];
 
 pub struct MockAttestationHandler;
 
-impl entropy_shared::AttestationHandler<AccountId> for MockAttestationHandler {
+impl entropy_shared::attestation::AttestationHandler<AccountId> for MockAttestationHandler {
     fn verify_quote(
         _attestee: &AccountId,
         _x25519_public_key: entropy_shared::X25519PublicKey,
         quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, entropy_shared::VerifyQuoteError>
-    {
+    ) -> Result<
+        entropy_shared::BoundedVecEncodedVerifyingKey,
+        entropy_shared::attestation::VerifyQuoteError,
+    > {
         let quote: Result<[u8; 32], _> = quote.try_into();
         match quote {
             Ok(q) if q == VALID_QUOTE => Ok([0; 33].to_vec().try_into().unwrap()),
-            Ok(q) if q == INVALID_QUOTE => Err(entropy_shared::VerifyQuoteError::BadQuote),
+            Ok(q) if q == INVALID_QUOTE => {
+                Err(entropy_shared::attestation::VerifyQuoteError::BadQuote)
+            },
             _ => {
                 // We don't really want to verify quotes for tests in this pallet, so if we get
                 // something else we'll just accept it.
