@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //! TDX attestion related shared types and functions
 
-use crate::{BoundedVecEncodedVerifyingKey, X25519PublicKey};
+use crate::X25519PublicKey;
 use blake2::{Blake2b512, Digest};
 use codec::{Decode, Encode};
 
@@ -80,7 +80,7 @@ pub trait AttestationHandler<AccountId> {
         x25519_public_key: X25519PublicKey,
         quote: Vec<u8>,
         context: QuoteContext,
-    ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError>;
+    ) -> Result<crate::BoundedVecEncodedVerifyingKey, VerifyQuoteError>;
 
     /// Indicate to the attestation handler that a quote is desired.
     ///
@@ -97,8 +97,8 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         _x25519_public_key: X25519PublicKey,
         _quote: Vec<u8>,
         _context: QuoteContext,
-    ) -> Result<BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
-        Ok(BoundedVecEncodedVerifyingKey::try_from([0; 33].to_vec()).unwrap())
+    ) -> Result<crate::BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
+        Ok(crate::BoundedVecEncodedVerifyingKey::try_from([0; 33].to_vec()).unwrap())
     }
 
     fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
@@ -178,7 +178,7 @@ pub fn verify_pck_certificate_chain(
 /// A mock version of verifying the PCK certificate chain.
 /// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
 /// so this function just decodes it, checks it was used to sign the quote, and returns it
-#[cfg(not(feature = "production"))]
+#[cfg(not(any(feature = "production", feature = "wasm")))]
 pub fn verify_pck_certificate_chain(
     quote: &tdx_quote::Quote,
 ) -> Result<tdx_quote::VerifyingKey, VerifyQuoteError> {
