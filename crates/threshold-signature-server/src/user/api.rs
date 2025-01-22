@@ -381,7 +381,7 @@ pub async fn sign_tx(
                     entropy::tx().staking_extension().report_unstable_peer(account_id);
                 submit_transaction(&api, &rpc, &signer, &report_unstable_peer_tx, None)
                     .await
-                    .expect("TODO");
+                    .expect("TODO: error reporting unstable peer");
 
                 Err(e.to_string())
             },
