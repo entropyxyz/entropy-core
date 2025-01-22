@@ -144,7 +144,7 @@ pub enum QuoteContext {
     ChangeEndpoint,
     /// To be used in the `change_threshold_accounts` extrinsic
     ChangeThresholdAccounts,
-    /// To be use when requesting to recover an encryption key
+    /// To be used when requesting to recover an encryption key
     EncryptionKeyRecoveryRequest,
 }
 
