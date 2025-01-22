@@ -12,11 +12,15 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//! Backup and restore encrypted DB before / after entropy-tss version upgrade
+use crate::{backup_provider::api::get_key_provider_details, AppState};
+use axum::{extract::State, Json};
 
-//! Backup database encryption key provider service
-pub mod api;
-pub mod errors;
-pub mod version_upgrade;
-
-#[cfg(test)]
-mod tests;
+/// HTTP GET route which produces and encrypted db backup together with recovery details
+pub async fn backup_encrypted_db_for_version_upgrade(
+    State(app_state): State<AppState>,
+) -> Result<Json<()>, bool> {
+    let storage_path = app_state.kv_store.storage_path().to_path_buf();
+    let key_provider_details = get_key_provider_details(storage_path).unwrap();
+    Ok(Json(()))
+}
