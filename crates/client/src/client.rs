@@ -50,7 +50,7 @@ pub use crate::{
     errors::{ClientError, SubstrateError},
 };
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
-pub use entropy_shared::{HashingAlgorithm, QuoteContext};
+pub use entropy_shared::{attestation::QuoteContext, HashingAlgorithm};
 use parity_scale_codec::Decode;
 use rand::Rng;
 use std::str::FromStr;

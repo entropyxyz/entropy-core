@@ -57,7 +57,7 @@ pub enum BackupProviderError {
     #[error("Bad quote input data: TSS account, response public key, or nonce are incorrect")]
     BadQuoteInputData,
     #[error("Quote verify: {0}")]
-    VerifyQuote(#[from] entropy_shared::VerifyQuoteError),
+    VerifyQuote(#[from] entropy_shared::attestation::VerifyQuoteError),
     #[error("Could not find another TSS node to request backup")]
     NoValidators,
     #[error("Could not get server info for TSS node chosen for backup")]

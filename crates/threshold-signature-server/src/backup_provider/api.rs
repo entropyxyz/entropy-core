@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::api::{check_quote_measurement, create_quote, verify_pck_certificate_chain},
+    attestation::api::{check_quote_measurement, create_quote},
     backup_provider::errors::BackupProviderError,
     chain_api::entropy,
     validation::EncryptedSignedMessage,
@@ -22,7 +22,11 @@ use crate::{
 };
 use axum::{extract::State, Json};
 use entropy_client::substrate::query_chain;
-use entropy_shared::{user::ValidatorInfo, QuoteContext, QuoteInputData, X25519PublicKey};
+use entropy_shared::{
+    attestation::{verify_pck_certificate_chain, QuoteContext, QuoteInputData},
+    user::ValidatorInfo,
+    X25519PublicKey,
+};
 use rand::{seq::SliceRandom, RngCore};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};

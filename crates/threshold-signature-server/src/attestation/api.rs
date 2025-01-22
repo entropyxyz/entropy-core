@@ -29,11 +29,14 @@ use axum::{
 };
 use entropy_client::{chain_api::EntropyConfig, user::request_attestation};
 use entropy_kvdb::kv_manager::KvManager;
-use entropy_shared::{OcwMessageAttestationRequest, QuoteContext, VerifyQuoteError};
+use entropy_shared::{
+    attestation::{QuoteContext, QuoteInputData, VerifyQuoteError},
+    OcwMessageAttestationRequest,
+};
 use parity_scale_codec::Decode;
 use serde::Deserialize;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
-use tdx_quote::{Quote, VerifyingKey};
+use tdx_quote::Quote;
 use x25519_dalek::StaticSecret;
 
 /// HTTP POST endpoint to initiate a TDX attestation.
@@ -125,12 +128,8 @@ pub async fn create_quote(
 
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
-    let input_data = entropy_shared::QuoteInputData::new(
-        tss_account.clone(),
-        *public_key.as_bytes(),
-        nonce,
-        context,
-    );
+    let input_data =
+        QuoteInputData::new(tss_account.clone(), *public_key.as_bytes(), nonce, context);
 
     // This is generated deterministically from TSS account id
     let mut pck_seeder = StdRng::from_seed(tss_account.0);
@@ -182,8 +181,7 @@ pub async fn create_quote(
 ) -> Result<Vec<u8>, AttestationErr> {
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
-    let input_data =
-        entropy_shared::QuoteInputData::new(tss_account, *public_key.as_bytes(), nonce, context);
+    let input_data = QuoteInputData::new(tss_account, *public_key.as_bytes(), nonce, context);
 
     Ok(configfs_tsm::create_quote(input_data.0)
         .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?)
@@ -210,32 +208,6 @@ impl QuoteContextQuery {
     }
 }
 
-/// Verify a PCK certificate chain from a quote in production
-#[cfg(feature = "production")]
-pub fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
-    quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)
-}
-
-/// A mock version of verifying the PCK certificate chain.
-/// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
-/// so this function just decodes it, checks it was used to sign the quote, and returns it
-#[cfg(not(feature = "production"))]
-pub fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
-    let provisioning_certification_key =
-        quote.pck_cert_chain().map_err(|_| VerifyQuoteError::PckCertificateNoCertificate)?;
-    let provisioning_certification_key = tdx_quote::decode_verifying_key(
-        &provisioning_certification_key
-            .try_into()
-            .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?,
-    )
-    .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?;
-
-    quote
-        .verify_with_pck(&provisioning_certification_key)
-        .map_err(|_| VerifyQuoteError::PckCertificateVerify)?;
-    Ok(provisioning_certification_key)
-}
-
 /// Check build-time measurement matches a current-supported release of entropy-tss
 /// This differs slightly from the attestation pallet implementation because here we don't have direct
 /// access to the parameters pallet - we need to make a query
@@ -253,7 +225,7 @@ pub async fn check_quote_measurement(
         .map(|v| v.0)
         .collect();
     if !accepted_mrtd_values.contains(&mrtd_value) {
-        return Err(entropy_shared::VerifyQuoteError::BadMrtdValue.into());
+        return Err(VerifyQuoteError::BadMrtdValue.into());
     };
     Ok(())
 }

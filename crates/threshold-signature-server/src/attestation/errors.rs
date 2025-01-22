@@ -73,5 +73,5 @@ pub enum QuoteMeasurementErr {
     #[error("Could not get accepted measurement values from on-chain parameters")]
     NoMeasurementValues,
     #[error("Quote verification: {0}")]
-    Kv(#[from] entropy_shared::VerifyQuoteError),
+    Kv(#[from] entropy_shared::attestation::VerifyQuoteError),
 }

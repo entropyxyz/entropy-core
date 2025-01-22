@@ -2753,6 +2753,7 @@ dependencies = [
  "strum 0.26.3",
  "strum_macros 0.26.4",
  "subxt",
+ "tdx-quote",
 ]
 
 [[package]]
