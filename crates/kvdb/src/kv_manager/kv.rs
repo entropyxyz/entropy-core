@@ -23,7 +23,10 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::{
     error::{InnerKvError, KvError::*, KvResult},
-    sled_bindings::{handle_delete, handle_exists, handle_get, handle_put, handle_reserve},
+    sled_bindings::{
+        handle_delete, handle_exists, handle_export_db, handle_get, handle_import_db, handle_put,
+        handle_reserve,
+    },
     types::{
         Command::{self, *},
         KeyReservation, DEFAULT_KV_NAME, DEFAULT_KV_PATH,
@@ -119,6 +122,22 @@ where
             .map_err(|e| SendErr(e.to_string()))?;
         resp_rx.await?.map_err(ExistsErr)
     }
+
+    /// Dump key-value tuples directly out of the db without decrypting, for db migration export
+    pub async fn export_db(&self) -> KvResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        let (resp_tx, resp_rx) = oneshot::channel();
+        self.sender.send(ExportDb { resp: resp_tx }).map_err(|e| SendErr(e.to_string()))?;
+        resp_rx.await?.map_err(ExportErr)
+    }
+
+    /// Import encrypted key-value tuples directly into the db without encrypting, for db migration import
+    pub async fn import_db(&self, db_dump: Vec<(Vec<u8>, Vec<u8>)>) -> KvResult<()> {
+        let (resp_tx, resp_rx) = oneshot::channel();
+        self.sender
+            .send(ImportDb { db_dump, resp: resp_tx })
+            .map_err(|e| SendErr(e.to_string()))?;
+        resp_rx.await?.map_err(ImportErr)
+    }
 }
 
 /// Returns the db with name `db_name`, or creates a new if such DB does not exist
@@ -171,6 +190,12 @@ where
             },
             Delete { key, resp } => {
                 handle_response(handle_delete(&kv, key), resp);
+            },
+            ExportDb { resp } => {
+                handle_response(handle_export_db(&kv), resp);
+            },
+            ImportDb { db_dump, resp } => {
+                handle_response(handle_import_db(&kv, db_dump), resp);
             },
         }
     }

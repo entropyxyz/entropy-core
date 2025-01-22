@@ -22,5 +22,7 @@ pub async fn backup_encrypted_db_for_version_upgrade(
 ) -> Result<Json<()>, bool> {
     let storage_path = app_state.kv_store.storage_path().to_path_buf();
     let key_provider_details = get_key_provider_details(storage_path).unwrap();
+    let db_dump = app_state.kv_store.kv().export_db().await.unwrap();
+    // TODO bincode serialize it
     Ok(Json(()))
 }

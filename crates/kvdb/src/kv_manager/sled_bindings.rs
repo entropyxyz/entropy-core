@@ -116,3 +116,14 @@ pub(super) fn handle_exists(kv: &encrypted_sled::Db, key: &str) -> InnerKvResult
         LogicalErr(format!("Could not perform 'contains_key' for key <{key}> due to error: {err}"))
     })
 }
+
+pub(super) fn handle_export_db(kv: &encrypted_sled::Db) -> InnerKvResult<Vec<(Vec<u8>, Vec<u8>)>> {
+    Ok(kv.export_encrypted_db())
+}
+
+pub(super) fn handle_import_db(
+    kv: &encrypted_sled::Db,
+    db_dump: Vec<(Vec<u8>, Vec<u8>)>,
+) -> InnerKvResult<()> {
+    Ok(kv.import_encrypted_db(db_dump)?)
+}

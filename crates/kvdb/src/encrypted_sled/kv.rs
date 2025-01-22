@@ -163,4 +163,23 @@ impl EncryptedDb {
     pub fn was_recovered(&self) -> bool {
         self.kv.was_recovered()
     }
+
+    /// Dump key-value tuples directly out of the db without decrypting, for db migration export
+    pub fn export_encrypted_db(&self) -> Vec<(Vec<u8>, Vec<u8>)> {
+        self.kv
+            .iter()
+            .filter_map(|kv_result| {
+                let kv = kv_result.ok()?;
+                Some((kv.0.to_vec(), kv.1.to_vec()))
+            })
+            .collect()
+    }
+
+    /// Import encrypted key-value tuples directly into the db without encrypting, for db migration import
+    pub fn import_encrypted_db(&self, db_dump: Vec<(Vec<u8>, Vec<u8>)>) -> EncryptedDbResult<()> {
+        for (key, value) in db_dump {
+            self.kv.insert(key, value)?;
+        }
+        Ok(())
+    }
 }

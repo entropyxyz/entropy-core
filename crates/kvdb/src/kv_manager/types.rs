@@ -69,4 +69,11 @@ pub(super) enum Command<V> {
         key: String,
         resp: Responder<()>,
     },
+    ExportDb {
+        resp: Responder<Vec<(Vec<u8>, Vec<u8>)>>,
+    },
+    ImportDb {
+        db_dump: Vec<(Vec<u8>, Vec<u8>)>,
+        resp: Responder<()>,
+    },
 }

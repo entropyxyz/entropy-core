@@ -36,6 +36,10 @@ pub enum KvError {
     DeleteErr(InnerKvError),
     #[error("Exits Error: {0}")]
     ExistsErr(InnerKvError),
+    #[error("Export Error: {0}")]
+    ExportErr(InnerKvError),
+    #[error("Import Error: {0}")]
+    ImportErr(InnerKvError),
 }
 pub type KvResult<Success> = Result<Success, KvError>;
 
