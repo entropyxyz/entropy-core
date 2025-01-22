@@ -23,7 +23,7 @@ use crate::{
 use axum::{extract::State, Json};
 use entropy_client::substrate::query_chain;
 use entropy_shared::{user::ValidatorInfo, QuoteContext, QuoteInputData, X25519PublicKey};
-use rand::{rngs::StdRng, Rng, RngCore, SeedableRng};
+use rand::{seq::SliceRandom, RngCore};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair};
@@ -270,10 +270,8 @@ async fn select_backup_provider(
         return Err(BackupProviderError::NoValidators);
     }
 
-    // Choose one deterministically based on account ID
-    let mut deterministic_rng = StdRng::from_seed(tss_account.0);
-    let random_index = deterministic_rng.gen_range(0..validators.len());
-    let validator = &validators[random_index];
+    // Choose one randomly
+    let validator = validators.choose(&mut OsRng).unwrap();
 
     // Get associated details
     let threshold_address_query =
