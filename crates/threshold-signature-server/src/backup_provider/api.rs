@@ -162,7 +162,7 @@ pub async fn backup_encryption_key(
     // Check for TSS account on the staking pallet - which proves they have made an on-chain attestation
     let threshold_address_query = entropy::storage()
         .staking_extension()
-        .threshold_to_stash(&SubxtAccountId32(*tss_account.as_ref()));
+        .threshold_to_stash(SubxtAccountId32(*tss_account.as_ref()));
     let (api, rpc) = app_state.get_api_rpc().await?;
     query_chain(&api, &rpc, threshold_address_query, None)
         .await?
