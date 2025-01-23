@@ -155,13 +155,14 @@ pub async fn backup_encryption_key(
 
     // Decrypt the request body to get the key to be backed-up
     let signed_message = encrypted_backup_request.decrypt(&app_state.x25519_secret, &[])?;
+    let tss_account = signed_message.account_id();
     let key: [u8; 32] =
         signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)?;
 
-    let tss_account = SubxtAccountId32(signed_message.sender.0);
     // Check for TSS account on the staking pallet - which proves they have made an on-chain attestation
-    let threshold_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(&tss_account);
+    let threshold_address_query = entropy::storage()
+        .staking_extension()
+        .threshold_to_stash(&SubxtAccountId32(*tss_account.as_ref()));
     let (api, rpc) = app_state.get_api_rpc().await?;
     query_chain(&api, &rpc, threshold_address_query, None)
         .await?
@@ -169,7 +170,7 @@ pub async fn backup_encryption_key(
 
     let mut backups =
         app_state.encryption_key_backups.write().map_err(|_| BackupProviderError::RwLockPoison)?;
-    backups.insert(tss_account.0, key);
+    backups.insert(tss_account, key);
 
     Ok(())
 }
@@ -214,7 +215,7 @@ pub async fn recover_encryption_key(
             .encryption_key_backups
             .read()
             .map_err(|_| BackupProviderError::RwLockPoison)?;
-        *backups.get(&key_request.tss_account.0).ok_or(BackupProviderError::NoKeyInStore)?
+        *backups.get(&key_request.tss_account.0.into()).ok_or(BackupProviderError::NoKeyInStore)?
     };
 
     // Encrypt response

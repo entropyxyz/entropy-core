@@ -177,6 +177,7 @@ use axum::{
     Router,
 };
 use entropy_kvdb::kv_manager::KvManager;
+use entropy_shared::X25519PublicKey;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
     collections::HashMap,
@@ -227,10 +228,10 @@ pub struct AppState {
     pub kv_store: KvManager,
     /// Storage for encryption key backups for other TSS nodes
     /// Maps TSS account id to encryption key
-    pub encryption_key_backups: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
+    pub encryption_key_backups: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
     /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
-    /// Maps TSS account ID to quote nonce
-    pub attestation_nonces: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
+    /// Maps response x25519 public key to quote nonce
+    pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
 }
 
 impl AppState {
