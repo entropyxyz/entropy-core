@@ -151,11 +151,20 @@ impl fmt::Display for ChainSpecType {
     }
 }
 
-/// Spawn 4 TSS nodes depending on chain configuration, adding pre-stored keyshares if
-/// desired
+/// Spawn 4 TSS nodes depending on chain configuration. Adds pre-stored keyshares if desired.
 pub async fn spawn_testing_validators(
     chain_spec_type: ChainSpecType,
 ) -> (Vec<String>, Vec<PartyId>) {
+    let (ips, ids, _handles) = spawn_testing_validators_inner(chain_spec_type).await;
+    (ips, ids)
+}
+
+/// Spawn 4 TSS nodes with the given chain configuration. Adds pre-stored keyshares if desired.
+///
+/// This also returns Tokio `JoinHandle`s for the different TSS Tokio tasks.
+pub async fn spawn_testing_validators_inner(
+    chain_spec_type: ChainSpecType,
+) -> (Vec<String>, Vec<PartyId>, Vec<tokio::task::JoinHandle<()>>) {
     let ports = [3001i64, 3002, 3003, 3004];
 
     let (alice_axum, alice_kv) =
@@ -179,28 +188,33 @@ pub async fn spawn_testing_validators(
 
     let mut ids = vec![alice_id, bob_id, charlie_id];
 
+    let mut tss_handles = vec![];
+
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
         .expect("Unable to bind to given server address.");
-    tokio::spawn(async move {
+    let alice_handle = tokio::spawn(async move {
         axum::serve(listener_alice, alice_axum).await.unwrap();
     });
+    tss_handles.push(alice_handle);
 
     // Nando: Drop join handle after the relayer sends a message?
 
-    // let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
-    //     .await
-    //     .expect("Unable to bind to given server address.");
-    // tokio::spawn(async move {
-    //     axum::serve(listener_bob, bob_axum).await.unwrap();
-    // });
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
+    let bob_handle = tokio::spawn(async move {
+        axum::serve(listener_bob, bob_axum).await.unwrap();
+    });
+    tss_handles.push(bob_handle);
 
     let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
         .await
         .expect("Unable to bind to given server address.");
-    tokio::spawn(async move {
+    let charlie_handle = tokio::spawn(async move {
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
+    tss_handles.push(charlie_handle);
 
     let (dave_axum, dave_kv) =
         create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
@@ -208,9 +222,11 @@ pub async fn spawn_testing_validators(
     let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
         .await
         .expect("Unable to bind to given server address.");
-    tokio::spawn(async move {
+    let dave_handle = tokio::spawn(async move {
         axum::serve(listener_dave, dave_axum).await.unwrap();
     });
+    tss_handles.push(dave_handle);
+
     let dave_id = PartyId::new(SubxtAccountId32(
         *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
     ));
@@ -226,7 +242,8 @@ pub async fn spawn_testing_validators(
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     let ips = ports.iter().map(|port| format!("127.0.0.1:{port}")).collect();
-    (ips, ids)
+
+    (ips, ids, tss_handles)
 }
 
 /// Add the pre-generated test keyshares to a kvdb
