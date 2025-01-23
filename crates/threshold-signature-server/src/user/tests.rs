@@ -710,10 +710,8 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     });
 
     // Test attempting to connect over ws by someone who is not in the signing group
-    let validator_ip_and_key: (String, [u8; 32]) = (
-        validator_ips_and_keys[0].clone().0,
-        validator_ips_and_keys[0].clone().1,
-    );
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
 
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
@@ -799,10 +797,8 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     // Nando: Using Alice's info here
-    let validator_ip_and_key: (String, [u8; 32]) = (
-        validator_ips[0].clone(),
-        X25519_PUBLIC_KEYS[0],
-    );
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
 
     // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
     // skip that step using this helper.
@@ -823,8 +819,19 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
     // [crates/threshold-signature-server/src/user/tests.rs:795:13] "report event found" = "report event found"
     assert!(dbg!(test_user_bad_connection_res.unwrap().text().await.unwrap()).contains("Err"),);
 
-    // TODO (Nando): Put a timeout on this
-    let mut blocks_sub = entropy_api.blocks().subscribe_best().await.unwrap();
+    tokio::time::timeout(
+        std::time::Duration::from_secs(45),
+        subscribe_to_report_event(&entropy_api),
+    )
+    .await
+    .expect("Timed out while waiting for report event.");
+
+    clean_tests();
+}
+
+/// Helper for subscribing to the `NoteReport` event from the Slashing pallet.
+async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) {
+    let mut blocks_sub = api.blocks().subscribe_best().await.unwrap();
 
     while let Some(block) = blocks_sub.next().await {
         let block = block.unwrap();
@@ -835,8 +842,6 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
             break;
         }
     }
-
-    clean_tests();
 }
 
 #[tokio::test]
