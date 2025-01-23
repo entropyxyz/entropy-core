@@ -124,20 +124,20 @@ pub async fn request_recover_encryption_key(
     signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)
 }
 
-/// [ValidatorInfo] of a TSS node chosen to make a key backup, together with the account ID of the TSS
-/// node who the backup is for
+/// [ValidatorInfo] of a TSS node chosen to make a key backup, together with the account ID of the
+/// TSS node who the backup is for
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupProviderDetails {
     pub provider: ValidatorInfo,
     pub tss_account: SubxtAccountId32,
 }
 
-/// POST request body for thse `/recover_encryption_key` HTTP route
+/// POST request body for the `/recover_encryption_key` HTTP route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecoverEncryptionKeyRequest {
     /// The account ID of the TSS node requesting to recover their encryption key
     tss_account: SubxtAccountId32,
-    /// An ephemeral encryption public key used to receive and encrypted response
+    /// An ephemeral encryption public key used to receive an encrypted response
     response_key: X25519PublicKey,
     /// A TDX quote
     quote: Vec<u8>,
@@ -179,7 +179,7 @@ pub async fn backup_encryption_key(
 
 /// HTTP endpoint to recover an encryption key following a process restart.
 /// The request body should contain a JSON encoded [RecoverEncryptionKeyRequest].
-/// If successfull, the response body will contain the encryption key as a [u8; 32] wrapped in an
+/// If successful, the response body will contain the encryption key as a [u8; 32] wrapped in an
 /// [EncryptedSignedMessage].
 pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
@@ -286,6 +286,11 @@ async fn select_backup_provider(
     let server_info = query_chain(api, rpc, threshold_address_query, None)
         .await?
         .ok_or(BackupProviderError::NoServerInfo)?;
+
+    tracing::info!(
+        "Selected TSS account {} to act as a db encrpytion key backup provider",
+        server_info.tss_account
+    );
 
     Ok(BackupProviderDetails {
         provider: ValidatorInfo {
