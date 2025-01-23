@@ -683,7 +683,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let user = AccountKeyring::One;
     let deployer = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, validator_ips, validator_ids) =
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Register the user with a test program
@@ -696,52 +696,41 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
-    // let non_signer = ValidatorName::Dave;
-    let signer = ValidatorName::Alice;
-
-    let mnemonic = development_mnemonic(&Some(signer));
+    let non_signer = ValidatorName::Dave;
+    let mnemonic = development_mnemonic(&Some(non_signer));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let expected_account_id = tss_signer.account_id().clone();
 
-    // In this case we have `Alice` initiating this request.
     let session_id = SessionId::Sign(SigningSessionInfo {
         signature_verifying_key: verifying_key.to_vec(),
         message_hash,
-        request_author: expected_account_id.clone(),
+        request_author: expected_account_id,
     });
 
     // Test attempting to connect over ws by someone who is not in the signing group
-    //
-    // Nando: Here we force connecting to Alice
     let validator_ip_and_key: (String, [u8; 32]) = (
-        validator_ips[0].clone(),
-        X25519_PUBLIC_KEYS[0],
+        validator_ips_and_keys[0].clone().0,
+        validator_ips_and_keys[0].clone().1,
     );
-    dbg!(&validator_ip_and_key);
 
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
-
         let ws_endpoint = format!("ws://{}/ws", &validator_ip_and_key.0.clone());
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        // let ferdie_pair = AccountKeyring::Ferdie.pair();
-        let bob_pair = AccountKeyring::Bob.pair();
-        let mnemonic = development_mnemonic(&Some(ValidatorName::Bob));
-        let (_charlie_tss_signer, charlie_static_secret) =
-            get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+        let ferdie_pair = AccountKeyring::Ferdie.pair();
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
-            bincode::serialize(&SubscribeMessage::new(session_id, &bob_pair).unwrap()).unwrap();
+            bincode::serialize(&SubscribeMessage::new(session_id, &ferdie_pair).unwrap()).unwrap();
 
         // Attempt a noise handshake including the subscribe message in the payload
         let mut encrypted_connection = noise_handshake_initiator(
             ws_stream,
-            &charlie_static_secret,
+            &FERDIE_X25519_SECRET_KEY.into(),
             validator_ip_and_key.1,
             subscribe_message_vec,
         )
@@ -753,25 +742,15 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         let subscribe_response: Result<(), String> =
             bincode::deserialize(&response_message).unwrap();
 
-        // Nando: This fails to a Subscribe error / No Listener now
-        assert!(subscribe_response.is_ok());
-
-        // assert_eq!(Err("Decryption(\"Public key does not match any of those expected for this protocol session\")".to_string()), subscribe_response);
+        assert_eq!(Err("Decryption(\"Public key does not match any of those expected for this protocol session\")".to_string()), subscribe_response);
 
         // The stream should not continue to send messages
         // returns true if this part of the test passes
-        // encrypted_connection.recv().await.is_err()
-        true
+        encrypted_connection.recv().await.is_err()
     });
 
-    // let validator_ip_and_key: (String, [u8; 32]) =
-    //     (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
-    //
-    // Nando: Using Alice's info here
-    let validator_ip_and_key: (String, [u8; 32]) = (
-        validator_ips[0].clone(),
-        X25519_PUBLIC_KEYS[0],
-    );
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
 
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
         &entropy_api,
@@ -783,9 +762,79 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     )
     .await;
 
-    assert!(dbg!(test_user_bad_connection_res.unwrap().text().await.unwrap()).contains("Err"),);
+    assert!(test_user_bad_connection_res.unwrap().text().await.unwrap().contains("Err"),);
 
     assert!(connection_attempt_handle.await.unwrap());
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_reports_peer_if_they_dont_participate_in_signing() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    // Setup: We first spin up the chain nodes, TSS servers, and register an account
+    let user = AccountKeyring::One;
+    let deployer = AccountKeyring::Two;
+
+    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
+
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
+
+    // TSS Setup: We want Alice to be the TSS server which starts the signing protocol, so let's
+    // get her set up
+    let signer = ValidatorName::Alice;
+
+    let mnemonic = development_mnemonic(&Some(signer));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    // Nando: Using Alice's info here
+    let validator_ip_and_key: (String, [u8; 32]) = (
+        validator_ips[0].clone(),
+        X25519_PUBLIC_KEYS[0],
+    );
+
+    // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
+    // skip that step using this helper.
+    let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        validator_ip_and_key,
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+        None,
+    )
+    .await;
+
+    // Check: We expect that the signature request will have failed because we were unable to
+    // connect to Bob.
+
+    // [crates/threshold-signature-server/src/user/tests.rs:786:13] test_user_bad_connection_res.unwrap().text().await.unwrap() = "{\"Err\":\"Could not open ws connection: IO error: Connection refused (os error 61) with the TSS Account `AccountId32([44, 188, 104, 232, 191, 15, 188, 28, 40, 194, 130, 209, 38, 63, 201, 210, 146, 103, 220, 18, 161, 4, 79, 183, 48, 232, 182, 90, 188, 55, 82, 76])`\"}"
+    // [crates/threshold-signature-server/src/user/tests.rs:795:13] "report event found" = "report event found"
+    assert!(dbg!(test_user_bad_connection_res.unwrap().text().await.unwrap()).contains("Err"),);
+
+    // TODO (Nando): Put a timeout on this
+    let mut blocks_sub = entropy_api.blocks().subscribe_best().await.unwrap();
+
+    while let Some(block) = blocks_sub.next().await {
+        let block = block.unwrap();
+        let events = block.events().await.unwrap();
+
+        if events.has::<entropy::slashing::events::NoteReport>().unwrap() {
+            dbg!("report event found");
+            break;
+        }
+    }
 
     clean_tests();
 }
