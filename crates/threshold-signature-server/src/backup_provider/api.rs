@@ -168,8 +168,10 @@ pub async fn backup_encryption_key(
         .await?
         .ok_or(BackupProviderError::NotRegisteredWithStakingPallet)?;
 
-    let mut backups =
-        app_state.encryption_key_backups.write().map_err(|_| BackupProviderError::RwLockPoison)?;
+    let mut backups = app_state
+        .encryption_key_backup_provider
+        .write()
+        .map_err(|_| BackupProviderError::RwLockPoison)?;
     backups.insert(tss_account, key);
 
     Ok(())
@@ -212,7 +214,7 @@ pub async fn recover_encryption_key(
 
     let key = {
         let backups = app_state
-            .encryption_key_backups
+            .encryption_key_backup_provider
             .read()
             .map_err(|_| BackupProviderError::RwLockPoison)?;
         *backups.get(&key_request.tss_account.0.into()).ok_or(BackupProviderError::NoKeyInStore)?
