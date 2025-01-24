@@ -28,6 +28,8 @@ use rand::RngCore;
 use sled::IVec;
 use zeroize::Zeroize;
 
+use crate::DbDump;
+
 use super::{
     constants::*,
     record::EncryptedRecord,
@@ -165,7 +167,7 @@ impl EncryptedDb {
     }
 
     /// Dump key-value tuples directly out of the db without decrypting, for db migration export
-    pub fn export_encrypted_db(&self) -> Vec<(Vec<u8>, Vec<u8>)> {
+    pub fn export_encrypted_db(&self) -> DbDump {
         self.kv
             .iter()
             .filter_map(|kv_result| {
@@ -176,7 +178,7 @@ impl EncryptedDb {
     }
 
     /// Import encrypted key-value tuples directly into the db without encrypting, for db migration import
-    pub fn import_encrypted_db(&self, db_dump: Vec<(Vec<u8>, Vec<u8>)>) -> EncryptedDbResult<()> {
+    pub fn import_encrypted_db(&self, db_dump: DbDump) -> EncryptedDbResult<()> {
         for (key, value) in db_dump {
             self.kv.insert(key, value)?;
         }

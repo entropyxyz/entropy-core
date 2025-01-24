@@ -158,6 +158,7 @@
 //! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //!     [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
+use backup_provider::version_upgrade::api::{backup_encrypted_db, recover_encrypted_db};
 pub use entropy_client::chain_api;
 pub(crate) mod attestation;
 pub(crate) mod backup_provider;
@@ -313,6 +314,8 @@ pub fn app(app_state: AppState) -> Router {
         .route("/backup_encryption_key", post(backup_encryption_key))
         .route("/recover_encryption_key", post(recover_encryption_key))
         .route("/backup_provider_quote_nonce", post(quote_nonce))
+        .route("/backup_encrypted_db", post(backup_encrypted_db))
+        .route("/recover_encrypted_db", post(recover_encrypted_db))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

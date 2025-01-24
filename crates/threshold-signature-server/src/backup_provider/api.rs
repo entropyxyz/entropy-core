@@ -245,7 +245,7 @@ pub async fn make_key_backup(
 }
 
 /// Store the details of a TSS node who has a backup of our encryption key in a file
-fn store_key_provider_details(
+pub(crate) fn store_key_provider_details(
     mut path: PathBuf,
     backup_provider_details: BackupProviderDetails,
 ) -> Result<(), BackupProviderError> {

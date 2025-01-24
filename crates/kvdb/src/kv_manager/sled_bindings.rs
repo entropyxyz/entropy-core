@@ -25,7 +25,7 @@ use super::{
     helpers::{deserialize, serialize},
     types::{KeyReservation, DEFAULT_RESERVE},
 };
-use crate::encrypted_sled;
+use crate::{encrypted_sled, DbDump};
 
 /// Reserves a key. New key's value is [DEFAULT_RESERVE].
 /// Returns [SledErr] of [LogicalErr] on failure.
@@ -117,13 +117,10 @@ pub(super) fn handle_exists(kv: &encrypted_sled::Db, key: &str) -> InnerKvResult
     })
 }
 
-pub(super) fn handle_export_db(kv: &encrypted_sled::Db) -> InnerKvResult<Vec<(Vec<u8>, Vec<u8>)>> {
+pub(super) fn handle_export_db(kv: &encrypted_sled::Db) -> InnerKvResult<DbDump> {
     Ok(kv.export_encrypted_db())
 }
 
-pub(super) fn handle_import_db(
-    kv: &encrypted_sled::Db,
-    db_dump: Vec<(Vec<u8>, Vec<u8>)>,
-) -> InnerKvResult<()> {
+pub(super) fn handle_import_db(kv: &encrypted_sled::Db, db_dump: DbDump) -> InnerKvResult<()> {
     Ok(kv.import_encrypted_db(db_dump)?)
 }

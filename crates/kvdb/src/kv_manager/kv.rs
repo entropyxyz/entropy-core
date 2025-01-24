@@ -32,7 +32,7 @@ use super::{
         KeyReservation, DEFAULT_KV_NAME, DEFAULT_KV_PATH,
     },
 };
-use crate::encrypted_sled;
+use crate::{encrypted_sled, DbDump};
 
 #[derive(Clone)]
 pub struct Kv<V> {
@@ -124,14 +124,14 @@ where
     }
 
     /// Dump key-value tuples directly out of the db without decrypting, for db migration export
-    pub async fn export_db(&self) -> KvResult<Vec<(Vec<u8>, Vec<u8>)>> {
+    pub async fn export_db(&self) -> KvResult<DbDump> {
         let (resp_tx, resp_rx) = oneshot::channel();
         self.sender.send(ExportDb { resp: resp_tx }).map_err(|e| SendErr(e.to_string()))?;
         resp_rx.await?.map_err(ExportErr)
     }
 
     /// Import encrypted key-value tuples directly into the db without encrypting, for db migration import
-    pub async fn import_db(&self, db_dump: Vec<(Vec<u8>, Vec<u8>)>) -> KvResult<()> {
+    pub async fn import_db(&self, db_dump: DbDump) -> KvResult<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
         self.sender
             .send(ImportDb { db_dump, resp: resp_tx })
