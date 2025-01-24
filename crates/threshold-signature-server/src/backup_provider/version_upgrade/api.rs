@@ -107,6 +107,7 @@ pub async fn recover_encrypted_db(
     let db_backup: DbBackup = deserialize(&signed_message.message.0).unwrap();
 
     // TODO version check
+    // Based on version, filter db keys into the ones that are still relevant
 
     let storage_path = app_state.kv_store.storage_path().to_path_buf();
     store_key_provider_details(storage_path, db_backup.backup_provider_details)?;
