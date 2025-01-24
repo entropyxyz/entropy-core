@@ -57,7 +57,7 @@ pub async fn request_backup_encryption_key(
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "http://{}/backup_provider/backup_encryption_key",
+            "http://{}/backup_encryption_key",
             backup_provider_details.provider.ip_address
         ))
         .header("Content-Type", "application/json")
@@ -101,7 +101,7 @@ pub async fn request_recover_encryption_key(
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "http://{}/backup_provider/recover_encryption_key",
+            "http://{}/recover_encryption_key",
             backup_provider_details.provider.ip_address
         ))
         .header("Content-Type", "application/json")
@@ -124,20 +124,20 @@ pub async fn request_recover_encryption_key(
     signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)
 }
 
-/// [ValidatorInfo] of a TSS node chosen to make a key backup, together with the account ID of the TSS
-/// node who the backup is for
+/// [ValidatorInfo] of a TSS node chosen to make a key backup, together with the account ID of the
+/// TSS node who the backup is for
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupProviderDetails {
     pub provider: ValidatorInfo,
     pub tss_account: SubxtAccountId32,
 }
 
-/// POST request body for thse `/recover_encryption_key` HTTP route
+/// POST request body for the `/recover_encryption_key` HTTP route
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecoverEncryptionKeyRequest {
     /// The account ID of the TSS node requesting to recover their encryption key
     tss_account: SubxtAccountId32,
-    /// An ephemeral encryption public key used to receive and encrypted response
+    /// An ephemeral encryption public key used to receive an encrypted response
     response_key: X25519PublicKey,
     /// A TDX quote
     quote: Vec<u8>,
@@ -155,28 +155,31 @@ pub async fn backup_encryption_key(
 
     // Decrypt the request body to get the key to be backed-up
     let signed_message = encrypted_backup_request.decrypt(&app_state.x25519_secret, &[])?;
+    let tss_account = signed_message.account_id();
     let key: [u8; 32] =
         signed_message.message.0.try_into().map_err(|_| BackupProviderError::BadKeyLength)?;
 
-    let tss_account = SubxtAccountId32(signed_message.sender.0);
     // Check for TSS account on the staking pallet - which proves they have made an on-chain attestation
-    let threshold_address_query =
-        entropy::storage().staking_extension().threshold_to_stash(&tss_account);
+    let threshold_address_query = entropy::storage()
+        .staking_extension()
+        .threshold_to_stash(SubxtAccountId32(*tss_account.as_ref()));
     let (api, rpc) = app_state.get_api_rpc().await?;
     query_chain(&api, &rpc, threshold_address_query, None)
         .await?
         .ok_or(BackupProviderError::NotRegisteredWithStakingPallet)?;
 
-    let mut backups =
-        app_state.encryption_key_backups.write().map_err(|_| BackupProviderError::RwLockPoison)?;
-    backups.insert(tss_account.0, key);
+    let mut backups = app_state
+        .encryption_key_backup_provider
+        .write()
+        .map_err(|_| BackupProviderError::RwLockPoison)?;
+    backups.insert(tss_account, key);
 
     Ok(())
 }
 
 /// HTTP endpoint to recover an encryption key following a process restart.
 /// The request body should contain a JSON encoded [RecoverEncryptionKeyRequest].
-/// If successfull, the response body will contain the encryption key as a [u8; 32] wrapped in an
+/// If successful, the response body will contain the encryption key as a [u8; 32] wrapped in an
 /// [EncryptedSignedMessage].
 pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
@@ -211,10 +214,10 @@ pub async fn recover_encryption_key(
 
     let key = {
         let backups = app_state
-            .encryption_key_backups
+            .encryption_key_backup_provider
             .read()
             .map_err(|_| BackupProviderError::RwLockPoison)?;
-        *backups.get(&key_request.tss_account.0).ok_or(BackupProviderError::NoKeyInStore)?
+        *backups.get(&key_request.tss_account.0.into()).ok_or(BackupProviderError::NoKeyInStore)?
     };
 
     // Encrypt response
@@ -284,6 +287,11 @@ async fn select_backup_provider(
         .await?
         .ok_or(BackupProviderError::NoServerInfo)?;
 
+    tracing::info!(
+        "Selected TSS account {} to act as a db encrpytion key backup provider",
+        server_info.tss_account
+    );
+
     Ok(BackupProviderDetails {
         provider: ValidatorInfo {
             x25519_public_key: server_info.x25519_public_key,
@@ -321,7 +329,7 @@ pub async fn quote_nonce(
     Ok(Json(signed_message))
 }
 
-/// Client function used to make a POST request to `backup_provider/quote_nonce`
+/// Client function used to make a POST request to `backup_provider_quote_nonce`
 async fn request_quote_nonce(
     response_secret_key: &StaticSecret,
     backup_provider_details: &BackupProviderDetails,
@@ -331,7 +339,7 @@ async fn request_quote_nonce(
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "http://{}/backup_provider/quote_nonce",
+            "http://{}/backup_provider_quote_nonce",
             backup_provider_details.provider.ip_address
         ))
         .header("Content-Type", "application/json")

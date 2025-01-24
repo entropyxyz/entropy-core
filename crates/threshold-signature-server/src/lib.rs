@@ -177,6 +177,7 @@ use axum::{
     Router,
 };
 use entropy_kvdb::kv_manager::KvManager;
+use entropy_shared::X25519PublicKey;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
     collections::HashMap,
@@ -227,10 +228,10 @@ pub struct AppState {
     pub kv_store: KvManager,
     /// Storage for encryption key backups for other TSS nodes
     /// Maps TSS account id to encryption key
-    pub encryption_key_backups: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
+    pub encryption_key_backup_provider: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
     /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
-    /// Maps TSS account ID to quote nonce
-    pub attestation_nonces: Arc<RwLock<HashMap<[u8; 32], [u8; 32]>>>,
+    /// Maps response x25519 public key to quote nonce
+    pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
 }
 
 impl AppState {
@@ -248,7 +249,7 @@ impl AppState {
             listener_state: ListenerState::default(),
             configuration,
             kv_store,
-            encryption_key_backups: Default::default(),
+            encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
         }
     }
@@ -309,9 +310,9 @@ pub fn app(app_state: AppState) -> Router {
         .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/attest", get(get_attest))
-        .route("/backup_provider/backup_encryption_key", post(backup_encryption_key))
-        .route("/backup_provider/recover_encryption_key", post(recover_encryption_key))
-        .route("/backup_provider/quote_nonce", post(quote_nonce))
+        .route("/backup_encryption_key", post(backup_encryption_key))
+        .route("/recover_encryption_key", post(recover_encryption_key))
+        .route("/backup_provider_quote_nonce", post(quote_nonce))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

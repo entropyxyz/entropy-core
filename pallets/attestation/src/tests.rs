@@ -14,7 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::mock::*;
-use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError};
+use entropy_shared::attestation::{
+    AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError,
+};
 use frame_support::{assert_noop, assert_ok};
 use rand_core::OsRng;
 

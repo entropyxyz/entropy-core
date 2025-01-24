@@ -45,7 +45,7 @@ fn get_hkdf_from_mnemonic(mnemonic: &str) -> Result<Hkdf<Sha256>, UserErr> {
     Ok(Hkdf::<Sha256>::new(None, &mnemonic.to_seed("")))
 }
 
-/// Derive signing keypair
+/// Derive signing keypair and return it together with the seed
 pub fn get_signer_from_hkdf(hkdf: &Hkdf<Sha256>) -> Result<(sr25519::Pair, [u8; 32]), UserErr> {
     let mut sr25519_seed = [0u8; 32];
     hkdf.expand(KDF_SR25519, &mut sr25519_seed)?;
