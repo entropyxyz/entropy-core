@@ -200,13 +200,13 @@ pub async fn spawn_testing_validators_inner(
 
     // Nando: Drop join handle after the relayer sends a message?
 
-    // let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
-    //     .await
-    //     .expect("Unable to bind to given server address.");
-    // let bob_handle = tokio::spawn(async move {
-    //     axum::serve(listener_bob, bob_axum).await.unwrap();
-    // });
-    // tss_handles.push(bob_handle);
+    let listener_bob = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[1]))
+        .await
+        .expect("Unable to bind to given server address.");
+    let bob_handle = tokio::spawn(async move {
+        axum::serve(listener_bob, bob_axum).await.unwrap();
+    });
+    tss_handles.push(bob_handle);
 
     let listener_charlie = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[2]))
         .await
