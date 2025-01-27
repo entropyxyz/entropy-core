@@ -39,7 +39,7 @@ use entropy_testing_utils::{
         AUXILARY_DATA_SHOULD_SUCCEED, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY,
         PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
         TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
-        X25519_PUBLIC_KEYS,
+        X25519_PUBLIC_KEYS, TSS_ACCOUNTS, BOB_STASH_ADDRESS,
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_context_stationary, testing_context},
@@ -796,9 +796,35 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    // Nando: Using Alice's info here
     let validator_ip_and_key: (String, [u8; 32]) =
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
+
+    // The other signer can rotate between Bob and Charlie, but we want to always test with Bob
+    // since we know that:
+    // - As Alice, we will initiate a connection with him
+    // - He won't respond to our request (never got his `/sign_tx` endpoint triggered)
+    let signers = {
+        let alice =
+            ValidatorInfo {
+                ip_address: validator_ips[0].clone(),
+                x25519_public_key: X25519_PUBLIC_KEYS[0],
+                tss_account: TSS_ACCOUNTS[0].clone(),
+            };
+
+        let bob =
+            ValidatorInfo {
+                ip_address: validator_ips[1].clone(),
+                x25519_public_key: X25519_PUBLIC_KEYS[1],
+                tss_account: TSS_ACCOUNTS[1].clone(),
+            };
+
+        vec![alice, bob]
+    };
+
+    // Before starting the test, we want to ensure that Bob has no outstanding reports against him.
+    let bob_report_query = entropy::storage().slashing().failed_registrations(BOB_STASH_ADDRESS.clone());
+    let reports = query_chain(&entropy_api, &rpc, bob_report_query.clone(), None).await.unwrap();
+    assert!(reports.is_none());
 
     // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
     // skip that step using this helper.
@@ -808,29 +834,33 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
         validator_ip_and_key,
         signature_request.clone(),
         tss_signer.signer().clone(),
-        None,
+        Some(signers),
     )
     .await;
 
     // Check: We expect that the signature request will have failed because we were unable to
     // connect to Bob.
+    assert!(test_user_bad_connection_res.unwrap().text().await.unwrap().contains("Subscribe message rejected"));
 
-    // [crates/threshold-signature-server/src/user/tests.rs:786:13] test_user_bad_connection_res.unwrap().text().await.unwrap() = "{\"Err\":\"Could not open ws connection: IO error: Connection refused (os error 61) with the TSS Account `AccountId32([44, 188, 104, 232, 191, 15, 188, 28, 40, 194, 130, 209, 38, 63, 201, 210, 146, 103, 220, 18, 161, 4, 79, 183, 48, 232, 182, 90, 188, 55, 82, 76])`\"}"
-    // [crates/threshold-signature-server/src/user/tests.rs:795:13] "report event found" = "report event found"
-    assert!(dbg!(test_user_bad_connection_res.unwrap().text().await.unwrap()).contains("Err"),);
-
-    tokio::time::timeout(
-        std::time::Duration::from_secs(45),
+    // We expect that a `NoteReport` event want found
+    let report_event_found = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
         subscribe_to_report_event(&entropy_api),
     )
     .await
-    .expect("Timed out while waiting for report event.");
+    .expect("Timed out while waiting for `NoteReport` event.");
+
+    assert!(report_event_found);
+
+    // We expect that the offence count for Bob has gone up
+    let reports = query_chain(&entropy_api, &rpc, bob_report_query, None).await.unwrap();
+    assert!(matches!(reports, Some(1)));
 
     clean_tests();
 }
 
 /// Helper for subscribing to the `NoteReport` event from the Slashing pallet.
-async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) {
+async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) -> bool {
     let mut blocks_sub = api.blocks().subscribe_best().await.unwrap();
 
     while let Some(block) = blocks_sub.next().await {
@@ -839,9 +869,11 @@ async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) {
 
         if events.has::<entropy::slashing::events::NoteReport>().unwrap() {
             dbg!("report event found");
-            break;
+            return true
         }
     }
+
+    false
 }
 
 #[tokio::test]
