@@ -377,6 +377,8 @@ pub async fn sign_tx(
                 }
                 .clone();
 
+                tracing::debug!("Reporting `{}` for `{}`", account_id.clone(), e.to_string());
+
                 let report_unstable_peer_tx =
                     entropy::tx().staking_extension().report_unstable_peer(account_id);
                 submit_transaction(&api, &rpc, &signer, &report_unstable_peer_tx, None)

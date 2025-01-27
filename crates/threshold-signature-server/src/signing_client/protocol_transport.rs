@@ -55,11 +55,18 @@ pub async fn open_protocol_connections(
     let connect_to_validators = validators_info
         .iter()
         .filter(|validators_info| {
-            // Decide whether to initiate a connection by comparing accound ids
-            // otherwise, we wait for them to connect to us
-            signer.public().0 > validators_info.tss_account.0
+            // Decide whether to initiate a connection by comparing account IDs, otherwise we wait
+            // for them to connect to us
+            let initiate_connection = signer.public().0 > validators_info.tss_account.0;
+            if !initiate_connection {
+                tracing::debug!("Waiting for {:?} to open a connect with us.", validators_info.tss_account.0);
+            }
+
+            initiate_connection
         })
         .map(|validator_info| async move {
+            tracing::debug!("Attempting to open protocol connections with {:?}", validator_info.tss_account.0.clone());
+
             // Open a ws connection
             let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
             let (ws_stream, _response) =
