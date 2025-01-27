@@ -43,6 +43,10 @@ pub enum BackupEncryptedDbError {
     Unauthorized,
     #[error("You cannot restore a db backup when the node is ready")]
     Ready,
+    #[error("Cannot deserialize provided backup")]
+    CannotDeserializeBackup,
+    #[error("Cannot serialize db backup")]
+    CannotSerializeBackup,
 }
 
 impl IntoResponse for BackupEncryptedDbError {

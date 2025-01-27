@@ -87,7 +87,7 @@ pub async fn backup_encrypted_db(
         db_dump: app_state.kv_store.kv().export_db().await?,
     };
 
-    Ok(serialize(&db_backup).unwrap())
+    Ok(serialize(&db_backup).map_err(|_| BackupEncryptedDbError::CannotSerializeBackup)?)
 }
 
 /// HTTP POST route which takes an encrypted db backup together with recovery details and recovers
@@ -104,7 +104,11 @@ pub async fn recover_encrypted_db(
     let signed_message = encrypted_db_backup.decrypt(&app_state.x25519_secret, &[])?;
     let _stash_account = SubxtAccountId32(signed_message.sender.0);
 
-    let db_backup: DbBackup = deserialize(&signed_message.message.0).unwrap();
+    let db_backup: DbBackup = deserialize(&signed_message.message.0)
+        .ok_or(BackupEncryptedDbError::CannotDeserializeBackup)?;
+
+    // TODO ideally here we should do a chain query to check stash account is associated with
+    // db_backup.backup_provider_details.tss_account (like in the handler above)
 
     // TODO version check
     // Based on version, filter db keys into the ones that are still relevant
