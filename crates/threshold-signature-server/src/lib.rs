@@ -276,11 +276,11 @@ impl AppState {
     }
 
     /// Returns true if all prerequisite checks have passed.
-    /// This means:
+    /// Is is not possible to participate in the protocols before this is true.
+    /// 'Ready' means:
     ///  - Communication has been established with the chain node
     ///  - The TSS account is funded
     ///  - The TSS account is registered with the staking extension pallet
-    /// Is is not possible to participate in the protocols before this is true.
     pub fn is_ready(&self) -> bool {
         match self.tss_state.read() {
             Ok(state) => state.is_ready(),
