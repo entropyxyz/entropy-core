@@ -36,10 +36,10 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY,
-        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
-        TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
-        X25519_PUBLIC_KEYS, TSS_ACCOUNTS, BOB_STASH_ADDRESS, CHARLIE_STASH_ADDRESS,
+        AUXILARY_DATA_SHOULD_SUCCEED, BOB_STASH_ADDRESS, CHARLIE_STASH_ADDRESS, FAUCET_PROGRAM,
+        FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
+        TEST_INFINITE_LOOP_BYTECODE, TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH,
+        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_context_stationary, testing_context},
@@ -804,25 +804,24 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
     // - As Alice, we will initiate a connection with him
     // - He won't respond to our request (never got his `/sign_tx` endpoint triggered)
     let signers = {
-        let alice =
-            ValidatorInfo {
-                ip_address: validator_ips[0].clone(),
-                x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].clone(),
-            };
+        let alice = ValidatorInfo {
+            ip_address: validator_ips[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        };
 
-        let bob =
-            ValidatorInfo {
-                ip_address: validator_ips[1].clone(),
-                x25519_public_key: X25519_PUBLIC_KEYS[1],
-                tss_account: TSS_ACCOUNTS[1].clone(),
-            };
+        let bob = ValidatorInfo {
+            ip_address: validator_ips[1].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        };
 
         vec![alice, bob]
     };
 
     // Before starting the test, we want to ensure that Bob has no outstanding reports against him.
-    let bob_report_query = entropy::storage().slashing().failed_registrations(BOB_STASH_ADDRESS.clone());
+    let bob_report_query =
+        entropy::storage().slashing().failed_registrations(BOB_STASH_ADDRESS.clone());
     let reports = query_chain(&entropy_api, &rpc, bob_report_query.clone(), None).await.unwrap();
     assert!(reports.is_none());
 
@@ -840,7 +839,12 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
 
     // Check: We expect that the signature request will have failed because we were unable to
     // connect to Bob.
-    assert!(test_user_bad_connection_res.unwrap().text().await.unwrap().contains("Subscribe message rejected"));
+    assert!(test_user_bad_connection_res
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .contains("Subscribe message rejected"));
 
     // We expect that a `NoteReport` event want found
     let report_event_found = tokio::time::timeout(
@@ -898,26 +902,26 @@ async fn test_reports_peer_if_they_dont_initate_a_signing_session() {
     // - As Alice, we will initiate a connection with him
     // - He won't respond to our request (never got his `/sign_tx` endpoint triggered)
     let signers = {
-        let alice =
-            ValidatorInfo {
-                ip_address: validator_ips[0].clone(),
-                x25519_public_key: X25519_PUBLIC_KEYS[0],
-                tss_account: TSS_ACCOUNTS[0].clone(),
-            };
+        let alice = ValidatorInfo {
+            ip_address: validator_ips[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        };
 
-        let charlie =
-            ValidatorInfo {
-                ip_address: validator_ips[2].clone(),
-                x25519_public_key: X25519_PUBLIC_KEYS[2],
-                tss_account: TSS_ACCOUNTS[2].clone(),
-            };
+        let charlie = ValidatorInfo {
+            ip_address: validator_ips[2].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone(),
+        };
 
         vec![alice, charlie]
     };
 
     // Before starting the test, we want to ensure that Charlie has no outstanding reports against him.
-    let charlie_report_query = entropy::storage().slashing().failed_registrations(CHARLIE_STASH_ADDRESS.clone());
-    let reports = query_chain(&entropy_api, &rpc, charlie_report_query.clone(), None).await.unwrap();
+    let charlie_report_query =
+        entropy::storage().slashing().failed_registrations(CHARLIE_STASH_ADDRESS.clone());
+    let reports =
+        query_chain(&entropy_api, &rpc, charlie_report_query.clone(), None).await.unwrap();
     assert!(reports.is_none());
 
     // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
@@ -963,7 +967,7 @@ async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) -> bool {
 
         if events.has::<entropy::slashing::events::NoteReport>().unwrap() {
             dbg!("report event found");
-            return true
+            return true;
         }
     }
 
