@@ -66,6 +66,8 @@ pub enum BackupProviderError {
     NotReady,
     #[error("Quote measurement: {0}")]
     QuoteMeasurement(#[from] crate::attestation::errors::QuoteMeasurementErr),
+    #[error("Timed out waiting to be connected to chain")]
+    NotConnectedToChain,
 }
 
 impl IntoResponse for BackupProviderError {
