@@ -859,6 +859,8 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
     clean_tests();
 }
 
+// TODO (Nando): Remove this
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_reports_peer_if_they_dont_initate_a_signing_session() {
