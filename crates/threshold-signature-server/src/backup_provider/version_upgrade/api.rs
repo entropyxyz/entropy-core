@@ -87,7 +87,7 @@ pub async fn backup_encrypted_db(
         db_dump: app_state.kv_store.kv().export_db().await?,
     };
 
-    Ok(serialize(&db_backup).map_err(|_| BackupEncryptedDbError::CannotSerializeBackup)?)
+    serialize(&db_backup).map_err(|_| BackupEncryptedDbError::CannotSerializeBackup)
 }
 
 /// HTTP POST route which takes an encrypted db backup together with recovery details and recovers
