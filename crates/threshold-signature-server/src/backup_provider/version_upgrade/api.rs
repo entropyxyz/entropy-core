@@ -113,14 +113,8 @@ pub async fn recover_encrypted_db(
     store_key_provider_details(storage_path, db_backup.backup_provider_details)?;
     app_state.kv_store.kv().import_db(db_backup.db_dump).await?;
 
-    // TODO now we need to check that we can move to a ready state, and do an on-chain check that
-    // the stash account is correct.
-    // eg: loop with a timer, polling app_state.is_ready()
-    // Do stash account check like above
-    // If it fails we probably need to restore the old db.
-    // Another approach would be to make the on-chain check before, reading the TSS account ID
-    // directly out of the db dump
-    //
-    // But then we should still check here that we can get to ready state
+    // Shut down gracefully so we can restart with the new secret keys and do an encryption key
+    // recovery
+    app_state.shutdown().await;
     Ok(())
 }

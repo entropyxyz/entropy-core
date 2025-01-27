@@ -17,6 +17,7 @@ use std::{net::SocketAddr, process, str::FromStr};
 
 use anyhow::{anyhow, ensure};
 use clap::Parser;
+use tokio::sync::mpsc;
 
 use entropy_tss::{
     app,
@@ -61,8 +62,15 @@ async fn main() -> anyhow::Result<()> {
     let (kv_store, sr25519_pair, x25519_secret, key_option) =
         setup_kv_store(&validator_name, None).await?;
 
-    let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
+    let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
+
+    let app_state = AppState::new(
+        configuration.clone(),
+        kv_store.clone(),
+        sr25519_pair,
+        x25519_secret,
+        shutdown_tx,
+    );
 
     ensure!(
         setup_latest_block_number(&kv_store).await.is_ok(),
@@ -88,6 +96,11 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|_| anyhow!("Unable to bind to given server address"))?;
-    axum::serve(listener, app(app_state).into_make_service()).await?;
+
+    axum::serve(listener, app(app_state).into_make_service())
+        .with_graceful_shutdown(async move {
+            shutdown_rx.recv().await;
+        })
+        .await?;
     Ok(())
 }

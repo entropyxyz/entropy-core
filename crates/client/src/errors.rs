@@ -137,4 +137,8 @@ pub enum ClientError {
     SessionKeyLength,
     #[error("Strip prefix error")]
     StripPrefix,
+    #[error("Bad response when requesting backup: {0} {1}")]
+    RequestBackup(reqwest::StatusCode, String),
+    #[error("Cannot recover backup when TSS node is in a running state")]
+    CannotRecoverBackupWhenNodeRunning,
 }

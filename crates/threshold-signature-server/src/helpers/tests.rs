@@ -53,7 +53,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
-use tokio::sync::OnceCell;
+use tokio::sync::{mpsc, OnceCell};
 
 /// A shared reference to the logger used for tests.
 ///
@@ -77,7 +77,10 @@ pub async fn setup_client() -> KvManager {
         setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
-    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
+
+    let (shutdown_tx, _shutdown_rx) = mpsc::channel::<()>(1);
+    let app_state =
+        AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret, shutdown_tx);
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.make_ready();
@@ -109,7 +112,9 @@ pub async fn create_clients(
         setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
-    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
+    let (shutdown_tx, _shutdown_rx) = mpsc::channel::<()>(1);
+    let app_state =
+        AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret, shutdown_tx);
 
     let _ = setup_latest_block_number(&kv_store).await;
 

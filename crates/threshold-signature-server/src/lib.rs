@@ -188,6 +188,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
+use tokio::sync::mpsc;
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
@@ -233,6 +234,7 @@ pub struct AppState {
     /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
     /// Maps response x25519 public key to quote nonce
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
+    shutdown_tx: mpsc::Sender<()>,
 }
 
 impl AppState {
@@ -242,6 +244,7 @@ impl AppState {
         kv_store: KvManager,
         pair: sr25519::Pair,
         x25519_secret: StaticSecret,
+        shutdown_tx: mpsc::Sender<()>,
     ) -> Self {
         Self {
             ready: Arc::new(RwLock::new(false)),
@@ -252,6 +255,7 @@ impl AppState {
             kv_store,
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
+            shutdown_tx,
         }
     }
 
@@ -298,6 +302,15 @@ impl AppState {
             get_api(&self.configuration.endpoint).await?,
             get_rpc(&self.configuration.endpoint).await?,
         ))
+    }
+
+    pub async fn shutdown(self) {
+        if let Err(error) = self.shutdown_tx.send(()).await {
+            // This should only occur if a shutdown has been requested more than once in different
+            // handlers. It is not a problem since we will be in the process of shutting down
+            // anyway.
+            tracing::warn!("Unable to shutdown: {error}");
+        };
     }
 }
 

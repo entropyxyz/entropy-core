@@ -43,7 +43,7 @@ use crate::{
     user::{
         self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
     },
-    Hasher,
+    Hasher, TssPublicKeys,
 };
 pub use crate::{
     chain_api::{get_api, get_rpc},
@@ -650,4 +650,95 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
         im_online: pallet_im_online::sr25519::app_sr25519::Public(SRPublic(im_online)),
         authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
     })
+}
+
+/// Before making a version upgrade to entropy-tss, download an encrypted database dump
+pub async fn request_backup_encrypted_db(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    stash_account_pair: sr25519::Pair,
+) -> Result<Vec<u8>, ClientError> {
+    // Do a query to get tss details from stash account
+    let query = entropy::storage()
+        .staking_extension()
+        .threshold_servers(SubxtAccountId32(stash_account_pair.public().0));
+    let server_info = query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
+
+    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
+
+    let payload = b"TODO need a nonce here";
+    let signed_message = EncryptedSignedMessage::new(
+        &stash_account_pair,
+        payload.to_vec(),
+        &server_info.x25519_public_key,
+        &[],
+    )?;
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("http://{tss_endpoint}/backup_encrypted_db"))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message)?)
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        let text = response.text().await?;
+        return Err(ClientError::RequestBackup(status, text));
+    }
+
+    let response_bytes = response.bytes().await?;
+    Ok(response_bytes.to_vec())
+}
+
+/// Make a db recovery following an entropy-tss version upgrade
+pub async fn request_recover_encrypted_db(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    stash_account_pair: sr25519::Pair,
+    backup_payload: Vec<u8>,
+) -> Result<(), ClientError> {
+    // Do a query to get expected recovered TSS details from stash account
+    let query = entropy::storage()
+        .staking_extension()
+        .threshold_servers(SubxtAccountId32(stash_account_pair.public().0));
+    let server_info = query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
+    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
+
+    let client = reqwest::Client::new();
+
+    // First get the TSS node's temporary x25519 public key using `/info`
+    let response = client.get(format!("http://{tss_endpoint}/info")).send().await?;
+    let node_info: TssPublicKeys = response.json().await?;
+
+    // Make sure the node has been freshly booted and is not yet in a running state
+    if node_info.ready {
+        return Err(ClientError::CannotRecoverBackupWhenNodeRunning);
+    }
+
+    // Encrypt the backup payload to the temporary x25519 public key
+    let signed_message = EncryptedSignedMessage::new(
+        &stash_account_pair,
+        backup_payload,
+        &node_info.x25519_public_key,
+        &[],
+    )?;
+
+    let response = client
+        .post(format!("http://{tss_endpoint}/recover_encrypted_db"))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message)?)
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        let text = response.text().await?;
+        return Err(ClientError::RequestBackup(status, text));
+    }
+
+    // TODO now poll the node's `/info` route until we get the server_info.account_id
+
+    Ok(())
 }
