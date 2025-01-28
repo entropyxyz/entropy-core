@@ -47,6 +47,12 @@ pub enum BackupEncryptedDbError {
     CannotDeserializeBackup,
     #[error("Cannot serialize db backup")]
     CannotSerializeBackup,
+    #[error("An x25519 public key of length 32 bytes must be given")]
+    BadResponsePublicKeyLength,
+    #[error("No connection to chain node")]
+    NotConnectedToChain,
+    #[error("Backup version mismatch. We are {0}, backup is from {1}")]
+    VersionMismatch(String, String),
 }
 
 impl IntoResponse for BackupEncryptedDbError {

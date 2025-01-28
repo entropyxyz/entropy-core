@@ -28,7 +28,7 @@ use entropy_kvdb::{
     kv_manager::helpers::{deserialize, serialize},
     DbDump,
 };
-use entropy_shared::NEXT_NETWORK_PARENT_KEY;
+use entropy_shared::{X25519PublicKey, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use serde::{Deserialize, Serialize};
 
 use super::errors::BackupEncryptedDbError;
@@ -48,7 +48,7 @@ struct DbBackup {
 pub async fn backup_encrypted_db(
     State(app_state): State<AppState>,
     Json(encrypted_nonce): Json<EncryptedSignedMessage>,
-) -> Result<Vec<u8>, BackupEncryptedDbError> {
+) -> Result<Json<EncryptedSignedMessage>, BackupEncryptedDbError> {
     if !app_state.is_ready() {
         return Err(BackupEncryptedDbError::NotReady);
     }
@@ -68,13 +68,15 @@ pub async fn backup_encrypted_db(
         return Err(BackupEncryptedDbError::Unauthorized);
     }
 
-    // TODO to protect against replay attacts the message should contain a nonce
-    // let nonce: [u8; 32] =
-    //     signed_message.message.0.try_into().map_err(|_| BackupEncryptedDbError::BadNonceLength)?;
+    let response_key: X25519PublicKey = signed_message
+        .message
+        .0
+        .try_into()
+        .map_err(|_| BackupEncryptedDbError::BadResponsePublicKeyLength)?;
 
     // Check that we are not a signer
     if app_state.kv_store.kv().exists(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await?
-        || app_state.kv_store.kv().exists(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await?
+        || app_state.kv_store.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await?
     {
         return Err(BackupEncryptedDbError::CannotUpgradeWhileSigner);
     }
@@ -87,7 +89,11 @@ pub async fn backup_encrypted_db(
         db_dump: app_state.kv_store.kv().export_db().await?,
     };
 
-    serialize(&db_backup).map_err(|_| BackupEncryptedDbError::CannotSerializeBackup)
+    let db_backup =
+        serialize(&db_backup).map_err(|_| BackupEncryptedDbError::CannotSerializeBackup)?;
+    let encrypted_response =
+        EncryptedSignedMessage::new(&app_state.pair, db_backup, &response_key, &[])?;
+    Ok(Json(encrypted_response))
 }
 
 /// HTTP POST route which takes an encrypted db backup together with recovery details and recovers
@@ -101,17 +107,37 @@ pub async fn recover_encrypted_db(
     if app_state.is_ready() {
         return Err(BackupEncryptedDbError::Ready);
     }
+
+    // We need to be able to do a chain query
+    if !app_state.can_read_from_chain() {
+        return Err(BackupEncryptedDbError::NotConnectedToChain);
+    }
+
     let signed_message = encrypted_db_backup.decrypt(&app_state.x25519_secret, &[])?;
-    let _stash_account = SubxtAccountId32(signed_message.sender.0);
+    let stash_account = SubxtAccountId32(signed_message.sender.0);
 
     let db_backup: DbBackup = deserialize(&signed_message.message.0)
         .ok_or(BackupEncryptedDbError::CannotDeserializeBackup)?;
 
-    // TODO ideally here we should do a chain query to check stash account is associated with
-    // db_backup.backup_provider_details.tss_account (like in the handler above)
+    // To prove that the caller is the node operator, check that this is our associated stash
+    // account
+    let threshold_address_query = entropy::storage()
+        .staking_extension()
+        .threshold_to_stash(db_backup.backup_provider_details.tss_account.clone());
+    let (api, rpc) = app_state.get_api_rpc().await?;
+    let actual_stash_account = query_chain(&api, &rpc, threshold_address_query, None)
+        .await?
+        .ok_or(BackupEncryptedDbError::CannotGetStashAccount)?;
+    if actual_stash_account != stash_account {
+        return Err(BackupEncryptedDbError::Unauthorized);
+    }
 
-    // TODO version check
-    // Based on version, filter db keys into the ones that are still relevant
+    // Check version - currently no other supported versions
+    // For backwards compatibility we can filter db keys here into the ones which are still relevant
+    let current_version = version().await;
+    if db_backup.version != current_version {
+        return Err(BackupEncryptedDbError::VersionMismatch(current_version, db_backup.version));
+    }
 
     let storage_path = app_state.kv_store.storage_path().to_path_buf();
     store_key_provider_details(storage_path, db_backup.backup_provider_details)?;

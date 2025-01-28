@@ -52,7 +52,7 @@ pub use crate::{
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 pub use entropy_shared::{attestation::QuoteContext, HashingAlgorithm};
 use parity_scale_codec::Decode;
-use rand::Rng;
+use rand::{rngs::OsRng, Rng};
 use std::str::FromStr;
 pub use synedrion::KeyShare;
 
@@ -69,6 +69,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use x25519_dalek::{PublicKey, StaticSecret};
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
@@ -666,10 +667,13 @@ pub async fn request_backup_encrypted_db(
 
     let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
 
-    let payload = b"TODO need a nonce here";
+    // Generate encryption keypair used for receiving the response
+    let response_secret_key = StaticSecret::random_from_rng(OsRng);
+    let response_key = PublicKey::from(&response_secret_key).to_bytes();
+
     let signed_message = EncryptedSignedMessage::new(
         &stash_account_pair,
-        payload.to_vec(),
+        response_key.to_vec(),
         &server_info.x25519_public_key,
         &[],
     )?;
@@ -689,7 +693,15 @@ pub async fn request_backup_encrypted_db(
     }
 
     let response_bytes = response.bytes().await?;
-    Ok(response_bytes.to_vec())
+    let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
+    let signed_message = encrypted_response.decrypt(&response_secret_key, &[])?;
+
+    // Check that the response was signed by the TSS node
+    if signed_message.account_id() != server_info.tss_account.0.into() {
+        return Err(ClientError::BadSignature);
+    }
+
+    Ok(signed_message.message.0)
 }
 
 /// Make a db recovery following an entropy-tss version upgrade
