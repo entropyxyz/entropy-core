@@ -341,7 +341,9 @@ pub async fn check_node_prerequisites(
     let (api, rpc) = backoff::future::retry(backoff.clone(), connect_to_substrate_node)
         .await
         .map_err(|_| "Timed out waiting for connection to chain")?;
+
     tracing::info!("Sucessfully connected to Substrate node!");
+    app_state.connected_to_chain_node().map_err(|_| "Poisoned mutex")?;
 
     tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
 
@@ -410,6 +412,6 @@ pub async fn check_node_prerequisites(
     }
 
     tracing::info!("TSS node passed all prerequisite checks and is ready");
-    app_state.make_ready();
+    app_state.make_ready().map_err(|_| "Poisoned mutex")?;
     Ok(())
 }
