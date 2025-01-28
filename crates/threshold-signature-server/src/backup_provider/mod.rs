@@ -13,19 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Wrap a layer of encryption around [sled]. We use [chacha20poly1305] to encrypt/decrypt values.
-//! Specifically, use [chacha20poly1305::XChaCha20Poly1305] because the nonces are generated
-//! randomly. To create an new [Db], an key to use as entropy for the stream cipher needs to be
-//! provided.
-
-mod constants;
-mod kv;
-mod record;
-mod result;
-
-// match the API of sled
-pub use kv::EncryptedDb as Db;
-pub use result::{EncryptedDbError as Error, EncryptedDbResult as Result};
+//! Backup database encryption key provider service
+pub mod api;
+pub mod errors;
 
 #[cfg(test)]
 mod tests;

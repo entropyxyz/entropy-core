@@ -29,7 +29,7 @@ use super::{
         KeyReservation, DEFAULT_KV_NAME, DEFAULT_KV_PATH,
     },
 };
-use crate::encrypted_sled::{self, Password};
+use crate::encrypted_sled;
 
 #[derive(Clone)]
 pub struct Kv<V> {
@@ -44,22 +44,22 @@ where
 {
     /// Creates a new kv service. Returns [InitErr] on failure.
     /// the path of the kvstore is `root_path` + "/kvstore/" + `kv_name`
-    pub fn new(root_path: PathBuf, password: Password) -> KvResult<Self> {
+    pub fn new(root_path: PathBuf, key: [u8; 32]) -> KvResult<Self> {
         let kv_path = root_path.join(DEFAULT_KV_PATH).join(DEFAULT_KV_NAME);
         // use to_string_lossy() instead of to_str() to avoid handling Option<&str>
         let kv_path = kv_path.to_string_lossy().to_string();
-        Self::with_db_name(kv_path, password)
+        Self::with_db_name(kv_path, key)
     }
 
     /// Creates a kvstore at `full_db_name` and spawns a new kv_manager. Returns [InitErr] on
     /// failure. `full_db_name` is the name of the path of the kvstrore + its name
     /// Example: ~/entropy/kvstore/database_1
-    pub fn with_db_name(full_db_name: String, password: Password) -> KvResult<Self> {
+    pub fn with_db_name(full_db_name: String, encryption_key: [u8; 32]) -> KvResult<Self> {
         let (sender, rx) = mpsc::unbounded_channel();
 
         // get kv store from db name before entering the kv_cmd_handler because
         // it's more convenient to return an error from outside of a tokio::span
-        let kv = get_kv_store(&full_db_name, password)?;
+        let kv = get_kv_store(&full_db_name, encryption_key)?;
 
         tokio::spawn(kv_cmd_handler(rx, kv));
         Ok(Self { sender })
@@ -129,13 +129,10 @@ where
 ///  let my_db = get_kv_store(&"my_current_dir_db")?;
 ///  let my_db = get_kv_store(&"/tmp/my_tmp_bd")?;
 #[tracing::instrument(skip_all, fields(db_name))]
-pub fn get_kv_store(
-    db_name: &str,
-    password: Password,
-) -> encrypted_sled::Result<encrypted_sled::Db> {
+pub fn get_kv_store(db_name: &str, key: [u8; 32]) -> encrypted_sled::Result<encrypted_sled::Db> {
     // create/open DB
     tracing::debug!("Decrypting KV store");
-    let kv = encrypted_sled::Db::open(db_name, password)?;
+    let kv = encrypted_sled::Db::open(db_name, key)?;
 
     // log whether the DB was newly created or not
     if kv.was_recovered() {

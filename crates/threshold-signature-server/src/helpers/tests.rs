@@ -31,7 +31,10 @@ use crate::{
         EntropyConfig,
     },
     helpers::{
-        launch::{setup_latest_block_number, Configuration, ValidatorName, DEFAULT_ENDPOINT},
+        launch::{
+            setup_kv_store, setup_latest_block_number, Configuration, ValidatorName,
+            DEFAULT_ENDPOINT,
+        },
         logger::{Instrumentation, Logger},
         substrate::submit_transaction,
     },
@@ -39,13 +42,13 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_client::substrate::query_chain;
-use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
+use entropy_kvdb::{get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
 use sp_keyring::AccountKeyring;
-use std::{fmt, net::SocketAddr, str, time::Duration};
+use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -67,15 +70,17 @@ pub async fn initialize_test_logger() {
 }
 
 pub async fn setup_client() -> KvManager {
-    let kv_store =
-        KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
-            .unwrap();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+
+    let storage_path: PathBuf = get_db_path(true).into();
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let app_state = AppState::new(configuration, kv_store.clone(), &Some(ValidatorName::Alice));
+    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
+
     // Mock making the pre-requisite checks by setting the application state to ready
-    app_state.make_ready();
+    app_state.make_ready().unwrap();
 
     let app = app(app_state).into_make_service();
 
@@ -100,8 +105,11 @@ pub async fn create_clients(
     let path = format!(".entropy/testing/test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
-    let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(validator_name, Some(path.into())).await.unwrap();
+
+    let _ = setup_latest_block_number(&kv_store).await;
+    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     let _ = setup_latest_block_number(&kv_store).await;
 
@@ -110,9 +118,8 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    let app_state = AppState::new(configuration, kv_store.clone(), validator_name);
     // Mock making the pre-requisite checks by setting the application state to ready
-    app_state.make_ready();
+    app_state.make_ready().unwrap();
 
     let account_id = app_state.subxt_account_id();
 

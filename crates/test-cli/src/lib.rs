@@ -34,7 +34,7 @@ use entropy_client::{
         VERIFYING_KEY_LENGTH,
     },
 };
-pub use entropy_shared::{QuoteContext, PROGRAM_VERSION_NUMBER};
+pub use entropy_shared::{attestation::QuoteContext, PROGRAM_VERSION_NUMBER};
 use parity_scale_codec::Decode;
 use sp_core::{sr25519, Hasher, Pair};
 use sp_runtime::{traits::BlakeTwo256, Serialize};

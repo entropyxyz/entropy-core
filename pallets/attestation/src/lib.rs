@@ -47,7 +47,10 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use entropy_shared::{AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError};
+    use entropy_shared::attestation::{
+        verify_pck_certificate_chain, AttestationHandler, QuoteContext, QuoteInputData,
+        VerifyQuoteError,
+    };
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
@@ -58,7 +61,7 @@ pub mod pallet {
         rand_core::{RngCore, SeedableRng},
         ChaCha20Rng, ChaChaRng,
     };
-    use tdx_quote::{encode_verifying_key, Quote, VerifyingKey};
+    use tdx_quote::{encode_verifying_key, Quote};
 
     pub use crate::weights::WeightInfo;
 
@@ -203,7 +206,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> entropy_shared::AttestationHandler<T::AccountId> for Pallet<T> {
+    impl<T: Config> AttestationHandler<T::AccountId> for Pallet<T> {
         fn verify_quote(
             attestee: &T::AccountId,
             x25519_public_key: entropy_shared::X25519PublicKey,
@@ -249,31 +252,5 @@ pub mod pallet {
         fn request_quote(who: &T::AccountId, nonce: [u8; 32]) {
             PendingAttestations::<T>::insert(who, nonce)
         }
-    }
-
-    #[cfg(feature = "production")]
-    fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
-        quote.verify().map_err(|_| VerifyQuoteError::PckCertificateVerify)
-    }
-
-    /// A mock version of verifying the PCK certificate chain.
-    /// When generating mock quotes, we just put the encoded PCK in place of the certificate chain
-    /// so this function just decodes it, checks it was used to sign the quote, and returns it
-    #[cfg(not(feature = "production"))]
-    fn verify_pck_certificate_chain(quote: &Quote) -> Result<VerifyingKey, VerifyQuoteError> {
-        let provisioning_certification_key =
-            quote.pck_cert_chain().map_err(|_| VerifyQuoteError::PckCertificateNoCertificate)?;
-        let provisioning_certification_key = tdx_quote::decode_verifying_key(
-            &provisioning_certification_key
-                .try_into()
-                .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?,
-        )
-        .map_err(|_| VerifyQuoteError::CannotDecodeVerifyingKey)?;
-
-        ensure!(
-            quote.verify_with_pck(&provisioning_certification_key).is_ok(),
-            VerifyQuoteError::PckCertificateVerify
-        );
-        Ok(provisioning_certification_key)
     }
 }

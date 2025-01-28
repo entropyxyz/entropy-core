@@ -15,16 +15,19 @@
 
 use std::{net::SocketAddr, process, str::FromStr};
 
+use anyhow::{anyhow, ensure};
 use clap::Parser;
 
 use entropy_tss::{
     app,
-    launch::{load_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName},
+    launch::{
+        setup_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName,
+    },
     AppState,
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let args = StartupArgs::parse();
     args.logger.setup().await;
 
@@ -55,29 +58,36 @@ async fn main() {
         validator_name = Some(ValidatorName::Eve);
     }
 
-    let kv_store = load_kv_store(&validator_name, args.password_file).await;
+    let (kv_store, sr25519_pair, x25519_secret, key_option) =
+        setup_kv_store(&validator_name, None).await?;
 
-    let app_state = AppState::new(configuration.clone(), kv_store.clone(), &validator_name);
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
-    setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
+    ensure!(
+        setup_latest_block_number(&kv_store).await.is_ok(),
+        "Issue setting up Latest Block Number"
+    );
 
     {
         let app_state = app_state.clone();
         tokio::spawn(async move {
             // Check for a connection to the chain node parallel to starting the tss_server so that
             // we already can expose the `/info` http route
-            if let Err(error) = entropy_tss::launch::check_node_prerequisites(app_state).await {
+            if let Err(error) =
+                entropy_tss::launch::check_node_prerequisites(app_state, key_option).await
+            {
                 tracing::error!("Prerequistite checks failed: {} - terminating.", error);
                 process::exit(1);
             }
         });
     }
 
-    let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
+    let addr = SocketAddr::from_str(&args.threshold_url)
+        .map_err(|_| anyhow!("Failed to parse threshold url"))?;
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
-        .expect("Unable to bind to given server address.");
-    axum::serve(listener, app(app_state).into_make_service())
-        .await
-        .expect("failed to launch axum server.");
+        .map_err(|_| anyhow!("Unable to bind to given server address"))?;
+    axum::serve(listener, app(app_state).into_make_service()).await?;
+    Ok(())
 }

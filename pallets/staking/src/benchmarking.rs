@@ -18,7 +18,10 @@
 use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as Staking;
-use entropy_shared::{AttestationHandler, QuoteContext, MAX_SIGNERS};
+use entropy_shared::{
+    attestation::{AttestationHandler, QuoteContext},
+    MAX_SIGNERS,
+};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{
     assert_ok, ensure,
@@ -107,7 +110,7 @@ fn prepare_attestation_for_validate<T: Config>(
 
         let attestation_key = tdx_quote::SigningKey::from_bytes(&ATTESTATION_KEY.into()).unwrap();
 
-        let input_data = entropy_shared::QuoteInputData::new(
+        let input_data = entropy_shared::attestation::QuoteInputData::new(
             &threshold,
             x25519_public_key,
             nonce,
