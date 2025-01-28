@@ -986,7 +986,6 @@ async fn test_compute_hash() {
     .await;
 
     assert!(message_hash_no_hash_too_long.is_err());
-
 }
 
 #[tokio::test]
