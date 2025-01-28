@@ -149,8 +149,14 @@ pub async fn backup_encryption_key(
     State(app_state): State<AppState>,
     Json(encrypted_backup_request): Json<EncryptedSignedMessage>,
 ) -> Result<(), BackupProviderError> {
-    if !app_state.is_ready() {
-        return Err(BackupProviderError::NotReady);
+    // Wait for read access to the chain
+    let mut n = 0;
+    while !app_state.can_read_from_chain() {
+        if n > 9 {
+            return Err(BackupProviderError::NotConnectedToChain);
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        n += 1;
     }
 
     // Decrypt the request body to get the key to be backed-up

@@ -182,7 +182,7 @@ use entropy_shared::X25519PublicKey;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, PoisonError, RwLock},
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
@@ -210,14 +210,35 @@ use crate::{
     validator::api::{new_reshare, rotate_network_key},
 };
 
+/// Represents the state relating to the prerequisite checks
+#[derive(Clone, PartialEq, Eq)]
+pub enum TssState {
+    /// Initial state where no connection to chain node has been made
+    NoChainConnection,
+    /// Connection is made to the chain node but the account may not be yet funded
+    ReadOnlyChainConnection,
+    /// Fully ready and able to participate in the protocols
+    Ready,
+}
+
+impl TssState {
+    fn new() -> Self {
+        TssState::NoChainConnection
+    }
+
+    fn is_ready(&self) -> bool {
+        self == &TssState::Ready
+    }
+
+    fn can_read_from_chain(&self) -> bool {
+        self != &TssState::NoChainConnection
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
-    /// Tracks whether prerequisite checks have passed.
-    /// This means:
-    /// - Communication has been established with the chain node
-    /// - The TSS account is funded
-    /// - The TSS account is registered with the staking extension pallet
-    ready: Arc<RwLock<bool>>,
+    /// Tracks the state of prerequisite checks
+    tss_state: Arc<RwLock<TssState>>,
     /// Tracks incoming protocol connections with other TSS nodes
     listener_state: ListenerState,
     /// Keypair for TSS account
@@ -247,7 +268,7 @@ impl AppState {
         shutdown_tx: mpsc::Sender<()>,
     ) -> Self {
         Self {
-            ready: Arc::new(RwLock::new(false)),
+            tss_state: Arc::new(RwLock::new(TssState::new())),
             pair,
             x25519_secret,
             listener_state: ListenerState::default(),
@@ -261,17 +282,41 @@ impl AppState {
 
     /// Returns true if all prerequisite checks have passed.
     /// Is is not possible to participate in the protocols before this is true.
+    /// 'Ready' means:
+    ///  - Communication has been established with the chain node
+    ///  - The TSS account is funded
+    ///  - The TSS account is registered with the staking extension pallet
     pub fn is_ready(&self) -> bool {
-        match self.ready.read() {
-            Ok(r) => *r,
+        match self.tss_state.read() {
+            Ok(state) => state.is_ready(),
             _ => false,
         }
     }
 
+    /// Returns true if we are able to make chain queries
+    pub fn can_read_from_chain(&self) -> bool {
+        match self.tss_state.read() {
+            Ok(state) => state.can_read_from_chain(),
+            _ => false,
+        }
+    }
+
+    /// Mark the node as able to make chain queries. This is called once during prerequisite checks
+    pub fn connected_to_chain_node(
+        &self,
+    ) -> Result<(), PoisonError<std::sync::RwLockWriteGuard<'_, TssState>>> {
+        let mut tss_state = self.tss_state.write()?;
+        if *tss_state == TssState::NoChainConnection {
+            *tss_state = TssState::ReadOnlyChainConnection;
+        }
+        Ok(())
+    }
+
     /// Mark the node as ready. This is called once when the prerequisite checks have passed.
-    pub fn make_ready(&self) {
-        let mut is_ready = self.ready.write().unwrap();
-        *is_ready = true;
+    pub fn make_ready(&self) -> Result<(), PoisonError<std::sync::RwLockWriteGuard<'_, TssState>>> {
+        let mut tss_state = self.tss_state.write()?;
+        *tss_state = TssState::Ready;
+        Ok(())
     }
 
     /// Get a [PairSigner] for submitting extrinsics with subxt
