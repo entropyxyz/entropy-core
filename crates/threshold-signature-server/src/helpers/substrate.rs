@@ -28,7 +28,7 @@ use crate::{
 };
 pub use entropy_client::substrate::{query_chain, submit_transaction};
 use entropy_shared::user::ValidatorInfo;
-use rand::prelude::SliceRandom;
+use rand::prelude::IndexedRandom;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, Config, OnlineClient};
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
@@ -133,10 +133,7 @@ pub async fn get_signers_from_chain(
 
     let selected_signers: Vec<_> = {
         let cloned_signers = signers.clone();
-        cloned_signers
-            .choose_multiple(&mut rand::thread_rng(), threshold as usize)
-            .cloned()
-            .collect()
+        cloned_signers.choose_multiple(&mut rand::rng(), threshold as usize).cloned().collect()
     };
 
     let block_hash = rpc.chain_get_block_hash(None).await?;

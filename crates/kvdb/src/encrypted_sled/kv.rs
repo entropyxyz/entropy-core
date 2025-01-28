@@ -60,7 +60,7 @@ impl EncryptedDb {
         } else {
             // new kv: choose a new password salt and store it
             let mut password_salt = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut password_salt);
+            rand::rng().fill_bytes(&mut password_salt);
             kv.insert(PASSWORD_SALT_KEY, &password_salt)?;
             password_salt.into()
         };
@@ -101,10 +101,10 @@ impl EncryptedDb {
         Ok(output)
     }
 
-    /// get a new random nonce to use for value encryption using [rand::thread_rng]
+    /// get a new random nonce to use for value encryption using [rand::rng]
     fn generate_nonce() -> chacha20poly1305::XNonce {
         let mut bytes = chacha20poly1305::XNonce::default();
-        rand::thread_rng().fill_bytes(bytes.as_mut_slice());
+        rand::rng().fill_bytes(bytes.as_mut_slice());
         bytes
     }
 
