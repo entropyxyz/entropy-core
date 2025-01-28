@@ -359,35 +359,7 @@ pub async fn sign_tx(
                 BASE64_STANDARD.encode(signature.to_rsv_bytes()),
                 signer.signer().sign(&signature.to_rsv_bytes()),
             )),
-            Err(e)
-                if matches!(
-                    e,
-                    ProtocolErr::ConnectionError { .. }
-                        | ProtocolErr::EncryptedConnection { .. }
-                        | ProtocolErr::BadSubscribeMessage { .. }
-                        | ProtocolErr::Subscribe { .. }
-                ) =>
-            {
-                let account_id = match e {
-                    ProtocolErr::ConnectionError { ref account_id, .. } => account_id,
-                    ProtocolErr::EncryptedConnection { ref account_id, .. } => account_id,
-                    ProtocolErr::BadSubscribeMessage { ref account_id, .. } => account_id,
-                    ProtocolErr::Subscribe { ref account_id, .. } => account_id,
-                    _ => unreachable!(),
-                }
-                .clone();
-
-                tracing::debug!("Reporting `{}` for `{}`", account_id.clone(), e.to_string());
-
-                let report_unstable_peer_tx =
-                    entropy::tx().staking_extension().report_unstable_peer(account_id);
-                submit_transaction(&api, &rpc, &signer, &report_unstable_peer_tx, None)
-                    .await
-                    .expect("TODO: error reporting unstable peer");
-
-                Err(e.to_string())
-            },
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(handle_protocol_errors(&api, &rpc, &signer, e).await.unwrap_err()),
         };
 
         // This response chunk is sent later with the result of the signing protocol
@@ -398,6 +370,37 @@ pub async fn sign_tx(
 
     // This indicates that the signing protocol is starting successfully
     Ok((StatusCode::OK, Body::from_stream(response_rx)))
+}
+
+/// Helper for handling different protocol errors.
+///
+/// If the error is of the reportable type (e.g an offence from another peer) it will be reported
+/// on-chain by this helper.
+async fn handle_protocol_errors(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    error: ProtocolErr,
+) -> Result<(), String> {
+    let account_id = match error {
+        ProtocolErr::ConnectionError { ref account_id, .. } => account_id,
+        ProtocolErr::EncryptedConnection { ref account_id, .. } => account_id,
+        ProtocolErr::BadSubscribeMessage { ref account_id, .. } => account_id,
+        ProtocolErr::Subscribe { ref account_id, .. } => account_id,
+        _ => return Err(error.to_string()),
+    };
+
+    tracing::debug!("Reporting `{}` for `{}`", account_id.clone(), error.to_string());
+
+    let report_unstable_peer_tx =
+        entropy::tx().staking_extension().report_unstable_peer(account_id.clone());
+
+    match submit_transaction(api, rpc, signer, &report_unstable_peer_tx, None).await {
+        Ok(_) => Err(error.to_string()),
+        Err(tx_error) => {
+            Err(format!("Failed to report peer for `{}` due to `{}`)", error, tx_error))
+        },
+    }
 }
 
 /// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during the network
