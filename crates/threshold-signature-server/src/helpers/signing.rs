@@ -91,6 +91,8 @@ pub async fn do_signing(
     )
     .await?;
 
+    // TODO (Nando): Maybe report here since we're expecting a connection from somebody and they
+    // never responded to us?
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
