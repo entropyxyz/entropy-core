@@ -105,6 +105,7 @@ pub enum HashingAlgorithm {
     Sha3,
     Keccak,
     Blake2_256,
+    NoHash,
     Custom(usize),
 }
 
