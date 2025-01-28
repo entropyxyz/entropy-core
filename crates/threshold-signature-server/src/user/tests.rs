@@ -897,10 +897,10 @@ async fn test_reports_peer_if_they_dont_initate_a_signing_session() {
     let validator_ip_and_key: (String, [u8; 32]) =
         (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
 
-    // The other signer can rotate between Bob and Charlie, but we want to always test with Bob
+    // The other signer can rotate between Bob and Charlie, but we want to always test with Charlie
     // since we know that:
-    // - As Alice, we will initiate a connection with him
-    // - He won't respond to our request (never got his `/sign_tx` endpoint triggered)
+    // - As Alice, Charlie will initiate a connection with us
+    // - He won't initate a request (never got his `/sign_tx` endpoint triggered)
     let signers = {
         let alice = ValidatorInfo {
             ip_address: validator_ips[0].clone(),
