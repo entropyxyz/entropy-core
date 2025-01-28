@@ -18,7 +18,7 @@ thiserror     ="2.0.11"
 futures       ="0.3"
 sp-core       ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
 tracing       ="0.1.41"
-rand          ={ version="0.8", default-features=false }
+rand          ={ version="0.9", default-features=false }
 anyhow        ="1.0.95"
 
 # Present when "full-client" feature is active
