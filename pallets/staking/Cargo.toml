@@ -16,7 +16,7 @@ codec      ={ package="parity-scale-codec", version="3.6.3", default-features=fa
 scale-info ={ version="2.11", default-features=false, features=["derive"] }
 log        ={ version="0.4.25", default-features=false }
 serde      ={ version="1.0.217", default-features=false }
-rand_chacha={ version="0.3", default-features=false }
+rand_chacha={ version="0.9", default-features=false }
 
 frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
 frame-support     ={ version="29.0.0", default-features=false }
