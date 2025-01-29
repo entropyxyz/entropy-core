@@ -46,6 +46,8 @@ exceptions=[
   # them
   { allow=["OpenSSL"], name="ring" },
   { allow=["Unicode-DFS-2016"], name="unicode-ident" },
+  { allow=["Zlib"], name="const_format" },
+  { allow=["Zlib"], name="const_format_proc_macros" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
