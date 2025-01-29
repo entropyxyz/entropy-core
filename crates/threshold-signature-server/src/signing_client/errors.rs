@@ -71,7 +71,7 @@ pub enum ProtocolErr {
     UserError(String),
     #[error("Validation Error: {0}")]
     ValidationErr(#[from] crate::validation::errors::ValidationErr),
-    #[error("Subscribe message rejected: {message} by TSS Account `{account_id:?}`")]
+    #[error("Subscribe message rejected: {message} by TSS Account `{account_id}`")]
     BadSubscribeMessage { message: String, account_id: AccountId32 },
     #[error("From Hex Error: {0}")]
     FromHex(#[from] hex::FromHexError),
@@ -79,8 +79,9 @@ pub enum ProtocolErr {
     Conversion(&'static str),
     #[error("Could not open ws connection: {source} with the TSS Account `{account_id:?}`")]
     ConnectionError { source: tokio_tungstenite::tungstenite::Error, account_id: AccountId32 },
-    #[error("Timed out waiting for remote party")]
-    Timeout(#[from] tokio::time::error::Elapsed),
+    // TODO (Nando): Can maybe get rid of `Option`, check other tests
+    #[error("Timed out while waiting for peer(s): {:?}", inactive_peers)]
+    Timeout { source: tokio::time::error::Elapsed, inactive_peers: Option<Vec<AccountId32>> },
     #[error("Encrypted connection error {source:?} with the TSS Account `{account_id:?}`")]
     EncryptedConnection {
         source: entropy_protocol::protocol_transport::errors::EncryptedConnectionErr,

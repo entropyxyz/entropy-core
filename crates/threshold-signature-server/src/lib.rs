@@ -208,6 +208,21 @@ impl AppState {
     pub fn new(configuration: Configuration, kv_store: KvManager) -> Self {
         Self { listener_state: ListenerState::default(), configuration, kv_store }
     }
+
+    pub fn protocol_peers(
+        &self,
+        session_id: entropy_protocol::SessionId,
+    ) -> Vec<subxt::utils::AccountId32> {
+        let listener = self.listener_state.listeners.lock().expect("TODO");
+        let remaining_listeners = listener.get(&session_id).expect("TODO");
+        let remaining_validators: Vec<_> = remaining_listeners
+            .validators
+            .keys()
+            .map(|id| subxt::utils::AccountId32(*id))
+            .collect();
+
+        remaining_validators
+    }
 }
 
 pub fn app(app_state: AppState) -> Router {

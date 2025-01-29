@@ -864,7 +864,7 @@ async fn test_reports_peer_if_they_dont_participate_in_signing() {
 }
 
 // TODO (Nando): Remove this
-#[ignore]
+// #[ignore]
 #[tokio::test]
 #[serial]
 async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
@@ -950,7 +950,7 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
 
     assert!(report_event_found);
 
-    // We expect that the offence count for Bob has gone up
+    // We expect that the offence count for Charlie has gone up
     let reports = query_chain(&entropy_api, &rpc, charlie_report_query, None).await.unwrap();
     assert!(matches!(reports, Some(1)));
 

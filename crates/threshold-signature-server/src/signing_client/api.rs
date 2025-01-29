@@ -292,7 +292,18 @@ pub async fn get_channels(
     )
     .await?;
 
-    let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-    let broadcast_out = ready??;
-    Ok(Channels(broadcast_out, rx_from_others))
+    match timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await {
+        Ok(ready) => {
+            let broadcast_out = ready??;
+            Ok(Channels(broadcast_out, rx_from_others))
+        },
+        Err(e) => {
+            let listener = state.listeners.lock().expect("TODO");
+            let remaining_listeners = listener.get(session_id).expect("TODO");
+            let remaining_validators: Vec<_> =
+                remaining_listeners.validators.keys().map(|id| SubxtAccountId32(*id)).collect();
+
+            Err(ProtocolErr::Timeout { source: e, inactive_peers: Some(remaining_validators) })
+        },
+    }
 }

@@ -91,12 +91,20 @@ pub async fn do_signing(
     )
     .await?;
 
-    // TODO (Nando): Maybe report here since we're expecting a connection from somebody and they
-    // never responded to us?
     let channels = {
-        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-        let broadcast_out = ready??;
-        Channels(broadcast_out, rx_from_others)
+        match timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await {
+            Ok(ready) => {
+                let broadcast_out = ready??;
+                Channels(broadcast_out, rx_from_others)
+            },
+            Err(e) => {
+                let remaining_peers = app_state.protocol_peers(session_id);
+                return Err(ProtocolErr::Timeout {
+                    source: e,
+                    inactive_peers: Some(remaining_peers),
+                });
+            },
+        }
     };
 
     let result = signing_service

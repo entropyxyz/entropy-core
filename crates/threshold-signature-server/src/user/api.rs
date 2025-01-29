@@ -382,24 +382,44 @@ async fn handle_protocol_errors(
     signer: &PairSigner<EntropyConfig, sr25519::Pair>,
     error: ProtocolErr,
 ) -> Result<(), String> {
-    let account_id = match error {
-        ProtocolErr::ConnectionError { ref account_id, .. } => account_id,
-        ProtocolErr::EncryptedConnection { ref account_id, .. } => account_id,
-        ProtocolErr::BadSubscribeMessage { ref account_id, .. } => account_id,
-        ProtocolErr::Subscribe { ref account_id, .. } => account_id,
-        _ => return Err(error.to_string()),
+    let peers_to_report: Vec<SubxtAccountId32> = match &error {
+        ProtocolErr::ConnectionError { account_id, .. }
+        | ProtocolErr::EncryptedConnection { account_id, .. }
+        | ProtocolErr::BadSubscribeMessage { account_id, .. }
+        | ProtocolErr::Subscribe { account_id, .. } => vec![account_id.clone()],
+
+        ProtocolErr::Timeout { inactive_peers, .. } => inactive_peers.clone().unwrap_or_default(),
+        _ => vec![],
     };
 
-    tracing::debug!("Reporting `{}` for `{}`", account_id.clone(), error.to_string());
+    // This is a non-reportable error, so we don't do any further processing with the error
+    if peers_to_report.is_empty() {
+        return Err(error.to_string());
+    }
 
-    let report_unstable_peer_tx =
-        entropy::tx().staking_extension().report_unstable_peer(account_id.clone());
+    // TODO (Nando): Maybe format these as not byte-arrays? Would need to change other places too...
+    tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report.clone(), error.to_string());
 
-    match submit_transaction(api, rpc, signer, &report_unstable_peer_tx, None).await {
-        Ok(_) => Err(error.to_string()),
-        Err(tx_error) => {
-            Err(format!("Failed to report peer for `{}` due to `{}`)", error, tx_error))
-        },
+    let mut failed_reports = Vec::new();
+    for peer in peers_to_report {
+        let report_unstable_peer_tx =
+            entropy::tx().staking_extension().report_unstable_peer(peer.clone());
+
+        if let Err(tx_error) =
+            submit_transaction(api, rpc, signer, &report_unstable_peer_tx, None).await
+        {
+            failed_reports.push(format!("{}", tx_error));
+        }
+    }
+
+    if failed_reports.is_empty() {
+        Err(error.to_string())
+    } else {
+        Err(format!(
+            "Failed to report peers for `{}` due to `{}`)",
+            error,
+            failed_reports.join(", ")
+        ))
     }
 }
 
