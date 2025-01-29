@@ -105,8 +105,8 @@ pub enum HashingAlgorithm {
     Sha3,
     Keccak,
     Blake2_256,
-    /// If you are trying to sign a hashed message you can use this, length requirement is 64 digits
-    NoHash,
+    /// An algorithm which produces the same output as its input.
+    Identity,
     Custom(usize),
 }
 
