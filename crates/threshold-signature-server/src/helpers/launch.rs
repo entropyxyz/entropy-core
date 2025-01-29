@@ -17,19 +17,15 @@
 
 use std::{fs, path::PathBuf};
 
+use crate::{chain_api::entropy, helpers::substrate::query_chain, AppState};
 use clap::Parser;
+use entropy_client::substrate::SubstrateError;
 use entropy_kvdb::{
     encrypted_sled::PasswordMethod,
     kv_manager::{error::KvError, KvManager},
 };
 use serde::Deserialize;
-use serde_json::json;
-use subxt::ext::sp_core::{
-    crypto::{AccountId32, Ss58Codec},
-    sr25519, Pair,
-};
-
-use crate::helpers::validator::get_signer_and_x25519_secret;
+use sp_core::crypto::Ss58Codec;
 
 pub const DEFAULT_MNEMONIC: &str =
     "alarm mutual concert decrease hurry invest culture survey diagram crash snap click";
@@ -53,8 +49,6 @@ pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PRO
 pub const DEFAULT_ENDPOINT: &str = "ws://localhost:9944";
 
 pub const KEY_MNEMONIC: &str = "MNEMONIC";
-pub const KEY_SHARED_SECRET: &str = "SHARED_SECRET";
-pub const KEY_DIFFIE_HELLMAN_PUBLIC: &str = "DH_PUBLIC";
 
 // Deafult name for TSS server
 // Will set mnemonic and db path
@@ -192,23 +186,6 @@ pub struct StartupArgs {
     /// The path to a password file
     #[arg(short = 'f', long = "password-file")]
     pub password_file: Option<PathBuf>,
-
-    /// Set up the key-value store (KVDB), or ensure one already exists, print setup information to
-    /// stdout, then exit. Supply the `--password-file` option for fully non-interactive operation.
-    ///
-    /// Returns the AccountID and Diffie-Hellman Public Keys associated with this server.
-    #[arg(long = "setup-only")]
-    pub setup_only: bool,
-}
-
-pub async fn has_mnemonic(kv: &KvManager) -> bool {
-    let exists = kv.kv().exists(KEY_MNEMONIC).await.expect("issue querying DB");
-
-    if exists {
-        tracing::debug!("Existing mnemonic found in keystore.");
-    }
-
-    exists
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
@@ -226,72 +203,6 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
 
     bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic)
         .expect("Unable to parse given mnemonic.")
-}
-
-pub async fn setup_mnemonic(kv: &KvManager, mnemonic: bip39::Mnemonic) {
-    if has_mnemonic(kv).await {
-        tracing::warn!("Deleting account related keys from KVDB.");
-
-        kv.kv().delete(KEY_MNEMONIC).await.expect("Error deleting existing mnemonic from KVDB.");
-        kv.kv().delete(KEY_SHARED_SECRET).await.expect("Error deleting shared secret from KVDB.");
-        kv.kv()
-            .delete(KEY_DIFFIE_HELLMAN_PUBLIC)
-            .await
-            .expect("Error deleting X25519 public key from KVDB.");
-    }
-
-    tracing::info!("Writing new mnemonic to KVDB.");
-
-    // Write our new mnemonic to the KVDB.
-    let reservation =
-        kv.kv().reserve_key(KEY_MNEMONIC.to_string()).await.expect("Issue reserving mnemonic");
-    kv.kv()
-        .put(reservation, mnemonic.to_string().as_bytes().to_vec())
-        .await
-        .expect("failed to update mnemonic");
-
-    let (pair, static_secret) =
-        get_signer_and_x25519_secret(kv).await.expect("Cannot derive keypairs");
-    let x25519_public_key = x25519_dalek::PublicKey::from(&static_secret).to_bytes();
-
-    // Write the shared secret in the KVDB
-    let shared_secret_reservation =
-        kv.kv().reserve_key(KEY_SHARED_SECRET.to_string()).await.expect("Issue reserving ss key");
-    kv.kv()
-        .put(shared_secret_reservation, static_secret.to_bytes().to_vec())
-        .await
-        .expect("failed to update secret share");
-
-    // Write the Diffie-Hellman key in the KVDB
-    let diffie_hellman_reservation = kv
-        .kv()
-        .reserve_key(KEY_DIFFIE_HELLMAN_PUBLIC.to_string())
-        .await
-        .expect("Issue reserving DH key");
-
-    kv.kv()
-        .put(diffie_hellman_reservation, x25519_public_key.to_vec())
-        .await
-        .expect("failed to update dh");
-
-    // Now we write the TSS AccountID and X25519 public key to files for convenience reasons.
-    let formatted_dh_public = format!("{x25519_public_key:?}").replace('"', "");
-    fs::write(".entropy/public_key", formatted_dh_public).expect("Failed to write public key file");
-
-    let id = AccountId32::new(pair.signer().public().0);
-    fs::write(".entropy/account_id", format!("{id}")).expect("Failed to write account_id file");
-
-    tracing::debug!("Starting process with account ID: `{id}`");
-}
-
-pub async fn threshold_account_id(kv: &KvManager) -> String {
-    let mnemonic = kv.kv().get(KEY_MNEMONIC).await.expect("Issue getting mnemonic");
-    let pair = <sr25519::Pair as Pair>::from_phrase(
-        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-        None,
-    )
-    .expect("Issue converting mnemonic to pair");
-    AccountId32::new(pair.0.public().into()).to_ss58check()
 }
 
 pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
@@ -350,28 +261,10 @@ pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
     Ok(())
 }
 
-pub async fn setup_only(kv: &KvManager) {
-    let mnemonic = kv.kv().get(KEY_MNEMONIC).await.expect("Issue getting mnemonic");
-    let pair = <sr25519::Pair as Pair>::from_phrase(
-        &String::from_utf8(mnemonic).expect("Issue converting mnemonic to string"),
-        None,
-    )
-    .expect("Issue converting mnemonic to pair");
-    let account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
-
-    let dh_public_key =
-        kv.kv().get(KEY_DIFFIE_HELLMAN_PUBLIC).await.expect("Issue getting dh public key");
-    let dh_public_key = format!("{dh_public_key:?}").replace('"', "");
-    let output = json!({
-        "account_id": account_id,
-        "dh_public_key": dh_public_key,
-    });
-
-    println!("{}", output);
-}
-
-pub async fn check_node_prerequisites(url: &str, account_id: &str) {
+pub async fn check_node_prerequisites(app_state: AppState) -> Result<(), &'static str> {
     use crate::chain_api::{get_api, get_rpc};
+    let url = &app_state.configuration.endpoint;
+    let account_id = app_state.account_id();
 
     let connect_to_substrate_node = || async {
         tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
@@ -387,45 +280,65 @@ pub async fn check_node_prerequisites(url: &str, account_id: &str) {
         Ok((api, rpc))
     };
 
-    // Note: By default this will wait 15 minutes before it stops retry attempts.
+    // Use the default maximum elapsed time of 15 minutes.
+    // This means if we do not get a connection within 15 minutes the process will terminate and the
+    // keypair will be lost.
     let backoff = backoff::ExponentialBackoff::default();
-    match backoff::future::retry(backoff, connect_to_substrate_node).await {
-        Ok((api, rpc)) => {
-            tracing::info!("Sucessfully connected to Substrate node!");
 
-            tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
-            let balance_query = crate::validator::api::check_balance_for_fees(
-                &api,
-                &rpc,
-                account_id.to_string(),
-                entropy_shared::MIN_BALANCE,
-            )
-            .await
-            .map_err(|_| Err::<bool, String>("Failed to get balance of account.".to_string()));
+    let (api, rpc) = backoff::future::retry(backoff.clone(), connect_to_substrate_node)
+        .await
+        .map_err(|_| "Timed out waiting for connection to chain")?;
+    tracing::info!("Sucessfully connected to Substrate node!");
 
-            match balance_query {
-                Ok(has_minimum_balance) => {
-                    if has_minimum_balance {
-                        tracing::info!(
-                            "The account `{}` has enough funds for submitting extrinsics.",
-                            &account_id
-                        )
-                    } else {
-                        tracing::warn!(
-                            "The account `{}` does not meet the minimum balance of `{}`",
-                            &account_id,
-                            entropy_shared::MIN_BALANCE,
-                        )
-                    }
-                },
-                Err(_) => {
-                    tracing::warn!("Unable to query the account balance of `{}`", &account_id)
-                },
-            }
-        },
-        Err(_err) => {
-            tracing::error!("Unable to establish connection with Substrate node at `{}`", url);
-            panic!("Unable to establish connection with Substrate node.");
-        },
-    }
+    tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+
+    let balance_query = || async {
+        let has_minimum_balance = crate::validator::api::check_balance_for_fees(
+            &api,
+            &rpc,
+            account_id.to_ss58check().to_string(),
+            entropy_shared::MIN_BALANCE,
+        )
+        .await
+        .map_err(|e| {
+            tracing::warn!("Account: {} {}", &account_id, e);
+            e.to_string()
+        })?;
+        if !has_minimum_balance {
+            Err("Minimum balance not met".to_string())?
+        }
+        Ok(())
+    };
+
+    backoff::future::retry(backoff.clone(), balance_query)
+        .await
+        .map_err(|_| "Timed out waiting for account to be funded")?;
+
+    tracing::info!("The account `{}` has enough funds for submitting extrinsics.", &account_id);
+
+    // Now check if there exists a threshold server with our details - if there is not,
+    // we need to wait until there is
+    let check_for_tss_account_id = || async {
+        let stash_address_query = entropy::storage()
+            .staking_extension()
+            .threshold_to_stash(subxt::utils::AccountId32(*account_id.as_ref()));
+
+        let _stash_address =
+            query_chain(&api, &rpc, stash_address_query, None).await?.ok_or_else(|| {
+                tracing::warn!(
+                    "TSS account ID {account_id} not yet registered on-chain - you need to \
+                    call `validate` or `change_threshold_accounts`"
+                );
+                SubstrateError::NoEvent
+            })?;
+        Ok(())
+    };
+
+    tracing::info!("Checking if our account ID has been registered on chain `{}`", &account_id);
+    backoff::future::retry(backoff, check_for_tss_account_id)
+        .await
+        .map_err(|_| "Timed out waiting for TSS account to be registered on chain")?;
+    tracing::info!("TSS node passed all prerequisite checks and is ready");
+    app_state.make_ready();
+    Ok(())
 }

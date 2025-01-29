@@ -30,16 +30,11 @@ use crate::{
         },
         EntropyConfig,
     },
-    get_signer,
     helpers::{
-        launch::{
-            development_mnemonic, setup_latest_block_number, setup_mnemonic, Configuration,
-            ValidatorName, DEFAULT_ENDPOINT,
-        },
+        launch::{setup_latest_block_number, Configuration, ValidatorName, DEFAULT_ENDPOINT},
         logger::{Instrumentation, Logger},
         substrate::submit_transaction,
     },
-    signing_client::ListenerState,
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
@@ -76,13 +71,12 @@ pub async fn setup_client() -> KvManager {
         KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
             .unwrap();
 
-    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
-    setup_mnemonic(&kv_store, mnemonic).await;
-
     let _ = setup_latest_block_number(&kv_store).await;
-    let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
+    let app_state = AppState::new(configuration, kv_store.clone(), &Some(ValidatorName::Alice));
+    // Mock making the pre-requisite checks by setting the application state to ready
+    app_state.make_ready();
+
     let app = app(app_state).into_make_service();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
@@ -100,8 +94,7 @@ pub async fn create_clients(
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
     validator_name: &Option<ValidatorName>,
-) -> (IntoMakeService<Router>, KvManager) {
-    let listener_state = ListenerState::default();
+) -> (IntoMakeService<Router>, KvManager, SubxtAccountId32) {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let path = format!(".entropy/testing/test_db_{key_number}");
@@ -110,9 +103,6 @@ pub async fn create_clients(
     let kv_store =
         KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
 
-    let mnemonic = development_mnemonic(validator_name);
-    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
-
     let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
@@ -120,11 +110,15 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
+    let app_state = AppState::new(configuration, kv_store.clone(), validator_name);
+    // Mock making the pre-requisite checks by setting the application state to ready
+    app_state.make_ready();
+
+    let account_id = app_state.subxt_account_id();
 
     let app = app(app_state).into_make_service();
 
-    (app, kv_store)
+    (app, kv_store, account_id)
 }
 
 /// A way to specify which chainspec to use in testing
@@ -158,26 +152,18 @@ pub async fn spawn_testing_validators(
 ) -> (Vec<String>, Vec<PartyId>) {
     let ports = [3001i64, 3002, 3003, 3004];
 
-    let (alice_axum, alice_kv) =
+    let (alice_axum, alice_kv, alice_id) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
-    let alice_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
+    let alice_id = PartyId::new(alice_id);
 
-    let (bob_axum, bob_kv) =
+    let (bob_axum, bob_kv, bob_id) =
         create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
-    let bob_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
+    let bob_id = PartyId::new(bob_id);
 
-    let (charlie_axum, charlie_kv) =
+    let (charlie_axum, charlie_kv, charlie_id) =
         create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
             .await;
-    let charlie_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
-
-    let mut ids = vec![alice_id, bob_id, charlie_id];
+    let charlie_id = PartyId::new(charlie_id);
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -200,7 +186,7 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    let (dave_axum, dave_kv) =
+    let (dave_axum, _dave_kv, dave_id) =
         create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
 
     let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
@@ -209,10 +195,8 @@ pub async fn spawn_testing_validators(
     tokio::spawn(async move {
         axum::serve(listener_dave, dave_axum).await.unwrap();
     });
-    let dave_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
-    ids.push(dave_id);
+    let dave_id = PartyId::new(dave_id);
+    let ids = vec![alice_id, bob_id, charlie_id, dave_id];
 
     if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
         put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;

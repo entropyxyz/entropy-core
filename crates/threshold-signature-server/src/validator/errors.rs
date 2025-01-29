@@ -95,6 +95,8 @@ pub enum ValidatorErr {
     NotImplemented,
     #[error("Input must be 32 bytes: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
+    #[error("Node has started fresh and not yet successfully set up")]
+    NotReady,
 }
 
 impl IntoResponse for ValidatorErr {

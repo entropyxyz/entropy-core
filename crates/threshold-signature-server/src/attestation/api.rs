@@ -16,7 +16,6 @@
 use crate::{
     attestation::errors::AttestationErr,
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
-    get_signer_and_x25519_secret,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_ATTEST,
         substrate::{query_chain, submit_transaction},
@@ -33,7 +32,6 @@ use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{OcwMessageAttestationRequest, QuoteContext};
 use parity_scale_codec::Decode;
 use serde::Deserialize;
-use sp_core::Pair;
 use subxt::tx::PairSigner;
 use x25519_dalek::StaticSecret;
 
@@ -46,7 +44,6 @@ pub async fn attest(
     State(app_state): State<AppState>,
     input: Bytes,
 ) -> Result<StatusCode, AttestationErr> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let attestation_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -59,7 +56,7 @@ pub async fn attest(
     validate_new_attestation(block_number, &attestation_requests, &app_state.kv_store).await?;
 
     // Check whether there is an attestion request for us
-    if !attestation_requests.tss_account_ids.contains(&signer.signer().public().0) {
+    if !attestation_requests.tss_account_ids.contains(&app_state.subxt_account_id().0) {
         return Ok(StatusCode::OK);
     }
 
@@ -67,7 +64,7 @@ pub async fn attest(
     // Also acts as chain check to make sure data is on chain
     let nonce = {
         let pending_attestation_query =
-            entropy::storage().attestation().pending_attestations(signer.account_id());
+            entropy::storage().attestation().pending_attestations(app_state.signer().account_id());
         query_chain(&api, &rpc, pending_attestation_query, None)
             .await?
             .ok_or_else(|| AttestationErr::Unexpected)?
@@ -76,11 +73,11 @@ pub async fn attest(
     // TODO (#1181): since this endpoint is currently only used in tests we don't know what the context should be
     let context = QuoteContext::Validate;
 
-    let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
+    let quote = create_quote(nonce, &app_state.signer(), &app_state.x25519_secret, context).await?;
 
     // Submit the quote
     let attest_tx = entropy::tx().attestation().attest(quote.clone());
-    submit_transaction(&api, &rpc, &signer, &attest_tx, None).await?;
+    submit_transaction(&api, &rpc, &app_state.signer(), &attest_tx, None).await?;
 
     Ok(StatusCode::OK)
 }
@@ -94,16 +91,15 @@ pub async fn get_attest(
     State(app_state): State<AppState>,
     Query(context_querystring): Query<QuoteContextQuery>,
 ) -> Result<(StatusCode, Vec<u8>), AttestationErr> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
     // Request attestation to get nonce
-    let nonce = request_attestation(&api, &rpc, signer.signer()).await?;
+    let nonce = request_attestation(&api, &rpc, &app_state.pair).await?;
 
     let context = context_querystring.as_quote_context()?;
 
-    let quote = create_quote(nonce, &signer, &x25519_secret, context).await?;
+    let quote = create_quote(nonce, &app_state.signer(), &app_state.x25519_secret, context).await?;
 
     Ok((StatusCode::OK, quote))
 }

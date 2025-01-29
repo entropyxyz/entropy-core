@@ -12,11 +12,10 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use crate::{get_signer_and_x25519_secret, node_info::errors::GetInfoError, AppState};
+use crate::{node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
 use entropy_shared::{types::HashingAlgorithm, X25519PublicKey};
 use serde::{Deserialize, Serialize};
-use sp_core::Pair;
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
 
@@ -36,16 +35,20 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
 /// Public signing and encryption keys associated with a TS server
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TssPublicKeys {
+    /// Indicates that all prerequisite checks have passed
+    pub ready: bool,
+    /// The TSS account ID
     pub tss_account: AccountId32,
+    /// The public encryption key
     pub x25519_public_key: X25519PublicKey,
 }
 
 /// Returns the TS server's public keys and HTTP endpoint
 #[tracing::instrument(skip_all)]
 pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
-    let (signer, x25519_secret) = get_signer_and_x25519_secret(&app_state.kv_store).await?;
-    let tss_account = AccountId32(signer.signer().public().0);
-    let x25519_public_key = *x25519_dalek::PublicKey::from(&x25519_secret).as_bytes();
-
-    Ok(Json(TssPublicKeys { x25519_public_key, tss_account }))
+    Ok(Json(TssPublicKeys {
+        ready: app_state.is_ready(),
+        x25519_public_key: app_state.x25519_public_key(),
+        tss_account: app_state.subxt_account_id(),
+    }))
 }
