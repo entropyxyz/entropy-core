@@ -60,7 +60,7 @@ pub async fn open_protocol_connections(
             let initiate_connection = signer.public().0 > validators_info.tss_account.0;
             if !initiate_connection {
                 tracing::debug!(
-                    "Waiting for {:?} to open a connect with us.",
+                    "Waiting for {:?} to open a connection with us.",
                     validators_info.tss_account.0
                 );
             }
