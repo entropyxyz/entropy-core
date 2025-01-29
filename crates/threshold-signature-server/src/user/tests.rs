@@ -769,7 +769,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
 #[tokio::test]
 #[serial]
-async fn test_reports_peer_if_they_dont_participate_in_signing() {
+async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     initialize_test_logger().await;
     clean_tests();
 
