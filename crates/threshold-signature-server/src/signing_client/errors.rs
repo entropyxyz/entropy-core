@@ -149,7 +149,7 @@ pub enum SubscribeErr {
         #[from] entropy_protocol::protocol_transport::errors::ProtocolVersionMismatchError,
     ),
     #[error("Unable to find `Listener` with `SessionId`: {0:?}")]
-    NoSessionId(entropy_protocol::SessionId)
+    NoSessionId(entropy_protocol::SessionId),
 }
 
 impl IntoResponse for SubscribeErr {
