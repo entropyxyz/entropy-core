@@ -298,13 +298,13 @@ pub async fn get_channels(
             Ok(Channels(broadcast_out, rx_from_others))
         },
         Err(e) => {
-            let remaining_validators = state.unsubscribed_peers(session_id).map_err(|_| {
+            let unsubscribed_peers = state.unsubscribed_peers(session_id).map_err(|_| {
                 crate::signing_client::ProtocolErr::SessionError(format!(
                     "Unable to get unsubscribed peers for `SessionId` {:?}",
                     session_id,
                 ))
             })?;
-            Err(ProtocolErr::Timeout { source: e, inactive_peers: Some(remaining_validators) })
+            Err(ProtocolErr::Timeout { source: e, inactive_peers: Some(unsubscribed_peers) })
         },
     }
 }
