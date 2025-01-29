@@ -298,11 +298,12 @@ pub async fn get_channels(
             Ok(Channels(broadcast_out, rx_from_others))
         },
         Err(e) => {
-            let listener = state.listeners.lock().expect("TODO");
-            let remaining_listeners = listener.get(session_id).expect("TODO");
-            let remaining_validators: Vec<_> =
-                remaining_listeners.validators.keys().map(|id| SubxtAccountId32(*id)).collect();
-
+            let remaining_validators = state.unsubscribed_peers(session_id).map_err(|_| {
+                crate::signing_client::ProtocolErr::SessionError(format!(
+                    "Unable to get unsubscribed peers for `SessionId` {:?}",
+                    session_id,
+                ))
+            })?;
             Err(ProtocolErr::Timeout { source: e, inactive_peers: Some(remaining_validators) })
         },
     }

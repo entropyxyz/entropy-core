@@ -98,7 +98,7 @@ pub async fn do_signing(
                 Channels(broadcast_out, rx_from_others)
             },
             Err(e) => {
-                let remaining_peers = app_state.protocol_peers(session_id);
+                let remaining_peers = app_state.unsubscribed_peers(&session_id)?;
                 return Err(ProtocolErr::Timeout {
                     source: e,
                     inactive_peers: Some(remaining_peers),

@@ -48,4 +48,22 @@ impl ListenerState {
             .map_err(|e| SubscribeErr::LockError(e.to_string()))?
             .contains_key(session_id))
     }
+
+    /// Gets the list of peers who haven't yet subscribed to us for this particular session.
+    pub fn unsubscribed_peers(
+        &self,
+        session_id: &SessionId,
+    ) -> Result<Vec<subxt::utils::AccountId32>, SubscribeErr> {
+        let listener = self.listeners.lock().map_err(|e| SubscribeErr::LockError(e.to_string()))?;
+        let remaining_listeners =
+            listener.get(session_id).ok_or(SubscribeErr::NoSessionId(session_id.clone()))?;
+
+        let remaining_validators = remaining_listeners
+            .validators
+            .keys()
+            .map(|id| subxt::utils::AccountId32(*id))
+            .collect();
+
+        Ok(remaining_validators)
+    }
 }
