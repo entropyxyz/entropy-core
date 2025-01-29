@@ -299,7 +299,7 @@ pub async fn get_channels(
         },
         Err(e) => {
             let unsubscribed_peers = state.unsubscribed_peers(session_id).map_err(|_| {
-                crate::signing_client::ProtocolErr::SessionError(format!(
+                ProtocolErr::SessionError(format!(
                     "Unable to get unsubscribed peers for `SessionId` {:?}",
                     session_id,
                 ))
