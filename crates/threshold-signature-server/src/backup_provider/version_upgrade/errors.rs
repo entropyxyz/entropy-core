@@ -39,7 +39,7 @@ pub enum BackupEncryptedDbError {
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
     #[error("Cannot get stash account from chain")]
     CannotGetStashAccount,
-    #[error("You are not authorized to request a backup from this TSS node")]
+    #[error("Only the stash account associated with this TSS node may make this request")]
     Unauthorized,
     #[error("You cannot restore a db backup when the node is ready")]
     Ready,

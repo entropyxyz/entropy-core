@@ -123,8 +123,13 @@ pub async fn create_clients(
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
 
-    // Mock making the pre-requisite checks by setting the application state to ready
-    app_state.make_ready().unwrap();
+    if validator_name == &Some(ValidatorName::Eve) {
+        // This is special behaviour needed for the encrypted_db_backup_test
+        app_state.connected_to_chain_node().unwrap();
+    } else {
+        // Mock making the pre-requisite checks by setting the application state to ready
+        app_state.make_ready().unwrap();
+    }
 
     let account_id = app_state.subxt_account_id();
 
