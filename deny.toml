@@ -15,6 +15,7 @@ allow=[
   "MIT",
   "MIT-0",
   "MPL-2.0",
+  "Zlib"
 ]
 
 # If true, ignores workspace crates that aren't published, or are only
@@ -33,7 +34,6 @@ exceptions=[
   { allow=["AGPL-3.0"], name="entropy-client" },
   { allow=["AGPL-3.0"], name="entropy-testing-utils" },
   { allow=["AGPL-3.0"], name="entropy-test-cli" },
-  { allow=["AGPL-3.0"], name="entropy-create-test-keyshares" },
 
   # Other Entropy crates
   { allow=["AGPL-3.0"], name="entropy-programs-core" },
