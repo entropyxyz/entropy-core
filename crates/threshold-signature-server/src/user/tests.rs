@@ -936,7 +936,7 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
 
     // Check: We expect that the signature request will have failed because Charlie never initated a
     // connection with us.
-    assert!(dbg!(test_user_bad_connection_res.unwrap().text().await.unwrap()).contains("Timed out"));
+    assert!(test_user_bad_connection_res.unwrap().text().await.unwrap().contains("Timed out"));
 
     // We expect that a `NoteReport` event want found
     let report_event_found = tokio::time::timeout(
@@ -964,7 +964,6 @@ async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) -> bool {
         let events = block.events().await.unwrap();
 
         if events.has::<entropy::slashing::events::NoteReport>().unwrap() {
-            dbg!("report event found");
             return true;
         }
     }
