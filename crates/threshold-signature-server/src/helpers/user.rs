@@ -157,6 +157,7 @@ pub async fn compute_hash(
             Ok(hash)
         },
         HashingAlgorithm::Blake2_256 => Ok(blake2_256(message)),
+        HashingAlgorithm::Identity => Ok(message.try_into()?),
         HashingAlgorithm::Custom(i) => {
             let program_info = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
             evaluate_custom_hash(fuel, program_info, message)

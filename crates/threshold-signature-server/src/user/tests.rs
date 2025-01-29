@@ -956,6 +956,40 @@ async fn test_compute_hash() {
     // custom hash program uses blake 3 to hash
     let expected_hash = blake3::hash(PREIMAGE_SHOULD_SUCCEED).as_bytes().to_vec();
     assert_eq!(message_hash.to_vec(), expected_hash);
+
+    const EXPECTED_MAX_HASH_LENGTH: usize = 32;
+    let no_hash = vec![0u8; EXPECTED_MAX_HASH_LENGTH];
+    let no_hash_too_long = vec![0u8; EXPECTED_MAX_HASH_LENGTH + 1];
+
+    // no hash
+    let message_hash_no_hash = compute_hash(
+        &api,
+        &rpc,
+        &HashingAlgorithm::Identity,
+        10000000u64,
+        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &no_hash,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(message_hash_no_hash.to_vec(), no_hash);
+
+    // no hash too long error
+    let message_hash_no_hash_too_long = compute_hash(
+        &api,
+        &rpc,
+        &HashingAlgorithm::Identity,
+        10000000u64,
+        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &no_hash_too_long,
+    )
+    .await;
+
+    assert_eq!(
+        message_hash_no_hash_too_long.unwrap_err().to_string(),
+        "Conversion Error: could not convert slice to array".to_string()
+    );
 }
 
 #[tokio::test]

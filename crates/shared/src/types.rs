@@ -105,6 +105,8 @@ pub enum HashingAlgorithm {
     Sha3,
     Keccak,
     Blake2_256,
+    /// An algorithm which produces the same output as its input.
+    Identity,
     Custom(usize),
 }
 

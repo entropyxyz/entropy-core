@@ -15,6 +15,7 @@ allow=[
   "MIT",
   "MIT-0",
   "MPL-2.0",
+  "Zlib",
 ]
 
 # If true, ignores workspace crates that aren't published, or are only

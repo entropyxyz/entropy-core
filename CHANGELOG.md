@@ -47,6 +47,7 @@ runtime
 - Test CLI command to retrieve quote and change endpoint / TSS account in one command ([#1198](https://github.com/entropyxyz/entropy-core/pull/1198))
 - On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
+- Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
