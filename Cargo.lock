@@ -823,9 +823,9 @@ dependencies = [
 
 [[package]]
 name = "bip32"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa13fae8b6255872fd86f7faf4b41168661d7d78609f7bfe6771b85c6739a15b"
+checksum = "db40d3dfbeab4e031d78c844642fa0caa0b0db11ce1607ac9d2986dff1405c69"
 dependencies = [
  "bs58 0.5.1",
  "hmac 0.12.1",
@@ -834,6 +834,7 @@ dependencies = [
  "pbkdf2 0.12.2",
  "rand_core 0.6.4",
  "ripemd",
+ "secp256k1 0.27.0",
  "sha2 0.10.8",
  "subtle 2.6.1",
  "zeroize",
@@ -7781,9 +7782,9 @@ dependencies = [
 
 [[package]]
 name = "parity-scale-codec"
-version = "3.7.1"
+version = "3.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e5fdb66425c73b3f87565b2c8bd70c27afdd41b5e14ab46f303873a7c50294e"
+checksum = "b91c2d9a6a6004e205b7e881856fb1a0f5022d382acc2c01b52185f7b6f65997"
 dependencies = [
  "arrayvec 0.7.4",
  "bitvec",
@@ -11530,11 +11531,29 @@ dependencies = [
 
 [[package]]
 name = "secp256k1"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25996b82292a7a57ed3508f052cfff8640d38d32018784acd714758b43da9c8f"
+dependencies = [
+ "secp256k1-sys 0.8.1",
+]
+
+[[package]]
+name = "secp256k1"
 version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d24b59d129cdadea20aea4fb2352fa053712e5d713eee47d700cd4b2bc002f10"
 dependencies = [
- "secp256k1-sys",
+ "secp256k1-sys 0.9.2",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70a129b9e9efbfb223753b9163c4ab3b13cff7fd9c7f010fbac25ab4099fa07e"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -11677,9 +11696,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.137"
+version = "1.0.138"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "930cfb6e6abf99298aaad7d29abbef7a9999a9a8806a40088f55f0dcec03146b"
+checksum = "d434192e7da787e94a6ea7e9670b26a036d0ca41e0b7efb2676dd32bae872949"
 dependencies = [
  "itoa",
  "memchr",
@@ -12518,7 +12537,7 @@ dependencies = [
  "rand",
  "scale-info",
  "schnorrkel",
- "secp256k1",
+ "secp256k1 0.28.2",
  "secrecy 0.8.0",
  "serde",
  "sp-crypto-hashing",
@@ -12565,7 +12584,7 @@ dependencies = [
  "rand",
  "scale-info",
  "schnorrkel",
- "secp256k1",
+ "secp256k1 0.28.2",
  "secrecy 0.8.0",
  "serde",
  "sp-crypto-hashing",
@@ -12612,7 +12631,7 @@ dependencies = [
  "rand",
  "scale-info",
  "schnorrkel",
- "secp256k1",
+ "secp256k1 0.28.2",
  "secrecy 0.8.0",
  "serde",
  "sp-crypto-hashing",
@@ -12774,7 +12793,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "rustversion",
- "secp256k1",
+ "secp256k1 0.28.2",
  "sp-core 29.0.0",
  "sp-crypto-hashing",
  "sp-externalities 0.26.0",
@@ -12801,7 +12820,7 @@ dependencies = [
  "parity-scale-codec",
  "polkavm-derive 0.9.1",
  "rustversion",
- "secp256k1",
+ "secp256k1 0.28.2",
  "sp-core 31.0.0",
  "sp-crypto-hashing",
  "sp-externalities 0.27.0",
@@ -12828,7 +12847,7 @@ dependencies = [
  "parity-scale-codec",
  "polkavm-derive 0.9.1",
  "rustversion",
- "secp256k1",
+ "secp256k1 0.28.2",
  "sp-core 32.0.0",
  "sp-crypto-hashing",
  "sp-externalities 0.28.0",
@@ -14155,7 +14174,7 @@ dependencies = [
  "pbkdf2 0.12.2",
  "regex",
  "schnorrkel",
- "secp256k1",
+ "secp256k1 0.28.2",
  "secrecy 0.8.0",
  "sha2 0.10.8",
  "sp-crypto-hashing",
