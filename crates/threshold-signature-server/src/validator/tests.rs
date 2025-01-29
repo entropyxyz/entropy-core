@@ -284,13 +284,13 @@ async fn test_reshare_e2e() {
     }
     .unwrap();
 
-    // wait for roatate keyshare
+    // wait for rotate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
     let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
     assert_ne!(key_share_before, key_share_after);
 
-    // wait for roatate keyshare 2
+    // wait for rotate keyshare 2
     tokio::time::sleep(std::time::Duration::from_secs(80)).await;
 
     let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
