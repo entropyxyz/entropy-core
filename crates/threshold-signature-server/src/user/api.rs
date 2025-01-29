@@ -397,7 +397,6 @@ async fn handle_protocol_errors(
         return Err(error.to_string());
     }
 
-    // TODO (Nando): Maybe format these as not byte-arrays? Would need to change other places too...
     tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report.clone(), error.to_string());
 
     let mut failed_reports = Vec::new();
