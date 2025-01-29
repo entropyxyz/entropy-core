@@ -304,7 +304,7 @@ pub async fn get_channels(
                     session_id,
                 ))
             })?;
-            Err(ProtocolErr::Timeout { source: e, inactive_peers: Some(unsubscribed_peers) })
+            Err(ProtocolErr::Timeout { source: e, inactive_peers: unsubscribed_peers })
         },
     }
 }

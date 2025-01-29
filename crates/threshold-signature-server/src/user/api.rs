@@ -388,7 +388,7 @@ async fn handle_protocol_errors(
         | ProtocolErr::BadSubscribeMessage { account_id, .. }
         | ProtocolErr::Subscribe { account_id, .. } => vec![account_id.clone()],
 
-        ProtocolErr::Timeout { inactive_peers, .. } => inactive_peers.clone().unwrap_or_default(),
+        ProtocolErr::Timeout { inactive_peers, .. } => inactive_peers.clone(),
         _ => vec![],
     };
 

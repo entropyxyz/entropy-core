@@ -101,7 +101,7 @@ pub async fn do_signing(
                 let unsubscribed_peers = app_state.unsubscribed_peers(&session_id)?;
                 return Err(ProtocolErr::Timeout {
                     source: e,
-                    inactive_peers: Some(unsubscribed_peers),
+                    inactive_peers: unsubscribed_peers,
                 });
             },
         }
