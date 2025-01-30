@@ -17,12 +17,18 @@ use hex_literal::hex;
 use subxt::utils::AccountId32;
 
 lazy_static! {
-    pub static ref ALICE_STASH_ADDRESS: AccountId32 = hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into();
+    pub static ref ALICE_STASH_ADDRESS: AccountId32 =
+        hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // subkey inspect //Alice//stash
+    pub static ref BOB_STASH_ADDRESS: AccountId32 =
+        hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
+    pub static ref CHARLIE_STASH_ADDRESS: AccountId32 =
+        hex!["1e07379407fecc4b89eb7dbd287c2c781cfb1907a96947a3eb18e4f8e7198625"].into(); // subkey inspect //Charlie//stash
+    pub static ref DAVE_STASH_ADDRESS: AccountId32 =
+        hex!["e860f1b1c7227f7c22602f53f15af80747814dffd839719731ee3bba6edc126c"].into(); // subkey inspect //Dave//stash
+
     pub static ref RANDOM_ACCOUNT: AccountId32 = hex!["8676839ca1e196624106d17c56b1efbb90508a86d8053f7d4fcd21127a9f7565"].into();
     pub static ref VALIDATOR_1_STASH_ID: AccountId32 =
         hex!["be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"].into(); // alice stash;
-    pub static ref BOB_STASH_ADDRESS: AccountId32 =
-        hex!["fe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e"].into(); // subkey inspect //Bob//stash
 
     // See entropy_tss::helpers::validator::get_signer_and_x25519_secret for how these are derived
     pub static ref TSS_ACCOUNTS: Vec<AccountId32> = vec![

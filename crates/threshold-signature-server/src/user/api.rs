@@ -41,6 +41,7 @@ use x25519_dalek::StaticSecret;
 
 use super::UserErr;
 use crate::chain_api::entropy::runtime_types::pallet_registry::pallet::RegisteredInfo;
+use crate::signing_client::ProtocolErr;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
@@ -351,14 +352,15 @@ pub async fn sign_tx(
             request_limit,
             derivation_path,
         )
-        .await
-        .map(|signature| {
-            (
+        .await;
+
+        let signing_protocol_output = match signing_protocol_output {
+            Ok(signature) => Ok((
                 BASE64_STANDARD.encode(signature.to_rsv_bytes()),
                 signer.signer().sign(&signature.to_rsv_bytes()),
-            )
-        })
-        .map_err(|error| error.to_string());
+            )),
+            Err(e) => Err(handle_protocol_errors(&api, &rpc, &signer, e).await.unwrap_err()),
+        };
 
         // This response chunk is sent later with the result of the signing protocol
         if response_tx.try_send(serde_json::to_string(&signing_protocol_output)).is_err() {
@@ -368,6 +370,56 @@ pub async fn sign_tx(
 
     // This indicates that the signing protocol is starting successfully
     Ok((StatusCode::OK, Body::from_stream(response_rx)))
+}
+
+/// Helper for handling different protocol errors.
+///
+/// If the error is of the reportable type (e.g an offence from another peer) it will be reported
+/// on-chain by this helper.
+async fn handle_protocol_errors(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    error: ProtocolErr,
+) -> Result<(), String> {
+    let peers_to_report: Vec<SubxtAccountId32> = match &error {
+        ProtocolErr::ConnectionError { account_id, .. }
+        | ProtocolErr::EncryptedConnection { account_id, .. }
+        | ProtocolErr::BadSubscribeMessage { account_id, .. }
+        | ProtocolErr::Subscribe { account_id, .. } => vec![account_id.clone()],
+
+        ProtocolErr::Timeout { inactive_peers, .. } => inactive_peers.clone(),
+        _ => vec![],
+    };
+
+    // This is a non-reportable error, so we don't do any further processing with the error
+    if peers_to_report.is_empty() {
+        return Err(error.to_string());
+    }
+
+    tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report.clone(), error.to_string());
+
+    let mut failed_reports = Vec::new();
+    for peer in peers_to_report {
+        let report_unstable_peer_tx =
+            entropy::tx().staking_extension().report_unstable_peer(peer.clone());
+
+        if let Err(tx_error) =
+            submit_transaction(api, rpc, signer, &report_unstable_peer_tx, None).await
+        {
+            failed_reports.push(format!("{}", tx_error));
+        }
+    }
+
+    if failed_reports.is_empty() {
+        Err(error.to_string())
+    } else {
+        Err(format!(
+            "Failed to report peers for `{}` due to `{}`)",
+            error,
+            failed_reports.join(", ")
+        ))
+    }
 }
 
 /// HTTP POST endpoint called by the off-chain worker (Propagation pallet) during the network

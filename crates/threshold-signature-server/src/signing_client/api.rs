@@ -138,7 +138,6 @@ pub async fn ws_handler(
 async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
     if let Err(err) = handle_socket(socket, app_state).await {
         tracing::warn!("Websocket connection closed unexpectedly {:?}", err);
-        // TODO here we should inform the chain that signing failed
     };
 }
 
@@ -293,7 +292,19 @@ pub async fn get_channels(
     )
     .await?;
 
-    let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-    let broadcast_out = ready??;
-    Ok(Channels(broadcast_out, rx_from_others))
+    match timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await {
+        Ok(ready) => {
+            let broadcast_out = ready??;
+            Ok(Channels(broadcast_out, rx_from_others))
+        },
+        Err(e) => {
+            let unsubscribed_peers = state.unsubscribed_peers(session_id).map_err(|_| {
+                ProtocolErr::SessionError(format!(
+                    "Unable to get unsubscribed peers for `SessionId` {:?}",
+                    session_id,
+                ))
+            })?;
+            Err(ProtocolErr::Timeout { source: e, inactive_peers: unsubscribed_peers })
+        },
+    }
 }
