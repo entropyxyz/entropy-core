@@ -267,7 +267,7 @@ async fn test_reshare_e2e() {
 
     let mut i = 0;
     // Wait up to 2min for reshare to complete: check once every second if we have a new set of signers.
-    let _ = loop {
+    let old_signer_ids_2 = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
             let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
@@ -283,15 +283,31 @@ async fn test_reshare_e2e() {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     .unwrap();
-
     // wait for rotate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
     let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
     assert_ne!(key_share_before, key_share_after);
 
+    let _ = loop {
+        let new_signer_ids: HashSet<[u8; 32]> = {
+            let signer_query = entropy::storage().staking_extension().signers();
+            let signer_ids = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+            HashSet::from_iter(signer_ids.into_iter().map(|id| id.0))
+        };
+        if new_signer_ids != old_signer_ids_2 {
+            break Ok(new_signer_ids);
+        }
+        if i > 240 {
+            break Err("Timed out waiting for second reshare");
+        }
+        i += 1;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    .unwrap();
+
     // wait for rotate keyshare 2
-    tokio::time::sleep(std::time::Duration::from_secs(80)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
     let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
     assert_ne!(key_share_after, key_share_after_2);
