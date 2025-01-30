@@ -26,6 +26,7 @@ use crate::{
 };
 use entropy_client::{
     client::request_backup_encrypted_db, request_recover_encrypted_db, substrate::query_chain,
+    ClientError,
 };
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::test_node_process_testing_state;
@@ -57,17 +58,12 @@ fn encrypted_db_backup_test() {
             // Db dumps can only be made by non-signers, so find who is not currently a signer and get
             // their stash stash_account
             let (non_signer_stash_account, position) = {
-                let stash_accounts = vec![
-                    sr25519::Pair::from_string("//Alice//stash", None).unwrap(),
-                    sr25519::Pair::from_string("//Bob//stash", None).unwrap(),
-                    sr25519::Pair::from_string("//Charlie//stash", None).unwrap(),
-                    sr25519::Pair::from_string("//Dave//stash", None).unwrap(),
-                ];
                 // Get current signers
                 let signer_query = entropy::storage().staking_extension().signers();
                 let signer_stash_accounts =
                     query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
 
+                let stash_accounts = stash_accounts();
                 let position = stash_accounts
                     .iter()
                     .position(|s| !signer_stash_accounts.contains(&SubxtAccountId32(s.public().0)))
@@ -83,13 +79,7 @@ fn encrypted_db_backup_test() {
             // For testing we use TSS account ID as the db encryption key
             let key = TSS_ACCOUNTS[position].0;
 
-            let validator_name = match position {
-                0 => ValidatorName::Alice,
-                1 => ValidatorName::Bob,
-                2 => ValidatorName::Charlie,
-                3 => ValidatorName::Dave,
-                _ => panic!("Unexpected position"),
-            };
+            let validator_name = validator_name_from_index(position);
             let mnemonic = development_mnemonic(&Some(validator_name));
             let (tss_signer, _static_secret) =
                 get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
@@ -132,4 +122,80 @@ fn encrypted_db_backup_test() {
         // Attempt to recover
         request_recover_encrypted_db(&api, &rpc, stash_account, db_dump).await.unwrap();
     });
+}
+
+#[tokio::test]
+#[serial]
+async fn encrypted_db_backup_fails_with_signer() {
+    clean_tests();
+
+    initialize_test_logger().await;
+
+    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    // Db dumps can only be made by non-signers, so find who is not currently a signer and get
+    // their stash stash_account
+    let (signer_stash_account, position) = {
+        // Get current signers
+        let signer_query = entropy::storage().staking_extension().signers();
+        let signer_stash_accounts =
+            query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+
+        let stash_accounts = stash_accounts();
+        let position = stash_accounts
+            .iter()
+            .position(|s| signer_stash_accounts.contains(&SubxtAccountId32(s.public().0)))
+            .unwrap();
+        let stash_account = stash_accounts[position].clone();
+        (stash_account, position)
+    };
+
+    // Make an encryption key backup - without this we are unable to backup the encrypted db as it
+    // expects to find the associated details
+    let storage_path: PathBuf =
+        format!(".entropy/testing/test_db_validator{}", position + 1).into();
+    // For testing we use TSS account ID as the db encryption key
+    let key = TSS_ACCOUNTS[position].0;
+
+    let validator_name = validator_name_from_index(position);
+    let mnemonic = development_mnemonic(&Some(validator_name));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path.clone()).await.unwrap();
+
+    if let Err(ClientError::RequestBackup(reqwest::StatusCode::INTERNAL_SERVER_ERROR, message)) =
+        request_backup_encrypted_db(&api, &rpc, signer_stash_account.clone()).await
+    {
+        assert_eq!(
+            message,
+            "It is not possible to upgrade entropy-tss while you are a signer".to_string()
+        );
+    } else {
+        panic!("Unexpected error");
+    }
+}
+
+// TODO negative test for unauthorized backup
+// TODO negative test for unauthorized recovery
+
+/// Helper to get stash keypairs of Alice, Bob, Charlie and Dave
+fn stash_accounts() -> Vec<sr25519::Pair> {
+    vec![
+        sr25519::Pair::from_string("//Alice//stash", None).unwrap(),
+        sr25519::Pair::from_string("//Bob//stash", None).unwrap(),
+        sr25519::Pair::from_string("//Charlie//stash", None).unwrap(),
+        sr25519::Pair::from_string("//Dave//stash", None).unwrap(),
+    ]
+}
+
+fn validator_name_from_index(index: usize) -> ValidatorName {
+    match index {
+        0 => ValidatorName::Alice,
+        1 => ValidatorName::Bob,
+        2 => ValidatorName::Charlie,
+        3 => ValidatorName::Dave,
+        _ => panic!("Unexpected index"),
+    }
 }
