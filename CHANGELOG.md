@@ -48,6 +48,7 @@ runtime
 - On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
 - Report unstable peers from TSS [(#1228)](https://github.com/entropyxyz/entropy-core/pull/1228)
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
+- Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
