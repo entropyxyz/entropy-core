@@ -26,7 +26,7 @@ use crate::{
 };
 use entropy_client::{
     client::request_backup_encrypted_db, request_recover_encrypted_db, substrate::query_chain,
-    ClientError,
+    ClientError, EncryptedSignedMessage, TssPublicKeys,
 };
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::test_node_process_testing_state;
@@ -177,8 +177,119 @@ async fn encrypted_db_backup_fails_with_signer() {
     }
 }
 
+#[test]
+#[serial]
+fn encrypted_db_recovery_fails_with_wrong_stash_account() {
+    clean_tests();
+
+    // To simulate stopping the TSS node we make the backup in and starting a fresh one for recovery
+    // we use one tokio runtime to make the backup which allows us to drop the TSS task before
+    // starting another one for the recovery
+    let (db_dump, stash_account, port) = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            initialize_test_logger().await;
+
+            let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+                spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+            // Db dumps can only be made by non-signers, so find who is not currently a signer and get
+            // their stash stash_account
+            let (non_signer_stash_account, position) = {
+                // Get current signers
+                let signer_query = entropy::storage().staking_extension().signers();
+                let signer_stash_accounts =
+                    query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+
+                let stash_accounts = stash_accounts();
+                let position = stash_accounts
+                    .iter()
+                    .position(|s| !signer_stash_accounts.contains(&SubxtAccountId32(s.public().0)))
+                    .unwrap();
+                let stash_account = stash_accounts[position].clone();
+                (stash_account, position)
+            };
+
+            // Make an encryption key backup - without this we are unable to backup the encrypted db as it
+            // expects to find the associated details
+            let storage_path: PathBuf =
+                format!(".entropy/testing/test_db_validator{}", position + 1).into();
+            // For testing we use TSS account ID as the db encryption key
+            let key = TSS_ACCOUNTS[position].0;
+
+            let validator_name = validator_name_from_index(position);
+            let mnemonic = development_mnemonic(&Some(validator_name));
+            let (tss_signer, _static_secret) =
+                get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+            make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path.clone())
+                .await
+                .unwrap();
+
+            // Get a db dump
+            let db_dump = request_backup_encrypted_db(&api, &rpc, non_signer_stash_account.clone())
+                .await
+                .unwrap();
+
+            let port = 3001 + position;
+            (db_dump, non_signer_stash_account, port)
+        });
+
+    tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async {
+        // Start chain node
+        let force_authoring = true;
+        let _context =
+            test_node_process_testing_state(ChainSpecType::IntegrationJumpStarted, force_authoring)
+                .await;
+
+        // Start TSS node eve - who is not in the staking pallet chainspec
+        let (axum, _kv, _id) =
+            create_clients("validator5".to_string(), vec![], vec![], &Some(ValidatorName::Eve))
+                .await;
+
+        // We need to use the ip and port associated with the original TSS node
+        let tcp_socket = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+            .await
+            .expect("Unable to bind to given server address.");
+        tokio::spawn(async move {
+            axum::serve(tcp_socket, axum).await.unwrap();
+        });
+
+        // Get a stash account which is one of the active validators, but not the correct one
+        let wrong_stash_account =
+            stash_accounts().into_iter().find(|s| s.public() != stash_account.public()).unwrap();
+
+        let client = reqwest::Client::new();
+        let response = client.get(format!("http://127.0.0.1:{port}/info")).send().await.unwrap();
+        let node_info: TssPublicKeys = response.json().await.unwrap();
+
+        let signed_message = EncryptedSignedMessage::new(
+            &wrong_stash_account,
+            db_dump,
+            &node_info.x25519_public_key,
+            &[],
+        )
+        .unwrap();
+
+        let response = client
+            .post(format!("http://127.0.0.1:{port}/recover_encrypted_db"))
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&signed_message).unwrap())
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), reqwest::StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response.text().await.unwrap(),
+            "Only the stash account associated with this TSS node may make this request"
+        );
+    });
+}
+
 // TODO negative test for unauthorized backup
-// TODO negative test for unauthorized recovery
 
 /// Helper to get stash keypairs of Alice, Bob, Charlie and Dave
 fn stash_accounts() -> Vec<sr25519::Pair> {
