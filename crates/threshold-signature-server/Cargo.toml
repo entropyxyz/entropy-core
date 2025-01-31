@@ -113,6 +113,6 @@ alice       =[]
 bob         =[]
 # Enable this feature to run the integration tests for the wasm API of entropy-protocol
 # This requires the entropy-protocol node-js module to be built and so is not run by default
-wasm_test   =[]
+wasm_test=[]
 # Sets a shorter session duration for the entropy-tss test_reshare_e2e
 reshare-test=[]
