@@ -289,6 +289,8 @@ async fn test_reshare_e2e() {
     let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
     assert_ne!(key_share_before, key_share_after);
 
+    let key_share_before_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3003).await;
+
     let _ = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
             let signer_query = entropy::storage().staking_extension().signers();
@@ -309,8 +311,8 @@ async fn test_reshare_e2e() {
     // wait for rotate keyshare 2
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
-    let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
-    assert_ne!(key_share_after, key_share_after_2);
+    let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3003).await;
+    assert_ne!(key_share_before_2, key_share_after_2);
 }
 
 #[tokio::test]

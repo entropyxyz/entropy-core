@@ -849,6 +849,7 @@ pub mod pallet {
             let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
             let mut remove_indicies_len = 0;
+            let mut removed_signers = vec![];
             // removes first signer and pushes new signer to back if total signers not increased
             if current_signers_length >= signers_info.total_signers as usize {
                 let mut remove_indicies = vec![];
@@ -859,6 +860,7 @@ pub mod pallet {
                     }
                 }
                 if remove_indicies.is_empty() {
+                    removed_signers.push(current_signers[0].clone());
                     current_signers.remove(0);
                 } else {
                     remove_indicies_len = remove_indicies.len();
@@ -876,6 +878,7 @@ pub mod pallet {
                     };
 
                     for remove_index in truncated {
+                        removed_signers.push(current_signers[*remove_index].clone());
                         current_signers.remove(*remove_index);
                     }
                 }
@@ -887,7 +890,9 @@ pub mod pallet {
                 let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
                 // loops to find signer in validator that is not already signer
-                while current_signers.contains(next_signer_up) {
+                while current_signers.contains(next_signer_up)
+                    || removed_signers.contains(next_signer_up)
+                {
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
                     count += 1;

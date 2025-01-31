@@ -121,5 +121,5 @@ runtime-benchmarks=[
 try-runtime=["entropy-runtime/try-runtime", "try-runtime-cli/try-runtime"]
 # Enables real PCK certificate chain verification - which means TSS nodes must be runnning on TDX
 # hardware
-production=["entropy-runtime/production"]
+production  =["entropy-runtime/production"]
 reshare-test=["entropy-runtime/reshare-test"]
