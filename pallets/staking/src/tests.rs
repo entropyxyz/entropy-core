@@ -573,6 +573,7 @@ fn it_tests_new_session_handler_signer_size_changes() {
     new_test_ext().execute_with(|| {
         // Start with current validators as 5 and 6 based off the Mock `GenesisConfig`.
         Signers::<Test>::put(vec![5, 6]);
+        System::set_block_number(100);
 
         assert_ok!(Staking::new_session_handler(&[6, 5, 3, 4]));
         // Signer size increased is reflected as 5 is not removed from vec
