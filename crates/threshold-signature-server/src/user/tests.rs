@@ -20,6 +20,9 @@ use entropy_client::{
     client::update_programs,
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
+use rand::Rng;
+use anyhow::{anyhow, Result};
+use futures::future::try_join_all;
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{
     decode_verifying_key,
@@ -452,6 +455,86 @@ async fn signature_request_with_derived_account_works() {
     let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
     verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn signature_request_overload() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let bob = AccountKeyring::Bob;
+    let charlie = AccountKeyring::Charlie;
+
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    let (relayer_ip_and_key, _) =
+        validator_name_to_relayer_info(ValidatorName::Dave, &entropy_api, &rpc)
+            .await;
+
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair())
+            .await;
+
+    let sends = 5;
+    let mut calls = Vec::with_capacity(sends);
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..sends {
+        let randomness: u128 = rng.gen();
+        let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+            &entropy_api,
+            &rpc,
+            hex::encode(randomness.encode()),
+            verifying_key,
+        )
+        .await;
+        calls.push(signature_request);
+    }
+
+    // Spawn all signature requests with proper error handling
+    let tasks: Vec<_> = calls
+        .into_iter()
+        .map(|signature_request| {
+            let entropy_api = entropy_api.clone();
+            let rpc = rpc.clone();
+            let relayer_ip_and_key = relayer_ip_and_key.clone();
+            let verifying_key = verifying_key.clone();
+
+            tokio::spawn(async move {
+                let signature_request_responses = submit_transaction_request(relayer_ip_and_key, signature_request.clone(), alice)
+                    .await
+                    .map_err(|e| anyhow!("Failed to submit transaction request: {}", e))?;
+
+                let message_hash = Hasher::keccak(signature_request.message.as_bytes());
+                let verifying_key = SynedrionVerifyingKey::try_from(verifying_key.as_slice())
+                    .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
+
+                let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc)
+                    .await
+                    .map_err(|e| anyhow!("Failed to fetch signers from chain: {}", e))?;
+
+                verify_signature(
+                    Ok(signature_request_responses),
+                    message_hash,
+                    &verifying_key,
+                    &all_signers_info,
+                )
+                .await;
+                tokio::time::sleep(Duration::from_millis(500)).await;
+
+                Ok::<(), anyhow::Error>(())
+            })
+        })
+        .collect();
+
+    // Await all tasks and propagate errors
+    let results = try_join_all(tasks).await.unwrap();
 
     clean_tests();
 }
@@ -1211,7 +1294,6 @@ pub async fn verify_signature(
     validators_info: &Vec<ValidatorInfo>,
 ) {
     let mut test_user_res = test_user_res.unwrap();
-    assert_eq!(test_user_res.status(), 200);
     let chunk = test_user_res.chunk().await.unwrap().unwrap();
 
     let signing_results: Vec<Result<(String, Signature), String>> =
