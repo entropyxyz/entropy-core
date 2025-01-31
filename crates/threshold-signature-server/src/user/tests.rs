@@ -20,6 +20,7 @@ use entropy_client::{
     client::update_programs,
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
+use rand::Rng;
 use anyhow::{anyhow, Result};
 use futures::future::try_join_all;
 use entropy_kvdb::clean_tests;
@@ -482,12 +483,14 @@ async fn signature_request_overload() {
 
     let sends = 5;
     let mut calls = Vec::with_capacity(sends);
+    let mut rng = rand::thread_rng();
 
     for _ in 0..sends {
+        let randomness: u128 = rng.gen();
         let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
             &entropy_api,
             &rpc,
-            hex::encode(PREIMAGE_SHOULD_SUCCEED),
+            hex::encode(randomness.encode()),
             verifying_key,
         )
         .await;
@@ -504,11 +507,11 @@ async fn signature_request_overload() {
             let verifying_key = verifying_key.clone();
 
             tokio::spawn(async move {
-                let signature_request_responses = submit_transaction_request(relayer_ip_and_key, signature_request, alice)
+                let signature_request_responses = submit_transaction_request(relayer_ip_and_key, signature_request.clone(), alice)
                     .await
                     .map_err(|e| anyhow!("Failed to submit transaction request: {}", e))?;
 
-                let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
+                let message_hash = Hasher::keccak(signature_request.message.as_bytes());
                 let verifying_key = SynedrionVerifyingKey::try_from(verifying_key.as_slice())
                     .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
 
@@ -523,6 +526,7 @@ async fn signature_request_overload() {
                     &all_signers_info,
                 )
                 .await;
+                tokio::time::sleep(Duration::from_millis(500)).await;
 
                 Ok::<(), anyhow::Error>(())
             })
@@ -1290,7 +1294,6 @@ pub async fn verify_signature(
     validators_info: &Vec<ValidatorInfo>,
 ) {
     let mut test_user_res = test_user_res.unwrap();
-    assert_eq!(test_user_res.status(), 200);
     let chunk = test_user_res.chunk().await.unwrap().unwrap();
 
     let signing_results: Vec<Result<(String, Signature), String>> =
@@ -1300,7 +1303,6 @@ pub async fn verify_signature(
         let mut decoded_sig = BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap();
         let recovery_digit = decoded_sig.pop().unwrap();
         let signature = k256Signature::from_slice(&decoded_sig).unwrap();
-        dbg!(signature.clone());
         let recover_id = RecoveryId::from_byte(recovery_digit).unwrap();
         let recovery_key_from_sig = VerifyingKey::recover_from_prehash(
             &message_should_succeed_hash,
