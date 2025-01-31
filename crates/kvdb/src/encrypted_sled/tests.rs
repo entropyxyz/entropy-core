@@ -103,3 +103,45 @@ fn test_large_input() {
     assert_eq!(res, Some(sled::IVec::from(large_value)));
     clean_tests();
 }
+
+#[test]
+#[serial]
+fn test_import_export_db() {
+    let db = setup_db([1; 32]);
+
+    let db_kvs = vec![("key1", "value1"), ("key2", "value2"), ("key3", "value3")];
+
+    for (key, value) in db_kvs.clone() {
+        db.insert(key, value).unwrap();
+    }
+
+    let db_dump = db.export_encrypted_db();
+
+    // Remove the old db from disk
+    clean_tests();
+    let new_db = setup_db([1; 32]);
+
+    new_db.import_encrypted_db(db_dump.clone()).unwrap();
+
+    let new_db_dump = db.export_encrypted_db();
+
+    // Check that old and new database dumps are identical
+    assert_eq!(db_dump, new_db_dump);
+
+    // Check that original key-value pairs exist in new db
+    for (key, value) in db_kvs.clone() {
+        assert_eq!(Some(sled::IVec::from(value)), new_db.get(key).unwrap());
+    }
+
+    // Now try that again with the wrong encryption key to show that the backup is encrypted
+    clean_tests();
+    let different_db = setup_db([2; 32]);
+
+    different_db.import_encrypted_db(db_dump.clone()).unwrap();
+
+    // Check that original key-value pairs do not exist in new db
+    for (key, _value) in db_kvs {
+        assert!(different_db.get(key).is_err());
+    }
+    clean_tests();
+}

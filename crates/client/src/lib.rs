@@ -28,3 +28,18 @@ mod tests;
 pub mod client;
 #[cfg(feature = "full-client")]
 pub use client::*;
+
+use entropy_shared::X25519PublicKey;
+use serde::{Deserialize, Serialize};
+use subxt::utils::AccountId32;
+
+/// Public signing and encryption keys associated with a TS server
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+pub struct TssPublicKeys {
+    /// Indicates that all prerequisite checks have passed
+    pub ready: bool,
+    /// The TSS account ID
+    pub tss_account: AccountId32,
+    /// The public encryption key
+    pub x25519_public_key: X25519PublicKey,
+}

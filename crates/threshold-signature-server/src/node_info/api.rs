@@ -14,10 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use crate::{node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
-use entropy_shared::{types::HashingAlgorithm, X25519PublicKey};
-use serde::{Deserialize, Serialize};
+pub use entropy_client::TssPublicKeys;
+use entropy_shared::types::HashingAlgorithm;
 use strum::IntoEnumIterator;
-use subxt::utils::AccountId32;
 
 /// Returns the version and commit data
 #[tracing::instrument]
@@ -30,17 +29,6 @@ pub async fn version() -> String {
 pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
     let hashing_algos = HashingAlgorithm::iter().collect::<Vec<_>>();
     Json(hashing_algos)
-}
-
-/// Public signing and encryption keys associated with a TS server
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
-pub struct TssPublicKeys {
-    /// Indicates that all prerequisite checks have passed
-    pub ready: bool,
-    /// The TSS account ID
-    pub tss_account: AccountId32,
-    /// The public encryption key
-    pub x25519_public_key: X25519PublicKey,
 }
 
 /// Returns the TS server's public keys and HTTP endpoint

@@ -28,6 +28,8 @@ use rand::RngCore;
 use sled::IVec;
 use zeroize::Zeroize;
 
+use crate::DbDump;
+
 use super::{
     constants::*,
     record::EncryptedRecord,
@@ -162,5 +164,24 @@ impl EncryptedDb {
     /// Returns true if the database was recovered from a previous process.
     pub fn was_recovered(&self) -> bool {
         self.kv.was_recovered()
+    }
+
+    /// Dump key-value tuples directly out of the db without decrypting, for db migration export
+    pub fn export_encrypted_db(&self) -> DbDump {
+        self.kv
+            .iter()
+            .filter_map(|kv_result| {
+                let kv = kv_result.ok()?;
+                Some((kv.0.to_vec(), kv.1.to_vec()))
+            })
+            .collect()
+    }
+
+    /// Import encrypted key-value tuples directly into the db without encrypting, for db migration import
+    pub fn import_encrypted_db(&self, db_dump: DbDump) -> EncryptedDbResult<()> {
+        for (key, value) in db_dump {
+            self.kv.insert(key, value)?;
+        }
+        Ok(())
     }
 }

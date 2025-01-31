@@ -18,6 +18,10 @@ pub mod encrypted_sled;
 pub mod kv_manager;
 use std::{fs, path::PathBuf};
 
+/// Type alias for a database dump, which consists of a vector of raw key-value tuples
+/// as they appear in the db (with value encryption)
+pub type DbDump = Vec<(Vec<u8>, Vec<u8>)>;
+
 pub fn get_db_path(testing: bool) -> String {
     let mut root: PathBuf = std::env::current_dir().expect("could not get home directory");
     root.push(".entropy");

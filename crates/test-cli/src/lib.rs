@@ -30,8 +30,8 @@ use entropy_client::{
         bond_account, get_accounts, get_api, get_oracle_headings, get_programs,
         get_quote_and_change_endpoint, get_quote_and_change_threshold_accounts,
         get_quote_and_declare_validate, get_rpc, get_tdx_quote, jumpstart_network, register,
-        remove_program, set_session_keys, sign, store_program, update_programs,
-        VERIFYING_KEY_LENGTH,
+        remove_program, request_backup_encrypted_db, request_recover_encrypted_db,
+        set_session_keys, sign, store_program, update_programs, VERIFYING_KEY_LENGTH,
     },
 };
 pub use entropy_shared::{attestation::QuoteContext, PROGRAM_VERSION_NUMBER};
@@ -230,6 +230,24 @@ enum CliCommand {
         /// The mnemonic for the signer which will trigger the call.
         #[arg(short, long)]
         mnemonic_option: Option<String>,
+    },
+    /// Create a backup of entropy-tss data before a version upgrade
+    BackupEntropyTssDb {
+        /// The mnemonic for the stash account
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+        /// The filename to write the backup to. Defaults to `entropy-tss-backup.dat`
+        #[arg(short, long)]
+        filename: Option<String>,
+    },
+    /// Recover a backup of entropy-tss data after a version upgrade
+    RecoverEntropyTssDb {
+        /// The mnemonic for the stash account
+        #[arg(short, long)]
+        mnemonic_option: Option<String>,
+        /// The filename to read the backup from. Defaults to `entropy-tss-backup.dat`
+        #[arg(short, long)]
+        filename: Option<String>,
     },
 }
 
@@ -639,6 +657,32 @@ pub async fn run_command(
                 Ok("{}".to_string())
             } else {
                 Ok("Validation declared succefully".to_string())
+            }
+        },
+        CliCommand::BackupEntropyTssDb { mnemonic_option, filename } => {
+            let filename = filename.unwrap_or_else(|| "entropy-tss-backup.dat".to_string());
+            let stash_account = handle_mnemonic(mnemonic_option)?;
+
+            let backup = request_backup_encrypted_db(&api, &rpc, stash_account).await?;
+            std::fs::write(&filename, backup)?;
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Succesfully made backup".to_string())
+            }
+        },
+        CliCommand::RecoverEntropyTssDb { mnemonic_option, filename } => {
+            let filename = filename.unwrap_or_else(|| "entropy-tss-backup.dat".to_string());
+            let stash_account = handle_mnemonic(mnemonic_option)?;
+            let backup = std::fs::read(&filename)?;
+
+            request_recover_encrypted_db(&api, &rpc, stash_account, backup).await?;
+
+            if cli.json {
+                Ok("{}".to_string())
+            } else {
+                Ok("Succesfully recovered backup".to_string())
             }
         },
     }

@@ -13,10 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Backup database encryption key provider service
 pub mod api;
 pub mod errors;
-pub mod version_upgrade;
 
 #[cfg(test)]
 mod tests;

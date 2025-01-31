@@ -17,6 +17,8 @@
 
 use std::fmt::Debug;
 
+use crate::DbDump;
+
 // default KV store names
 pub const DEFAULT_KV_NAME: &str = "kv";
 
@@ -67,6 +69,13 @@ pub(super) enum Command<V> {
     },
     Delete {
         key: String,
+        resp: Responder<()>,
+    },
+    ExportDb {
+        resp: Responder<DbDump>,
+    },
+    ImportDb {
+        db_dump: DbDump,
         resp: Responder<()>,
     },
 }

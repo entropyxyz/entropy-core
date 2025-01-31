@@ -158,6 +158,7 @@
 //! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
 //!     [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
+use backup_provider::version_upgrade::api::{backup_encrypted_db, recover_encrypted_db};
 pub use entropy_client::chain_api;
 pub(crate) mod attestation;
 pub(crate) mod backup_provider;
@@ -187,6 +188,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
+use tokio::sync::mpsc;
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
@@ -253,6 +255,7 @@ pub struct AppState {
     /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
     /// Maps response x25519 public key to quote nonce
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
+    shutdown_tx: mpsc::Sender<()>,
 }
 
 impl AppState {
@@ -262,6 +265,7 @@ impl AppState {
         kv_store: KvManager,
         pair: sr25519::Pair,
         x25519_secret: StaticSecret,
+        shutdown_tx: mpsc::Sender<()>,
     ) -> Self {
         Self {
             tss_state: Arc::new(RwLock::new(TssState::new())),
@@ -272,6 +276,7 @@ impl AppState {
             kv_store,
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
+            shutdown_tx,
         }
     }
 
@@ -343,6 +348,15 @@ impl AppState {
             get_rpc(&self.configuration.endpoint).await?,
         ))
     }
+
+    pub async fn shutdown(self) {
+        if let Err(error) = self.shutdown_tx.send(()).await {
+            // This should only occur if a shutdown has been requested more than once in different
+            // handlers. It is not a problem since we will be in the process of shutting down
+            // anyway.
+            tracing::warn!("Unable to shutdown: {error}");
+        };
+    }
 }
 
 pub fn app(app_state: AppState) -> Router {
@@ -358,6 +372,8 @@ pub fn app(app_state: AppState) -> Router {
         .route("/backup_encryption_key", post(backup_encryption_key))
         .route("/recover_encryption_key", post(recover_encryption_key))
         .route("/backup_provider_quote_nonce", post(quote_nonce))
+        .route("/backup_encrypted_db", post(backup_encrypted_db))
+        .route("/recover_encrypted_db", post(recover_encrypted_db))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

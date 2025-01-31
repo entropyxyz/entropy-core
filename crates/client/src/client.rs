@@ -43,7 +43,7 @@ use crate::{
     user::{
         self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
     },
-    Hasher,
+    Hasher, TssPublicKeys,
 };
 pub use crate::{
     chain_api::{get_api, get_rpc},
@@ -52,7 +52,7 @@ pub use crate::{
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 pub use entropy_shared::{attestation::QuoteContext, HashingAlgorithm};
 use parity_scale_codec::Decode;
-use rand::Rng;
+use rand::{rngs::OsRng, Rng};
 use std::str::FromStr;
 pub use synedrion::KeyShare;
 
@@ -69,6 +69,7 @@ use subxt::{
     Config, OnlineClient,
 };
 use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
+use x25519_dalek::{PublicKey, StaticSecret};
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
@@ -650,4 +651,106 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
         im_online: pallet_im_online::sr25519::app_sr25519::Public(SRPublic(im_online)),
         authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
     })
+}
+
+/// Before making a version upgrade to entropy-tss, download an encrypted database dump
+pub async fn request_backup_encrypted_db(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    stash_account_pair: sr25519::Pair,
+) -> Result<Vec<u8>, ClientError> {
+    // Do a query to get tss details from stash account
+    let query = entropy::storage()
+        .staking_extension()
+        .threshold_servers(SubxtAccountId32(stash_account_pair.public().0));
+    let server_info = query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
+
+    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
+
+    // Generate encryption keypair used for receiving the response
+    let response_secret_key = StaticSecret::random_from_rng(OsRng);
+    let response_key = PublicKey::from(&response_secret_key).to_bytes();
+
+    let signed_message = EncryptedSignedMessage::new(
+        &stash_account_pair,
+        response_key.to_vec(),
+        &server_info.x25519_public_key,
+        &[],
+    )?;
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("http://{tss_endpoint}/backup_encrypted_db"))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message)?)
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        let text = response.text().await?;
+        return Err(ClientError::RequestBackup(status, text));
+    }
+
+    let response_bytes = response.bytes().await?;
+    let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
+    let signed_message = encrypted_response.decrypt(&response_secret_key, &[])?;
+
+    // Check that the response was signed by the TSS node
+    if signed_message.account_id() != server_info.tss_account.0.into() {
+        return Err(ClientError::BadSignature);
+    }
+
+    Ok(signed_message.message.0)
+}
+
+/// Make a db recovery following an entropy-tss version upgrade
+pub async fn request_recover_encrypted_db(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    stash_account_pair: sr25519::Pair,
+    backup_payload: Vec<u8>,
+) -> Result<(), ClientError> {
+    // Do a query to get expected recovered TSS details from stash account
+    let query = entropy::storage()
+        .staking_extension()
+        .threshold_servers(SubxtAccountId32(stash_account_pair.public().0));
+    let server_info = query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
+    let tss_endpoint = std::str::from_utf8(&server_info.endpoint)?;
+
+    let client = reqwest::Client::new();
+
+    // First get the TSS node's temporary x25519 public key using `/info`
+    let response = client.get(format!("http://{tss_endpoint}/info")).send().await?;
+    let node_info: TssPublicKeys = response.json().await?;
+
+    // Make sure the node has been freshly booted and is not yet in a running state
+    if node_info.ready {
+        return Err(ClientError::CannotRecoverBackupWhenNodeRunning);
+    }
+
+    // Encrypt the backup payload to the temporary x25519 public key
+    let signed_message = EncryptedSignedMessage::new(
+        &stash_account_pair,
+        backup_payload,
+        &node_info.x25519_public_key,
+        &[],
+    )?;
+
+    let response = client
+        .post(format!("http://{tss_endpoint}/recover_encrypted_db"))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&signed_message)?)
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        let text = response.text().await?;
+        return Err(ClientError::RequestBackup(status, text));
+    }
+
+    // TODO now poll the node's `/info` route until we get the server_info.account_id
+
+    Ok(())
 }
