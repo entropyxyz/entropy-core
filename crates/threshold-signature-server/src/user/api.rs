@@ -686,7 +686,7 @@ pub fn check_hash_pointer_out_of_bounds(
 ) -> Result<(), UserErr> {
     match hashing_algorithm {
         HashingAlgorithm::Custom(i) => {
-            if i >= &program_info_len {
+            if *i as usize >= program_info_len {
                 return Err(UserErr::CustomHashOutOfBounds);
             }
             Ok(())
