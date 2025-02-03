@@ -504,15 +504,14 @@ async fn signature_request_overload() {
             let entropy_api = entropy_api.clone();
             let rpc = rpc.clone();
             let relayer_ip_and_key = relayer_ip_and_key.clone();
-            let verifying_key = verifying_key.clone();
 
             tokio::spawn(async move {
                 let signature_request_responses = submit_transaction_request(relayer_ip_and_key, signature_request.clone(), alice)
                     .await
                     .map_err(|e| anyhow!("Failed to submit transaction request: {}", e))?;
 
-                let message_hash = Hasher::keccak(signature_request.message.as_bytes());
-                let verifying_key = SynedrionVerifyingKey::try_from(verifying_key.as_slice())
+                let message_hash = Hasher::keccak(&hex::decode(signature_request.message).unwrap());
+                let verifying_key = SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
                     .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
 
                 let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc)
@@ -526,7 +525,7 @@ async fn signature_request_overload() {
                     &all_signers_info,
                 )
                 .await;
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                tokio::time::sleep(Duration::from_millis(2000)).await;
 
                 Ok::<(), anyhow::Error>(())
             })
