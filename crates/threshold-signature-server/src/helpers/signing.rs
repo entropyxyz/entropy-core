@@ -114,14 +114,14 @@ pub async fn do_signing(
             tss_accounts,
         )
         .await?;
-    increment_or_wipe_request_limit(
-        rpc,
-        kv_manager,
-        hex::encode(info.signing_session_info.signature_verifying_key),
-        request_limit,
-    )
-    .await
-    .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
+    // increment_or_wipe_request_limit(
+    //     rpc,
+    //     kv_manager,
+    //     hex::encode(info.signing_session_info.signature_verifying_key),
+    //     request_limit,
+    // )
+    // .await
+    // .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
     Ok(result)
 }

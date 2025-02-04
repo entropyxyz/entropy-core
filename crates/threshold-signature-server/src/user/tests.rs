@@ -481,7 +481,7 @@ async fn signature_request_overload() {
         store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair())
             .await;
 
-    let sends = 5;
+    let sends = 15;
     let mut calls = Vec::with_capacity(sends);
     let mut rng = rand::thread_rng();
 
