@@ -621,7 +621,7 @@ pub async fn request_limit_check(
 /// Increments or restarts request count if a new block has been created
 pub async fn increment_or_wipe_request_limit(
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    kv_store: &KvManager,
+    app_state: &AppState,
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
@@ -632,44 +632,33 @@ pub async fn increment_or_wipe_request_limit(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if kv_store.kv().exists(&key).await? {
-        let serialized_request_amount = kv_store.kv().get(&key).await?;
+    if app_state.exists_in_cache(key.clone()) {
+        let serialized_request_amount = app_state.read_from_cache(key.clone());
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
-
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
-            kv_store.kv().delete(&key).await?;
-            let reservation = kv_store.kv().reserve_key(key).await?;
-            kv_store
-                .kv()
-                .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())
-                .await?;
+            app_state.write_to_cache(
+                key,
+                RequestLimitStorage { block_number, request_amount: 1 }.encode(),
+            );
             return Ok(());
         }
 
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
-            kv_store.kv().delete(&key).await?;
-            let reservation = kv_store.kv().reserve_key(key).await?;
-            kv_store
-                .kv()
-                .put(
-                    reservation,
-                    RequestLimitStorage {
-                        block_number,
-                        request_amount: request_info.request_amount + 1,
-                    }
-                    .encode(),
-                )
-                .await?;
+            app_state.write_to_cache(
+                key,
+                RequestLimitStorage {
+                    block_number,
+                    request_amount: request_info.request_amount + 1,
+                }
+                .encode(),
+            );
         }
     } else {
-        let reservation = kv_store.kv().reserve_key(key).await?;
-        kv_store
-            .kv()
-            .put(reservation, RequestLimitStorage { block_number, request_amount: 1 }.encode())
-            .await?;
+        app_state
+            .write_to_cache(key, RequestLimitStorage { block_number, request_amount: 1 }.encode());
     }
 
     Ok(())

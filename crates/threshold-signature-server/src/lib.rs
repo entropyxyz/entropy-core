@@ -170,18 +170,6 @@ pub mod user;
 pub mod validation;
 pub mod validator;
 
-use axum::{
-    http::Method,
-    routing::{get, post},
-    Router,
-};
-use entropy_kvdb::kv_manager::KvManager;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace::{self, TraceLayer},
-};
-use tracing::Level;
-
 pub use crate::helpers::{
     launch,
     validator::{get_signer, get_signer_and_x25519_secret},
@@ -196,18 +184,54 @@ use crate::{
     user::api::*,
     validator::api::{new_reshare, rotate_network_key},
 };
+use axum::{
+    http::Method,
+    routing::{get, post},
+    Router,
+};
+use entropy_kvdb::kv_manager::KvManager;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
+use tracing::Level;
 
 #[derive(Clone)]
 pub struct AppState {
     listener_state: ListenerState,
     pub configuration: Configuration,
     pub kv_store: KvManager,
+    pub cache: Cache,
 }
 
+pub type Cache = Arc<RwLock<HashMap<String, Vec<u8>>>>;
+
 impl AppState {
-    pub fn new(configuration: Configuration, kv_store: KvManager) -> Self {
-        Self { listener_state: ListenerState::default(), configuration, kv_store }
+    pub fn new(configuration: Configuration, kv_store: KvManager, cache: Cache) -> Self {
+        Self { listener_state: ListenerState::default(), configuration, kv_store, cache }
     }
+    // TODO borrow keys
+
+    pub fn write_to_cache(&self, key: String, value: Vec<u8>) {
+        let mut cache = self.cache.write().unwrap();
+        cache.insert(key, value);
+    }
+
+    pub fn exists_in_cache(&self, key: String) -> bool {
+        let cache = self.cache.read().unwrap();
+        cache.contains_key(&key)
+    }
+
+    pub fn read_from_cache(&self, key: String) -> Vec<u8> {
+        let cache = self.cache.read().unwrap();
+        // TODO: check key exists handle error
+        cache[&key].clone()
+    }
+    // TODO delete from cache
 
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
     pub fn unsubscribed_peers(

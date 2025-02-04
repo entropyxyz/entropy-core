@@ -50,7 +50,14 @@ use entropy_protocol::PartyId;
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
 use sp_keyring::AccountKeyring;
-use std::{fmt, net::SocketAddr, str, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt,
+    net::SocketAddr,
+    str,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -82,7 +89,13 @@ pub async fn setup_client() -> KvManager {
     let _ = setup_latest_block_number(&kv_store).await;
     let listener_state = ListenerState::default();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
+    let cache: HashMap<String, Vec<u8>> = HashMap::new();
+    let app_state = AppState {
+        listener_state,
+        configuration,
+        kv_store: kv_store.clone(),
+        cache: Arc::new(RwLock::new(cache)),
+    };
     let app = app(app_state).into_make_service();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
@@ -119,8 +132,13 @@ pub async fn create_clients(
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
-
-    let app_state = AppState { listener_state, configuration, kv_store: kv_store.clone() };
+    let cache: HashMap<String, Vec<u8>> = HashMap::new();
+    let app_state = AppState {
+        listener_state,
+        configuration,
+        kv_store: kv_store.clone(),
+        cache: Arc::new(RwLock::new(cache)),
+    };
 
     let app = app(app_state).into_make_service();
 

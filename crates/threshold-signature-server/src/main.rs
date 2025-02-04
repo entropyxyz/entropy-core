@@ -13,7 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{net::SocketAddr, str::FromStr};
+use std::{
+    collections::HashMap,
+    net::SocketAddr,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 
 use clap::Parser;
 
@@ -63,8 +68,10 @@ async fn main() {
     }
 
     let kv_store = load_kv_store(&validator_name, args.password_file).await;
+    let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(configuration.clone(), kv_store.clone());
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), Arc::new(RwLock::new(cache)));
 
     if cfg!(test) || validator_name.is_some() {
         setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
