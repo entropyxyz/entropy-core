@@ -56,7 +56,13 @@ use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::{crypto::Ss58Codec, Pair as OtherPair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::{str, str::FromStr, time::Duration};
+use std::{
+    collections::HashMap,
+    str,
+    str::FromStr,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::PolkadotExtrinsicParamsBuilder as Params,
@@ -84,7 +90,7 @@ use crate::{
     helpers::{
         launch::{
             development_mnemonic, load_kv_store, setup_mnemonic, threshold_account_id,
-            ValidatorName,
+            ValidatorName, DEFAULT_ENDPOINT,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -101,6 +107,7 @@ use crate::{
         request_limit_key, RelayerSignatureRequest, RequestLimitStorage,
     },
     validation::EncryptedSignedMessage,
+    AppState, Configuration, ListenerState,
 };
 
 #[tokio::test]
@@ -1852,53 +1859,63 @@ async fn test_registration_flow() {
     clean_tests();
 }
 
-// #[tokio::test]
-// #[serial]
-// async fn test_increment_or_wipe_request_limit() {
-//     initialize_test_logger().await;
-//     clean_tests();
-//     let substrate_context = test_context_stationary().await;
-//     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
-//     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-//     let kv_store = load_kv_store(&None, None).await;
+#[tokio::test]
+#[serial]
+async fn test_increment_or_wipe_request_limit() {
+    initialize_test_logger().await;
+    clean_tests();
+    let substrate_context = test_context_stationary().await;
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+    let kv_store = load_kv_store(&None, None).await;
 
-//     let request_limit_query = entropy::storage().parameters().request_limit();
-//     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
+    let listener_state = ListenerState::default();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    let cache: HashMap<String, Vec<u8>> = HashMap::new();
+    let app_state = AppState {
+        listener_state,
+        configuration,
+        kv_store: kv_store.clone(),
+        cache: Arc::new(RwLock::new(cache)),
+    };
 
-//     // no error
-//     assert!(request_limit_check(
-//         &rpc,
-//         &kv_store,
-//         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
-//         request_limit
-//     )
-//     .await
-//     .is_ok());
+    let request_limit_query = entropy::storage().parameters().request_limit();
+    let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
 
-//     // run up the request check to one less then max (to check integration)
-//     for _ in 0..request_limit {
-//         increment_or_wipe_request_limit(
-//             &rpc,
-//             &kv_store,
-//             hex::encode(DAVE_VERIFYING_KEY.to_vec()),
-//             request_limit,
-//         )
-//         .await
-//         .unwrap();
-//     }
-//     // should now fail
-//     let err_too_many_requests = request_limit_check(
-//         &rpc,
-//         &kv_store,
-//         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
-//         request_limit,
-//     )
-//     .await
-//     .map_err(|e| e.to_string());
-//     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
+    // no error
+    assert!(request_limit_check(
+        &rpc,
+        &app_state,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit
+    )
+    .await
+    .is_ok());
 
-//     clean_tests();
-// }
+    // run up the request check to one less then max (to check integration)
+    for _ in 0..request_limit {
+        increment_or_wipe_request_limit(
+            &rpc,
+            &app_state,
+            hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+            request_limit,
+        )
+        .await
+        .unwrap();
+    }
+    // should now fail
+    let err_too_many_requests = request_limit_check(
+        &rpc,
+        &app_state,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit,
+    )
+    .await
+    .map_err(|e| e.to_string());
+    assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
+
+    clean_tests();
+}
 
 #[tokio::test]
 #[serial_test::serial]

@@ -294,8 +294,7 @@ pub async fn sign_tx(
 
     let string_verifying_key =
         hex::encode(relayer_sig_request.user_signature_request.signature_verifying_key.clone());
-    request_limit_check(&rpc, &app_state.kv_store, string_verifying_key.clone(), request_limit)
-        .await?;
+    request_limit_check(&rpc, &app_state, string_verifying_key.clone(), request_limit).await?;
 
     let block_number = rpc
         .chain_get_header(None)
@@ -594,7 +593,7 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
 /// Checks the request limit
 pub async fn request_limit_check(
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    kv_store: &KvManager,
+    app_state: &AppState,
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
@@ -605,8 +604,8 @@ pub async fn request_limit_check(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if kv_store.kv().exists(&key).await? {
-        let serialized_request_amount = kv_store.kv().get(&key).await?;
+    if app_state.exists_in_cache(key.clone()) {
+        let serialized_request_amount = app_state.read_from_cache(key.clone());
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
         if request_info.block_number == block_number && request_info.request_amount >= request_limit
