@@ -276,3 +276,5 @@ try-runtime=[
 # Enables real PCK certificate chain verification - which means TSS nodes must be runnning on TDX
 # hardware
 production=["pallet-attestation/production"]
+# Sets a shorter session duration for the entropy-tss test_reshare_e2e
+reshare-test=[]

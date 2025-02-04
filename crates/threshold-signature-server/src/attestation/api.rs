@@ -15,7 +15,7 @@
 
 use crate::{
     attestation::errors::{AttestationErr, QuoteMeasurementErr},
-    chain_api::{entropy, get_api, get_rpc},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         launch::LATEST_BLOCK_NUMBER_ATTEST,
         substrate::{query_chain, submit_transaction},
@@ -27,7 +27,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
 };
-use entropy_client::{chain_api::EntropyConfig, user::request_attestation};
+use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{
     attestation::{QuoteContext, QuoteInputData, VerifyQuoteError},

@@ -181,6 +181,8 @@ pub enum UserErr {
     NotReady,
     #[error("Program Version not supported")]
     ProgramVersion,
+    #[error("Conversion Error: {0}")]
+    TryFromSlice(#[from] std::array::TryFromSliceError),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

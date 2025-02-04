@@ -49,8 +49,10 @@ runtime
 - Add TDX test network chainspec ([#1204](https://github.com/entropyxyz/entropy-core/pull/1204))
 - Test CLI command to retrieve quote and change endpoint / TSS account in one command ([#1198](https://github.com/entropyxyz/entropy-core/pull/1198))
 - On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
+- Report unstable peers from TSS [(#1228)](https://github.com/entropyxyz/entropy-core/pull/1228)
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
 - Database encryption key backup / recovery feature for entropy-tss [(#1249)](https://github.com/entropyxyz/entropy-core/pull/1249)
+- Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))

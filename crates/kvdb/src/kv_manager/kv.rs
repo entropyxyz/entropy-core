@@ -182,14 +182,7 @@ fn handle_response<T>(
 ) where
     T: Debug,
 {
-    match kv_resp {
-        Ok(_) => {
-            let response = resp.send(kv_resp);
-            match response {
-                Ok(_) => {},
-                Err(err) => tracing::warn!("Receiver to dropped with: {:?}", err),
-            }
-        },
-        Err(err) => tracing::error!("Failed to handle database query with: {:?}", err),
-    }
+    if let Err(err) = resp.send(kv_resp) {
+        tracing::warn!("KVDB response channel receiver to dropped with: {:?}", err);
+    };
 }
