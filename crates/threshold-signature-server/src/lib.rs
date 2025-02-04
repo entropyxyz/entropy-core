@@ -179,7 +179,7 @@ use crate::{
     health::api::healthz,
     launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
-    r#unsafe::api::{delete, put, remove_keys, unsafe_get},
+    r#unsafe::api::{delete, put, remove_keys, unsafe_get, write_to_cache},
     signing_client::{api::*, ListenerState},
     user::api::*,
     validator::api::{new_reshare, rotate_network_key},
@@ -224,6 +224,11 @@ impl AppState {
     pub fn exists_in_cache(&self, key: String) -> bool {
         let cache = self.cache.read().unwrap();
         cache.contains_key(&key)
+    }
+
+    pub fn remove_from_cache(&self, key: String) {
+        let mut cache = self.cache.write().unwrap();
+        cache.remove(&key);
     }
 
     pub fn read_from_cache(&self, key: String) -> Vec<u8> {
@@ -272,6 +277,7 @@ pub fn app(app_state: AppState) -> Router {
         tracing::warn!("Server started in unsafe mode - do not use in production!");
         routes = routes
             .route("/unsafe/put", post(put))
+            .route("/unsafe/write_to_cache", post(write_to_cache))
             .route("/unsafe/get", post(unsafe_get))
             .route("/unsafe/delete", post(delete))
             .route("/unsafe/remove_keys", get(remove_keys));
