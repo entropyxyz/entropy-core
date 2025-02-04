@@ -176,20 +176,26 @@ use axum::{
     Router,
 };
 use entropy_kvdb::kv_manager::KvManager;
+use rand_core::OsRng;
+use sp_core::{crypto::AccountId32, sr25519, Pair};
+use std::sync::{Arc, RwLock};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
+    OnlineClient,
+};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use x25519_dalek::StaticSecret;
 
-pub use crate::helpers::{
-    launch,
-    validator::{get_signer, get_signer_and_x25519_secret},
-};
+pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
 use crate::{
     attestation::api::{attest, get_attest},
+    chain_api::{get_api, get_rpc, EntropyConfig},
     health::api::healthz,
-    launch::Configuration,
+    launch::{development_mnemonic, Configuration, ValidatorName},
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
@@ -199,14 +205,92 @@ use crate::{
 
 #[derive(Clone)]
 pub struct AppState {
+    /// Tracks whether prerequisite checks have passed.
+    /// This means:
+    /// - Communication has been established with the chain node
+    /// - The TSS account is funded
+    /// - The TSS account is registered with the staking extension pallet
+    ready: Arc<RwLock<bool>>,
+    /// Tracks incoming protocol connections with other TSS nodes
     listener_state: ListenerState,
+    /// Keypair for TSS account
+    pair: sr25519::Pair,
+    /// Secret encryption key
+    x25519_secret: StaticSecret,
+    /// Configuation containing the chain endpoint
     pub configuration: Configuration,
+    /// Key-value store
     pub kv_store: KvManager,
 }
 
 impl AppState {
-    pub fn new(configuration: Configuration, kv_store: KvManager) -> Self {
-        Self { listener_state: ListenerState::default(), configuration, kv_store }
+    /// Setup AppState, generating new keypairs unless a test validator name is passed
+    pub fn new(
+        configuration: Configuration,
+        kv_store: KvManager,
+        validator_name: &Option<ValidatorName>,
+    ) -> Self {
+        let (pair, x25519_secret) = if cfg!(test) || validator_name.is_some() {
+            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
+        } else {
+            let (pair, _seed) = sr25519::Pair::generate();
+            let x25519_secret = StaticSecret::random_from_rng(OsRng);
+            (pair, x25519_secret)
+        };
+
+        Self {
+            ready: Arc::new(RwLock::new(false)),
+            pair,
+            x25519_secret,
+            listener_state: ListenerState::default(),
+            configuration,
+            kv_store,
+        }
+    }
+
+    /// Returns true if all prerequisite checks have passed.
+    /// Is is not possible to participate in the protocols before this is true.
+    pub fn is_ready(&self) -> bool {
+        match self.ready.read() {
+            Ok(r) => *r,
+            _ => false,
+        }
+    }
+
+    /// Mark the node as ready. This is called once when the prerequisite checks have passed.
+    pub fn make_ready(&self) {
+        let mut is_ready = self.ready.write().unwrap();
+        *is_ready = true;
+    }
+
+    /// Get a [PairSigner] for submitting extrinsics with subxt
+    pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.pair.clone())
+    }
+
+    /// Get the [AccountId32]
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.pair.public().0)
+    }
+
+    /// Get the subxt account ID
+    pub fn subxt_account_id(&self) -> SubxtAccountId32 {
+        SubxtAccountId32(self.pair.public().0)
+    }
+
+    /// Get the x25519 public key
+    pub fn x25519_public_key(&self) -> [u8; 32] {
+        x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
+    }
+
+    /// Convenience function to get chain api and rpc
+    pub async fn get_api_rpc(
+        &self,
+    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), subxt::Error> {
+        Ok((
+            get_api(&self.configuration.endpoint).await?,
+            get_rpc(&self.configuration.endpoint).await?,
+        ))
     }
 
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.

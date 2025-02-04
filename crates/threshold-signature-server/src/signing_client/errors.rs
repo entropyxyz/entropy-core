@@ -114,6 +114,8 @@ pub enum ProtocolErr {
     Listener(#[from] entropy_protocol::errors::ListenerErr),
     #[error("Failed to derive BIP-32 account: {0}")]
     Bip32DerivationError(#[from] bip32::Error),
+    #[error("Node has started fresh and not yet successfully set up")]
+    NotReady,
 }
 
 impl IntoResponse for ProtocolErr {

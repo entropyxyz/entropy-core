@@ -55,7 +55,7 @@ use crate::{
     },
     helpers::{
         launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH, substrate::query_chain,
-        user::check_in_registration_group, validator::get_signer_and_x25519_secret,
+        user::check_in_registration_group,
     },
     signing_client::{
         protocol_transport::{handle_socket, open_protocol_connections},
@@ -78,14 +78,15 @@ pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ProtocolErr> {
+    if !app_state.is_ready() {
+        return Err(ProtocolErr::NotReady);
+    }
+
     let ocw_data = OcwMessageProactiveRefresh::decode(&mut encoded_data.as_ref())?;
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
-        .await
-        .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
 
-    check_in_registration_group(&ocw_data.validators_info, signer.account_id())
+    check_in_registration_group(&ocw_data.validators_info, &app_state.subxt_account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
 
@@ -103,8 +104,8 @@ pub async fn proactive_refresh(
 
             let (new_key_share, aux_info) = do_proactive_refresh(
                 &ocw_data.validators_info,
-                &signer,
-                &x25519_secret_key,
+                &app_state.signer(),
+                &app_state.x25519_secret,
                 &app_state.listener_state,
                 encoded_key,
                 deserialized_old_key,
