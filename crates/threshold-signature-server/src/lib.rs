@@ -209,12 +209,14 @@ pub struct AppState {
     pub cache: Cache,
 }
 
+/// A global cache type for the TSS
 pub type Cache = Arc<RwLock<HashMap<String, Vec<u8>>>>;
 
 impl AppState {
     pub fn new(configuration: Configuration, kv_store: KvManager, cache: Cache) -> Self {
         Self { listener_state: ListenerState::default(), configuration, kv_store, cache }
     }
+
     pub fn write_to_cache(&self, key: String, value: Vec<u8>) -> anyhow::Result<()> {
         self.clear_poisioned_chache();
         let mut cache =
