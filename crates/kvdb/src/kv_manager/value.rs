@@ -27,7 +27,6 @@ use super::{
     helpers::{deserialize, serialize},
     kv::Kv,
 };
-use crate::encrypted_sled::Password;
 
 /// Mnemonic type needs to be known globaly to create/access the mnemonic kv store
 #[derive(Zeroize, Debug, Clone, Serialize, Deserialize)]
@@ -56,15 +55,23 @@ impl fmt::Debug for PartyInfo {
 #[derive(Clone)]
 pub struct KvManager {
     kv: Kv<KvValue>,
+    storage_path: PathBuf,
 }
 
 impl KvManager {
-    pub fn new(root: PathBuf, password: Password) -> KvResult<Self> {
-        Ok(KvManager { kv: Kv::<KvValue>::new(root, password)? })
+    pub fn new(storage_path: PathBuf, encryption_key: [u8; 32]) -> KvResult<Self> {
+        Ok(KvManager {
+            kv: Kv::<KvValue>::new(storage_path.clone(), encryption_key)?,
+            storage_path,
+        })
     }
 
     pub fn kv(&self) -> &Kv<KvValue> {
         &self.kv
+    }
+
+    pub fn storage_path(&self) -> &PathBuf {
+        &self.storage_path
     }
 }
 

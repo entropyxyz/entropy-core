@@ -160,6 +160,7 @@
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub use entropy_client::chain_api;
 pub(crate) mod attestation;
+pub(crate) mod backup_provider;
 pub(crate) mod health;
 pub mod helpers;
 pub(crate) mod node_info;
@@ -176,9 +177,12 @@ use axum::{
     Router,
 };
 use entropy_kvdb::kv_manager::KvManager;
-use rand_core::OsRng;
+use entropy_shared::X25519PublicKey;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, PoisonError, RwLock},
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
@@ -193,9 +197,10 @@ use x25519_dalek::StaticSecret;
 pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
 use crate::{
     attestation::api::{attest, get_attest},
+    backup_provider::api::{backup_encryption_key, quote_nonce, recover_encryption_key},
     chain_api::{get_api, get_rpc, EntropyConfig},
     health::api::healthz,
-    launch::{development_mnemonic, Configuration, ValidatorName},
+    launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{delete, put, remove_keys, unsafe_get},
     signing_client::{api::*, ListenerState},
@@ -203,14 +208,35 @@ use crate::{
     validator::api::{new_reshare, rotate_network_key},
 };
 
+/// Represents the state relating to the prerequisite checks
+#[derive(Clone, PartialEq, Eq)]
+pub enum TssState {
+    /// Initial state where no connection to chain node has been made
+    NoChainConnection,
+    /// Connection is made to the chain node but the account may not be yet funded
+    ReadOnlyChainConnection,
+    /// Fully ready and able to participate in the protocols
+    Ready,
+}
+
+impl TssState {
+    fn new() -> Self {
+        TssState::NoChainConnection
+    }
+
+    fn is_ready(&self) -> bool {
+        self == &TssState::Ready
+    }
+
+    fn can_read_from_chain(&self) -> bool {
+        self != &TssState::NoChainConnection
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
-    /// Tracks whether prerequisite checks have passed.
-    /// This means:
-    /// - Communication has been established with the chain node
-    /// - The TSS account is funded
-    /// - The TSS account is registered with the staking extension pallet
-    ready: Arc<RwLock<bool>>,
+    /// Tracks the state of prerequisite checks
+    tss_state: Arc<RwLock<TssState>>,
     /// Tracks incoming protocol connections with other TSS nodes
     listener_state: ListenerState,
     /// Keypair for TSS account
@@ -221,46 +247,71 @@ pub struct AppState {
     pub configuration: Configuration,
     /// Key-value store
     pub kv_store: KvManager,
+    /// Storage for encryption key backups for other TSS nodes
+    /// Maps TSS account id to encryption key
+    pub encryption_key_backup_provider: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
+    /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
+    /// Maps response x25519 public key to quote nonce
+    pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
 }
 
 impl AppState {
-    /// Setup AppState, generating new keypairs unless a test validator name is passed
+    /// Setup AppState with given secret keys
     pub fn new(
         configuration: Configuration,
         kv_store: KvManager,
-        validator_name: &Option<ValidatorName>,
+        pair: sr25519::Pair,
+        x25519_secret: StaticSecret,
     ) -> Self {
-        let (pair, x25519_secret) = if cfg!(test) || validator_name.is_some() {
-            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string()).unwrap()
-        } else {
-            let (pair, _seed) = sr25519::Pair::generate();
-            let x25519_secret = StaticSecret::random_from_rng(OsRng);
-            (pair, x25519_secret)
-        };
-
         Self {
-            ready: Arc::new(RwLock::new(false)),
+            tss_state: Arc::new(RwLock::new(TssState::new())),
             pair,
             x25519_secret,
             listener_state: ListenerState::default(),
             configuration,
             kv_store,
+            encryption_key_backup_provider: Default::default(),
+            attestation_nonces: Default::default(),
         }
     }
 
     /// Returns true if all prerequisite checks have passed.
     /// Is is not possible to participate in the protocols before this is true.
+    /// 'Ready' means:
+    ///  - Communication has been established with the chain node
+    ///  - The TSS account is funded
+    ///  - The TSS account is registered with the staking extension pallet
     pub fn is_ready(&self) -> bool {
-        match self.ready.read() {
-            Ok(r) => *r,
+        match self.tss_state.read() {
+            Ok(state) => state.is_ready(),
             _ => false,
         }
     }
 
+    /// Returns true if we are able to make chain queries
+    pub fn can_read_from_chain(&self) -> bool {
+        match self.tss_state.read() {
+            Ok(state) => state.can_read_from_chain(),
+            _ => false,
+        }
+    }
+
+    /// Mark the node as able to make chain queries. This is called once during prerequisite checks
+    pub fn connected_to_chain_node(
+        &self,
+    ) -> Result<(), PoisonError<std::sync::RwLockWriteGuard<'_, TssState>>> {
+        let mut tss_state = self.tss_state.write()?;
+        if *tss_state == TssState::NoChainConnection {
+            *tss_state = TssState::ReadOnlyChainConnection;
+        }
+        Ok(())
+    }
+
     /// Mark the node as ready. This is called once when the prerequisite checks have passed.
-    pub fn make_ready(&self) {
-        let mut is_ready = self.ready.write().unwrap();
-        *is_ready = true;
+    pub fn make_ready(&self) -> Result<(), PoisonError<std::sync::RwLockWriteGuard<'_, TssState>>> {
+        let mut tss_state = self.tss_state.write()?;
+        *tss_state = TssState::Ready;
+        Ok(())
     }
 
     /// Get a [PairSigner] for submitting extrinsics with subxt
@@ -317,6 +368,9 @@ pub fn app(app_state: AppState) -> Router {
         .route("/rotate_network_key", post(rotate_network_key))
         .route("/attest", post(attest))
         .route("/attest", get(get_attest))
+        .route("/backup_encryption_key", post(backup_encryption_key))
+        .route("/recover_encryption_key", post(recover_encryption_key))
+        .route("/backup_provider_quote_nonce", post(quote_nonce))
         .route("/healthz", get(healthz))
         .route("/version", get(get_version))
         .route("/hashes", get(hashes))

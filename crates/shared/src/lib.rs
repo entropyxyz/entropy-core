@@ -20,6 +20,7 @@
 //! This helps ensures those structs are synced among clients and nodes.
 pub use constants::*;
 pub use types::*;
+pub mod attestation;
 pub mod constants;
 pub mod types;
 

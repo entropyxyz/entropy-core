@@ -19,7 +19,7 @@ use crate::{
     update_programs,
 };
 
-use entropy_shared::{QuoteContext, QuoteInputData};
+use entropy_shared::attestation::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
@@ -129,7 +129,7 @@ async fn test_change_threshold_accounts() {
     let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
 
     let quote = {
-        let input_data = entropy_shared::QuoteInputData::new(
+        let input_data = QuoteInputData::new(
             tss_public_key,
             *x25519_public_key.as_bytes(),
             nonce,
@@ -368,7 +368,7 @@ async fn test_set_session_key_and_declare_validate() {
     let encoded_pck = encode_verifying_key(&pck.verifying_key()).unwrap().to_vec();
 
     let quote = {
-        let input_data = entropy_shared::QuoteInputData::new(
+        let input_data = QuoteInputData::new(
             tss_public_key,
             *x25519_public_key.as_bytes(),
             nonce,

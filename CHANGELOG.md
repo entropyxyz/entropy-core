@@ -51,6 +51,7 @@ runtime
 - On-chain unresponsiveness reporting [(#1215)](https://github.com/entropyxyz/entropy-core/pull/1215)
 - Report unstable peers from TSS [(#1228)](https://github.com/entropyxyz/entropy-core/pull/1228)
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
+- Database encryption key backup / recovery feature for entropy-tss [(#1249)](https://github.com/entropyxyz/entropy-core/pull/1249)
 - Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
 
 ### Changed
