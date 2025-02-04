@@ -184,6 +184,7 @@ use crate::{
     user::api::*,
     validator::api::{new_reshare, rotate_network_key},
 };
+use anyhow::anyhow;
 use axum::{
     http::Method,
     routing::{get, post},
@@ -214,27 +215,42 @@ impl AppState {
     pub fn new(configuration: Configuration, kv_store: KvManager, cache: Cache) -> Self {
         Self { listener_state: ListenerState::default(), configuration, kv_store, cache }
     }
-    // TODO borrow keys
-
-    pub fn write_to_cache(&self, key: String, value: Vec<u8>) {
-        let mut cache = self.cache.write().unwrap();
+    pub fn write_to_cache(&self, key: String, value: Vec<u8>) -> anyhow::Result<()> {
+        self.clear_poisioned_chache();
+        let mut cache =
+            self.cache.write().map_err(|_| anyhow!("Error getting write write_to_cache lock"))?;
         cache.insert(key, value);
+        Ok(())
     }
 
-    pub fn exists_in_cache(&self, key: String) -> bool {
-        let cache = self.cache.read().unwrap();
-        cache.contains_key(&key)
+    pub fn exists_in_cache(&self, key: &String) -> anyhow::Result<bool> {
+        self.clear_poisioned_chache();
+        let cache =
+            self.cache.read().map_err(|_| anyhow!("Error getting read exists_in_cache lock"))?;
+        Ok(cache.contains_key(key))
     }
 
-    pub fn remove_from_cache(&self, key: String) {
-        let mut cache = self.cache.write().unwrap();
-        cache.remove(&key);
+    pub fn remove_from_cache(&self, key: &String) -> anyhow::Result<()> {
+        self.clear_poisioned_chache();
+        let mut cache = self
+            .cache
+            .write()
+            .map_err(|_| anyhow!("Error getting write remove_from_cache lock"))?;
+        cache.remove(key);
+        Ok(())
     }
 
-    pub fn read_from_cache(&self, key: String) -> Vec<u8> {
-        let cache = self.cache.read().unwrap();
-        // TODO: check key exists handle error
-        cache[&key].clone()
+    pub fn read_from_cache(&self, key: &String) -> anyhow::Result<Vec<u8>> {
+        self.clear_poisioned_chache();
+        let cache =
+            self.cache.read().map_err(|_| anyhow!("Error getting read read_from_cache lock"))?;
+        Ok(cache[key].clone())
+    }
+
+    pub fn clear_poisioned_chache(&self) {
+        if self.cache.is_poisoned() {
+            self.cache.clear_poison()
+        }
     }
     // TODO delete from cache
 

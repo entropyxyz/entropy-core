@@ -121,7 +121,7 @@ pub async fn write_to_cache(
     Json(key): Json<UnsafeQuery>,
 ) -> StatusCode {
     tracing::trace!("Attempting to write value {:?} to cache", &key.value);
-    app_state.write_to_cache(key.key, key.value);
+    let _ = app_state.write_to_cache(key.key, key.value).unwrap();
     StatusCode::OK
 }
 
@@ -139,8 +139,8 @@ pub async fn read_from_cache(
     State(app_state): State<AppState>,
     Json(key): Json<UnsafeQuery>,
 ) -> Vec<u8> {
-    tracing::trace!("Attempting to write value {:?} to cache", &key.value);
-    app_state.read_from_cache(key.key)
+    tracing::trace!("Attempting to read value {:?} to cache", &key.key);
+    app_state.read_from_cache(&key.key).unwrap()
 }
 
 /// Deletes any key from the KVDB.
