@@ -106,7 +106,7 @@ pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>
     }
 }
 
-/// Updates a value in the encrypted KVDB.
+/// Updates a value in the cache.
 ///
 /// # Note
 ///
@@ -123,6 +123,24 @@ pub async fn write_to_cache(
     tracing::trace!("Attempting to write value {:?} to cache", &key.value);
     app_state.write_to_cache(key.key, key.value);
     StatusCode::OK
+}
+
+/// Reads a value in the cache.
+///
+/// # Note
+///
+/// This should only be used for development purposes.
+#[tracing::instrument(
+    name = "Updating key from cache",
+    skip_all,
+    fields(key = key.key),
+)]
+pub async fn read_from_cache(
+    State(app_state): State<AppState>,
+    Json(key): Json<UnsafeQuery>,
+) -> Vec<u8> {
+    tracing::trace!("Attempting to write value {:?} to cache", &key.value);
+    app_state.read_from_cache(key.key)
 }
 
 /// Deletes any key from the KVDB.

@@ -708,20 +708,20 @@ async fn test_request_limit_are_updated_during_signing() {
         UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
             .to_json();
 
-    // let get_response = mock_client
-    //     .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
-    //     .header("Content-Type", "application/json")
-    //     .body(unsafe_get.clone())
-    //     .send()
-    //     .await;
+    let get_response = mock_client
+        .post(format!("http://{}/unsafe/read_from_cache", validators_info[0].ip_address))
+        .header("Content-Type", "application/json")
+        .body(unsafe_get.clone())
+        .send()
+        .await;
 
-    // if get_response.is_ok() {
-    //     let serialized_request_amount = get_response.unwrap().text().await.unwrap();
+    if get_response.is_ok() {
+        let serialized_request_amount = get_response.unwrap().text().await.unwrap();
 
-    //     let request_info: RequestLimitStorage =
-    //         RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
-    //     assert_eq!(request_info.request_amount, 1);
-    // }
+        let request_info: RequestLimitStorage =
+            RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
+        assert_eq!(request_info.request_amount, 1);
+    }
 
     // Test: If we send too many requests though, we'll be blocked from signing
 
