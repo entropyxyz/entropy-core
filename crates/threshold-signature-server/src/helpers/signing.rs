@@ -89,9 +89,16 @@ pub async fn do_signing(
     .await?;
 
     let channels = {
-        let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
-        let broadcast_out = ready??;
-        Channels(broadcast_out, rx_from_others)
+        match timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await {
+            Ok(ready) => {
+                let broadcast_out = ready??;
+                Channels(broadcast_out, rx_from_others)
+            },
+            Err(e) => {
+                let unsubscribed_peers = app_state.unsubscribed_peers(&session_id)?;
+                return Err(ProtocolErr::Timeout { source: e, inactive_peers: unsubscribed_peers });
+            },
+        }
     };
 
     let result = signing_service

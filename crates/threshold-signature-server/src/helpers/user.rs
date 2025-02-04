@@ -87,6 +87,7 @@ pub async fn do_dkg(
         x25519_secret_key,
     )
     .await?;
+
     let channels = {
         let ready = timeout(Duration::from_secs(SETUP_TIMEOUT_SECONDS), rx_ready).await?;
         let broadcast_out = ready??;
@@ -157,8 +158,10 @@ pub async fn compute_hash(
             Ok(hash)
         },
         HashingAlgorithm::Blake2_256 => Ok(blake2_256(message)),
+        HashingAlgorithm::Identity => Ok(message.try_into()?),
         HashingAlgorithm::Custom(i) => {
-            let program_info = get_program(api, rpc, &programs_data[*i].program_pointer).await?;
+            let program_info =
+                get_program(api, rpc, &programs_data[*i as usize].program_pointer).await?;
             evaluate_custom_hash(fuel, program_info, message)
         },
         _ => Err(UserErr::UnknownHashingAlgorithm),

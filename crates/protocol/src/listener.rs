@@ -29,7 +29,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 pub type ListenerResult = Result<Broadcaster, ListenerErr>;
 
 /// Tracks which validators we are connected to for a particular protocol execution
-/// and sets up channels for exchaning protocol messages
+/// and sets up channels for exchanging protocol messages
 #[derive(Debug)]
 pub struct Listener {
     /// Endpoint to create subscriptions

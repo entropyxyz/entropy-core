@@ -151,7 +151,9 @@ pub fn integration_tests_genesis_config(
         "staking": StakingConfig {
             validator_count: initial_authorities.len() as u32,
             minimum_validator_count: 0,
-            invulnerables: vec![],
+            invulnerables: initial_authorities
+            .iter()
+            .map(|x| {x.0.clone()}).collect::<Vec<_>>(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers,
             ..Default::default()

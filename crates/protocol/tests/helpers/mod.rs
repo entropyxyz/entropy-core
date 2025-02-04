@@ -255,6 +255,7 @@ async fn open_protocol_connections(
             // Check the response as to whether they accepted our SubscribeMessage
             let response_message = encrypted_connection.recv().await?;
             let subscribe_response: Result<(), String> = bincode::deserialize(&response_message)?;
+
             if let Err(error_message) = subscribe_response {
                 return Err(anyhow!(error_message));
             }

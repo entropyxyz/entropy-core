@@ -105,7 +105,9 @@ pub enum HashingAlgorithm {
     Sha3,
     Keccak,
     Blake2_256,
-    Custom(usize),
+    /// An algorithm which produces the same output as its input.
+    Identity,
+    Custom(u32),
 }
 
 /// A compressed, serialized [synedrion::ecdsa::VerifyingKey<k256::Secp256k1>]

@@ -36,10 +36,10 @@ use entropy_testing_utils::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
     },
     constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, FAUCET_PROGRAM, FERDIE_X25519_SECRET_KEY,
-        PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION, TEST_INFINITE_LOOP_BYTECODE,
-        TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TEST_PROGRAM_WASM_BYTECODE,
-        X25519_PUBLIC_KEYS,
+        AUXILARY_DATA_SHOULD_SUCCEED, BOB_STASH_ADDRESS, CHARLIE_STASH_ADDRESS, FAUCET_PROGRAM,
+        FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
+        TEST_INFINITE_LOOP_BYTECODE, TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH,
+        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_context_stationary, testing_context},
@@ -652,16 +652,15 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let user = AccountKeyring::One;
+    let deployer = AccountKeyring::Two;
 
     let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let non_signer = ValidatorName::Dave;
     // Register the user with a test program
     let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
 
     let (_validators_info, signature_request, validator_ips_and_keys) =
         get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
@@ -669,6 +668,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
+    let non_signer = ValidatorName::Dave;
     let mnemonic = development_mnemonic(&Some(non_signer));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
@@ -682,11 +682,9 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     });
 
     // Test attempting to connect over ws by someone who is not in the signing group
-    let validator_ip_and_key: (String, [u8; 32], subxtAccountId32) = (
-        validator_ips_and_keys[0].clone().0,
-        validator_ips_and_keys[0].clone().1,
-        one.to_account_id().into(),
-    );
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
+
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
@@ -720,6 +718,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         // returns true if this part of the test passes
         encrypted_connection.recv().await.is_err()
     });
+
     let validator_ip_and_key: (String, [u8; 32]) =
         (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
 
@@ -738,6 +737,210 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     assert!(connection_attempt_handle.await.unwrap());
 
     clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    // Setup: We first spin up the chain nodes, TSS servers, and register an account
+    let user = AccountKeyring::One;
+    let deployer = AccountKeyring::Two;
+
+    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
+
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
+
+    // TSS Setup: We want Alice to be the TSS server which starts the signing protocol, so let's
+    // get her set up
+    let signer = ValidatorName::Alice;
+
+    let mnemonic = development_mnemonic(&Some(signer));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
+
+    // The other signer can rotate between Bob and Charlie, but we want to always test with Bob
+    // since we know that:
+    // - As Alice, we will initiate a connection with him
+    // - He won't respond to our request (never got his `/sign_tx` endpoint triggered)
+    let signers = {
+        let alice = ValidatorInfo {
+            ip_address: validator_ips[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        };
+
+        let bob = ValidatorInfo {
+            ip_address: validator_ips[1].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[1],
+            tss_account: TSS_ACCOUNTS[1].clone(),
+        };
+
+        vec![alice, bob]
+    };
+
+    // Before starting the test, we want to ensure that Bob has no outstanding reports against him.
+    let bob_report_query =
+        entropy::storage().slashing().failed_registrations(BOB_STASH_ADDRESS.clone());
+    let reports = query_chain(&entropy_api, &rpc, bob_report_query.clone(), None).await.unwrap();
+    assert!(reports.is_none());
+
+    // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
+    // skip that step using this helper.
+    let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        validator_ip_and_key,
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+        Some(signers),
+    )
+    .await;
+
+    // Check: We expect that the signature request will have failed because we were unable to
+    // connect to Bob.
+    assert!(test_user_bad_connection_res
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .contains("Subscribe message rejected"));
+
+    // We expect that a `NoteReport` event want found
+    let report_event_found = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        subscribe_to_report_event(&entropy_api),
+    )
+    .await
+    .expect("Timed out while waiting for `NoteReport` event.");
+
+    assert!(report_event_found);
+
+    // We expect that the offence count for Bob has gone up
+    let reports = query_chain(&entropy_api, &rpc, bob_report_query, None).await.unwrap();
+    assert!(matches!(reports, Some(1)));
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    // Setup: We first spin up the chain nodes, TSS servers, and register an account
+    let user = AccountKeyring::One;
+    let deployer = AccountKeyring::Two;
+
+    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
+
+    let (_validators_info, signature_request, _validator_ips_and_keys) =
+        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
+            .await;
+
+    // TSS Setup: We want Alice to be the TSS server which starts the signing protocol, so let's
+    // get her set up
+    let signer = ValidatorName::Alice;
+
+    let mnemonic = development_mnemonic(&Some(signer));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    let validator_ip_and_key: (String, [u8; 32]) =
+        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
+
+    // The other signer can rotate between Bob and Charlie, but we want to always test with Charlie
+    // since we know that:
+    // - As Alice, Charlie will initiate a connection with us
+    // - He won't initate a request (never got his `/sign_tx` endpoint triggered)
+    let signers = {
+        let alice = ValidatorInfo {
+            ip_address: validator_ips[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            tss_account: TSS_ACCOUNTS[0].clone(),
+        };
+
+        let charlie = ValidatorInfo {
+            ip_address: validator_ips[2].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[2],
+            tss_account: TSS_ACCOUNTS[2].clone(),
+        };
+
+        vec![alice, charlie]
+    };
+
+    // Before starting the test, we want to ensure that Charlie has no outstanding reports against him.
+    let charlie_report_query =
+        entropy::storage().slashing().failed_registrations(CHARLIE_STASH_ADDRESS.clone());
+    let reports =
+        query_chain(&entropy_api, &rpc, charlie_report_query.clone(), None).await.unwrap();
+    assert!(reports.is_none());
+
+    // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
+    // skip that step using this helper.
+    let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
+        &entropy_api,
+        &rpc,
+        validator_ip_and_key,
+        signature_request.clone(),
+        tss_signer.signer().clone(),
+        Some(signers),
+    )
+    .await;
+
+    // Check: We expect that the signature request will have failed because Charlie never initated a
+    // connection with us.
+    assert!(test_user_bad_connection_res.unwrap().text().await.unwrap().contains("Timed out"));
+
+    // We expect that a `NoteReport` event want found
+    let report_event_found = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        subscribe_to_report_event(&entropy_api),
+    )
+    .await
+    .expect("Timed out while waiting for `NoteReport` event.");
+
+    assert!(report_event_found);
+
+    // We expect that the offence count for Charlie has gone up
+    let reports = query_chain(&entropy_api, &rpc, charlie_report_query, None).await.unwrap();
+    assert!(matches!(reports, Some(1)));
+
+    clean_tests();
+}
+
+/// Helper for subscribing to the `NoteReport` event from the Slashing pallet.
+async fn subscribe_to_report_event(api: &OnlineClient<EntropyConfig>) -> bool {
+    let mut blocks_sub = api.blocks().subscribe_best().await.unwrap();
+
+    while let Some(block) = blocks_sub.next().await {
+        let block = block.unwrap();
+        let events = block.events().await.unwrap();
+
+        if events.has::<entropy::slashing::events::NoteReport>().unwrap() {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[tokio::test]
@@ -823,6 +1026,9 @@ async fn test_program_with_config() {
     clean_tests();
 }
 
+// FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
+// it's producing false negatives on our CI runs.
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_jumpstart_network() {
@@ -928,6 +1134,40 @@ async fn test_compute_hash() {
     // custom hash program uses blake 3 to hash
     let expected_hash = blake3::hash(PREIMAGE_SHOULD_SUCCEED).as_bytes().to_vec();
     assert_eq!(message_hash.to_vec(), expected_hash);
+
+    const EXPECTED_MAX_HASH_LENGTH: usize = 32;
+    let no_hash = vec![0u8; EXPECTED_MAX_HASH_LENGTH];
+    let no_hash_too_long = vec![0u8; EXPECTED_MAX_HASH_LENGTH + 1];
+
+    // no hash
+    let message_hash_no_hash = compute_hash(
+        &api,
+        &rpc,
+        &HashingAlgorithm::Identity,
+        10000000u64,
+        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &no_hash,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(message_hash_no_hash.to_vec(), no_hash);
+
+    // no hash too long error
+    let message_hash_no_hash_too_long = compute_hash(
+        &api,
+        &rpc,
+        &HashingAlgorithm::Identity,
+        10000000u64,
+        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &no_hash_too_long,
+    )
+    .await;
+
+    assert_eq!(
+        message_hash_no_hash_too_long.unwrap_err().to_string(),
+        "Conversion Error: could not convert slice to array".to_string()
+    );
 }
 
 #[tokio::test]

@@ -292,6 +292,19 @@ impl AppState {
             get_rpc(&self.configuration.endpoint).await?,
         ))
     }
+
+    /// Gets the list of peers who haven't yet subscribed to us for this particular session.
+    pub fn unsubscribed_peers(
+        &self,
+        session_id: &entropy_protocol::SessionId,
+    ) -> Result<Vec<subxt::utils::AccountId32>, crate::signing_client::ProtocolErr> {
+        self.listener_state.unsubscribed_peers(session_id).map_err(|_| {
+            crate::signing_client::ProtocolErr::SessionError(format!(
+                "Unable to get unsubscribed peers for `SessionId` {:?}",
+                session_id,
+            ))
+        })
+    }
 }
 
 pub fn app(app_state: AppState) -> Router {
