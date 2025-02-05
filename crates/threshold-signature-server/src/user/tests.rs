@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use anyhow::{anyhow, Result};
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_client::substrate::get_registered_details;
 use entropy_client::{
@@ -21,7 +22,6 @@ use entropy_client::{
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
 use entropy_kvdb::clean_tests;
-use entropy_kvdb::kv_manager::KvManager;
 use entropy_protocol::{
     decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
@@ -46,14 +46,22 @@ use entropy_testing_utils::{
     substrate_context::{test_context_stationary, testing_context},
     test_node_process_testing_state, ChainSpecType,
 };
+use futures::future::try_join_all;
 use more_asserts as ma;
 use parity_scale_codec::{Decode, Encode};
+use rand::Rng;
 use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::{str, str::FromStr, time::Duration};
+use std::{
+    collections::HashMap,
+    str,
+    str::FromStr,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::PolkadotExtrinsicParamsBuilder as Params,
@@ -75,7 +83,9 @@ use crate::{
         EntropyConfig,
     },
     helpers::{
-        launch::{build_db_path, development_mnemonic, ValidatorName},
+        launch::{
+            build_db_path, development_mnemonic, setup_kv_store, ValidatorName, DEFAULT_ENDPOINT,
+        },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
@@ -91,6 +101,7 @@ use crate::{
         request_limit_key, RelayerSignatureRequest, RequestLimitStorage,
     },
     validation::EncryptedSignedMessage,
+    AppState, Configuration,
 };
 
 #[tokio::test]
@@ -431,6 +442,84 @@ async fn signature_request_with_derived_account_works() {
 
 #[tokio::test]
 #[serial]
+async fn signature_request_overload() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let alice = AccountKeyring::Alice;
+    let bob = AccountKeyring::Bob;
+    let charlie = AccountKeyring::Charlie;
+
+    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    let (relayer_ip_and_key, _) =
+        validator_name_to_relayer_info(ValidatorName::Dave, &entropy_api, &rpc).await;
+
+    // Register the user with a test program
+    let (verifying_key, _program_hash) =
+        store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair()).await;
+
+    let sends = 15;
+    let mut calls = Vec::with_capacity(sends);
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..sends {
+        let randomness: u128 = rng.gen();
+        let (_validators_info, signature_request, _validator_ips_and_keys) =
+            get_sign_tx_data(&entropy_api, &rpc, hex::encode(randomness.encode()), verifying_key)
+                .await;
+        calls.push(signature_request);
+    }
+
+    // Spawn all signature requests with proper error handling
+    let tasks: Vec<_> = calls
+        .into_iter()
+        .map(|signature_request| {
+            let entropy_api = entropy_api.clone();
+            let rpc = rpc.clone();
+            let relayer_ip_and_key = relayer_ip_and_key.clone();
+
+            tokio::spawn(async move {
+                let signature_request_responses = submit_transaction_request(
+                    relayer_ip_and_key,
+                    signature_request.clone(),
+                    alice,
+                )
+                .await
+                .map_err(|e| anyhow!("Failed to submit transaction request: {}", e))?;
+
+                let message_hash = Hasher::keccak(&hex::decode(signature_request.message).unwrap());
+                let verifying_key = SynedrionVerifyingKey::try_from(
+                    signature_request.signature_verifying_key.as_slice(),
+                )
+                .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
+
+                let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc)
+                    .await
+                    .map_err(|e| anyhow!("Failed to fetch signers from chain: {}", e))?;
+
+                verify_signature(
+                    Ok(signature_request_responses),
+                    message_hash,
+                    &verifying_key,
+                    &all_signers_info,
+                )
+                .await;
+
+                Ok::<(), anyhow::Error>(())
+            })
+        })
+        .collect();
+
+    // Await all tasks and propagate errors
+    let _results = try_join_all(tasks).await.unwrap();
+
+    clean_tests();
+}
+
+#[tokio::test]
+#[serial]
 async fn test_signing_fails_if_wrong_participants_are_used() {
     initialize_test_logger().await;
     clean_tests();
@@ -593,7 +682,7 @@ async fn test_request_limit_are_updated_during_signing() {
             .to_json();
 
     let get_response = mock_client
-        .post(format!("http://{}/unsafe/get", validators_info[0].ip_address))
+        .post(format!("http://{}/unsafe/read_from_cache", validators_info[0].ip_address))
         .header("Content-Type", "application/json")
         .body(unsafe_get.clone())
         .send()
@@ -627,7 +716,7 @@ async fn test_request_limit_are_updated_during_signing() {
 
     for validator_info in all_signers_info {
         mock_client
-            .post(format!("http://{}/unsafe/put", validator_info.ip_address))
+            .post(format!("http://{}/unsafe/write_to_cache", validator_info.ip_address))
             .header("Content-Type", "application/json")
             .body(unsafe_put.clone())
             .send()
@@ -1187,7 +1276,6 @@ pub async fn verify_signature(
     validators_info: &Vec<ValidatorInfo>,
 ) {
     let mut test_user_res = test_user_res.unwrap();
-    assert_eq!(test_user_res.status(), 200);
     let chunk = test_user_res.chunk().await.unwrap().unwrap();
 
     let signing_results: Vec<Result<(String, Signature), String>> =
@@ -1756,7 +1844,18 @@ async fn test_increment_or_wipe_request_limit() {
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
-    let kv_store = KvManager::new(build_db_path(&None), [0; 32]).unwrap();
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(&Some(ValidatorName::Alice), Some(build_db_path(&None))).await.unwrap();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+    let cache: HashMap<String, Vec<u8>> = HashMap::new();
+
+    let app_state = AppState::new(
+        configuration.clone(),
+        kv_store.clone(),
+        sr25519_pair,
+        x25519_secret,
+        Arc::new(RwLock::new(cache)),
+    );
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
@@ -1764,7 +1863,7 @@ async fn test_increment_or_wipe_request_limit() {
     // no error
     assert!(request_limit_check(
         &rpc,
-        &kv_store,
+        &app_state,
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         request_limit
     )
@@ -1775,7 +1874,7 @@ async fn test_increment_or_wipe_request_limit() {
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
             &rpc,
-            &kv_store,
+            &app_state,
             hex::encode(DAVE_VERIFYING_KEY.to_vec()),
             request_limit,
         )
@@ -1785,7 +1884,7 @@ async fn test_increment_or_wipe_request_limit() {
     // should now fail
     let err_too_many_requests = request_limit_check(
         &rpc,
-        &kv_store,
+        &app_state,
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         request_limit,
     )

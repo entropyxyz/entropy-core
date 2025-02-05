@@ -171,12 +171,6 @@ pub mod user;
 pub mod validation;
 pub mod validator;
 
-use axum::{
-    http::Method,
-    routing::{get, post},
-    Router,
-};
-use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::X25519PublicKey;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
@@ -187,11 +181,6 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace::{self, TraceLayer},
-};
-use tracing::Level;
 use x25519_dalek::StaticSecret;
 
 pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
@@ -202,11 +191,23 @@ use crate::{
     health::api::healthz,
     launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
-    r#unsafe::api::{delete, put, remove_keys, unsafe_get},
+    r#unsafe::api::{delete, put, read_from_cache, remove_keys, unsafe_get, write_to_cache},
     signing_client::{api::*, ListenerState},
     user::api::*,
     validator::api::{new_reshare, rotate_network_key},
 };
+use anyhow::anyhow;
+use axum::{
+    http::Method,
+    routing::{get, post},
+    Router,
+};
+use entropy_kvdb::kv_manager::KvManager;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
+use tracing::Level;
 
 /// Represents the state relating to the prerequisite checks
 #[derive(Clone, PartialEq, Eq)]
@@ -247,6 +248,8 @@ pub struct AppState {
     pub configuration: Configuration,
     /// Key-value store
     pub kv_store: KvManager,
+    /// Cache for TSS
+    pub cache: Cache,
     /// Storage for encryption key backups for other TSS nodes
     /// Maps TSS account id to encryption key
     pub encryption_key_backup_provider: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
@@ -255,6 +258,9 @@ pub struct AppState {
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
 }
 
+/// A global cache type for the TSS
+pub type Cache = Arc<RwLock<HashMap<String, Vec<u8>>>>;
+
 impl AppState {
     /// Setup AppState with given secret keys
     pub fn new(
@@ -262,6 +268,7 @@ impl AppState {
         kv_store: KvManager,
         pair: sr25519::Pair,
         x25519_secret: StaticSecret,
+        cache: Cache,
     ) -> Self {
         Self {
             tss_state: Arc::new(RwLock::new(TssState::new())),
@@ -272,6 +279,7 @@ impl AppState {
             kv_store,
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
+            cache,
         }
     }
 
@@ -344,6 +352,46 @@ impl AppState {
         ))
     }
 
+    pub fn write_to_cache(&self, key: String, value: Vec<u8>) -> anyhow::Result<()> {
+        self.clear_poisioned_cache();
+        let mut cache =
+            self.cache.write().map_err(|_| anyhow!("Error getting write write_to_cache lock"))?;
+        cache.insert(key, value);
+        Ok(())
+    }
+
+    pub fn exists_in_cache(&self, key: &String) -> anyhow::Result<bool> {
+        self.clear_poisioned_cache();
+        let cache =
+            self.cache.read().map_err(|_| anyhow!("Error getting read exists_in_cache lock"))?;
+        Ok(cache.contains_key(key))
+    }
+
+    pub fn remove_from_cache(&self, key: &String) -> anyhow::Result<()> {
+        self.clear_poisioned_cache();
+        let mut cache = self
+            .cache
+            .write()
+            .map_err(|_| anyhow!("Error getting write remove_from_cache lock"))?;
+        cache.remove(key);
+        Ok(())
+    }
+
+    /// Reads from cache will error if no value, call exists_in_cache to check
+    pub fn read_from_cache(&self, key: &String) -> anyhow::Result<Option<Vec<u8>>> {
+        self.clear_poisioned_cache();
+        let cache =
+            self.cache.read().map_err(|_| anyhow!("Error getting read read_from_cache lock"))?;
+        Ok(cache.get(key).clone().cloned())
+    }
+
+    pub fn clear_poisioned_cache(&self) {
+        if self.cache.is_poisoned() {
+            self.cache.clear_poison()
+        }
+    }
+    // TODO delete from cache
+
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
     pub fn unsubscribed_peers(
         &self,
@@ -386,6 +434,8 @@ pub fn app(app_state: AppState) -> Router {
         tracing::warn!("Server started in unsafe mode - do not use in production!");
         routes = routes
             .route("/unsafe/put", post(put))
+            .route("/unsafe/write_to_cache", post(write_to_cache))
+            .route("/unsafe/read_from_cache", post(read_from_cache))
             .route("/unsafe/get", post(unsafe_get))
             .route("/unsafe/delete", post(delete))
             .route("/unsafe/remove_keys", get(remove_keys));
