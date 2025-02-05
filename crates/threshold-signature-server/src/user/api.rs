@@ -645,7 +645,7 @@ pub async fn increment_or_wipe_request_limit(
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
-            let _ = app_state.write_to_cache(
+            app_state.write_to_cache(
                 key,
                 RequestLimitStorage { block_number, request_amount: 1 }.encode(),
             )?;
@@ -654,7 +654,7 @@ pub async fn increment_or_wipe_request_limit(
 
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
-            let _ = app_state.write_to_cache(
+            app_state.write_to_cache(
                 key,
                 RequestLimitStorage {
                     block_number,
@@ -664,7 +664,7 @@ pub async fn increment_or_wipe_request_limit(
             )?;
         }
     } else {
-        let _ = app_state.write_to_cache(
+        app_state.write_to_cache(
             key,
             RequestLimitStorage { block_number, request_amount: 1 }.encode(),
         )?;

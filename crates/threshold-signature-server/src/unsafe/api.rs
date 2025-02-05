@@ -121,7 +121,7 @@ pub async fn write_to_cache(
     Json(key): Json<UnsafeQuery>,
 ) -> StatusCode {
     tracing::trace!("Attempting to write value {:?} to cache", &key.value);
-    let _ = app_state.write_to_cache(key.key, key.value).unwrap();
+    app_state.write_to_cache(key.key, key.value).unwrap();
     StatusCode::OK
 }
 
