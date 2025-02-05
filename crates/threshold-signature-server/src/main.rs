@@ -13,13 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    process,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{net::SocketAddr, process, str::FromStr};
 
 use anyhow::{anyhow, ensure};
 use clap::Parser;
@@ -66,15 +60,9 @@ async fn main() -> anyhow::Result<()> {
 
     let (kv_store, sr25519_pair, x25519_secret, key_option) =
         setup_kv_store(&validator_name, None).await?;
-    let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(
-        configuration.clone(),
-        kv_store.clone(),
-        sr25519_pair,
-        x25519_secret,
-        Arc::new(RwLock::new(cache)),
-    );
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
     ensure!(
         setup_latest_block_number(&kv_store).await.is_ok(),

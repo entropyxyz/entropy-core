@@ -55,13 +55,7 @@ use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr2551
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
-use std::{
-    collections::HashMap,
-    str,
-    str::FromStr,
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::PolkadotExtrinsicParamsBuilder as Params,
@@ -95,10 +89,10 @@ use crate::{
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    r#unsafe::api::UnsafeQuery,
+    r#unsafe::api::{UnsafeQuery, UnsafeRequestLimitQuery},
     user::api::{
         check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
-        request_limit_key, RelayerSignatureRequest, RequestLimitStorage,
+        RelayerSignatureRequest, RequestLimitStorage,
     },
     validation::EncryptedSignedMessage,
     AppState, Configuration,
@@ -677,12 +671,10 @@ async fn test_request_limit_are_updated_during_signing() {
     // Next we check request limiter increases
     let mock_client = reqwest::Client::new();
 
-    let unsafe_get =
-        UnsafeQuery::new(request_limit_key(hex::encode(verifying_key.clone().to_vec())), vec![])
-            .to_json();
+    let unsafe_get = UnsafeQuery::new(hex::encode(verifying_key.to_vec()), vec![]).to_json();
 
     let get_response = mock_client
-        .post(format!("http://{}/unsafe/read_from_cache", validators_info[0].ip_address))
+        .post(format!("http://{}/unsafe/read_from_request_limit", validators_info[0].ip_address))
         .header("Content-Type", "application/json")
         .body(unsafe_get.clone())
         .send()
@@ -707,18 +699,19 @@ async fn test_request_limit_are_updated_during_signing() {
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     run_to_block(&rpc, block_number + 1).await;
 
-    let unsafe_put = UnsafeQuery::new(
-        request_limit_key(hex::encode(verifying_key.to_vec())),
-        RequestLimitStorage { request_amount: request_limit + 1, block_number: block_number + 1 }
-            .encode(),
-    )
-    .to_json();
+    let unsafe_put = UnsafeRequestLimitQuery {
+        key: hex::encode(verifying_key.to_vec()),
+        value: RequestLimitStorage {
+            request_amount: request_limit + 1,
+            block_number: block_number + 1,
+        },
+    };
 
     for validator_info in all_signers_info {
         mock_client
-            .post(format!("http://{}/unsafe/write_to_cache", validator_info.ip_address))
+            .post(format!("http://{}/unsafe/write_to_request_limit", validator_info.ip_address))
             .header("Content-Type", "application/json")
-            .body(unsafe_put.clone())
+            .body(serde_json::to_string(&unsafe_put).unwrap())
             .send()
             .await
             .unwrap();
@@ -1847,15 +1840,9 @@ async fn test_increment_or_wipe_request_limit() {
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
         setup_kv_store(&Some(ValidatorName::Alice), Some(build_db_path(&None))).await.unwrap();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
-    let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(
-        configuration.clone(),
-        kv_store.clone(),
-        sr25519_pair,
-        x25519_secret,
-        Arc::new(RwLock::new(cache)),
-    );
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();

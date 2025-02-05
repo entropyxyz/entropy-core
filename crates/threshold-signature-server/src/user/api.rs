@@ -57,7 +57,6 @@ use crate::{
 };
 
 pub use entropy_client::user::{RelayerSignatureRequest, UserSignatureRequest};
-pub const REQUEST_KEY_HEADER: &str = "REQUESTS";
 
 /// Type for validators to send user key's back and forth
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -74,7 +73,7 @@ pub struct UserRegistrationInfo {
 }
 
 /// Type that gets stored for request limit checks
-#[derive(Debug, PartialEq, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Encode, Decode, Clone)]
 pub struct RequestLimitStorage {
     pub block_number: u32,
     pub request_amount: u32,
@@ -605,18 +604,15 @@ pub async fn request_limit_check(
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let key = request_limit_key(verifying_key);
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if app_state.exists_in_cache(&key)? {
-        let serialized_request_amount =
-            app_state.read_from_cache(&key)?.ok_or(UserErr::RequestFetchError)?;
-        let request_info: RequestLimitStorage =
-            RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
+    if app_state.exists_in_request_limit(&verifying_key)? {
+        let request_info =
+            app_state.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
         if request_info.block_number == block_number && request_info.request_amount >= request_limit
         {
             return Err(UserErr::TooManyRequests);
@@ -633,51 +629,42 @@ pub async fn increment_or_wipe_request_limit(
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let key = request_limit_key(verifying_key);
     let block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if app_state.exists_in_cache(&key)? {
-        let serialized_request_amount =
-            app_state.read_from_cache(&key)?.ok_or(UserErr::RequestFetchError)?;
-        let request_info: RequestLimitStorage =
-            RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
+    if app_state.exists_in_request_limit(&verifying_key)? {
+        let request_info =
+            app_state.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
-            app_state.write_to_cache(
-                key,
-                RequestLimitStorage { block_number, request_amount: 1 }.encode(),
+            app_state.write_to_request_limit(
+                verifying_key,
+                RequestLimitStorage { block_number, request_amount: 1 },
             )?;
             return Ok(());
         }
 
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
-            app_state.write_to_cache(
-                key,
+            app_state.write_to_request_limit(
+                verifying_key,
                 RequestLimitStorage {
                     block_number,
                     request_amount: request_info.request_amount + 1,
-                }
-                .encode(),
+                },
             )?;
         }
     } else {
-        app_state.write_to_cache(
-            key,
-            RequestLimitStorage { block_number, request_amount: 1 }.encode(),
+        app_state.write_to_request_limit(
+            verifying_key,
+            RequestLimitStorage { block_number, request_amount: 1 },
         )?;
     }
 
     Ok(())
-}
-
-/// Creates the key for a request limit check
-pub fn request_limit_key(signing_address: String) -> String {
-    format!("{REQUEST_KEY_HEADER}_{signing_address}")
 }
 
 pub fn check_hash_pointer_out_of_bounds(

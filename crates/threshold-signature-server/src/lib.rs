@@ -191,7 +191,9 @@ use crate::{
     health::api::healthz,
     launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
-    r#unsafe::api::{delete, put, read_from_cache, remove_keys, unsafe_get, write_to_cache},
+    r#unsafe::api::{
+        delete, put, read_from_request_limit, remove_keys, unsafe_get, write_to_request_limit,
+    },
     signing_client::{api::*, ListenerState},
     user::api::*,
     validator::api::{new_reshare, rotate_network_key},
@@ -248,8 +250,8 @@ pub struct AppState {
     pub configuration: Configuration,
     /// Key-value store
     pub kv_store: KvManager,
-    /// Cache for TSS
-    pub cache: Cache,
+    /// Storage for request limit
+    pub request_limit: Arc<RwLock<HashMap<String, RequestLimitStorage>>>,
     /// Storage for encryption key backups for other TSS nodes
     /// Maps TSS account id to encryption key
     pub encryption_key_backup_provider: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
@@ -258,9 +260,6 @@ pub struct AppState {
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
 }
 
-/// A global cache type for the TSS
-pub type Cache = Arc<RwLock<HashMap<String, Vec<u8>>>>;
-
 impl AppState {
     /// Setup AppState with given secret keys
     pub fn new(
@@ -268,7 +267,6 @@ impl AppState {
         kv_store: KvManager,
         pair: sr25519::Pair,
         x25519_secret: StaticSecret,
-        cache: Cache,
     ) -> Self {
         Self {
             tss_state: Arc::new(RwLock::new(TssState::new())),
@@ -279,7 +277,7 @@ impl AppState {
             kv_store,
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
-            cache,
+            request_limit: Default::default(),
         }
     }
 
@@ -352,45 +350,61 @@ impl AppState {
         ))
     }
 
-    pub fn write_to_cache(&self, key: String, value: Vec<u8>) -> anyhow::Result<()> {
-        self.clear_poisioned_cache();
-        let mut cache =
-            self.cache.write().map_err(|_| anyhow!("Error getting write write_to_cache lock"))?;
-        cache.insert(key, value);
-        Ok(())
-    }
-
-    pub fn exists_in_cache(&self, key: &String) -> anyhow::Result<bool> {
-        self.clear_poisioned_cache();
-        let cache =
-            self.cache.read().map_err(|_| anyhow!("Error getting read exists_in_cache lock"))?;
-        Ok(cache.contains_key(key))
-    }
-
-    pub fn remove_from_cache(&self, key: &String) -> anyhow::Result<()> {
-        self.clear_poisioned_cache();
-        let mut cache = self
-            .cache
+    /// Write to request limit
+    pub fn write_to_request_limit(
+        &self,
+        key: String,
+        value: RequestLimitStorage,
+    ) -> anyhow::Result<()> {
+        self.clear_poisioned_request_limit();
+        let mut request_limit = self
+            .request_limit
             .write()
-            .map_err(|_| anyhow!("Error getting write remove_from_cache lock"))?;
-        cache.remove(key);
+            .map_err(|_| anyhow!("Error getting write write_to_request_limit lock"))?;
+        request_limit.insert(key, value);
         Ok(())
     }
 
-    /// Reads from cache will error if no value, call exists_in_cache to check
-    pub fn read_from_cache(&self, key: &String) -> anyhow::Result<Option<Vec<u8>>> {
-        self.clear_poisioned_cache();
-        let cache =
-            self.cache.read().map_err(|_| anyhow!("Error getting read read_from_cache lock"))?;
-        Ok(cache.get(key).clone().cloned())
+    /// Check if key exists in request limit
+    pub fn exists_in_request_limit(&self, key: &String) -> anyhow::Result<bool> {
+        self.clear_poisioned_request_limit();
+        let request_limit = self
+            .request_limit
+            .read()
+            .map_err(|_| anyhow!("Error getting read exists_in_request_limit lock"))?;
+        Ok(request_limit.contains_key(key))
     }
 
-    pub fn clear_poisioned_cache(&self) {
-        if self.cache.is_poisoned() {
-            self.cache.clear_poison()
+    /// Remove key from request limt
+    pub fn remove_from_request_limit(&self, key: &String) -> anyhow::Result<()> {
+        self.clear_poisioned_request_limit();
+        let mut request_limit = self
+            .request_limit
+            .write()
+            .map_err(|_| anyhow!("Error getting write remove_from_request_limit lock"))?;
+        request_limit.remove(key);
+        Ok(())
+    }
+
+    /// Reads from request_limit will error if no value, call exists_in_request_limit to check
+    pub fn read_from_request_limit(
+        &self,
+        key: &String,
+    ) -> anyhow::Result<Option<RequestLimitStorage>> {
+        self.clear_poisioned_request_limit();
+        let request_limit = self
+            .request_limit
+            .read()
+            .map_err(|_| anyhow!("Error getting read read_from_request_limit lock"))?;
+        Ok(request_limit.get(key).cloned())
+    }
+
+    /// Clears a poisioned lock from request limit
+    pub fn clear_poisioned_request_limit(&self) {
+        if self.request_limit.is_poisoned() {
+            self.request_limit.clear_poison()
         }
     }
-    // TODO delete from cache
 
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
     pub fn unsubscribed_peers(
@@ -434,8 +448,8 @@ pub fn app(app_state: AppState) -> Router {
         tracing::warn!("Server started in unsafe mode - do not use in production!");
         routes = routes
             .route("/unsafe/put", post(put))
-            .route("/unsafe/write_to_cache", post(write_to_cache))
-            .route("/unsafe/read_from_cache", post(read_from_cache))
+            .route("/unsafe/write_to_request_limit", post(write_to_request_limit))
+            .route("/unsafe/read_from_request_limit", post(read_from_request_limit))
             .route("/unsafe/get", post(unsafe_get))
             .route("/unsafe/delete", post(delete))
             .route("/unsafe/remove_keys", get(remove_keys));

@@ -48,15 +48,7 @@ use entropy_protocol::PartyId;
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
 use sp_keyring::AccountKeyring;
-use std::{
-    collections::HashMap,
-    fmt,
-    net::SocketAddr,
-    path::PathBuf,
-    str,
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
@@ -85,15 +77,8 @@ pub async fn setup_client() -> KvManager {
         setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
-    let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(
-        configuration,
-        kv_store.clone(),
-        sr25519_pair,
-        x25519_secret,
-        Arc::new(RwLock::new(cache)),
-    );
+    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.make_ready().unwrap();
@@ -125,15 +110,8 @@ pub async fn create_clients(
         setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
-    let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(
-        configuration,
-        kv_store.clone(),
-        sr25519_pair,
-        x25519_secret,
-        Arc::new(RwLock::new(cache)),
-    );
+    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     let _ = setup_latest_block_number(&kv_store).await;
 
