@@ -379,13 +379,13 @@ impl AppState {
 
     /// Reads from cache will error if no value, call exists_in_cache to check
     pub fn read_from_cache(&self, key: &String) -> anyhow::Result<Vec<u8>> {
-        self.clear_poisioned_chache();
+        self.clear_poisioned_cache();
         let cache =
             self.cache.read().map_err(|_| anyhow!("Error getting read read_from_cache lock"))?;
         Ok(cache[key].clone())
     }
 
-    pub fn clear_poisioned_chache(&self) {
+    pub fn clear_poisioned_cache(&self) {
         if self.cache.is_poisoned() {
             self.cache.clear_poison()
         }
