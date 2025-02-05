@@ -15,23 +15,17 @@
 
 use serial_test::serial;
 
-use super::{kv::EncryptedDb, Password};
+use super::kv::EncryptedDb;
 use crate::{clean_tests, encrypted_sled::Db, get_db_path};
 
-fn setup_db(require_password: bool) -> Db {
-    let db = if !require_password {
-        EncryptedDb::open(get_db_path(true), get_test_password())
-    } else {
-        EncryptedDb::open(get_db_path(true), Password::from("super-secret password."))
-    };
-    assert!(db.is_ok());
-    db.unwrap()
+fn setup_db(key: [u8; 32]) -> Db {
+    EncryptedDb::open(get_db_path(true), key).unwrap()
 }
 
 #[test]
 #[serial]
 fn test_encrypted_sled() {
-    let db = setup_db(false);
+    let db = setup_db([1; 32]);
 
     // insert <key: value> -> returns None
     let res = db.insert("key", "value").unwrap();
@@ -73,28 +67,25 @@ fn test_encrypted_sled() {
 
 #[test]
 #[serial]
-fn test_use_existing_salt() {
-    let db = setup_db(false);
+fn test_use_existing_key() {
+    let db = setup_db([1; 32]);
     let db_path = get_db_path(true);
     drop(db);
     // open existing db
-    assert!(EncryptedDb::open(db_path, get_test_password()).is_ok());
+    assert!(EncryptedDb::open(db_path, [1; 32]).is_ok());
     clean_tests();
 }
 
 #[test]
 #[serial]
-fn test_password() {
-    let db = setup_db(true);
+fn test_key() {
+    let db = setup_db([1; 32]);
     let db_path = get_db_path(true);
 
     drop(db);
 
-    // try to open the kv store using a different password
-    let db = EncryptedDb::open(
-        db_path,
-        Password::from("super-secret password!"), // replace '.' with '!'
-    );
+    // try to open the kv store using a different key
+    let db = EncryptedDb::open(db_path, [2; 32]);
     assert!(matches!(db, Err(super::result::EncryptedDbError::WrongPassword)));
     clean_tests();
 }
@@ -102,7 +93,7 @@ fn test_password() {
 #[test]
 #[serial]
 fn test_large_input() {
-    let db = setup_db(false);
+    let db = setup_db([1; 32]);
 
     let large_value = vec![0; 100000];
     let res = db.insert("key", large_value.clone()).unwrap();
@@ -111,8 +102,4 @@ fn test_large_input() {
     let res = db.get("key").unwrap();
     assert_eq!(res, Some(sled::IVec::from(large_value)));
     clean_tests();
-}
-
-pub fn get_test_password() -> Password {
-    crate::encrypted_sled::PasswordMethod::NoPassword.execute().unwrap()
 }

@@ -18,7 +18,6 @@ use crate::{
         entropy::{self},
         get_api, get_rpc, EntropyConfig,
     },
-    get_signer_and_x25519_secret,
     helpers::{
         launch::LATEST_BLOCK_NUMBER_RESHARE,
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
@@ -37,14 +36,12 @@ pub use entropy_protocol::{
 };
 use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
-use sp_core::Pair;
 use std::{collections::BTreeSet, str::FromStr};
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     OnlineClient,
 };
 use synedrion::{KeyResharingInputs, NewHolder, OldHolder};
-use x25519_dalek::StaticSecret;
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
 ///
@@ -56,15 +53,15 @@ pub async fn new_reshare(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
+    if !app_state.is_ready() {
+        return Err(ValidatorErr::NotReady);
+    }
+
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
-
-    let (signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
-        .await
-        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let next_signers_query = entropy::storage().staking_extension().next_signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
@@ -77,18 +74,16 @@ pub async fn new_reshare(
 
     let is_proper_signer = validators_info
         .iter()
-        .any(|validator_info| validator_info.tss_account == *signer.account_id());
+        .any(|validator_info| validator_info.tss_account == app_state.subxt_account_id());
 
     if !is_proper_signer {
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
 
+    let app_state = app_state.clone();
     // Do reshare in a separate task so we can already respond
     tokio::spawn(async move {
-        if let Err(err) =
-            do_reshare(&api, &rpc, signer, &x25519_secret_key, data, validators_info, app_state)
-                .await
-        {
+        if let Err(err) = do_reshare(&api, &rpc, data, validators_info, app_state).await {
             tracing::error!("Error during reshare: {err}");
         }
     });
@@ -98,8 +93,6 @@ pub async fn new_reshare(
 async fn do_reshare(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: PairSigner<EntropyConfig, sr25519::Pair>,
-    x25519_secret_key: &StaticSecret,
     data: OcwMessageReshare,
     validators_info: Vec<ValidatorInfo>,
     app_state: AppState,
@@ -121,7 +114,7 @@ async fn do_reshare(
             .map_err(|_| ValidatorErr::Conversion("Verifying key conversion"))?,
     )
     .map_err(|e| ValidatorErr::VerifyingKeyError(e.to_string()))?;
-    let my_stash_address = get_stash_address(api, rpc, signer.account_id())
+    let my_stash_address = get_stash_address(api, rpc, &app_state.subxt_account_id())
         .await
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
@@ -165,7 +158,7 @@ async fn do_reshare(
     };
 
     let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
-    let account_id = AccountId32(signer.signer().public().0);
+    let account_id = app_state.subxt_account_id();
 
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -184,12 +177,12 @@ async fn do_reshare(
         converted_validator_info,
         account_id,
         &session_id,
-        &signer,
-        x25519_secret_key,
+        &app_state.signer(),
+        &app_state.x25519_secret,
     )
     .await?;
     let (new_key_share, aux_info) =
-        execute_reshare(session_id.clone(), channels, signer.signer(), inputs, &new_holders, None)
+        execute_reshare(session_id.clone(), channels, &app_state.pair, inputs, &new_holders, None)
             .await?;
 
     let serialized_key_share = key_serialize(&(new_key_share, aux_info))
@@ -204,7 +197,7 @@ async fn do_reshare(
     app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
 
     // TODO: Error handling really complex needs to be thought about.
-    confirm_key_reshare(api, rpc, &signer).await?;
+    confirm_key_reshare(api, rpc, &app_state.signer()).await?;
     Ok(())
 }
 
@@ -215,15 +208,15 @@ async fn do_reshare(
 pub async fn rotate_network_key(
     State(app_state): State<AppState>,
 ) -> Result<StatusCode, ValidatorErr> {
+    if !app_state.is_ready() {
+        return Err(ValidatorErr::NotReady);
+    }
+
     // validate from chain
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
 
     validate_rotate_network_key(&api, &rpc).await?;
-
-    let (signer, _) = get_signer_and_x25519_secret(&app_state.kv_store)
-        .await
-        .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let signers_query = entropy::storage().staking_extension().signers();
     let signers = query_chain(&api, &rpc, signers_query, None)
@@ -235,7 +228,7 @@ pub async fn rotate_network_key(
         .map_err(|e| ValidatorErr::UserError(e.to_string()))?;
 
     let is_proper_signer = is_signer_or_delete_parent_key(
-        signer.account_id(),
+        &app_state.subxt_account_id(),
         validators_info.clone(),
         &app_state.kv_store,
     )

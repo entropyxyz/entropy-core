@@ -22,6 +22,7 @@ use entropy_client::{
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
 use entropy_kvdb::clean_tests;
+use entropy_kvdb::kv_manager::KvManager;
 use entropy_protocol::{
     decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
@@ -54,7 +55,6 @@ use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
-use sp_core::{crypto::Ss58Codec, Pair as OtherPair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{
     collections::HashMap,
@@ -66,10 +66,7 @@ use std::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::PolkadotExtrinsicParamsBuilder as Params,
-    ext::{
-        sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
-        sp_runtime::AccountId32,
-    },
+    ext::sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,
@@ -86,11 +83,10 @@ use crate::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
-    get_signer,
     helpers::{
         launch::{
-            development_mnemonic, load_kv_store, setup_mnemonic, threshold_account_id,
-            ValidatorName, DEFAULT_ENDPOINT,
+            development_mnemonic,
+            ValidatorName, DEFAULT_ENDPOINT, build_db_path, setup_kv_store
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -109,26 +105,6 @@ use crate::{
     validation::EncryptedSignedMessage,
     AppState, Configuration, ListenerState,
 };
-
-#[tokio::test]
-#[serial]
-async fn test_get_signer_does_not_throw_err() {
-    initialize_test_logger().await;
-    clean_tests();
-
-    let pair = <sr25519::Pair as Pair>::from_phrase(crate::helpers::launch::DEFAULT_MNEMONIC, None)
-        .expect("Issue converting mnemonic to pair");
-    let expected_account_id = AccountId32::new(pair.0.public().into()).to_ss58check();
-
-    let kv_store = load_kv_store(&None, None).await;
-    setup_mnemonic(&kv_store, development_mnemonic(&None)).await;
-    development_mnemonic(&None).to_string();
-    let account = threshold_account_id(&kv_store).await;
-
-    assert_eq!(account, expected_account_id);
-    get_signer(&kv_store).await.unwrap();
-    clean_tests();
-}
 
 #[tokio::test]
 #[serial]
@@ -532,8 +508,7 @@ async fn signature_request_overload() {
                     &all_signers_info,
                 )
                 .await;
-                tokio::time::sleep(Duration::from_millis(2000)).await;
-
+                
                 Ok::<(), anyhow::Error>(())
             })
         })
@@ -1143,6 +1118,9 @@ async fn test_program_with_config() {
     clean_tests();
 }
 
+// FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
+// it's producing false negatives on our CI runs.
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_jumpstart_network() {
@@ -1867,17 +1845,14 @@ async fn test_increment_or_wipe_request_limit() {
     let substrate_context = test_context_stationary().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
-    let kv_store = load_kv_store(&None, None).await;
 
-    let listener_state = ListenerState::default();
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(&Some(ValidatorName::Alice), Some(build_db_path(&None))).await.unwrap();
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
-    let app_state = AppState {
-        listener_state,
-        configuration,
-        kv_store: kv_store.clone(),
-        cache: Arc::new(RwLock::new(cache)),
-    };
+
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();

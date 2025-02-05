@@ -18,37 +18,34 @@ use std::{
     net::SocketAddr,
     str::FromStr,
     sync::{Arc, RwLock},
+    process
 };
 
+use anyhow::{anyhow, ensure};
 use clap::Parser;
 
 use entropy_tss::{
     app,
     launch::{
-        development_mnemonic, has_mnemonic, load_kv_store, setup_latest_block_number,
-        setup_mnemonic, setup_only, Configuration, StartupArgs, ValidatorName,
+        setup_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName,
     },
     AppState,
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let args = StartupArgs::parse();
     args.logger.setup().await;
 
-    if !args.setup_only {
-        tracing::info!("Starting Threshold Signature Sever");
-        tracing::info!("Starting server on: `{}`", &args.threshold_url);
-    }
+    tracing::info!("Starting Threshold Signature Sever");
+    tracing::info!("Starting server on: `{}`", &args.threshold_url);
 
     if args.logger.loki {
         tracing::info!("Sending logs to Loki server at `{}`", &args.logger.loki_endpoint);
     }
 
     let configuration = Configuration::new(args.chain_endpoint);
-    if !args.setup_only {
-        tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
-    }
+    tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
 
     let mut validator_name = None;
     if args.alice {
@@ -67,41 +64,37 @@ async fn main() {
         validator_name = Some(ValidatorName::Eve);
     }
 
-    let kv_store = load_kv_store(&validator_name, args.password_file).await;
+    let (kv_store, sr25519_pair, x25519_secret, key_option) =
+        setup_kv_store(&validator_name, None).await?;
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
     let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), Arc::new(RwLock::new(cache)));
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
 
-    if cfg!(test) || validator_name.is_some() {
-        setup_mnemonic(&kv_store, development_mnemonic(&validator_name)).await
-    } else if !has_mnemonic(&kv_store).await {
-        let mut rng = rand::thread_rng();
-        let mnemonic = bip39::Mnemonic::generate_in_with(&mut rng, bip39::Language::English, 24)
-            .expect("Failed to generate mnemonic");
-        setup_mnemonic(&kv_store, mnemonic).await
+    ensure!(
+        setup_latest_block_number(&kv_store).await.is_ok(),
+        "Issue setting up Latest Block Number"
+    );
+
+    {
+        let app_state = app_state.clone();
+        tokio::spawn(async move {
+            // Check for a connection to the chain node parallel to starting the tss_server so that
+            // we already can expose the `/info` http route
+            if let Err(error) =
+                entropy_tss::launch::check_node_prerequisites(app_state, key_option).await
+            {
+                tracing::error!("Prerequistite checks failed: {} - terminating.", error);
+                process::exit(1);
+            }
+        });
     }
 
-    setup_latest_block_number(&kv_store).await.expect("Issue setting up Latest Block Number");
-
-    // Below deals with syncing the kvdb
-    let addr = SocketAddr::from_str(&args.threshold_url).expect("failed to parse threshold url.");
-
-    if args.setup_only {
-        setup_only(&kv_store).await;
-    } else {
-        let account_id = entropy_tss::launch::threshold_account_id(&kv_store).await;
-        entropy_tss::launch::check_node_prerequisites(
-            &app_state.configuration.endpoint,
-            &account_id,
-        )
-        .await;
-
-        let listener = tokio::net::TcpListener::bind(&addr)
-            .await
-            .expect("Unable to bind to given server address.");
-        axum::serve(listener, app(app_state).into_make_service())
-            .await
-            .expect("failed to launch axum server.");
-    }
+    let addr = SocketAddr::from_str(&args.threshold_url)
+        .map_err(|_| anyhow!("Failed to parse threshold url"))?;
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .map_err(|_| anyhow!("Unable to bind to given server address"))?;
+    axum::serve(listener, app(app_state).into_make_service()).await?;
+    Ok(())
 }

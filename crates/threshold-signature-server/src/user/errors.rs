@@ -177,6 +177,8 @@ pub enum UserErr {
     TooFewSigners,
     #[error("Non signer sent from relayer")]
     IncorrectSigner,
+    #[error("Node has started fresh and not yet successfully set up")]
+    NotReady,
     #[error("Program Version not supported")]
     ProgramVersion,
     #[error("Conversion Error: {0}")]

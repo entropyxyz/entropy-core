@@ -30,21 +30,19 @@ use crate::{
         },
         EntropyConfig,
     },
-    get_signer,
     helpers::{
         launch::{
-            development_mnemonic, setup_latest_block_number, setup_mnemonic, Configuration,
-            ValidatorName, DEFAULT_ENDPOINT,
+            setup_kv_store, setup_latest_block_number, Configuration, ValidatorName,
+            DEFAULT_ENDPOINT,
         },
         logger::{Instrumentation, Logger},
         substrate::submit_transaction,
     },
-    signing_client::ListenerState,
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_client::substrate::query_chain;
-use entropy_kvdb::{encrypted_sled::PasswordMethod, get_db_path, kv_manager::KvManager};
+use entropy_kvdb::{get_db_path, kv_manager::KvManager};
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
@@ -57,6 +55,7 @@ use std::{
     str,
     sync::{Arc, RwLock},
     time::Duration,
+    path::PathBuf
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
@@ -79,23 +78,20 @@ pub async fn initialize_test_logger() {
 }
 
 pub async fn setup_client() -> KvManager {
-    let kv_store =
-        KvManager::new(get_db_path(true).into(), PasswordMethod::NoPassword.execute().unwrap())
-            .unwrap();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
-    let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
-    setup_mnemonic(&kv_store, mnemonic).await;
+    let storage_path: PathBuf = get_db_path(true).into();
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
-    let listener_state = ListenerState::default();
-    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
-    let app_state = AppState {
-        listener_state,
-        configuration,
-        kv_store: kv_store.clone(),
-        cache: Arc::new(RwLock::new(cache)),
-    };
+
+    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
+
+    // Mock making the pre-requisite checks by setting the application state to ready
+    app_state.make_ready().unwrap();
+
     let app = app(app_state).into_make_service();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
@@ -113,18 +109,19 @@ pub async fn create_clients(
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
     validator_name: &Option<ValidatorName>,
-) -> (IntoMakeService<Router>, KvManager) {
-    let listener_state = ListenerState::default();
+) -> (IntoMakeService<Router>, KvManager, SubxtAccountId32) {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let path = format!(".entropy/testing/test_db_{key_number}");
     let _ = std::fs::remove_dir_all(path.clone());
 
-    let kv_store =
-        KvManager::new(path.into(), PasswordMethod::NoPassword.execute().unwrap()).unwrap();
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
-    let mnemonic = development_mnemonic(validator_name);
-    crate::launch::setup_mnemonic(&kv_store, mnemonic).await;
+    let _ = setup_latest_block_number(&kv_store).await;
+    let cache: HashMap<String, Vec<u8>> = HashMap::new();
+
+    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
 
     let _ = setup_latest_block_number(&kv_store).await;
 
@@ -132,17 +129,15 @@ pub async fn create_clients(
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
         let _ = kv_store.clone().kv().put(reservation, value).await;
     }
-    let cache: HashMap<String, Vec<u8>> = HashMap::new();
-    let app_state = AppState {
-        listener_state,
-        configuration,
-        kv_store: kv_store.clone(),
-        cache: Arc::new(RwLock::new(cache)),
-    };
+
+    // Mock making the pre-requisite checks by setting the application state to ready
+    app_state.make_ready().unwrap();
+
+    let account_id = app_state.subxt_account_id();
 
     let app = app(app_state).into_make_service();
 
-    (app, kv_store)
+    (app, kv_store, account_id)
 }
 
 /// A way to specify which chainspec to use in testing
@@ -176,26 +171,18 @@ pub async fn spawn_testing_validators(
 ) -> (Vec<String>, Vec<PartyId>) {
     let ports = [3001i64, 3002, 3003, 3004];
 
-    let (alice_axum, alice_kv) =
+    let (alice_axum, alice_kv, alice_id) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
-    let alice_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&alice_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
+    let alice_id = PartyId::new(alice_id);
 
-    let (bob_axum, bob_kv) =
+    let (bob_axum, bob_kv, bob_id) =
         create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
-    let bob_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&bob_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
+    let bob_id = PartyId::new(bob_id);
 
-    let (charlie_axum, charlie_kv) =
+    let (charlie_axum, charlie_kv, charlie_id) =
         create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
             .await;
-    let charlie_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&charlie_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
-
-    let mut ids = vec![alice_id, bob_id, charlie_id];
+    let charlie_id = PartyId::new(charlie_id);
 
     let listener_alice = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[0]))
         .await
@@ -218,7 +205,7 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    let (dave_axum, dave_kv) =
+    let (dave_axum, _dave_kv, dave_id) =
         create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
 
     let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
@@ -227,10 +214,8 @@ pub async fn spawn_testing_validators(
     tokio::spawn(async move {
         axum::serve(listener_dave, dave_axum).await.unwrap();
     });
-    let dave_id = PartyId::new(SubxtAccountId32(
-        *get_signer(&dave_kv).await.unwrap().account_id().clone().as_ref(),
-    ));
-    ids.push(dave_id);
+    let dave_id = PartyId::new(dave_id);
+    let ids = vec![alice_id, bob_id, charlie_id, dave_id];
 
     if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
         put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;

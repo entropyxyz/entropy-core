@@ -58,8 +58,9 @@ use sp_staking::SessionIndex;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::{
-        QuoteContext, ValidatorInfo, VerifyQuoteError, X25519PublicKey, MAX_SIGNERS,
-        PREGENERATED_NETWORK_VERIFYING_KEY, VERIFICATION_KEY_LENGTH,
+        attestation::{AttestationHandler, QuoteContext, VerifyQuoteError},
+        ValidatorInfo, X25519PublicKey, MAX_SIGNERS, PREGENERATED_NETWORK_VERIFYING_KEY,
+        VERIFICATION_KEY_LENGTH,
     };
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -105,7 +106,7 @@ pub mod pallet {
         type MaxEndpointLength: Get<u32>;
 
         /// The handler to use when issuing and verifying attestations.
-        type AttestationHandler: entropy_shared::AttestationHandler<Self::AccountId>;
+        type AttestationHandler: AttestationHandler<Self::AccountId>;
     }
 
     /// Endpoint where a threshold server can be reached at
@@ -433,7 +434,9 @@ pub mod pallet {
                 if let Some(server_info) = maybe_server_info {
                     // Before we modify the `server_info`, we want to check that the validator is
                     // still running TDX hardware.
-                    <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                    <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<
+                        _,
+                    >>::verify_quote(
                         &server_info.tss_account.clone(),
                         server_info.x25519_public_key,
                         quote,
@@ -497,7 +500,7 @@ pub mod pallet {
                         // Before we modify the `server_info`, we want to check that the validator is
                         // still running TDX hardware.
                         let provisioning_certification_key =
-                            <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                            <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
                                 &tss_account.clone(),
                                 x25519_public_key,
                                 quote,
@@ -632,7 +635,7 @@ pub mod pallet {
             );
 
             let provisioning_certification_key =
-                <T::AttestationHandler as entropy_shared::AttestationHandler<_>>::verify_quote(
+                <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
                     &joining_server_info.tss_account.clone(),
                     joining_server_info.x25519_public_key,
                     quote,
@@ -849,6 +852,7 @@ pub mod pallet {
             let mut new_signers: Vec<Vec<u8>> = vec![];
             let mut count = 0u32;
             let mut remove_indicies_len = 0;
+            let mut removed_signers = vec![];
             // removes first signer and pushes new signer to back if total signers not increased
             if current_signers_length >= signers_info.total_signers as usize {
                 let mut remove_indicies = vec![];
@@ -859,6 +863,7 @@ pub mod pallet {
                     }
                 }
                 if remove_indicies.is_empty() {
+                    removed_signers.push(current_signers[0].clone());
                     current_signers.remove(0);
                 } else {
                     remove_indicies_len = remove_indicies.len();
@@ -876,6 +881,7 @@ pub mod pallet {
                     };
 
                     for remove_index in truncated {
+                        removed_signers.push(current_signers[*remove_index].clone());
                         current_signers.remove(*remove_index);
                     }
                 }
@@ -887,7 +893,9 @@ pub mod pallet {
                 let mut next_signer_up = &current_signers[0].clone();
                 let mut index;
                 // loops to find signer in validator that is not already signer
-                while current_signers.contains(next_signer_up) {
+                while current_signers.contains(next_signer_up)
+                    || removed_signers.contains(next_signer_up)
+                {
                     index = randomness.next_u32() % validators.len() as u32;
                     next_signer_up = &validators[index as usize];
                     count += 1;

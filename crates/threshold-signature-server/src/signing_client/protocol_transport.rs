@@ -32,7 +32,6 @@ use tokio_tungstenite::connect_async;
 
 use super::ProtocolErr;
 use crate::{
-    get_signer_and_x25519_secret,
     signing_client::{SessionId, SubscribeErr},
     AppState, ListenerState, SUBSCRIBE_TIMEOUT_SECONDS,
 };
@@ -149,12 +148,12 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
-    let (_signer, x25519_secret_key) = get_signer_and_x25519_secret(&app_state.kv_store)
-        .await
-        .map_err(|_| WsError::SignerFromAppState)?;
+    if !app_state.is_ready() {
+        return Err(WsError::NotReady);
+    }
 
     let (mut encrypted_connection, serialized_signed_message) =
-        noise_handshake_responder(socket, &x25519_secret_key)
+        noise_handshake_responder(socket, &app_state.x25519_secret)
             .await
             .map_err(|e| WsError::EncryptedConnection(e.to_string()))?;
 

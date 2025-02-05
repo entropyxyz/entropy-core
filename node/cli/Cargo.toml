@@ -19,7 +19,7 @@ name='entropy'
 [dependencies]
 
 # Third-party dependencies
-clap            ={ version="4.5.27", features=["derive"], optional=true }
+clap            ={ version="4.5.28", features=["derive"], optional=true }
 codec           ={ package="parity-scale-codec", version="3.0.0" }
 futures         ="0.3.31"
 hex-literal     ="0.4.1"
@@ -99,7 +99,7 @@ pallet-staking-extension={ version="0.3.0", path="../../pallets/staking" }
 project-root="0.2.2"
 
 [build-dependencies]
-clap={ version="4.5.27", optional=true }
+clap={ version="4.5.28", optional=true }
 
 pallet-balances             ={ version="29.0.0" }
 substrate-build-script-utils={ version="11.0.0" }
@@ -122,3 +122,5 @@ try-runtime=["entropy-runtime/try-runtime", "try-runtime-cli/try-runtime"]
 # Enables real PCK certificate chain verification - which means TSS nodes must be runnning on TDX
 # hardware
 production=["entropy-runtime/production"]
+# Sets a shorter session duration for the entropy-tss test_reshare_e2e
+reshare-test=["entropy-runtime/reshare-test"]
