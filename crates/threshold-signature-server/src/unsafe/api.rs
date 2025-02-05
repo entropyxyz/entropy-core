@@ -140,7 +140,7 @@ pub async fn read_from_cache(
     Json(key): Json<UnsafeQuery>,
 ) -> Vec<u8> {
     tracing::trace!("Attempting to read value {:?} to cache", &key.key);
-    app_state.read_from_cache(&key.key).unwrap()
+    app_state.read_from_cache(&key.key).unwrap().unwrap().to_vec()
 }
 
 /// Deletes any key from the KVDB.

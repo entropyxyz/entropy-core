@@ -22,7 +22,6 @@ use entropy_client::{
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
 use entropy_kvdb::clean_tests;
-use entropy_kvdb::kv_manager::KvManager;
 use entropy_protocol::{
     decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
@@ -102,7 +101,7 @@ use crate::{
         request_limit_key, RelayerSignatureRequest, RequestLimitStorage,
     },
     validation::EncryptedSignedMessage,
-    AppState, Configuration, ListenerState,
+    AppState, Configuration,
 };
 
 #[tokio::test]

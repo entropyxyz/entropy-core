@@ -613,7 +613,8 @@ pub async fn request_limit_check(
         .number;
 
     if app_state.exists_in_cache(&key)? {
-        let serialized_request_amount = app_state.read_from_cache(&key)?;
+        let serialized_request_amount =
+            app_state.read_from_cache(&key)?.ok_or(UserErr::RequestFetchError)?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
         if request_info.block_number == block_number && request_info.request_amount >= request_limit
@@ -640,7 +641,8 @@ pub async fn increment_or_wipe_request_limit(
         .number;
 
     if app_state.exists_in_cache(&key)? {
-        let serialized_request_amount = app_state.read_from_cache(&key)?;
+        let serialized_request_amount =
+            app_state.read_from_cache(&key)?.ok_or(UserErr::RequestFetchError)?;
         let request_info: RequestLimitStorage =
             RequestLimitStorage::decode(&mut serialized_request_amount.as_ref())?;
         // Previous block wipe request amount to new block

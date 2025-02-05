@@ -353,7 +353,7 @@ impl AppState {
     }
 
     pub fn write_to_cache(&self, key: String, value: Vec<u8>) -> anyhow::Result<()> {
-        self.clear_poisioned_chache();
+        self.clear_poisioned_cache();
         let mut cache =
             self.cache.write().map_err(|_| anyhow!("Error getting write write_to_cache lock"))?;
         cache.insert(key, value);
@@ -361,14 +361,14 @@ impl AppState {
     }
 
     pub fn exists_in_cache(&self, key: &String) -> anyhow::Result<bool> {
-        self.clear_poisioned_chache();
+        self.clear_poisioned_cache();
         let cache =
             self.cache.read().map_err(|_| anyhow!("Error getting read exists_in_cache lock"))?;
         Ok(cache.contains_key(key))
     }
 
     pub fn remove_from_cache(&self, key: &String) -> anyhow::Result<()> {
-        self.clear_poisioned_chache();
+        self.clear_poisioned_cache();
         let mut cache = self
             .cache
             .write()
@@ -378,11 +378,11 @@ impl AppState {
     }
 
     /// Reads from cache will error if no value, call exists_in_cache to check
-    pub fn read_from_cache(&self, key: &String) -> anyhow::Result<Vec<u8>> {
+    pub fn read_from_cache(&self, key: &String) -> anyhow::Result<Option<Vec<u8>>> {
         self.clear_poisioned_cache();
         let cache =
             self.cache.read().map_err(|_| anyhow!("Error getting read read_from_cache lock"))?;
-        Ok(cache[key].clone())
+        Ok(cache.get(key).clone().cloned())
     }
 
     pub fn clear_poisioned_cache(&self) {
