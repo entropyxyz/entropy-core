@@ -183,7 +183,7 @@ use subxt::{
 };
 use x25519_dalek::StaticSecret;
 
-pub use crate::helpers::{launch, validator::{get_signer_and_x25519_secret}};
+pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
 use crate::{
     attestation::api::{attest, get_attest},
     backup_provider::api::{backup_encryption_key, quote_nonce, recover_encryption_key},
@@ -279,7 +279,7 @@ impl AppState {
             kv_store,
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
-            cache
+            cache,
         }
     }
 

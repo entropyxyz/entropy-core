@@ -85,8 +85,7 @@ use crate::{
     },
     helpers::{
         launch::{
-            development_mnemonic,
-            ValidatorName, DEFAULT_ENDPOINT, build_db_path, setup_kv_store
+            build_db_path, development_mnemonic, setup_kv_store, ValidatorName, DEFAULT_ENDPOINT,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -508,7 +507,7 @@ async fn signature_request_overload() {
                     &all_signers_info,
                 )
                 .await;
-                
+
                 Ok::<(), anyhow::Error>(())
             })
         })
@@ -1851,8 +1850,13 @@ async fn test_increment_or_wipe_request_limit() {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
+    let app_state = AppState::new(
+        configuration.clone(),
+        kv_store.clone(),
+        sr25519_pair,
+        x25519_secret,
+        Arc::new(RwLock::new(cache)),
+    );
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();

@@ -52,10 +52,10 @@ use std::{
     collections::HashMap,
     fmt,
     net::SocketAddr,
+    path::PathBuf,
     str,
     sync::{Arc, RwLock},
     time::Duration,
-    path::PathBuf
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner,
@@ -87,7 +87,13 @@ pub async fn setup_client() -> KvManager {
     let _ = setup_latest_block_number(&kv_store).await;
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
+    let app_state = AppState::new(
+        configuration,
+        kv_store.clone(),
+        sr25519_pair,
+        x25519_secret,
+        Arc::new(RwLock::new(cache)),
+    );
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.make_ready().unwrap();
@@ -121,7 +127,13 @@ pub async fn create_clients(
     let _ = setup_latest_block_number(&kv_store).await;
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
+    let app_state = AppState::new(
+        configuration,
+        kv_store.clone(),
+        sr25519_pair,
+        x25519_secret,
+        Arc::new(RwLock::new(cache)),
+    );
 
     let _ = setup_latest_block_number(&kv_store).await;
 

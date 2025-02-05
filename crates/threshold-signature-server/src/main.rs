@@ -16,9 +16,9 @@
 use std::{
     collections::HashMap,
     net::SocketAddr,
+    process,
     str::FromStr,
     sync::{Arc, RwLock},
-    process
 };
 
 use anyhow::{anyhow, ensure};
@@ -68,8 +68,13 @@ async fn main() -> anyhow::Result<()> {
         setup_kv_store(&validator_name, None).await?;
     let cache: HashMap<String, Vec<u8>> = HashMap::new();
 
-    let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret, Arc::new(RwLock::new(cache)));
+    let app_state = AppState::new(
+        configuration.clone(),
+        kv_store.clone(),
+        sr25519_pair,
+        x25519_secret,
+        Arc::new(RwLock::new(cache)),
+    );
 
     ensure!(
         setup_latest_block_number(&kv_store).await.is_ok(),
