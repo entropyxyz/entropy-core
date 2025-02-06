@@ -71,10 +71,10 @@ impl RandomizedPrehashSigner<sr25519::Signature> for PairWrapper {
 }
 
 pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
-    mut chans: Channels,
+    chans: &mut Channels,
     session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
     session_id_hash: [u8; 32],
-) -> Result<(Res::Success, Channels), GenericProtocolError<Res>>
+) -> Result<Res::Success, GenericProtocolError<Res>>
 where
     <Res as synedrion::ProtocolResult>::ProvableError: std::marker::Send,
     <Res as synedrion::ProtocolResult>::CorrectnessProof: std::marker::Send,
@@ -185,7 +185,7 @@ where
         let session_inner =
             Arc::try_unwrap(session_arc).map_err(|_| GenericProtocolError::ArcUnwrapError)?;
         match session_inner.finalize_round(&mut OsRng, accum)? {
-            FinalizeOutcome::Success(res) => break Ok((res, chans)),
+            FinalizeOutcome::Success(res) => break Ok(res),
             FinalizeOutcome::AnotherRound {
                 session: new_session,
                 cached_messages: new_cached_messages,
@@ -205,7 +205,7 @@ where
 )]
 pub async fn execute_signing_protocol(
     session_id: SessionId,
-    chans: Channels,
+    mut chans: Channels,
     key_share: &KeyShare<KeyParams, PartyId>,
     aux_info: &AuxInfo<KeyParams, PartyId>,
     prehashed_message: &PrehashedMessage,
@@ -233,7 +233,7 @@ pub async fn execute_signing_protocol(
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    Ok(execute_protocol_generic(chans, session, session_id_hash).await?.0)
+    Ok(execute_protocol_generic(&mut chans, session, session_id_hash).await?)
 }
 
 /// Execute dkg.
@@ -244,7 +244,7 @@ pub async fn execute_signing_protocol(
 )]
 pub async fn execute_dkg(
     session_id: SessionId,
-    chans: Channels,
+    mut chans: Channels,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
     threshold: usize,
@@ -262,7 +262,7 @@ pub async fn execute_dkg(
     let (key_init_parties, includes_me) =
         get_key_init_parties(&my_party_id, threshold, &party_ids, &session_id_hash)?;
 
-    let (verifying_key, old_holder, chans) = if includes_me {
+    let (verifying_key, old_holder, mut chans) = if includes_me {
         // First run the key init session.
         let session = make_key_init_session(
             &mut OsRng,
@@ -272,8 +272,7 @@ pub async fn execute_dkg(
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        let (init_keyshare, chans) =
-            execute_protocol_generic(chans, session, session_id_hash).await?;
+        let init_keyshare = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
 
         tracing::info!("Finished key init protocol");
 
@@ -344,8 +343,8 @@ pub async fn execute_dkg(
         inputs,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
-    let (new_key_share_option, chans) =
-        execute_protocol_generic(chans, session, session_id_hash).await?;
+    let new_key_share_option =
+        execute_protocol_generic(&mut chans, session, session_id_hash).await?;
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
     tracing::info!("Finished reshare protocol");
@@ -359,7 +358,7 @@ pub async fn execute_dkg(
         &party_ids,
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
-    let aux_info = execute_protocol_generic(chans, session, session_id_hash).await?.0;
+    let aux_info = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
     tracing::info!("Finished aux gen protocol");
 
     Ok((new_key_share, aux_info))
@@ -374,7 +373,7 @@ pub async fn execute_dkg(
 )]
 pub async fn execute_reshare(
     session_id: SessionId,
-    chans: Channels,
+    mut chans: Channels,
     threshold_pair: &sr25519::Pair,
     inputs: KeyResharingInputs<KeyParams, PartyId>,
     verifiers: &BTreeSet<PartyId>,
@@ -399,7 +398,7 @@ pub async fn execute_reshare(
     )
     .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let (new_key_share, chans) = execute_protocol_generic(chans, session, session_id_hash).await?;
+    let new_key_share = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
 
     tracing::info!("Completed reshare protocol");
 
@@ -417,7 +416,7 @@ pub async fn execute_reshare(
         )
         .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        execute_protocol_generic(chans, session, session_id_hash_aux_data).await?.0
+        execute_protocol_generic(&mut chans, session, session_id_hash_aux_data).await?
     };
 
     Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, aux_info))
