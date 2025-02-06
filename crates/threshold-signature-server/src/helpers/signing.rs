@@ -113,7 +113,7 @@ pub async fn do_signing(
         .await?;
     increment_or_wipe_request_limit(
         rpc,
-        kv_manager,
+        app_state,
         hex::encode(info.signing_session_info.signature_verifying_key),
         request_limit,
     )

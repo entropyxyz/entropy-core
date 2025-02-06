@@ -77,6 +77,7 @@ pub async fn setup_client() -> KvManager {
         setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
+
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     // Mock making the pre-requisite checks by setting the application state to ready
@@ -109,6 +110,7 @@ pub async fn create_clients(
         setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
     let _ = setup_latest_block_number(&kv_store).await;
+
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     let _ = setup_latest_block_number(&kv_store).await;

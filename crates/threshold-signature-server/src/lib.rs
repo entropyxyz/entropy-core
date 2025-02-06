@@ -171,12 +171,6 @@ pub mod user;
 pub mod validation;
 pub mod validator;
 
-use axum::{
-    http::Method,
-    routing::{get, post},
-    Router,
-};
-use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::X25519PublicKey;
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
@@ -187,11 +181,6 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace::{self, TraceLayer},
-};
-use tracing::Level;
 use x25519_dalek::StaticSecret;
 
 pub use crate::helpers::{launch, validator::get_signer_and_x25519_secret};
@@ -202,11 +191,25 @@ use crate::{
     health::api::healthz,
     launch::Configuration,
     node_info::api::{hashes, info, version as get_version},
-    r#unsafe::api::{delete, put, remove_keys, unsafe_get},
+    r#unsafe::api::{
+        delete, put, read_from_request_limit, remove_keys, unsafe_get, write_to_request_limit,
+    },
     signing_client::{api::*, ListenerState},
     user::api::*,
     validator::api::{new_reshare, rotate_network_key},
 };
+use anyhow::anyhow;
+use axum::{
+    http::Method,
+    routing::{get, post},
+    Router,
+};
+use entropy_kvdb::kv_manager::KvManager;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
+use tracing::Level;
 
 /// Represents the state relating to the prerequisite checks
 #[derive(Clone, PartialEq, Eq)]
@@ -247,6 +250,8 @@ pub struct AppState {
     pub configuration: Configuration,
     /// Key-value store
     pub kv_store: KvManager,
+    /// Storage for request limit
+    pub request_limit: Arc<RwLock<HashMap<String, RequestLimitStorage>>>,
     /// Storage for encryption key backups for other TSS nodes
     /// Maps TSS account id to encryption key
     pub encryption_key_backup_provider: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
@@ -272,6 +277,7 @@ impl AppState {
             kv_store,
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
+            request_limit: Default::default(),
         }
     }
 
@@ -344,6 +350,62 @@ impl AppState {
         ))
     }
 
+    /// Write to request limit
+    pub fn write_to_request_limit(
+        &self,
+        key: String,
+        value: RequestLimitStorage,
+    ) -> anyhow::Result<()> {
+        self.clear_poisioned_request_limit();
+        let mut request_limit = self
+            .request_limit
+            .write()
+            .map_err(|_| anyhow!("Error getting write write_to_request_limit lock"))?;
+        request_limit.insert(key, value);
+        Ok(())
+    }
+
+    /// Check if key exists in request limit
+    pub fn exists_in_request_limit(&self, key: &String) -> anyhow::Result<bool> {
+        self.clear_poisioned_request_limit();
+        let request_limit = self
+            .request_limit
+            .read()
+            .map_err(|_| anyhow!("Error getting read exists_in_request_limit lock"))?;
+        Ok(request_limit.contains_key(key))
+    }
+
+    /// Remove key from request limt
+    pub fn remove_from_request_limit(&self, key: &String) -> anyhow::Result<()> {
+        self.clear_poisioned_request_limit();
+        let mut request_limit = self
+            .request_limit
+            .write()
+            .map_err(|_| anyhow!("Error getting write remove_from_request_limit lock"))?;
+        request_limit.remove(key);
+        Ok(())
+    }
+
+    /// Reads from request_limit will error if no value, call exists_in_request_limit to check
+    pub fn read_from_request_limit(
+        &self,
+        key: &String,
+    ) -> anyhow::Result<Option<RequestLimitStorage>> {
+        self.clear_poisioned_request_limit();
+        let request_limit = self
+            .request_limit
+            .read()
+            .map_err(|_| anyhow!("Error getting read read_from_request_limit lock"))?;
+        Ok(request_limit.get(key).cloned())
+    }
+
+    /// Clears a poisioned lock from request limit
+    pub fn clear_poisioned_request_limit(&self) {
+        if self.request_limit.is_poisoned() {
+            self.request_limit.clear_poison()
+        }
+    }
+
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
     pub fn unsubscribed_peers(
         &self,
@@ -386,6 +448,8 @@ pub fn app(app_state: AppState) -> Router {
         tracing::warn!("Server started in unsafe mode - do not use in production!");
         routes = routes
             .route("/unsafe/put", post(put))
+            .route("/unsafe/write_to_request_limit", post(write_to_request_limit))
+            .route("/unsafe/read_from_request_limit", post(read_from_request_limit))
             .route("/unsafe/get", post(unsafe_get))
             .route("/unsafe/delete", post(delete))
             .route("/unsafe/remove_keys", get(remove_keys));
