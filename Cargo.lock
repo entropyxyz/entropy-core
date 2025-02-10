@@ -2772,7 +2772,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std 12.0.0",
  "strum 0.26.3",
- "strum_macros 0.26.4",
+ "strum_macros 0.27.0",
  "subxt",
  "tdx-quote",
 ]
@@ -13924,6 +13924,19 @@ name = "strum_macros"
 version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
+dependencies = [
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.96",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9688894b43459159c82bfa5a5fa0435c19cbe3c9b427fa1dd7b1ce0c279b18a7"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
