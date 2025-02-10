@@ -1851,7 +1851,7 @@ async fn test_increment_or_wipe_request_limit() {
     // no error
     assert!(request_limit_check(
         &rpc,
-        &app_state,
+        &app_state.cache,
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         request_limit
     )
@@ -1862,7 +1862,7 @@ async fn test_increment_or_wipe_request_limit() {
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
             &rpc,
-            &app_state,
+            &app_state.cache,
             hex::encode(DAVE_VERIFYING_KEY.to_vec()),
             request_limit,
         )
@@ -1872,7 +1872,7 @@ async fn test_increment_or_wipe_request_limit() {
     // should now fail
     let err_too_many_requests = request_limit_check(
         &rpc,
-        &app_state,
+        &app_state.cache,
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         request_limit,
     )
