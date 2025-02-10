@@ -78,7 +78,7 @@ use crate::{
     },
     helpers::{
         launch::{
-            build_db_path, development_mnemonic, setup_kv_store, ValidatorName, DEFAULT_ENDPOINT,
+            build_db_path, development_mnemonic, setup_kv_store, ValidatorName, DEFAULT_ENDPOINT, Configuration
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -95,7 +95,7 @@ use crate::{
         RelayerSignatureRequest, RequestLimitStorage,
     },
     validation::EncryptedSignedMessage,
-    AppState, Configuration,
+    AppState,
 };
 
 #[tokio::test]
