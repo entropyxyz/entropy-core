@@ -89,7 +89,7 @@ pub async fn relay_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(UserErr::NotReady);
     }
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -220,7 +220,7 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(UserErr::NotReady);
     }
 
@@ -437,7 +437,7 @@ pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(UserErr::NotReady);
     }
 
@@ -610,9 +610,11 @@ pub async fn request_limit_check(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if app_state.exists_in_request_limit(&verifying_key)? {
-        let request_info =
-            app_state.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
+    if app_state.cache.exists_in_request_limit(&verifying_key)? {
+        let request_info = app_state
+            .cache
+            .read_from_request_limit(&verifying_key)?
+            .ok_or(UserErr::RequestFetchError)?;
         if request_info.block_number == block_number && request_info.request_amount >= request_limit
         {
             return Err(UserErr::TooManyRequests);
@@ -635,12 +637,14 @@ pub async fn increment_or_wipe_request_limit(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if app_state.exists_in_request_limit(&verifying_key)? {
-        let request_info =
-            app_state.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
+    if app_state.cache.exists_in_request_limit(&verifying_key)? {
+        let request_info = app_state
+            .cache
+            .read_from_request_limit(&verifying_key)?
+            .ok_or(UserErr::RequestFetchError)?;
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
-            app_state.write_to_request_limit(
+            app_state.cache.write_to_request_limit(
                 verifying_key,
                 RequestLimitStorage { block_number, request_amount: 1 },
             )?;
@@ -649,7 +653,7 @@ pub async fn increment_or_wipe_request_limit(
 
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
-            app_state.write_to_request_limit(
+            app_state.cache.write_to_request_limit(
                 verifying_key,
                 RequestLimitStorage {
                     block_number,
@@ -658,7 +662,7 @@ pub async fn increment_or_wipe_request_limit(
             )?;
         }
     } else {
-        app_state.write_to_request_limit(
+        app_state.cache.write_to_request_limit(
             verifying_key,
             RequestLimitStorage { block_number, request_amount: 1 },
         )?;

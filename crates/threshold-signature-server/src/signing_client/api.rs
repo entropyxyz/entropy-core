@@ -78,7 +78,7 @@ pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ProtocolErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(ProtocolErr::NotReady);
     }
 

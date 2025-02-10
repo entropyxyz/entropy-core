@@ -44,19 +44,9 @@ impl TssState {
 }
 
 #[derive(Clone)]
-pub struct AppState {
+pub struct Cache {
     /// Tracks the state of prerequisite checks
     pub tss_state: Arc<RwLock<TssState>>,
-    /// Tracks incoming protocol connections with other TSS nodes
-    pub listener_state: ListenerState,
-    /// Keypair for TSS account
-    pub pair: sr25519::Pair,
-    /// Secret encryption key
-    pub x25519_secret: StaticSecret,
-    /// Configuation containing the chain endpoint
-    pub configuration: Configuration,
-    /// Key-value store
-    pub kv_store: KvManager,
     /// Storage for request limit
     pub request_limit: Arc<RwLock<HashMap<String, RequestLimitStorage>>>,
     /// Storage for encryption key backups for other TSS nodes
@@ -67,27 +57,21 @@ pub struct AppState {
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
 }
 
-impl AppState {
-    /// Setup AppState with given secret keys
-    pub fn new(
-        configuration: Configuration,
-        kv_store: KvManager,
-        pair: sr25519::Pair,
-        x25519_secret: StaticSecret,
-    ) -> Self {
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Cache {
+    pub fn new() -> Self {
         Self {
             tss_state: Arc::new(RwLock::new(TssState::new())),
-            pair,
-            x25519_secret,
-            listener_state: ListenerState::default(),
-            configuration,
-            kv_store,
+            request_limit: Default::default(),
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
-            request_limit: Default::default(),
         }
     }
-
     /// Returns true if all prerequisite checks have passed.
     /// Is is not possible to participate in the protocols before this is true.
     /// 'Ready' means:
@@ -125,36 +109,6 @@ impl AppState {
         let mut tss_state = self.tss_state.write()?;
         *tss_state = TssState::Ready;
         Ok(())
-    }
-
-    /// Get a [PairSigner] for submitting extrinsics with subxt
-    pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.pair.clone())
-    }
-
-    /// Get the [AccountId32]
-    pub fn account_id(&self) -> AccountId32 {
-        AccountId32::new(self.pair.public().0)
-    }
-
-    /// Get the subxt account ID
-    pub fn subxt_account_id(&self) -> SubxtAccountId32 {
-        SubxtAccountId32(self.pair.public().0)
-    }
-
-    /// Get the x25519 public key
-    pub fn x25519_public_key(&self) -> [u8; 32] {
-        x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
-    }
-
-    /// Convenience function to get chain api and rpc
-    pub async fn get_api_rpc(
-        &self,
-    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), subxt::Error> {
-        Ok((
-            get_api(&self.configuration.endpoint).await?,
-            get_rpc(&self.configuration.endpoint).await?,
-        ))
     }
 
     /// Write to request limit
@@ -211,6 +165,69 @@ impl AppState {
         if self.request_limit.is_poisoned() {
             self.request_limit.clear_poison()
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    /// Tracks incoming protocol connections with other TSS nodes
+    pub listener_state: ListenerState,
+    /// Keypair for TSS account
+    pub pair: sr25519::Pair,
+    /// Secret encryption key
+    pub x25519_secret: StaticSecret,
+    /// Configuation containing the chain endpoint
+    pub configuration: Configuration,
+    /// Key-value store
+    pub kv_store: KvManager,
+    pub cache: Cache,
+}
+
+impl AppState {
+    /// Setup AppState with given secret keys
+    pub fn new(
+        configuration: Configuration,
+        kv_store: KvManager,
+        pair: sr25519::Pair,
+        x25519_secret: StaticSecret,
+    ) -> Self {
+        Self {
+            pair,
+            x25519_secret,
+            listener_state: ListenerState::default(),
+            configuration,
+            kv_store,
+            cache: Cache::default(),
+        }
+    }
+    /// Convenience function to get chain api and rpc
+    pub async fn get_api_rpc(
+        &self,
+    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), subxt::Error> {
+        Ok((
+            get_api(&self.configuration.endpoint).await?,
+            get_rpc(&self.configuration.endpoint).await?,
+        ))
+    }
+
+    /// Get a [PairSigner] for submitting extrinsics with subxt
+    pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
+        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.pair.clone())
+    }
+
+    /// Get the [AccountId32]
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.pair.public().0)
+    }
+
+    /// Get the subxt account ID
+    pub fn subxt_account_id(&self) -> SubxtAccountId32 {
+        SubxtAccountId32(self.pair.public().0)
+    }
+
+    /// Get the x25519 public key
+    pub fn x25519_public_key(&self) -> [u8; 32] {
+        x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
     }
 
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.

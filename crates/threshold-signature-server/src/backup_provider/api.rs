@@ -151,7 +151,7 @@ pub async fn backup_encryption_key(
 ) -> Result<(), BackupProviderError> {
     // Wait for read access to the chain
     let mut n = 0;
-    while !app_state.can_read_from_chain() {
+    while !app_state.cache.can_read_from_chain() {
         if n > 9 {
             return Err(BackupProviderError::NotConnectedToChain);
         }
@@ -175,6 +175,7 @@ pub async fn backup_encryption_key(
         .ok_or(BackupProviderError::NotRegisteredWithStakingPallet)?;
 
     let mut backups = app_state
+        .cache
         .encryption_key_backup_provider
         .write()
         .map_err(|_| BackupProviderError::RwLockPoison)?;
@@ -191,15 +192,18 @@ pub async fn recover_encryption_key(
     State(app_state): State<AppState>,
     Json(key_request): Json<RecoverEncryptionKeyRequest>,
 ) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(BackupProviderError::NotReady);
     }
 
     let quote = Quote::from_bytes(&key_request.quote)?;
 
     let nonce = {
-        let mut nonces =
-            app_state.attestation_nonces.write().map_err(|_| BackupProviderError::RwLockPoison)?;
+        let mut nonces = app_state
+            .cache
+            .attestation_nonces
+            .write()
+            .map_err(|_| BackupProviderError::RwLockPoison)?;
         nonces.remove(&key_request.response_key).ok_or(BackupProviderError::NoNonceInStore)?
     };
 
@@ -220,6 +224,7 @@ pub async fn recover_encryption_key(
 
     let key = {
         let backups = app_state
+            .cache
             .encryption_key_backup_provider
             .read()
             .map_err(|_| BackupProviderError::RwLockPoison)?;
@@ -316,7 +321,7 @@ pub async fn quote_nonce(
     State(app_state): State<AppState>,
     Json(response_key): Json<X25519PublicKey>,
 ) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(BackupProviderError::NotReady);
     }
 
@@ -324,8 +329,11 @@ pub async fn quote_nonce(
     OsRng.fill_bytes(&mut nonce);
 
     {
-        let mut nonces =
-            app_state.attestation_nonces.write().map_err(|_| BackupProviderError::RwLockPoison)?;
+        let mut nonces = app_state
+            .cache
+            .attestation_nonces
+            .write()
+            .map_err(|_| BackupProviderError::RwLockPoison)?;
         nonces.insert(response_key, nonce);
     }
 

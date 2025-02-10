@@ -148,7 +148,7 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(WsError::NotReady);
     }
 

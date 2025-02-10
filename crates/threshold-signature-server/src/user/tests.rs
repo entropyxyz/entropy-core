@@ -78,7 +78,8 @@ use crate::{
     },
     helpers::{
         launch::{
-            build_db_path, development_mnemonic, setup_kv_store, ValidatorName, DEFAULT_ENDPOINT, Configuration
+            build_db_path, development_mnemonic, setup_kv_store, Configuration, ValidatorName,
+            DEFAULT_ENDPOINT,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},

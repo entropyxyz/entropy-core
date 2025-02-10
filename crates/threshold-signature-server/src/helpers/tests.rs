@@ -81,7 +81,7 @@ pub async fn setup_client() -> KvManager {
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     // Mock making the pre-requisite checks by setting the application state to ready
-    app_state.make_ready().unwrap();
+    app_state.cache.make_ready().unwrap();
 
     let app = app(app_state).into_make_service();
 
@@ -121,7 +121,7 @@ pub async fn create_clients(
     }
 
     // Mock making the pre-requisite checks by setting the application state to ready
-    app_state.make_ready().unwrap();
+    app_state.cache.make_ready().unwrap();
 
     let account_id = app_state.subxt_account_id();
 
