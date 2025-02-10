@@ -36,7 +36,7 @@ axum   ={ version="0.8.2", features=["ws"] }
 
 # Substrate
 subxt             ="0.35.3"
-parity-scale-codec="3.7.2"
+parity-scale-codec="3.7.4"
 sp-core           ={ version="31.0.0", default-features=false }
 sp-keyring        ="34.0.0"
 
