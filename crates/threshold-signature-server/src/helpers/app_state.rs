@@ -64,6 +64,7 @@ impl Default for Cache {
 }
 
 impl Cache {
+    /// Setup new Cache
     pub fn new() -> Self {
         Self {
             tss_state: Arc::new(RwLock::new(TssState::new())),
@@ -180,6 +181,7 @@ pub struct AppState {
     pub configuration: Configuration,
     /// Key-value store
     pub kv_store: KvManager,
+    /// Global cache for TSS server
     pub cache: Cache,
 }
 
