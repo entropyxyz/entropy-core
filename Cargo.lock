@@ -2771,7 +2771,7 @@ dependencies = [
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-std 12.0.0",
- "strum 0.26.3",
+ "strum 0.27.0",
  "strum_macros 0.27.0",
  "subxt",
  "tdx-quote",
@@ -2874,7 +2874,7 @@ dependencies = [
  "snow",
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
- "strum 0.26.3",
+ "strum 0.27.0",
  "subxt",
  "subxt-signer",
  "synedrion",
@@ -13905,6 +13905,12 @@ checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
 dependencies = [
  "strum_macros 0.26.4",
 ]
+
+[[package]]
+name = "strum"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce1475c515a4f03a8a7129bb5228b81a781a86cb0b3fbbc19e1c556d491a401f"
 
 [[package]]
 name = "strum_macros"
