@@ -62,6 +62,8 @@ impl TssState {
 /// In-memory store of application state
 #[derive(Clone)]
 pub struct Cache {
+    /// Tracks incoming protocol connections with other TSS nodes
+    pub listener_state: ListenerState,
     /// Tracks the state of prerequisite checks
     pub tss_state: Arc<RwLock<TssState>>,
     /// Storage for request limit
@@ -84,6 +86,7 @@ impl Cache {
     /// Setup new Cache
     pub fn new() -> Self {
         Self {
+            listener_state: ListenerState::default(),
             tss_state: Arc::new(RwLock::new(TssState::new())),
             request_limit: Default::default(),
             encryption_key_backup_provider: Default::default(),
@@ -184,13 +187,23 @@ impl Cache {
             self.request_limit.clear_poison()
         }
     }
+    /// Gets the list of peers who haven't yet subscribed to us for this particular session.
+    pub fn unsubscribed_peers(
+        &self,
+        session_id: &entropy_protocol::SessionId,
+    ) -> Result<Vec<subxt::utils::AccountId32>, crate::signing_client::ProtocolErr> {
+        self.listener_state.unsubscribed_peers(session_id).map_err(|_| {
+            crate::signing_client::ProtocolErr::SessionError(format!(
+                "Unable to get unsubscribed peers for `SessionId` {:?}",
+                session_id,
+            ))
+        })
+    }
 }
 
 /// Application state struct which is cloned and made available to every axum HTTP route handler function
 #[derive(Clone)]
 pub struct AppState {
-    /// Tracks incoming protocol connections with other TSS nodes
-    pub listener_state: ListenerState,
     /// Keypair for TSS account
     pub pair: sr25519::Pair,
     /// Secret encryption key
@@ -211,14 +224,7 @@ impl AppState {
         pair: sr25519::Pair,
         x25519_secret: StaticSecret,
     ) -> Self {
-        Self {
-            pair,
-            x25519_secret,
-            listener_state: ListenerState::default(),
-            configuration,
-            kv_store,
-            cache: Cache::default(),
-        }
+        Self { pair, x25519_secret, configuration, kv_store, cache: Cache::default() }
     }
     /// Convenience function to get chain api and rpc
     pub async fn get_api_rpc(
@@ -248,18 +254,5 @@ impl AppState {
     /// Get the x25519 public key
     pub fn x25519_public_key(&self) -> [u8; 32] {
         x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
-    }
-
-    /// Gets the list of peers who haven't yet subscribed to us for this particular session.
-    pub fn unsubscribed_peers(
-        &self,
-        session_id: &entropy_protocol::SessionId,
-    ) -> Result<Vec<subxt::utils::AccountId32>, crate::signing_client::ProtocolErr> {
-        self.listener_state.unsubscribed_peers(session_id).map_err(|_| {
-            crate::signing_client::ProtocolErr::SessionError(format!(
-                "Unable to get unsubscribed peers for `SessionId` {:?}",
-                session_id,
-            ))
-        })
     }
 }

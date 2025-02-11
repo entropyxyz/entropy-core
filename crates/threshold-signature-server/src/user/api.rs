@@ -500,7 +500,7 @@ async fn setup_dkg(
         &data.validators_info,
         &app_state.signer(),
         &app_state.x25519_secret,
-        &app_state.listener_state,
+        &app_state.cache.listener_state,
         data.block_number,
     )
     .await?;

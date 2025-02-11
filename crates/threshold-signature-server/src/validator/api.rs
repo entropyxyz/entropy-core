@@ -173,7 +173,7 @@ async fn do_reshare(
     }
 
     let channels = get_channels(
-        &app_state.listener_state,
+        &app_state.cache.listener_state,
         converted_validator_info,
         account_id,
         &session_id,

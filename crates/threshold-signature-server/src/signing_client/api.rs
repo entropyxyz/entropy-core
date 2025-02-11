@@ -106,7 +106,7 @@ pub async fn proactive_refresh(
                 &ocw_data.validators_info,
                 &app_state.signer(),
                 &app_state.x25519_secret,
-                &app_state.listener_state,
+                &app_state.cache.listener_state,
                 encoded_key,
                 deserialized_old_key,
                 ocw_data.block_number,
