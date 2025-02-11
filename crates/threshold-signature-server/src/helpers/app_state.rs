@@ -186,7 +186,7 @@ impl Cache {
     }
 }
 
-/// Application state struct which is cloned and made available to every axum HTTP route handler function 
+/// Application state struct which is cloned and made available to every axum HTTP route handler function
 #[derive(Clone)]
 pub struct AppState {
     /// Tracks incoming protocol connections with other TSS nodes
