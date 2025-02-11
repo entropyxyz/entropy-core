@@ -43,6 +43,7 @@ impl TssState {
     }
 }
 
+/// In-memory store of application state
 #[derive(Clone)]
 pub struct Cache {
     /// Tracks the state of prerequisite checks
@@ -169,6 +170,7 @@ impl Cache {
     }
 }
 
+/// Application state struct which is cloned and made available to every axum HTTP route handler function 
 #[derive(Clone)]
 pub struct AppState {
     /// Tracks incoming protocol connections with other TSS nodes
