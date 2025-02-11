@@ -148,7 +148,7 @@ pub async fn open_protocol_connections(
 
 /// Handle an incoming websocket connection
 pub async fn handle_socket(socket: WebSocket, app_state: AppState) -> Result<(), WsError> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(WsError::NotReady);
     }
 
@@ -202,7 +202,7 @@ async fn handle_initial_incoming_ws_message(
         return Err(SubscribeErr::InvalidSignature("Invalid signature."));
     }
 
-    if !app_state.listener_state.contains_listener(&msg.session_id)? {
+    if !app_state.cache.listener_state.contains_listener(&msg.session_id)? {
         // Chain node hasn't yet informed this node of the party. Wait for a timeout and proceed
         // or fail below
         tracing::warn!("Cannot find associated listener - waiting");
@@ -212,6 +212,7 @@ async fn handle_initial_incoming_ws_message(
     {
         // Check that the given public key is of the ones we are expecting for this protocol session
         let mut listeners = app_state
+            .cache
             .listener_state
             .listeners
             .lock()
@@ -231,7 +232,7 @@ async fn handle_initial_incoming_ws_message(
         }
     }
     let ws_channels =
-        get_ws_channels(&app_state.listener_state, &msg.session_id, &msg.account_id())?;
+        get_ws_channels(&app_state.cache.listener_state, &msg.session_id, &msg.account_id())?;
 
     Ok((ws_channels, PartyId::new(msg.account_id())))
 }

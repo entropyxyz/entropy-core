@@ -47,7 +47,7 @@ pub struct TssPublicKeys {
 #[tracing::instrument(skip_all)]
 pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
     Ok(Json(TssPublicKeys {
-        ready: app_state.is_ready(),
+        ready: app_state.cache.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
         tss_account: app_state.subxt_account_id(),
     }))

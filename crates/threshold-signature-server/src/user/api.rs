@@ -44,6 +44,7 @@ use crate::signing_client::ProtocolErr;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
+        app_state::Cache,
         launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::do_signing,
         substrate::{
@@ -89,7 +90,7 @@ pub async fn relay_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(UserErr::NotReady);
     }
     let api = get_api(&app_state.configuration.endpoint).await?;
@@ -220,7 +221,7 @@ pub async fn sign_tx(
     State(app_state): State<AppState>,
     Json(encrypted_msg): Json<EncryptedSignedMessage>,
 ) -> Result<(StatusCode, Body), UserErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(UserErr::NotReady);
     }
 
@@ -295,7 +296,8 @@ pub async fn sign_tx(
 
     let string_verifying_key =
         hex::encode(relayer_sig_request.user_signature_request.signature_verifying_key.clone());
-    request_limit_check(&rpc, &app_state, string_verifying_key.clone(), request_limit).await?;
+    request_limit_check(&rpc, &app_state.cache, string_verifying_key.clone(), request_limit)
+        .await?;
 
     let block_number = rpc
         .chain_get_header(None)
@@ -437,7 +439,7 @@ pub async fn generate_network_key(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, UserErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(UserErr::NotReady);
     }
 
@@ -498,7 +500,7 @@ async fn setup_dkg(
         &data.validators_info,
         &app_state.signer(),
         &app_state.x25519_secret,
-        &app_state.listener_state,
+        &app_state.cache.listener_state,
         data.block_number,
     )
     .await?;
@@ -600,7 +602,7 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
 /// Checks the request limit
 pub async fn request_limit_check(
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    app_state: &AppState,
+    cache: &Cache,
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
@@ -610,9 +612,9 @@ pub async fn request_limit_check(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if app_state.exists_in_request_limit(&verifying_key)? {
+    if cache.exists_in_request_limit(&verifying_key)? {
         let request_info =
-            app_state.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
+            cache.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
         if request_info.block_number == block_number && request_info.request_amount >= request_limit
         {
             return Err(UserErr::TooManyRequests);
@@ -625,7 +627,7 @@ pub async fn request_limit_check(
 /// Increments or restarts request count if a new block has been created
 pub async fn increment_or_wipe_request_limit(
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    app_state: &AppState,
+    cache: &Cache,
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
@@ -635,12 +637,12 @@ pub async fn increment_or_wipe_request_limit(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
-    if app_state.exists_in_request_limit(&verifying_key)? {
+    if cache.exists_in_request_limit(&verifying_key)? {
         let request_info =
-            app_state.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
+            cache.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
         // Previous block wipe request amount to new block
         if request_info.block_number != block_number {
-            app_state.write_to_request_limit(
+            cache.write_to_request_limit(
                 verifying_key,
                 RequestLimitStorage { block_number, request_amount: 1 },
             )?;
@@ -649,7 +651,7 @@ pub async fn increment_or_wipe_request_limit(
 
         // same block incrememnt request amount
         if request_info.request_amount <= request_limit {
-            app_state.write_to_request_limit(
+            cache.write_to_request_limit(
                 verifying_key,
                 RequestLimitStorage {
                     block_number,
@@ -658,7 +660,7 @@ pub async fn increment_or_wipe_request_limit(
             )?;
         }
     } else {
-        app_state.write_to_request_limit(
+        cache.write_to_request_limit(
             verifying_key,
             RequestLimitStorage { block_number, request_amount: 1 },
         )?;

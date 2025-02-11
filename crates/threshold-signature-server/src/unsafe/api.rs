@@ -128,7 +128,7 @@ pub async fn write_to_request_limit(
     Json(key): Json<UnsafeRequestLimitQuery>,
 ) -> StatusCode {
     tracing::trace!("Attempting to write value {:?} to request_limit", &key.value);
-    app_state.write_to_request_limit(key.key, key.value).unwrap();
+    app_state.cache.write_to_request_limit(key.key, key.value).unwrap();
     StatusCode::OK
 }
 
@@ -147,7 +147,7 @@ pub async fn read_from_request_limit(
     Json(key): Json<UnsafeQuery>,
 ) -> Vec<u8> {
     tracing::trace!("Attempting to read value {:?} to cache", &key.key);
-    app_state.read_from_request_limit(&key.key).unwrap().unwrap().encode()
+    app_state.cache.read_from_request_limit(&key.key).unwrap().unwrap().encode()
 }
 
 /// Deletes any key from the KVDB.

@@ -48,7 +48,7 @@ pub async fn do_signing(
 ) -> Result<RecoverableSignature, ProtocolErr> {
     tracing::debug!("Preparing to perform signing");
 
-    let state = &app_state.listener_state;
+    let state = &app_state.cache.listener_state;
     let kv_manager = &app_state.kv_store;
 
     let info = SignInit::new(relayer_signature_request.clone(), signing_session_info.clone());
@@ -95,7 +95,7 @@ pub async fn do_signing(
                 Channels(broadcast_out, rx_from_others)
             },
             Err(e) => {
-                let unsubscribed_peers = app_state.unsubscribed_peers(&session_id)?;
+                let unsubscribed_peers = app_state.cache.unsubscribed_peers(&session_id)?;
                 return Err(ProtocolErr::Timeout { source: e, inactive_peers: unsubscribed_peers });
             },
         }
@@ -113,7 +113,7 @@ pub async fn do_signing(
         .await?;
     increment_or_wipe_request_limit(
         rpc,
-        app_state,
+        &app_state.cache,
         hex::encode(info.signing_session_info.signature_verifying_key),
         request_limit,
     )

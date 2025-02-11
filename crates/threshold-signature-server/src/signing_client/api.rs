@@ -78,7 +78,7 @@ pub async fn proactive_refresh(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ProtocolErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(ProtocolErr::NotReady);
     }
 
@@ -106,7 +106,7 @@ pub async fn proactive_refresh(
                 &ocw_data.validators_info,
                 &app_state.signer(),
                 &app_state.x25519_secret,
-                &app_state.listener_state,
+                &app_state.cache.listener_state,
                 encoded_key,
                 deserialized_old_key,
                 ocw_data.block_number,

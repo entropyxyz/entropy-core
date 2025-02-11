@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Helper modules for various components of the TSS server
+pub mod app_state;
 pub mod launch;
 pub mod logger;
 pub mod signing;

@@ -78,7 +78,8 @@ use crate::{
     },
     helpers::{
         launch::{
-            build_db_path, development_mnemonic, setup_kv_store, ValidatorName, DEFAULT_ENDPOINT,
+            build_db_path, development_mnemonic, setup_kv_store, Configuration, ValidatorName,
+            DEFAULT_ENDPOINT,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -95,7 +96,7 @@ use crate::{
         RelayerSignatureRequest, RequestLimitStorage,
     },
     validation::EncryptedSignedMessage,
-    AppState, Configuration,
+    AppState,
 };
 
 #[tokio::test]
@@ -1850,7 +1851,7 @@ async fn test_increment_or_wipe_request_limit() {
     // no error
     assert!(request_limit_check(
         &rpc,
-        &app_state,
+        &app_state.cache,
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         request_limit
     )
@@ -1861,7 +1862,7 @@ async fn test_increment_or_wipe_request_limit() {
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
             &rpc,
-            &app_state,
+            &app_state.cache,
             hex::encode(DAVE_VERIFYING_KEY.to_vec()),
             request_limit,
         )
@@ -1871,7 +1872,7 @@ async fn test_increment_or_wipe_request_limit() {
     // should now fail
     let err_too_many_requests = request_limit_check(
         &rpc,
-        &app_state,
+        &app_state.cache,
         hex::encode(DAVE_VERIFYING_KEY.to_vec()),
         request_limit,
     )

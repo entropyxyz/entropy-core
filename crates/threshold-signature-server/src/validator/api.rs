@@ -53,7 +53,7 @@ pub async fn new_reshare(
     State(app_state): State<AppState>,
     encoded_data: Bytes,
 ) -> Result<StatusCode, ValidatorErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(ValidatorErr::NotReady);
     }
 
@@ -173,7 +173,7 @@ async fn do_reshare(
     }
 
     let channels = get_channels(
-        &app_state.listener_state,
+        &app_state.cache.listener_state,
         converted_validator_info,
         account_id,
         &session_id,
@@ -208,7 +208,7 @@ async fn do_reshare(
 pub async fn rotate_network_key(
     State(app_state): State<AppState>,
 ) -> Result<StatusCode, ValidatorErr> {
-    if !app_state.is_ready() {
+    if !app_state.cache.is_ready() {
         return Err(ValidatorErr::NotReady);
     }
 
