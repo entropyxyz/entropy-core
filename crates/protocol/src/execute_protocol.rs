@@ -31,7 +31,7 @@ use synedrion::{
     AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, PrehashedMessage,
     RecoverableSignature, ThresholdKeyShare,
 };
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task::spawn_blocking};
 
 use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
@@ -100,7 +100,7 @@ where
             let tx = tx.clone();
             let my_id = my_id.clone();
             let destination = destination.clone();
-            tokio::spawn(async move {
+            spawn_blocking(move || {
                 session_arc
                     .make_message(&mut OsRng, &destination)
                     .map(|(message, artifact)| {
@@ -125,7 +125,7 @@ where
         // Process cached messages
         let join_handles = cached_messages.into_iter().map(|preprocessed| {
             let session_arc = session_arc.clone();
-            tokio::spawn(async move { session_arc.process_message(&mut OsRng, preprocessed) })
+            spawn_blocking(move || session_arc.process_message(&mut OsRng, preprocessed))
         });
 
         for result in try_join_all(join_handles).await? {
@@ -154,7 +154,8 @@ where
                                 let tx = process_tx.clone();
                                 tokio::spawn(async move {
                                     let result = session_arc.process_message(&mut OsRng, preprocessed);
-                                    if tx.send(result).await.is_err() {
+
+                                    if futures::executor::block_on(tx.send(result)).is_err() {
                                         tracing::error!("Protocol finished before message processing result sent");
                                     }
                                 });
