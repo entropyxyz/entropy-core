@@ -74,6 +74,8 @@ pub struct Cache {
     /// Storage for quote nonces for other TSS nodes wanting to make encryption key backups
     /// Maps response x25519 public key to quote nonce
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
+    /// Collection of block numbers to store
+    pub block_numbers: Arc<RwLock<HashMap<String, u32>>>,
 }
 
 impl Default for Cache {
@@ -91,6 +93,7 @@ impl Cache {
             request_limit: Default::default(),
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
+            block_numbers: Default::default(),
         }
     }
     /// Returns true if all prerequisite checks have passed.
@@ -181,10 +184,58 @@ impl Cache {
         Ok(request_limit.get(key).cloned())
     }
 
+    /// Clears the request_limit mapping
+    pub fn clear_request_limit(&self) -> anyhow::Result<()> {
+        self.clear_poisioned_request_limit();
+        let mut request_limit = self
+            .request_limit
+            .write()
+            .map_err(|_| anyhow!("Error getting read read_from_request_limit lock"))?;
+        request_limit.clear();
+        Ok(())
+    }
+
     /// Clears a poisioned lock from request limit
     pub fn clear_poisioned_request_limit(&self) {
         if self.request_limit.is_poisoned() {
             self.request_limit.clear_poison()
+        }
+    }
+
+    /// Write to block numbers
+    pub fn write_to_block_numbers(&self, key: String, value: u32) -> anyhow::Result<()> {
+        self.clear_poisioned_block_numbers();
+        let mut block_numbers = self
+            .block_numbers
+            .write()
+            .map_err(|_| anyhow!("Error getting write write_to_block_numbers lock"))?;
+        block_numbers.insert(key, value);
+        Ok(())
+    }
+
+    /// Check if key exists in request limit
+    pub fn exists_in_block_numbers(&self, key: &String) -> anyhow::Result<bool> {
+        self.clear_poisioned_block_numbers();
+        let block_numbers = self
+            .block_numbers
+            .read()
+            .map_err(|_| anyhow!("Error getting read exists_in_block_numbers lock"))?;
+        Ok(block_numbers.contains_key(key))
+    }
+
+    /// Reads from block numbers will error if no value, call exists_in_request_limit to check
+    pub fn read_from_block_numbers(&self, key: &String) -> anyhow::Result<Option<u32>> {
+        self.clear_poisioned_block_numbers();
+        let block_numbers = self
+            .block_numbers
+            .read()
+            .map_err(|_| anyhow!("Error getting read read_from_block_numbers lock"))?;
+        Ok(block_numbers.get(key).cloned())
+    }
+    /// Clears a poisioned lock from request limit
+    pub fn clear_poisioned_block_numbers(&self) {
+        if self.block_numbers.is_poisoned() {
+            self.block_numbers.clear_poison()
         }
     }
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
