@@ -79,7 +79,7 @@ use crate::{
     helpers::{
         launch::{
             build_db_path, development_mnemonic, setup_kv_store, Configuration, ValidatorName,
-            DEFAULT_ENDPOINT,
+            DEFAULT_ENDPOINT, LATEST_BLOCK_NUMBER,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -694,11 +694,16 @@ async fn test_request_limit_are_updated_during_signing() {
     // Gets current block number, potential race condition run to block + 1
     // to reset block and give us 6 seconds to hit rate limit
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    run_to_block(&rpc, block_number + 1).await;
 
     let unsafe_put = UnsafeRequestLimitQuery {
         key: hex::encode(verifying_key.to_vec()),
         value: request_limit + 1u32,
+    };
+
+    // reduce race condition by increasing block number so request limit mapping does not nuke
+    let unsafe_put_block_number = UnsafeRequestLimitQuery {
+        key: LATEST_BLOCK_NUMBER.to_string(),
+        value: block_number + 5u32,
     };
 
     for validator_info in all_signers_info {
@@ -706,6 +711,14 @@ async fn test_request_limit_are_updated_during_signing() {
             .post(format!("http://{}/unsafe/write_to_request_limit", validator_info.ip_address))
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&unsafe_put).unwrap())
+            .send()
+            .await
+            .unwrap();
+
+        mock_client
+            .post(format!("http://{}/unsafe/write_to_block_numbers", validator_info.ip_address))
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&unsafe_put_block_number).unwrap())
             .send()
             .await
             .unwrap();
@@ -718,12 +731,12 @@ async fn test_request_limit_are_updated_during_signing() {
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
-    assert!(test_user_failed_request_limit
+    assert_eq!(test_user_failed_request_limit
         .unwrap()
         .text()
         .await
-        .unwrap()
-        .contains("Too many requests - wait a block"));
+        .unwrap(),
+        "[{\"Err\":\"Too many requests - wait a block\"},{\"Err\":\"Too many requests - wait a block\"}]");
 
     clean_tests();
 }
