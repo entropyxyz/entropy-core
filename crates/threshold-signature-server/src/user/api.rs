@@ -593,6 +593,8 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
 }
 
 /// Checks the request limit
+///
+/// Clears request limit mapping if new block has been created
 pub async fn request_limit_check(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     cache: &Cache,
@@ -605,6 +607,7 @@ pub async fn request_limit_check(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
+    // clears request limit mapping if new block has been created
     if cache.exists_in_block_numbers(&LATEST_BLOCK_NUMBER.to_string())?
         && cache.read_from_block_numbers(&LATEST_BLOCK_NUMBER.to_string())?.unwrap() < block_number
     {

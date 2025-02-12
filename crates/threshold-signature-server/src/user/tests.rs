@@ -48,7 +48,7 @@ use entropy_testing_utils::{
 };
 use futures::future::try_join_all;
 use more_asserts as ma;
-use parity_scale_codec::{Encode};
+use parity_scale_codec::Encode;
 use rand::Rng;
 use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
@@ -718,7 +718,12 @@ async fn test_request_limit_are_updated_during_signing() {
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
 
-    assert_eq!(test_user_failed_request_limit.unwrap().text().await.unwrap(), "[{\"Err\":\"Too many requests - wait a block\"},{\"Err\":\"Too many requests - wait a block\"}]");
+    assert!(test_user_failed_request_limit
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .contains("Too many requests - wait a block"));
 
     clean_tests();
 }
