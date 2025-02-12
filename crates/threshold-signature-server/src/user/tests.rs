@@ -48,7 +48,7 @@ use entropy_testing_utils::{
 };
 use futures::future::try_join_all;
 use more_asserts as ma;
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Encode};
 use rand::Rng;
 use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
@@ -683,11 +683,10 @@ async fn test_request_limit_are_updated_during_signing() {
 
     if get_response.is_ok() {
         let request_amount = get_response.unwrap().text().await.unwrap();
-        assert_eq!(request_amount, "1");
+        assert_eq!(request_amount.as_bytes().to_vec(), 1u32.encode());
     }
 
     // Test: If we send too many requests though, we'll be blocked from signing
-
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit =
         query_chain(&entropy_api, &rpc, request_limit_query, None).await.unwrap().unwrap();
@@ -1872,6 +1871,20 @@ async fn test_increment_or_wipe_request_limit() {
     .await
     .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
+
+    run_to_block(&rpc, 1).await;
+    // no error whole mapping is empty
+    assert!(request_limit_check(
+        &rpc,
+        &app_state.cache,
+        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        request_limit
+    )
+    .await
+    .is_ok());
+    // request limit gets cleared
+    let request_limit_mapping = app_state.cache.request_limit.read().unwrap();
+    assert!(request_limit_mapping.is_empty());
 
     clean_tests();
 }
