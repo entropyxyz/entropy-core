@@ -18,7 +18,6 @@ use crate::{
     chain_api::{get_api, get_rpc, EntropyConfig},
     launch::Configuration,
     signing_client::ListenerState,
-    user::api::*,
 };
 use anyhow::anyhow;
 use entropy_kvdb::kv_manager::KvManager;
@@ -67,7 +66,7 @@ pub struct Cache {
     /// Tracks the state of prerequisite checks
     pub tss_state: Arc<RwLock<TssState>>,
     /// Storage for request limit
-    pub request_limit: Arc<RwLock<HashMap<String, RequestLimitStorage>>>,
+    pub request_limit: Arc<RwLock<HashMap<String, u32>>>,
     /// Storage for encryption key backups for other TSS nodes
     /// Maps TSS account id to encryption key
     pub encryption_key_backup_provider: Arc<RwLock<HashMap<AccountId32, [u8; 32]>>>,
@@ -136,11 +135,7 @@ impl Cache {
     }
 
     /// Write to request limit
-    pub fn write_to_request_limit(
-        &self,
-        key: String,
-        value: RequestLimitStorage,
-    ) -> anyhow::Result<()> {
+    pub fn write_to_request_limit(&self, key: String, value: u32) -> anyhow::Result<()> {
         self.clear_poisioned_request_limit();
         let mut request_limit = self
             .request_limit
@@ -172,10 +167,7 @@ impl Cache {
     }
 
     /// Reads from request_limit will error if no value, call exists_in_request_limit to check
-    pub fn read_from_request_limit(
-        &self,
-        key: &String,
-    ) -> anyhow::Result<Option<RequestLimitStorage>> {
+    pub fn read_from_request_limit(&self, key: &String) -> anyhow::Result<Option<u32>> {
         self.clear_poisioned_request_limit();
         let request_limit = self
             .request_limit

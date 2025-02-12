@@ -12,8 +12,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-use crate::RequestLimitStorage;
 use axum::{extract::State, http::StatusCode, Json};
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
@@ -49,7 +47,7 @@ impl UnsafeQuery {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UnsafeRequestLimitQuery {
     pub key: String,
-    pub value: RequestLimitStorage,
+    pub value: u32,
 }
 
 /// Read a value from the encrypted KVDB.

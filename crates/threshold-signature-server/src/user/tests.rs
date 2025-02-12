@@ -93,7 +93,7 @@ use crate::{
     r#unsafe::api::{UnsafeQuery, UnsafeRequestLimitQuery},
     user::api::{
         check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
-        RelayerSignatureRequest, RequestLimitStorage,
+        RelayerSignatureRequest,
     },
     validation::EncryptedSignedMessage,
     AppState,
@@ -682,11 +682,8 @@ async fn test_request_limit_are_updated_during_signing() {
         .await;
 
     if get_response.is_ok() {
-        let serialized_request_amount = get_response.unwrap().text().await.unwrap();
-
-        let request_info: RequestLimitStorage =
-            RequestLimitStorage::decode(&mut serialized_request_amount.as_ref()).unwrap();
-        assert_eq!(request_info.request_amount, 1);
+        let request_amount = get_response.unwrap().text().await.unwrap();
+        assert_eq!(request_amount, "1");
     }
 
     // Test: If we send too many requests though, we'll be blocked from signing
@@ -702,10 +699,7 @@ async fn test_request_limit_are_updated_during_signing() {
 
     let unsafe_put = UnsafeRequestLimitQuery {
         key: hex::encode(verifying_key.to_vec()),
-        value: RequestLimitStorage {
-            request_amount: request_limit + 1,
-            block_number: block_number + 1,
-        },
+        value: request_limit + 1u32,
     };
 
     for validator_info in all_signers_info {
@@ -1861,7 +1855,6 @@ async fn test_increment_or_wipe_request_limit() {
     // run up the request check to one less then max (to check integration)
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
-            &rpc,
             &app_state.cache,
             hex::encode(DAVE_VERIFYING_KEY.to_vec()),
             request_limit,
