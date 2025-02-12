@@ -36,7 +36,7 @@ axum   ={ version="0.8.2", features=["ws"] }
 
 # Substrate
 subxt             ="0.35.3"
-parity-scale-codec="3.7.2"
+parity-scale-codec="3.7.4"
 sp-core           ={ version="31.0.0", default-features=false }
 sp-keyring        ="34.0.0"
 
@@ -64,7 +64,7 @@ bip32            ={ version="0.5.3" }
 bip39            ={ version="2.1.0", features=["zeroize"] }
 bytes            ={ version="1.10", default-features=false, features=["serde"] }
 base64           ="0.22.1"
-clap             ={ version="4.5.28", features=["derive"] }
+clap             ={ version="4.5.29", features=["derive"] }
 num              ="0.4.3"
 snow             ="0.9.6"
 sha3             ="0.10.8"
