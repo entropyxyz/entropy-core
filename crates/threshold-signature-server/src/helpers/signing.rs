@@ -112,7 +112,6 @@ pub async fn do_signing(
         )
         .await?;
     increment_or_wipe_request_limit(
-        rpc,
         &app_state.cache,
         hex::encode(info.signing_session_info.signature_verifying_key),
         request_limit,

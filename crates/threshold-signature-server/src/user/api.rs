@@ -28,7 +28,7 @@ use entropy_programs_runtime::SignatureRequest;
 use entropy_protocol::SigningSessionInfo;
 use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
 use futures::{channel::mpsc, future::join_all, StreamExt};
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -45,7 +45,7 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
         app_state::Cache,
-        launch::LATEST_BLOCK_NUMBER_NEW_USER,
+        launch::{LATEST_BLOCK_NUMBER, LATEST_BLOCK_NUMBER_NEW_USER},
         signing::do_signing,
         substrate::{
             get_oracle_data, get_program, get_signers_from_chain, get_validators_info, query_chain,
@@ -71,13 +71,6 @@ pub struct UserRegistrationInfo {
     pub proactive_refresh: bool,
     /// The sig_req_account to check if user is registering
     pub sig_request_address: Option<SubxtAccountId32>,
-}
-
-/// Type that gets stored for request limit checks
-#[derive(Debug, PartialEq, Serialize, Deserialize, Encode, Decode, Clone)]
-pub struct RequestLimitStorage {
-    pub block_number: u32,
-    pub request_amount: u32,
 }
 
 /// Called by a user to initiate the signing process for a message
@@ -600,6 +593,8 @@ pub async fn check_for_key(account: &str, kv: &KvManager) -> Result<bool, UserEr
 }
 
 /// Checks the request limit
+///
+/// Clears request limit mapping if new block has been created
 pub async fn request_limit_check(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     cache: &Cache,
@@ -612,11 +607,18 @@ pub async fn request_limit_check(
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
 
+    // clears request limit mapping if new block has been created
+    if cache.exists_in_block_numbers(&LATEST_BLOCK_NUMBER.to_string())?
+        && cache.read_from_block_numbers(&LATEST_BLOCK_NUMBER.to_string())?.unwrap() < block_number
+    {
+        cache.clear_request_limit()?
+    }
+    cache.write_to_block_numbers(LATEST_BLOCK_NUMBER.to_string(), block_number)?;
+
     if cache.exists_in_request_limit(&verifying_key)? {
-        let request_info =
+        let request_amount =
             cache.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
-        if request_info.block_number == block_number && request_info.request_amount >= request_limit
-        {
+        if request_amount >= request_limit {
             return Err(UserErr::TooManyRequests);
         }
     }
@@ -626,44 +628,19 @@ pub async fn request_limit_check(
 
 /// Increments or restarts request count if a new block has been created
 pub async fn increment_or_wipe_request_limit(
-    rpc: &LegacyRpcMethods<EntropyConfig>,
     cache: &Cache,
     verifying_key: String,
     request_limit: u32,
 ) -> Result<(), UserErr> {
-    let block_number = rpc
-        .chain_get_header(None)
-        .await?
-        .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
-        .number;
-
     if cache.exists_in_request_limit(&verifying_key)? {
-        let request_info =
+        let request_amount =
             cache.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
-        // Previous block wipe request amount to new block
-        if request_info.block_number != block_number {
-            cache.write_to_request_limit(
-                verifying_key,
-                RequestLimitStorage { block_number, request_amount: 1 },
-            )?;
-            return Ok(());
-        }
-
-        // same block incrememnt request amount
-        if request_info.request_amount <= request_limit {
-            cache.write_to_request_limit(
-                verifying_key,
-                RequestLimitStorage {
-                    block_number,
-                    request_amount: request_info.request_amount + 1,
-                },
-            )?;
+        // increment request amount
+        if request_amount <= request_limit {
+            cache.write_to_request_limit(verifying_key, request_amount + 1u32)?;
         }
     } else {
-        cache.write_to_request_limit(
-            verifying_key,
-            RequestLimitStorage { block_number, request_amount: 1 },
-        )?;
+        cache.write_to_request_limit(verifying_key, 1u32)?;
     }
 
     Ok(())

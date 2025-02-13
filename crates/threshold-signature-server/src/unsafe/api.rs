@@ -12,8 +12,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-use crate::RequestLimitStorage;
 use axum::{extract::State, http::StatusCode, Json};
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
@@ -49,7 +47,7 @@ impl UnsafeQuery {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UnsafeRequestLimitQuery {
     pub key: String,
-    pub value: RequestLimitStorage,
+    pub value: u32,
 }
 
 /// Read a value from the encrypted KVDB.
@@ -111,6 +109,25 @@ pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>
             StatusCode::INTERNAL_SERVER_ERROR
         },
     }
+}
+
+/// Updates a value in the block_numbers.
+///
+/// # Note
+///
+/// This should only be used for development purposes.
+#[tracing::instrument(
+    name = "Updating key from block_numbers",
+    skip_all,
+    fields(key = key.key),
+)]
+pub async fn write_to_block_numbers(
+    State(app_state): State<AppState>,
+    Json(key): Json<UnsafeRequestLimitQuery>,
+) -> StatusCode {
+    tracing::trace!("Attempting to write value {:?} to request_limit", &key.value);
+    app_state.cache.write_to_block_numbers(key.key, key.value).unwrap();
+    StatusCode::OK
 }
 
 /// Updates a value in the request_limit.

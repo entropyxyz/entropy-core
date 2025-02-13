@@ -179,7 +179,8 @@ use crate::{
     health::api::healthz,
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{
-        delete, put, read_from_request_limit, remove_keys, unsafe_get, write_to_request_limit,
+        delete, put, read_from_request_limit, remove_keys, unsafe_get, write_to_block_numbers,
+        write_to_request_limit,
     },
     signing_client::{api::*, ListenerState},
     user::api::*,
@@ -227,6 +228,7 @@ pub fn app(app_state: AppState) -> Router {
             .route("/unsafe/put", post(put))
             .route("/unsafe/write_to_request_limit", post(write_to_request_limit))
             .route("/unsafe/read_from_request_limit", post(read_from_request_limit))
+            .route("/unsafe/write_to_block_numbers", post(write_to_block_numbers))
             .route("/unsafe/get", post(unsafe_get))
             .route("/unsafe/delete", post(delete))
             .route("/unsafe/remove_keys", get(remove_keys));
