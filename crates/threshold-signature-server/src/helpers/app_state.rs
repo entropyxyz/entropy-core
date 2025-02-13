@@ -62,11 +62,17 @@ impl TssState {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BlockNumberFields {
     LatestBlock,
+    NewUser,
+    Reshare,
+    Attest,
 }
 
 #[derive(Default, Clone)]
 pub struct BlockNumbers {
-    latest_block: Arc<RwLock<u32>>,
+    pub latest_block: Arc<RwLock<u32>>,
+    pub new_user: Arc<RwLock<u32>>,
+    pub reshare: Arc<RwLock<u32>>,
+    pub attest: Arc<RwLock<u32>>,
 }
 
 /// In-memory store of application state
@@ -207,9 +213,7 @@ impl Cache {
 
     /// Write the given block number to the `block_number` cache.
     pub fn write_to_block_numbers(&self, key: BlockNumberFields, value: u32) -> anyhow::Result<()> {
-        let block_number_target = match key {
-            BlockNumberFields::LatestBlock => self.block_numbers.latest_block.clone(),
-        };
+        let block_number_target = self.get_block_number_target(&key);
         self.clear_poisioned_block_numbers(&block_number_target);
         let mut block_number = block_number_target
             .write()
@@ -220,9 +224,7 @@ impl Cache {
 
     /// Returns the number of requests handled so far at the given block number.
     pub fn read_from_block_numbers(&self, key: &BlockNumberFields) -> anyhow::Result<u32> {
-        let block_number_target = match key {
-            BlockNumberFields::LatestBlock => self.block_numbers.latest_block.clone(),
-        };
+        let block_number_target = self.get_block_number_target(key);
         self.clear_poisioned_block_numbers(&block_number_target);
         let block_number = block_number_target
             .read()
@@ -234,6 +236,16 @@ impl Cache {
     pub fn clear_poisioned_block_numbers(&self, lock: &Arc<RwLock<u32>>) {
         if lock.is_poisoned() {
             lock.clear_poison()
+        }
+    }
+
+    /// Gets block number field in block numbers
+    pub fn get_block_number_target(&self, key: &BlockNumberFields) -> Arc<RwLock<u32>> {
+        match key {
+            BlockNumberFields::LatestBlock => self.block_numbers.latest_block.clone(),
+            BlockNumberFields::NewUser => self.block_numbers.new_user.clone(),
+            BlockNumberFields::Reshare => self.block_numbers.reshare.clone(),
+            BlockNumberFields::Attest => self.block_numbers.attest.clone(),
         }
     }
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
