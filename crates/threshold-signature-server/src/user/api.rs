@@ -635,7 +635,7 @@ pub async fn increment_or_wipe_request_limit(
     if cache.exists_in_request_limit(&verifying_key)? {
         let request_amount =
             cache.read_from_request_limit(&verifying_key)?.ok_or(UserErr::RequestFetchError)?;
-        // incrememnt request amount
+        // increment request amount
         if request_amount <= request_limit {
             cache.write_to_request_limit(verifying_key, request_amount + 1u32)?;
         }

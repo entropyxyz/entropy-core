@@ -1891,7 +1891,7 @@ async fn test_increment_or_wipe_request_limit() {
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
     run_to_block(&rpc, 1).await;
-    // no error whole mapping is empty
+    // no error while mapping is empty
     assert!(request_limit_check(
         &rpc,
         &app_state.cache,

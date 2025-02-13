@@ -194,7 +194,7 @@ impl Cache {
         }
     }
 
-    /// Write to block numbers
+      /// Write the given block number to the `block_number` cache.
     pub fn write_to_block_numbers(&self, key: String, value: u32) -> anyhow::Result<()> {
         self.clear_poisioned_block_numbers();
         let mut block_numbers = self
@@ -205,7 +205,7 @@ impl Cache {
         Ok(())
     }
 
-    /// Check if key exists in request limit
+    /// Check if the given block number exists in the cache.
     pub fn exists_in_block_numbers(&self, key: &String) -> anyhow::Result<bool> {
         self.clear_poisioned_block_numbers();
         let block_numbers = self
@@ -215,7 +215,7 @@ impl Cache {
         Ok(block_numbers.contains_key(key))
     }
 
-    /// Reads from block numbers will error if no value, call exists_in_request_limit to check
+    /// Returns the number of requests handled so far at the given block number.
     pub fn read_from_block_numbers(&self, key: &String) -> anyhow::Result<Option<u32>> {
         self.clear_poisioned_block_numbers();
         let block_numbers = self
@@ -224,6 +224,7 @@ impl Cache {
             .map_err(|_| anyhow!("Error getting read read_from_block_numbers lock"))?;
         Ok(block_numbers.get(key).cloned())
     }
+
     /// Clears a poisioned lock from request limit
     pub fn clear_poisioned_block_numbers(&self) {
         if self.block_numbers.is_poisoned() {
