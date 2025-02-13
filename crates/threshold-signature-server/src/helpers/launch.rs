@@ -21,13 +21,13 @@ use crate::{
     backup_provider::api::{
         get_key_provider_details, make_key_backup, request_recover_encryption_key,
     },
-    chain_api::entropy,
-    helpers::{substrate::query_chain, validator::get_signer_and_x25519_secret},
+    chain_api::{entropy, get_api, get_rpc},
+    helpers::{app_state::{BlockNumberFields}, substrate::query_chain, validator::get_signer_and_x25519_secret},
     AppState,
 };
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
-use entropy_kvdb::kv_manager::{error::KvError, KvManager};
+use entropy_kvdb::kv_manager::{KvManager};
 use rand::RngCore;
 use rand_core::OsRng;
 use serde::Deserialize;
@@ -256,59 +256,16 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
-pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
-    let exists_result_new_user =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_NEW_USER).await.expect("issue querying DB");
-    if !exists_result_new_user {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
-    let exists_result_proactive_refresh =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await.expect("issue querying DB");
-    if !exists_result_proactive_refresh {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
-    let exists_result_reshare =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_RESHARE).await.expect("issue querying DB");
-    if !exists_result_reshare {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
-    let exists_result_attest =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_ATTEST).await.expect("issue querying DB");
-    if !exists_result_attest {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
+pub async fn setup_latest_block_number(app_state: AppState) -> Result<(), &'static str> {
+    let url = &app_state.configuration.endpoint;
+    let rpc = get_rpc(url).await.unwrap();
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+
+    app_state.cache.write_to_block_numbers(BlockNumberFields::LatestBlock, block_number).unwrap();
+    app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
+    app_state.cache.write_to_block_numbers(BlockNumberFields::Reshare, block_number).unwrap();
+    app_state.cache.write_to_block_numbers(BlockNumberFields::Attest, block_number).unwrap();
+
     Ok(())
 }
 
@@ -316,7 +273,6 @@ pub async fn check_node_prerequisites(
     app_state: AppState,
     key_to_backup: Option<[u8; 32]>,
 ) -> Result<(), &'static str> {
-    use crate::chain_api::{get_api, get_rpc};
     let url = &app_state.configuration.endpoint;
     let account_id = app_state.account_id();
 

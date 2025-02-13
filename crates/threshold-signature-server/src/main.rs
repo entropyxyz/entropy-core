@@ -64,20 +64,20 @@ async fn main() -> anyhow::Result<()> {
     let app_state =
         AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
-    ensure!(
-        setup_latest_block_number(&kv_store).await.is_ok(),
-        "Issue setting up Latest Block Number"
-    );
-
     {
         let app_state = app_state.clone();
         tokio::spawn(async move {
             // Check for a connection to the chain node parallel to starting the tss_server so that
             // we already can expose the `/info` http route
             if let Err(error) =
-                entropy_tss::launch::check_node_prerequisites(app_state, key_option).await
+                entropy_tss::launch::check_node_prerequisites(app_state.clone(), key_option).await
             {
                 tracing::error!("Prerequistite checks failed: {} - terminating.", error);
+                process::exit(1);
+            }
+
+            if let Err(error) = setup_latest_block_number(app_state).await {
+                tracing::error!("setup_latest_block_number failed: {} - terminating.", error);
                 process::exit(1);
             }
         });
