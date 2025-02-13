@@ -44,8 +44,9 @@ use crate::signing_client::ProtocolErr;
 use crate::{
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
+        app_state::BlockNumberFields,
         app_state::Cache,
-        launch::{LATEST_BLOCK_NUMBER, LATEST_BLOCK_NUMBER_NEW_USER},
+        launch::LATEST_BLOCK_NUMBER_NEW_USER,
         signing::do_signing,
         substrate::{
             get_oracle_data, get_program, get_signers_from_chain, get_validators_info, query_chain,
@@ -608,12 +609,10 @@ pub async fn request_limit_check(
         .number;
 
     // clears request limit mapping if new block has been created
-    if cache.exists_in_block_numbers(&LATEST_BLOCK_NUMBER.to_string())?
-        && cache.read_from_block_numbers(&LATEST_BLOCK_NUMBER.to_string())?.unwrap() < block_number
-    {
+    if cache.read_from_block_numbers(&BlockNumberFields::LatestBlock)? < block_number {
         cache.clear_request_limit()?
     }
-    cache.write_to_block_numbers(LATEST_BLOCK_NUMBER.to_string(), block_number)?;
+    cache.write_to_block_numbers(BlockNumberFields::LatestBlock, block_number)?;
 
     if cache.exists_in_request_limit(&verifying_key)? {
         let request_amount =

@@ -77,9 +77,10 @@ use crate::{
         EntropyConfig,
     },
     helpers::{
+        app_state::BlockNumberFields,
         launch::{
             build_db_path, development_mnemonic, setup_kv_store, Configuration, ValidatorName,
-            DEFAULT_ENDPOINT, LATEST_BLOCK_NUMBER,
+            DEFAULT_ENDPOINT,
         },
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
@@ -90,7 +91,7 @@ use crate::{
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
     },
-    r#unsafe::api::{UnsafeQuery, UnsafeRequestLimitQuery},
+    r#unsafe::api::{UnsafeBlockNumberQuery, UnsafeQuery, UnsafeRequestLimitQuery},
     user::api::{
         check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
         RelayerSignatureRequest,
@@ -701,10 +702,8 @@ async fn test_request_limit_are_updated_during_signing() {
     };
 
     // reduce race condition by increasing block number so request limit mapping does not nuke
-    let unsafe_put_block_number = UnsafeRequestLimitQuery {
-        key: LATEST_BLOCK_NUMBER.to_string(),
-        value: block_number + 5u32,
-    };
+    let unsafe_put_block_number =
+        UnsafeBlockNumberQuery { key: BlockNumberFields::LatestBlock, value: block_number + 5u32 };
 
     for validator_info in all_signers_info {
         mock_client
