@@ -194,7 +194,7 @@ impl Cache {
         }
     }
 
-      /// Write the given block number to the `block_number` cache.
+    /// Write the given block number to the `block_number` cache.
     pub fn write_to_block_numbers(&self, key: String, value: u32) -> anyhow::Result<()> {
         self.clear_poisioned_block_numbers();
         let mut block_numbers = self
