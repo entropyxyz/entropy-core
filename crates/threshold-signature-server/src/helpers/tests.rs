@@ -69,21 +69,20 @@ pub async fn initialize_test_logger() {
     *LOGGER.get_or_init(|| instrumentation.setup()).await
 }
 
-pub async fn setup_client() -> KvManager {
+pub async fn setup_client() -> (KvManager, AppState) {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let storage_path: PathBuf = get_db_path(true).into();
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
         setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
-    let _ = setup_latest_block_number(&kv_store).await;
-
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.cache.make_ready().unwrap();
+    let _ = setup_latest_block_number(app_state.clone()).await;
 
-    let app = app(app_state).into_make_service();
+    let app = app(app_state.clone()).into_make_service();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
         .await
@@ -92,7 +91,7 @@ pub async fn setup_client() -> KvManager {
         axum::serve(listener, app).await.unwrap();
     });
 
-    kv_store
+    (kv_store, app_state)
 }
 
 pub async fn create_clients(
@@ -109,11 +108,7 @@ pub async fn create_clients(
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
         setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
-    let _ = setup_latest_block_number(&kv_store).await;
-
     let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
-
-    let _ = setup_latest_block_number(&kv_store).await;
 
     for (i, value) in values.into_iter().enumerate() {
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
@@ -122,6 +117,7 @@ pub async fn create_clients(
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.cache.make_ready().unwrap();
+    let _ = setup_latest_block_number(app_state.clone()).await;
 
     let account_id = app_state.subxt_account_id();
 

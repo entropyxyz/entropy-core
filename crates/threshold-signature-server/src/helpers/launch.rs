@@ -22,12 +22,15 @@ use crate::{
         get_key_provider_details, make_key_backup, request_recover_encryption_key,
     },
     chain_api::{entropy, get_api, get_rpc},
-    helpers::{app_state::{BlockNumberFields}, substrate::query_chain, validator::get_signer_and_x25519_secret},
+    helpers::{
+        app_state::BlockNumberFields, substrate::query_chain,
+        validator::get_signer_and_x25519_secret,
+    },
     AppState,
 };
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
-use entropy_kvdb::kv_manager::{KvManager};
+use entropy_kvdb::kv_manager::KvManager;
 use rand::RngCore;
 use rand_core::OsRng;
 use serde::Deserialize;
@@ -47,8 +50,6 @@ pub const DEFAULT_DAVE_MNEMONIC: &str =
     "beef dutch panic monkey black glad audit twice humor gossip wealth drive";
 pub const DEFAULT_EVE_MNEMONIC: &str =
     "impact federal dish number fun crisp various wedding radio immense whisper glue";
-pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
-pub const LATEST_BLOCK_NUMBER_RESHARE: &str = "LATEST_BLOCK_NUMBER_RESHARE";
 pub const LATEST_BLOCK_NUMBER_ATTEST: &str = "LATEST_BLOCK_NUMBER_ATTEST";
 pub const LATEST_BLOCK_NUMBER: &str = "LATEST_BLOCK_NUMBER";
 

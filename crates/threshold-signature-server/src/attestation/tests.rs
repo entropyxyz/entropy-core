@@ -116,7 +116,7 @@ async fn test_attest_validation_fail() {
 
     let cxt = test_context_stationary().await;
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    let kv = setup_client().await;
+    let (kv, _) = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let ocw_message = OcwMessageAttestationRequest { tss_account_ids: vec![], block_number };

@@ -159,7 +159,7 @@ async fn test_proactive_refresh_validation_fail() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    let kv = setup_client().await;
+    let (kv, _) = setup_client().await;
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
