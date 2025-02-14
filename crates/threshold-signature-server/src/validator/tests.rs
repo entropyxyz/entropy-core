@@ -14,9 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::api::check_balance_for_fees;
 use crate::{
-    helpers::tests::{
-        call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
-        spawn_testing_validators, unsafe_get,
+    helpers::{
+        app_state::BlockNumberFields,
+        tests::{
+            call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
+            spawn_testing_validators, unsafe_get,
+        },
     },
     validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
 };
@@ -382,10 +385,8 @@ async fn test_reshare_validation_fail() {
         .map_err(|e| e.to_string());
     assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
 
-    // manipulates kvdb to get to repeated data error
-    // kv.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await.unwrap();
-    // let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await.unwrap();
-    // kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+    // manipulates cache to get to repeated data error
+    app_state.cache.write_to_block_numbers(BlockNumberFields::Reshare, block_number + 5).unwrap();
 
     let err_stale_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
         .await

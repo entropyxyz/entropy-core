@@ -80,7 +80,7 @@ pub async fn setup_client() -> AppState {
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.cache.make_ready().unwrap();
-    let _ = setup_latest_block_number(app_state.clone()).await;
+    let _ = setup_latest_block_number(app_state.clone(), 0).unwrap();
 
     let app = app(app_state.clone()).into_make_service();
 
@@ -117,7 +117,7 @@ pub async fn create_clients(
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.cache.make_ready().unwrap();
-    let _ = setup_latest_block_number(app_state.clone()).await;
+    let _ = setup_latest_block_number(app_state.clone(), 0).unwrap();
 
     let account_id = app_state.subxt_account_id();
 

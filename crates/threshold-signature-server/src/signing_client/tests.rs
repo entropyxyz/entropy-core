@@ -16,8 +16,12 @@
 use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
-    helpers::tests::{
-        initialize_test_logger, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
+    helpers::{
+        app_state::BlockNumberFields,
+        tests::{
+            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
+            unsafe_get,
+        },
     },
 };
 use entropy_kvdb::clean_tests;
@@ -177,11 +181,11 @@ async fn test_proactive_refresh_validation_fail() {
     };
     run_to_block(&rpc, block_number).await;
 
-    // manipulates kvdb to get to repeated data error
-    // kv.kv().delete(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await.unwrap();
-    // let reservation =
-    //     kv.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await.unwrap();
-    // kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+    // manipulates cache to get to repeated data error
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::ProactiveRefresh, block_number)
+        .unwrap();
 
     let err_stale_data = validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_message)
         .await

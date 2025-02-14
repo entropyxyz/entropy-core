@@ -21,7 +21,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        setup_kv_store, setup_latest_block_number, Configuration, StartupArgs, ValidatorName,
+        get_block_number_and_setup_latest_block_number, setup_kv_store, Configuration, StartupArgs,
+        ValidatorName,
     },
     AppState,
 };
@@ -76,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
                 process::exit(1);
             }
 
-            if let Err(error) = setup_latest_block_number(app_state).await {
+            if let Err(error) = get_block_number_and_setup_latest_block_number(app_state).await {
                 tracing::error!("setup_latest_block_number failed: {} - terminating.", error);
                 process::exit(1);
             }

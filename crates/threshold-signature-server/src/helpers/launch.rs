@@ -253,11 +253,20 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
-pub async fn setup_latest_block_number(app_state: AppState) -> Result<(), &'static str> {
+pub async fn get_block_number_and_setup_latest_block_number(
+    app_state: AppState,
+) -> Result<(), &'static str> {
     let url = &app_state.configuration.endpoint;
     let rpc = get_rpc(url).await.unwrap();
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
+    setup_latest_block_number(app_state, block_number)
+}
+
+pub fn setup_latest_block_number(
+    app_state: AppState,
+    block_number: u32,
+) -> Result<(), &'static str> {
     app_state.cache.write_to_block_numbers(BlockNumberFields::LatestBlock, block_number).unwrap();
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
     app_state.cache.write_to_block_numbers(BlockNumberFields::Reshare, block_number).unwrap();

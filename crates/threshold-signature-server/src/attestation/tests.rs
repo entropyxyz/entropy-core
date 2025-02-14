@@ -16,6 +16,7 @@ use crate::{
     attestation::api::validate_new_attestation,
     chain_api::{entropy, get_api, get_rpc},
     helpers::{
+        app_state::BlockNumberFields,
         substrate::query_chain,
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
@@ -125,10 +126,8 @@ async fn test_attest_validation_fail() {
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
     run_to_block(&rpc, block_number).await;
 
-    // // manipulates kvdb to get to repeated data error
-    // kv.kv().delete(LATEST_BLOCK_NUMBER_ATTEST).await.unwrap();
-    // let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string()).await.unwrap();
-    // kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+    // manipulates cache to get to repeated data error
+    app_state.cache.write_to_block_numbers(BlockNumberFields::Attest, block_number + 5).unwrap();
 
     let err_repeated_data = validate_new_attestation(block_number, &ocw_message, &app_state.cache)
         .await
