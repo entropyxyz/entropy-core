@@ -28,7 +28,6 @@ use axum::{
     http::StatusCode,
 };
 use entropy_client::user::request_attestation;
-use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{
     attestation::{QuoteContext, QuoteInputData, VerifyQuoteError},
     OcwMessageAttestationRequest,
@@ -150,7 +149,7 @@ pub async fn validate_new_attestation(
     cache: &Cache,
 ) -> Result<(), AttestationErr> {
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Attest)?;
-    if latest_block_number >= chain_data.block_number {
+    if last_block_number_recorded >= chain_data.block_number {
         return Err(AttestationErr::RepeatedData);
     }
 

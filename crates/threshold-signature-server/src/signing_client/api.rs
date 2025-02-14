@@ -30,10 +30,7 @@ use entropy_protocol::{
 use parity_scale_codec::Encode;
 use std::{collections::BTreeSet, time::Duration};
 
-use entropy_kvdb::kv_manager::{
-    helpers::{deserialize, serialize as key_serialize},
-    KvManager,
-};
+use entropy_kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
 use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;

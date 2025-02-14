@@ -15,7 +15,7 @@
 
 use std::{net::SocketAddr, process, str::FromStr};
 
-use anyhow::{anyhow, ensure};
+use anyhow::anyhow;
 use clap::Parser;
 
 use entropy_tss::{
