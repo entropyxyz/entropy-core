@@ -30,10 +30,7 @@ use entropy_protocol::{
 use parity_scale_codec::Encode;
 use std::{collections::BTreeSet, time::Duration};
 
-use entropy_kvdb::kv_manager::{
-    helpers::{deserialize, serialize as key_serialize},
-    KvManager,
-};
+use entropy_kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
 use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
@@ -54,7 +51,8 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
-        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH, substrate::query_chain,
+        app_state::{BlockNumberFields, Cache},
+        substrate::query_chain,
         user::check_in_registration_group,
     },
     signing_client::{
@@ -88,7 +86,7 @@ pub async fn proactive_refresh(
 
     check_in_registration_group(&ocw_data.validators_info, &app_state.subxt_account_id())
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
-    validate_proactive_refresh(&api, &rpc, &app_state.kv_store, &ocw_data).await?;
+    validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_data).await?;
 
     for encoded_key in ocw_data.proactive_refresh_keys {
         let key = hex::encode(&encoded_key);
@@ -219,11 +217,11 @@ pub async fn do_proactive_refresh(
 pub async fn validate_proactive_refresh(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    kv_manager: &KvManager,
+    cache: &Cache,
     ocw_data: &OcwMessageProactiveRefresh,
 ) -> Result<(), ProtocolErr> {
     let last_block_number_recorded =
-        kv_manager.kv().get(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await?;
+        cache.read_from_block_numbers(&BlockNumberFields::ProactiveRefresh)?;
 
     let latest_block_number = rpc
         .chain_get_header(None)
@@ -231,13 +229,7 @@ pub async fn validate_proactive_refresh(
         .ok_or_else(|| ProtocolErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
     // prevents multiple repeated messages being sent
-    if u32::from_be_bytes(
-        last_block_number_recorded
-            .try_into()
-            .map_err(|_| ProtocolErr::Conversion("Block number conversion"))?,
-    ) >= latest_block_number
-        && latest_block_number != 0
-    {
+    if last_block_number_recorded >= latest_block_number {
         return Err(ProtocolErr::RepeatedData);
     }
 
@@ -260,10 +252,7 @@ pub async fn validate_proactive_refresh(
         return Err(ProtocolErr::InvalidData);
     }
 
-    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await?;
-    let reservation =
-        kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await?;
-    kv_manager.kv().put(reservation, latest_block_number.to_be_bytes().to_vec()).await?;
+    cache.write_to_block_numbers(BlockNumberFields::ProactiveRefresh, latest_block_number)?;
     Ok(())
 }
 

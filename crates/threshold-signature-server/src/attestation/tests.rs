@@ -16,13 +16,13 @@ use crate::{
     attestation::api::validate_new_attestation,
     chain_api::{entropy, get_api, get_rpc},
     helpers::{
+        app_state::BlockNumberFields,
         substrate::query_chain,
         tests::{
             initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
             ChainSpecType,
         },
     },
-    launch::LATEST_BLOCK_NUMBER_ATTEST,
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::OcwMessageAttestationRequest;
@@ -116,22 +116,22 @@ async fn test_attest_validation_fail() {
 
     let cxt = test_context_stationary().await;
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    let kv = setup_client().await;
+    let app_state = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let ocw_message = OcwMessageAttestationRequest { tss_account_ids: vec![], block_number };
-    let err_stale_data =
-        validate_new_attestation(block_number, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    let err_stale_data = validate_new_attestation(block_number, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
     run_to_block(&rpc, block_number).await;
 
-    // manipulates kvdb to get to repeated data error
-    kv.kv().delete(LATEST_BLOCK_NUMBER_ATTEST).await.unwrap();
-    let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string()).await.unwrap();
-    kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+    // manipulates cache to get to repeated data error
+    app_state.cache.write_to_block_numbers(BlockNumberFields::Attest, block_number + 5).unwrap();
 
-    let err_repeated_data =
-        validate_new_attestation(block_number, &ocw_message, &kv).await.map_err(|e| e.to_string());
+    let err_repeated_data = validate_new_attestation(block_number, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_repeated_data, Err("Data is repeated".to_string()));
     clean_tests();
 }

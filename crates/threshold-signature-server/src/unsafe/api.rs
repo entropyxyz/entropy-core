@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 use std::str;
 
-use crate::AppState;
+use crate::{helpers::app_state::BlockNumberFields, AppState};
 
 /// Used to modify the state of the KVDB directly.
 ///
@@ -47,6 +47,12 @@ impl UnsafeQuery {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UnsafeRequestLimitQuery {
     pub key: String,
+    pub value: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UnsafeBlockNumberQuery {
+    pub key: BlockNumberFields,
     pub value: u32,
 }
 
@@ -116,14 +122,10 @@ pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>
 /// # Note
 ///
 /// This should only be used for development purposes.
-#[tracing::instrument(
-    name = "Updating key from block_numbers",
-    skip_all,
-    fields(key = key.key),
-)]
+#[tracing::instrument(name = "Updating key from block_numbers", skip_all)]
 pub async fn write_to_block_numbers(
     State(app_state): State<AppState>,
-    Json(key): Json<UnsafeRequestLimitQuery>,
+    Json(key): Json<UnsafeBlockNumberQuery>,
 ) -> StatusCode {
     tracing::trace!("Attempting to write value {:?} to request_limit", &key.value);
     app_state.cache.write_to_block_numbers(key.key, key.value).unwrap();
