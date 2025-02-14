@@ -50,10 +50,6 @@ pub const DEFAULT_DAVE_MNEMONIC: &str =
     "beef dutch panic monkey black glad audit twice humor gossip wealth drive";
 pub const DEFAULT_EVE_MNEMONIC: &str =
     "impact federal dish number fun crisp various wedding radio immense whisper glue";
-pub const LATEST_BLOCK_NUMBER_ATTEST: &str = "LATEST_BLOCK_NUMBER_ATTEST";
-pub const LATEST_BLOCK_NUMBER: &str = "LATEST_BLOCK_NUMBER";
-
-pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
 
 const X25519_SECRET: &str = "X25519_SECRET";
 const SR25519_SEED: &str = "SR25519_SEED";

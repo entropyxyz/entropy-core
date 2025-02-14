@@ -69,7 +69,7 @@ pub async fn initialize_test_logger() {
     *LOGGER.get_or_init(|| instrumentation.setup()).await
 }
 
-pub async fn setup_client() -> (KvManager, AppState) {
+pub async fn setup_client() -> AppState {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let storage_path: PathBuf = get_db_path(true).into();
@@ -91,7 +91,7 @@ pub async fn setup_client() -> (KvManager, AppState) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (kv_store, app_state)
+    app_state
 }
 
 pub async fn create_clients(

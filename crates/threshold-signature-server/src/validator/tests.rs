@@ -354,7 +354,7 @@ async fn test_reshare_validation_fail() {
     let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
-    let (kv, app_state) = setup_client().await;
+    let app_state = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let mut ocw_message =
@@ -404,7 +404,7 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    let (kv, app_state) = setup_client().await;
+    let app_state = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let ocw_message =
@@ -471,7 +471,7 @@ async fn test_deletes_key() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
-    let (kv, _) = setup_client().await;
+    let kv = setup_client().await.kv_store;
     let reservation = kv.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
     kv.kv().put(reservation, vec![10]).await.unwrap();
 

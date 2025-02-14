@@ -16,12 +16,8 @@
 use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
-    helpers::{
-        launch::LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH,
-        tests::{
-            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get,
-        },
+    helpers::tests::{
+        initialize_test_logger, run_to_block, setup_client, spawn_testing_validators, unsafe_get,
     },
 };
 use entropy_kvdb::clean_tests;
@@ -159,7 +155,7 @@ async fn test_proactive_refresh_validation_fail() {
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
-    let (kv, _) = setup_client().await;
+    let app_state = setup_client().await;
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
             ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
@@ -182,13 +178,14 @@ async fn test_proactive_refresh_validation_fail() {
     run_to_block(&rpc, block_number).await;
 
     // manipulates kvdb to get to repeated data error
-    kv.kv().delete(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await.unwrap();
-    let reservation =
-        kv.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await.unwrap();
-    kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
+    // kv.kv().delete(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await.unwrap();
+    // let reservation =
+    //     kv.kv().reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string()).await.unwrap();
+    // kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
 
-    let err_stale_data =
-        validate_proactive_refresh(&api, &rpc, &kv, &ocw_message).await.map_err(|e| e.to_string());
+    let err_stale_data = validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_message)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
     clean_tests();
 }
