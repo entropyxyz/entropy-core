@@ -65,6 +65,7 @@ pub enum BlockNumberFields {
     NewUser,
     Reshare,
     Attest,
+    ProactiveRefresh,
 }
 
 #[derive(Default, Clone)]
@@ -73,6 +74,7 @@ pub struct BlockNumbers {
     pub new_user: Arc<RwLock<u32>>,
     pub reshare: Arc<RwLock<u32>>,
     pub attest: Arc<RwLock<u32>>,
+    pub proactive_refresh: Arc<RwLock<u32>>,
 }
 
 /// In-memory store of application state
@@ -246,6 +248,7 @@ impl Cache {
             BlockNumberFields::NewUser => self.block_numbers.new_user.clone(),
             BlockNumberFields::Reshare => self.block_numbers.reshare.clone(),
             BlockNumberFields::Attest => self.block_numbers.attest.clone(),
+            BlockNumberFields::ProactiveRefresh => self.block_numbers.proactive_refresh.clone(),
         }
     }
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.

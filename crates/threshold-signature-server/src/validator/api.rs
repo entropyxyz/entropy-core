@@ -19,8 +19,8 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
+        app_state::{BlockNumberFields, Cache},
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
-        app_state::{Cache, BlockNumberFields},
     },
     signing_client::{api::get_channels, ProtocolErr},
     validator::errors::ValidatorErr,
@@ -263,8 +263,7 @@ pub async fn validate_new_reshare(
     cache: &Cache,
 ) -> Result<(), ValidatorErr> {
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Reshare)?;
-    if last_block_number_recorded >= chain_data.block_number
-    {
+    if last_block_number_recorded >= chain_data.block_number {
         return Err(ValidatorErr::RepeatedData);
     }
 

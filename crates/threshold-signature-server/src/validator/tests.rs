@@ -14,11 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::api::check_balance_for_fees;
 use crate::{
-    helpers::{
-        tests::{
-            call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
-            spawn_testing_validators, unsafe_get,
-        },
+    helpers::tests::{
+        call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
+        spawn_testing_validators, unsafe_get,
     },
     validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
 };
@@ -362,8 +360,9 @@ async fn test_reshare_validation_fail() {
     let mut ocw_message =
         OcwMessageReshare { new_signers: vec![dave.public().encode()], block_number };
 
-    let err_stale_data =
-        validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache).await.map_err(|e| e.to_string());
+    let err_stale_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -378,8 +377,9 @@ async fn test_reshare_validation_fail() {
     ocw_message.block_number = block_number;
     call_set_storage(&api, &rpc, call).await;
 
-    let err_incorrect_data =
-        validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache).await.map_err(|e| e.to_string());
+    let err_incorrect_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
 
     // manipulates kvdb to get to repeated data error
@@ -387,8 +387,9 @@ async fn test_reshare_validation_fail() {
     // let reservation = kv.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await.unwrap();
     // kv.kv().put(reservation, (block_number + 5).to_be_bytes().to_vec()).await.unwrap();
 
-    let err_stale_data =
-        validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache).await.map_err(|e| e.to_string());
+    let err_stale_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
     clean_tests();
 }
@@ -411,8 +412,9 @@ async fn test_reshare_validation_fail_not_in_reshare() {
 
     run_to_block(&rpc, block_number + 1).await;
 
-    let err_not_in_reshare =
-        validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache).await.map_err(|e| e.to_string());
+    let err_not_in_reshare = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
     assert_eq!(err_not_in_reshare, Err("Chain Fetch: Not Currently in a reshare".to_string()));
 
     clean_tests();

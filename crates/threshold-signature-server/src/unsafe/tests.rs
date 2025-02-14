@@ -18,9 +18,7 @@ use entropy_kvdb::clean_tests;
 use serial_test::serial;
 
 use super::api::UnsafeQuery;
-use crate::helpers::{
-    tests::{initialize_test_logger, setup_client},
-};
+use crate::helpers::tests::{initialize_test_logger, setup_client};
 
 #[tokio::test]
 #[serial]
