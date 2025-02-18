@@ -197,6 +197,7 @@ pub fn verify_pck_certificate_chain(
     Ok(provisioning_certification_key)
 }
 
+/// Create a measurement value by hashing together all measurement registers from quote data
 pub fn compute_quote_measurement(quote: &tdx_quote::Quote) -> [u8; 32] {
     let mut hasher = Blake2b::new();
     hasher.update(quote.mrtd());
