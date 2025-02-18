@@ -135,7 +135,7 @@ pub mod pallet {
         /// The given account doesn't have a registered provisioning certification key.
         NoPCKForAccount,
         /// Unacceptable VM image running
-        BadMrtdValue,
+        BadMeasurementValue,
         /// Cannot encode verifying key (PCK)
         CannotEncodeVerifyingKey,
         /// Cannot decode verifying key (PCK)

@@ -15,7 +15,7 @@
 //! TDX attestion related shared types and functions
 
 use crate::X25519PublicKey;
-use blake2::{Blake2b512, Digest};
+use blake2::{Blake2b, Blake2b512, Digest};
 use codec::{Decode, Encode};
 
 /// Input data to be included in a TDX attestation
@@ -195,4 +195,14 @@ pub fn verify_pck_certificate_chain(
         .verify_with_pck(&provisioning_certification_key)
         .map_err(|_| VerifyQuoteError::PckCertificateVerify)?;
     Ok(provisioning_certification_key)
+}
+
+pub fn compute_quote_measurement(quote: &tdx_quote::Quote) -> [u8; 32] {
+    let mut hasher = Blake2b::new();
+    hasher.update(quote.mrtd());
+    hasher.update(quote.rtmr0());
+    hasher.update(quote.rtmr1());
+    hasher.update(quote.rtmr2());
+    hasher.update(quote.rtmr3());
+    hasher.finalize().into()
 }
