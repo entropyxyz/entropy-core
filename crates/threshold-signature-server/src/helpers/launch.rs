@@ -258,8 +258,13 @@ pub async fn get_block_number_and_setup_latest_block_number(
     app_state: AppState,
 ) -> Result<(), &'static str> {
     let url = &app_state.configuration.endpoint;
-    let rpc = get_rpc(url).await.unwrap();
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let rpc = get_rpc(url).await.map_err(|_| "Unable to connect to Substrate chain RPC")?;
+    let block_number = rpc
+        .chain_get_header(None)
+        .await
+        .map_err(|_| "Unable to get block number")?
+        .ok_or("Block number option error")?
+        .number;
 
     setup_latest_block_number(app_state, block_number)
 }
@@ -269,10 +274,22 @@ pub fn setup_latest_block_number(
     app_state: AppState,
     block_number: u32,
 ) -> Result<(), &'static str> {
-    app_state.cache.write_to_block_numbers(BlockNumberFields::LatestBlock, block_number).unwrap();
-    app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
-    app_state.cache.write_to_block_numbers(BlockNumberFields::Reshare, block_number).unwrap();
-    app_state.cache.write_to_block_numbers(BlockNumberFields::Attest, block_number).unwrap();
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::LatestBlock, block_number)
+        .map_err(|_| "Error writting latest_block to cache")?;
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::NewUser, block_number)
+        .map_err(|_| "Error writting NewUser to cache")?;
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::Reshare, block_number)
+        .map_err(|_| "Error writting Reshare to cache")?;
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::Attest, block_number)
+        .map_err(|_| "Error writting Attest to cache")?;
 
     Ok(())
 }
