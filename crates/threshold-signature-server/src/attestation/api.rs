@@ -216,7 +216,7 @@ pub async fn check_quote_measurement(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     quote: &Quote,
 ) -> Result<(), QuoteMeasurementErr> {
-    let measurement_value = compute_quote_measurement(&quote).to_vec();
+    let measurement_value = compute_quote_measurement(quote).to_vec();
     let query = entropy::storage().parameters().accepted_measurement_values();
     let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
         .await?
