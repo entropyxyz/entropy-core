@@ -115,7 +115,7 @@ pub enum VerifyQuoteError {
     /// Hashed input data does not match what was expected
     IncorrectInputData,
     /// Unacceptable VM image running
-    BadMrtdValue,
+    BadMeasurementValue,
     /// Cannot encode verifying key (PCK)
     CannotEncodeVerifyingKey,
     /// Cannot decode verifying key (PCK)
