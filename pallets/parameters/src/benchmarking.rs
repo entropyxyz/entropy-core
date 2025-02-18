@@ -77,16 +77,16 @@ benchmarks! {
     assert_last_event::<T>(Event::SignerInfoChanged{ signer_info }.into());
   }
 
-  change_accepted_mrtd_values {
+  change_accepted_measurement_values {
     let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-    let accepted_mrtd_values = vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()];
+    let accepted_measurement_values = vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()];
   }: {
     assert_ok!(
-      <Parameters<T>>::change_accepted_mrtd_values(origin, accepted_mrtd_values.clone())
+      <Parameters<T>>::change_accepted_measurement_values(origin, accepted_measurement_values.clone())
     );
   }
   verify {
-    assert_last_event::<T>(Event::AcceptedMrtdValuesChanged{ accepted_mrtd_values }.into());
+    assert_last_event::<T>(Event::AcceptedMeasurementValuesChanged{ accepted_measurement_values }.into());
   }
 
   impl_benchmark_test_suite!(Parameters, crate::mock::new_test_ext(), crate::mock::Runtime);
