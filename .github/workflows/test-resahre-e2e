@@ -1,0 +1,30 @@
+---
+name: Test E2e Release
+run-name: Tests the e2e release (started by @${{ github.triggering_actor }})
+
+on:
+  push:
+    tags:
+      # First, match SemVer.org conformant tags in the `release/` tagspace.
+      - release/v[0-9]+.[0-9]+.[0-9]+-?**  # Release, or pre-release build.
+      - release/v[0-9]+.[0-9]+.[0-9]+\+?** # Release with build identifier.
+      # Then, also, basically any release-ish name in the `test/` tagspace.
+      - test/**release/**
+  schedule:
+    # Build the default branch weekly. Our version of "nightly."
+    - cron: 55 4 * * 0   # Every Sunday at 4:55 AM.
+
+jobs:
+  test-e2e-reshare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies/
+      - name: Test
+        run: |
+          pushd node
+          cargo build --release --features=reshare-test
+          cargo test -p entropy-tss --release -- --test_reshare_e2e
+

@@ -5,9 +5,6 @@ tagged as the final release.
 
 ## Pre-Prep
 - [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Discord)
-- [ ] Manually run e2e reshare test 
-(first compile node with features=reshare-test and then run 
-`cargo test --release --features=reshare-test -- --test test_reshare_e2e`)
 - [ ] Create a release branch, e.g., for release candidate `1`: `release/vX.Y.Z-rc.1`.
 
 ## Prep the Runtime and Node
