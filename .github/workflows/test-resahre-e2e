@@ -1,5 +1,5 @@
 ---
-name: Test E2e Release
+name: Test e2e Release
 run-name: Tests the e2e release (started by @${{ github.triggering_actor }})
 
 on:
