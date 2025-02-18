@@ -48,8 +48,8 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use entropy_shared::attestation::{
-        verify_pck_certificate_chain, AttestationHandler, QuoteContext, QuoteInputData,
-        VerifyQuoteError,
+        compute_quote_measurement, verify_pck_certificate_chain, AttestationHandler, QuoteContext,
+        QuoteInputData, VerifyQuoteError,
     };
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
@@ -229,11 +229,15 @@ pub mod pallet {
                 VerifyQuoteError::IncorrectInputData
             );
 
-            // Check build-time measurement matches a current-supported release of entropy-tss
-            let mrtd_value = BoundedVec::try_from(quote.mrtd().to_vec())
-                .map_err(|_| VerifyQuoteError::BadMrtdValue)?;
-            let accepted_mrtd_values = pallet_parameters::Pallet::<T>::accepted_mrtd_values();
-            ensure!(accepted_mrtd_values.contains(&mrtd_value), VerifyQuoteError::BadMrtdValue);
+            // Check measurement matches a current-supported release of entropy-tss
+            let measurement = BoundedVec::try_from(compute_quote_measurement(&quote).to_vec())
+                .map_err(|_| VerifyQuoteError::BadMeasurementValue)?;
+            let accepted_measurement_values =
+                pallet_parameters::Pallet::<T>::accepted_measurement_values();
+            ensure!(
+                accepted_measurement_values.contains(&measurement),
+                VerifyQuoteError::BadMeasurementValue
+            );
 
             let pck = verify_pck_certificate_chain(&quote)?;
 
