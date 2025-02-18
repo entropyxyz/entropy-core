@@ -220,5 +220,5 @@ pub fn authority_keys_from_seed(
     )
 }
 
-/// Accepted build time measurement values for TDX attestation
-pub type MrtdValues = Vec<BoundedVec<u8, ConstU32<48>>>;
+/// Accepted measurement values for TDX attestation
+pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;

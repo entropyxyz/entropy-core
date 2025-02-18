@@ -141,7 +141,7 @@ impl std::fmt::Display for VerifyQuoteError {
             VerifyQuoteError::IncorrectInputData => {
                 write!(f, "Hashed input data does not match what was expected")
             },
-            VerifyQuoteError::BadMrtdValue => write!(f, "Unacceptable VM image running"),
+            VerifyQuoteError::BadMeasurementValue => write!(f, "Unacceptable VM image running"),
             VerifyQuoteError::CannotEncodeVerifyingKey => {
                 write!(f, "Cannot encode verifying key (PCK)")
             },

@@ -22,11 +22,7 @@ use sp_core::sr25519;
 use sp_runtime::BoundedVec;
 
 /// The build time measurement value from the current entropy-tss VM images
-const ACCEPTED_MRTD: [u8; 48] = [
-    145, 235, 43, 68, 209, 65, 212, 236, 224, 159, 12, 117, 194, 197, 61, 36, 122, 60, 104, 237,
-    215, 250, 254, 138, 53, 32, 201, 66, 166, 4, 164, 7, 222, 3, 174, 109, 197, 248, 127, 39, 66,
-    139, 37, 56, 135, 49, 24, 183,
-];
+const ACCEPTED_MEASUREMENT: [u8; 32] = [0; 32];
 
 lazy_static::lazy_static! {
     /// This is the PCK from the certificates of the current TDX machine we are using for testing
@@ -92,7 +88,7 @@ pub fn tdx_testnet_config() -> ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             tdx_devnet_four_node_initial_tss_servers(),
-            Some(vec![BoundedVec::try_from(ACCEPTED_MRTD.to_vec()).unwrap()]),
+            Some(vec![BoundedVec::try_from(ACCEPTED_MEASUREMENT.to_vec()).unwrap()]),
         ))
         .build()
 }

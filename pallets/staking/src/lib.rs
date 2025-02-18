@@ -330,7 +330,7 @@ pub mod pallet {
         /// Hashed input data does not match what was expected
         IncorrectInputData,
         /// Unacceptable VM image running
-        BadMrtdValue,
+        BadMeasurementValue,
         /// Cannot encode verifying key (PCK)
         CannotEncodeVerifyingKey,
         /// Cannot decode verifying key (PCK)
@@ -354,7 +354,7 @@ pub mod pallet {
                 VerifyQuoteError::BadQuote => Error::<T>::BadQuote,
                 VerifyQuoteError::UnexpectedAttestation => Error::<T>::UnexpectedAttestation,
                 VerifyQuoteError::IncorrectInputData => Error::<T>::IncorrectInputData,
-                VerifyQuoteError::BadMrtdValue => Error::<T>::BadMrtdValue,
+                VerifyQuoteError::BadMeasurementValue => Error::<T>::BadMeasurementValue,
                 VerifyQuoteError::CannotEncodeVerifyingKey => Error::<T>::CannotEncodeVerifyingKey,
                 VerifyQuoteError::PckCertificateParse => Error::<T>::PckCertificateParse,
                 VerifyQuoteError::PckCertificateVerify => Error::<T>::PckCertificateVerify,

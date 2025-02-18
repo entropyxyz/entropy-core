@@ -490,7 +490,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         max_instructions_per_programs: 5u64,
         total_signers: 3u8,
         threshold: 2u8,
-        accepted_mrtd_values: vec![BoundedVec::try_from([0; 48].to_vec()).unwrap()],
+        accepted_measurement_values: vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()],
         _config: Default::default(),
     }
     .assimilate_storage(&mut t)
