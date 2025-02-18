@@ -253,6 +253,7 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
+/// Gets current blocknumber and stores them in cache
 pub async fn get_block_number_and_setup_latest_block_number(
     app_state: AppState,
 ) -> Result<(), &'static str> {
@@ -263,6 +264,7 @@ pub async fn get_block_number_and_setup_latest_block_number(
     setup_latest_block_number(app_state, block_number)
 }
 
+/// Stores current blocknumbers in cache
 pub fn setup_latest_block_number(
     app_state: AppState,
     block_number: u32,

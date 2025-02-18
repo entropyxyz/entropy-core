@@ -59,6 +59,7 @@ impl TssState {
     }
 }
 
+/// Fields related to blocknumbers being stored in cache
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BlockNumberFields {
     LatestBlock,
@@ -68,6 +69,7 @@ pub enum BlockNumberFields {
     ProactiveRefresh,
 }
 
+/// Blocknumbers being stored in cache
 #[derive(Default, Clone)]
 pub struct BlockNumbers {
     pub latest_block: Arc<RwLock<u32>>,
