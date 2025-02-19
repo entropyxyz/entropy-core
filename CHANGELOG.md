@@ -66,6 +66,7 @@ runtime
 - Non persistent TSS signer and x25519 keypair ([#1216](https://github.com/entropyxyz/entropy-core/pull/1216))
 - Extract PCK certificate chain from quotes ([#1209](https://github.com/entropyxyz/entropy-core/pull/1209))
 - Allow different versions for programs ([#1250](https://github.com/entropyxyz/entropy-core/pull/1250))
+- Attestation quote verification should check both run-time and build-time measurement values ([#1303](https://github.com/entropyxyz/entropy-core/pull/1303))
 
 ### Fixed
 
