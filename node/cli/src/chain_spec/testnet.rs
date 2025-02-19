@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::{get_account_id_from_seed, provisioning_certification_key, ChainSpec};
+use crate::chain_spec::{
+    get_account_id_from_seed, provisioning_certification_key, ChainSpec,
+    MEASUREMENT_VALUE_MOCK_QUOTE,
+};
 use crate::endowed_accounts::endowed_testnet_accounts;
 
 use entropy_runtime::{
@@ -460,8 +463,7 @@ pub fn testnet_genesis_config(
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
             accepted_measurement_values: vec![
-                BoundedVec::try_from([0; 32].to_vec()).unwrap(),
-                BoundedVec::try_from([1; 32].to_vec()).unwrap(),
+                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
             ],
             ..Default::default()
         },

@@ -15,6 +15,7 @@
 
 use crate::chain_spec::{
     get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
+    MEASUREMENT_VALUE_MOCK_QUOTE,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -288,8 +289,7 @@ pub fn development_genesis_config(
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
             accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
-                BoundedVec::try_from([0; 32].to_vec()).unwrap(),
-                BoundedVec::try_from([1; 32].to_vec()).unwrap(),
+                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
             ]),
             ..Default::default()
         },
