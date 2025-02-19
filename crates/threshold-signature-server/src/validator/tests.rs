@@ -131,7 +131,7 @@ async fn test_reshare_basic() {
         }
         if i > 240 {
             println!("pay attention to this line if this is hit but test passes");
-            break Ok(old_signer_ids);
+            break Ok::<HashSet<[u8; 32]>, ()>(new_signer_ids);
         }
         i += 1;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
