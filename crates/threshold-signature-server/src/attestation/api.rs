@@ -187,6 +187,16 @@ pub async fn create_quote(
         .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?)
 }
 
+/// Get the measurement value from this build by generating a quote.
+/// This is used by the `/version` HTTP route to display measurement details of the current build.
+#[cfg(feature = "production")]
+pub fn get_measurement_value() -> Result<[u8; 32], AttestationErr> {
+    let quote_raw = configfs_tsm::create_quote([0; 64])
+        .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?;
+    let quote = Quote::from_bytes(&quote_raw)?;
+    Ok(compute_quote_measurement(&quote))
+}
+
 /// Querystring for the GET `/attest` endpoint
 #[derive(Deserialize)]
 pub struct QuoteContextQuery {

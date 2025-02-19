@@ -19,10 +19,31 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
 
-/// Returns the version and commit data
+/// Returns the version, commit data and build details
 #[tracing::instrument]
 pub async fn version() -> String {
-    format!("{}-{}", env!("CARGO_PKG_VERSION"), env!("VERGEN_GIT_DESCRIBE"))
+    format!(
+        "{}-{}\n{}",
+        env!("CARGO_PKG_VERSION"),
+        env!("VERGEN_GIT_DESCRIBE"),
+        get_build_details()
+    )
+}
+
+/// This lets us know this is a production build and gives us the measurement value of the release
+/// image
+#[cfg(feature = "production")]
+fn get_build_details() -> String {
+    match crate::attestation::api::get_measurement_value() {
+        Ok(value) => format!("Production build with measurement value: {}", hex::encode(value)),
+        Err(error) => format!("Production build - failed to get measurement value: {:?}", error),
+    }
+}
+
+/// This lets us know this is not a production build and so mock TDX quotes will be used
+#[cfg(not(feature = "production"))]
+fn get_build_details() -> String {
+    "Non-production build".to_string()
 }
 
 /// Lists the supported hashing algorithms

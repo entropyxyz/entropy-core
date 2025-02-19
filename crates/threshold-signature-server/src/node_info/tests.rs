@@ -32,7 +32,11 @@ async fn version_test() {
     let response = client.get("http://127.0.0.1:3001/version").send().await.unwrap();
     assert_eq!(
         response.text().await.unwrap(),
-        format!("{}-{}", env!("CARGO_PKG_VERSION"), env!("VERGEN_GIT_DESCRIBE"))
+        format!(
+            "{}-{}\nNon-production build",
+            env!("CARGO_PKG_VERSION"),
+            env!("VERGEN_GIT_DESCRIBE")
+        )
     );
     clean_tests();
 }
