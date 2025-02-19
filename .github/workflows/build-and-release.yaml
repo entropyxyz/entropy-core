@@ -30,7 +30,7 @@ jobs:
         run: |
           pushd node
           cargo build --release --features=reshare-test
-          cargo test -p entropy-tss --release -- --test_reshare_e2e
+          cargo test -p entropy-tss --release --features=reshare-test test_reshare_e2e
 
   build-entropy:
     uses: ./.github/workflows/container-build-and-push.yaml
