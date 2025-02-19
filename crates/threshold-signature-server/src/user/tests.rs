@@ -1890,7 +1890,9 @@ async fn test_increment_or_wipe_request_limit() {
     .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
-    run_to_block(&rpc, 1).await;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 1).await;
+
     // no error while mapping is empty
     assert!(request_limit_check(
         &rpc,
