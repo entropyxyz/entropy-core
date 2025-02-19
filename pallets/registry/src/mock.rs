@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_shared::attestation::MEASUREMENT_VALUE_MOCK_QUOTE;
 use frame_election_provider_support::{
     bounds::{ElectionBounds, ElectionBoundsBuilder},
     onchain, SequentialPhragmen, VoteWeight,
@@ -419,7 +420,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         max_instructions_per_programs: 5u64,
         total_signers: 3u8,
         threshold: 2u8,
-        accepted_measurement_values: vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()],
+        accepted_measurement_values: vec![BoundedVec::try_from(
+            MEASUREMENT_VALUE_MOCK_QUOTE.to_vec(),
+        )
+        .unwrap()],
         _config: Default::default(),
     }
     .assimilate_storage(&mut t)

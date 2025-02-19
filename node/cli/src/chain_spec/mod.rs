@@ -37,6 +37,7 @@ pub mod tdx_testnet;
 pub mod testnet;
 
 pub use entropy_runtime::{AccountId, RuntimeGenesisConfig, Signature};
+pub use entropy_shared::attestation::MEASUREMENT_VALUE_MOCK_QUOTE;
 
 use entropy_runtime::{Block, SessionKeys};
 use grandpa_primitives::AuthorityId as GrandpaId;
@@ -159,15 +160,6 @@ pub mod provisioning_certification_key {
         ].try_into().unwrap();
     }
 }
-
-/// The acceptable TDX measurement value for non-production chainspecs.
-/// This is the measurement given in mock quotes. Mock quotes have all zeros for each of the 5
-/// 48 bit measurement registers. The overall measurement is the Blake2b hash of these values.
-/// So this is the Blake2b hash of 5 * 48 zero bytes.
-pub const MEASUREMENT_VALUE_MOCK_QUOTE: [u8; 32] = [
-    91, 172, 96, 209, 130, 160, 167, 174, 152, 184, 193, 27, 88, 59, 117, 235, 74, 39, 194, 69,
-    147, 72, 129, 25, 224, 24, 189, 103, 224, 20, 107, 116,
-];
 
 fn entropy_properties() -> Properties {
     json!({"tokenDecimals": 10, "tokenSymbol": "BITS" }).as_object().unwrap().clone()

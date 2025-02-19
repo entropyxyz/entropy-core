@@ -18,6 +18,15 @@ use crate::X25519PublicKey;
 use blake2::{Blake2b, Blake2b512, Digest};
 use codec::{Decode, Encode};
 
+/// The acceptable TDX measurement value for non-production chainspecs.
+/// This is the measurement given in mock quotes. Mock quotes have all zeros for each of the 5
+/// 48 bit measurement registers. The overall measurement is the Blake2b hash of these values.
+/// So this is the Blake2b hash of 5 * 48 zero bytes.
+pub const MEASUREMENT_VALUE_MOCK_QUOTE: [u8; 32] = [
+    91, 172, 96, 209, 130, 160, 167, 174, 152, 184, 193, 27, 88, 59, 117, 235, 74, 39, 194, 69,
+    147, 72, 129, 25, 224, 24, 189, 103, 224, 20, 107, 116,
+];
+
 /// Input data to be included in a TDX attestation
 pub struct QuoteInputData(pub [u8; 64]);
 
