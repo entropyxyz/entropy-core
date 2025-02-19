@@ -18,6 +18,19 @@ jobs:
 
   git-ref-basename:
     uses: ./.github/workflows/git-ref-basename.yaml
+  
+  test-e2e-reshare:
+    runs-on: core-build-runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies/
+      - name: Test
+        run: |
+          pushd node
+          cargo build --release --features=reshare-test
+          cargo test -p entropy-tss --release -- --test_reshare_e2e
 
   build-entropy:
     uses: ./.github/workflows/container-build-and-push.yaml
