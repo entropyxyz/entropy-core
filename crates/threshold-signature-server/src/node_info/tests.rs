@@ -33,7 +33,7 @@ async fn version_test() {
     assert_eq!(
         response.text().await.unwrap(),
         format!(
-            "{}-{}\nNon-production build",
+            "{}-{}\nNon-production build\n",
             env!("CARGO_PKG_VERSION"),
             env!("VERGEN_GIT_DESCRIBE")
         )

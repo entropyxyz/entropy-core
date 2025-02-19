@@ -23,7 +23,7 @@ use subxt::utils::AccountId32;
 #[tracing::instrument]
 pub async fn version() -> String {
     format!(
-        "{}-{}\n{}",
+        "{}-{}\n{}\n",
         env!("CARGO_PKG_VERSION"),
         env!("VERGEN_GIT_DESCRIBE"),
         get_build_details()
