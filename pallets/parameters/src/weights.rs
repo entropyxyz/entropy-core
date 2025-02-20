@@ -28,7 +28,7 @@
 // --chain
 // dev
 // --pallet=pallet_parameters
-// --extrinsic=change_mrtd_values
+// --extrinsic=change_measurement_values
 // --steps=5
 // --repeat=2
 // --header=.maintain/AGPL-3.0-header.txt
@@ -47,7 +47,7 @@ pub trait WeightInfo {
        fn change_request_limit() -> Weight;
        fn max_instructions_per_programs() -> Weight;
        fn change_signers_info() -> Weight;
-       fn change_accepted_mrtd_values() -> Weight;
+       fn change_accepted_measurement_values() -> Weight;
 }
 
 /// Weight functions for `pallet_parameters`.
@@ -89,9 +89,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(1))
     }
 
-    /// Storage: `Parameters::AcceptedMrtdValues` (r:0 w:1)
-    /// Proof: `Parameters::AcceptedMrtdValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-    fn change_accepted_mrtd_values() -> Weight {
+    /// Storage: `Parameters::AcceptedMeasurementValues` (r:0 w:1)
+    /// Proof: `Parameters::AcceptedMeasurementValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+    fn change_accepted_measurement_values() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
@@ -140,9 +140,9 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(1))
     }
 
-    /// Storage: `Parameters::AcceptedMrtdValues` (r:0 w:1)
-    /// Proof: `Parameters::AcceptedMrtdValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-    fn change_accepted_mrtd_values() -> Weight {
+    /// Storage: `Parameters::AcceptedMeasurementValues` (r:0 w:1)
+    /// Proof: `Parameters::AcceptedMeasurementValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+    fn change_accepted_measurement_values() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`

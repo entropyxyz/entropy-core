@@ -84,9 +84,9 @@ impl<T: frame_system::Config> pallet_parameters::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: `Parameters::AcceptedMrtdValues` (r:0 w:1)
-	/// Proof: `Parameters::AcceptedMrtdValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn change_accepted_mrtd_values() -> Weight {
+	/// Storage: `Parameters::AcceptedMeasurementValues` (r:0 w:1)
+	/// Proof: `Parameters::AcceptedMeasurementValues` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn change_accepted_measurement_values() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`

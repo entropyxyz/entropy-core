@@ -30,7 +30,7 @@ use axum::{
 use entropy_client::user::request_attestation;
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{
-    attestation::{QuoteContext, QuoteInputData, VerifyQuoteError},
+    attestation::{compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError},
     OcwMessageAttestationRequest,
 };
 use parity_scale_codec::Decode;
@@ -216,16 +216,16 @@ pub async fn check_quote_measurement(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     quote: &Quote,
 ) -> Result<(), QuoteMeasurementErr> {
-    let mrtd_value = quote.mrtd().to_vec();
-    let query = entropy::storage().parameters().accepted_mrtd_values();
-    let accepted_mrtd_values: Vec<_> = query_chain(api, rpc, query, None)
+    let measurement_value = compute_quote_measurement(quote).to_vec();
+    let query = entropy::storage().parameters().accepted_measurement_values();
+    let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
         .await?
         .ok_or(QuoteMeasurementErr::NoMeasurementValues)?
         .into_iter()
         .map(|v| v.0)
         .collect();
-    if !accepted_mrtd_values.contains(&mrtd_value) {
-        return Err(VerifyQuoteError::BadMrtdValue.into());
+    if !accepted_measurement_values.contains(&measurement_value) {
+        return Err(VerifyQuoteError::BadMeasurementValue.into());
     };
     Ok(())
 }

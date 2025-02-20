@@ -37,6 +37,7 @@ pub mod tdx_testnet;
 pub mod testnet;
 
 pub use entropy_runtime::{AccountId, RuntimeGenesisConfig, Signature};
+pub use entropy_shared::attestation::MEASUREMENT_VALUE_MOCK_QUOTE;
 
 use entropy_runtime::{Block, SessionKeys};
 use grandpa_primitives::AuthorityId as GrandpaId;
@@ -220,5 +221,5 @@ pub fn authority_keys_from_seed(
     )
 }
 
-/// Accepted build time measurement values for TDX attestation
-pub type MrtdValues = Vec<BoundedVec<u8, ConstU32<48>>>;
+/// Accepted measurement values for TDX attestation
+pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;

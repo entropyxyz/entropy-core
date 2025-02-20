@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MrtdValues,
+    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
+    MEASUREMENT_VALUE_MOCK_QUOTE,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -173,7 +174,7 @@ pub fn development_genesis_config(
         String,
         BoundedVecEncodedVerifyingKey,
     )>,
-    accepted_mrtd_values: Option<MrtdValues>,
+    accepted_measurement_values: Option<MeasurementValues>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -287,9 +288,8 @@ pub fn development_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_mrtd_values: accepted_mrtd_values.unwrap_or(vec![
-                BoundedVec::try_from([0; 48].to_vec()).unwrap(),
-                BoundedVec::try_from([1; 48].to_vec()).unwrap(),
+            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
+                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
             ]),
             ..Default::default()
         },
