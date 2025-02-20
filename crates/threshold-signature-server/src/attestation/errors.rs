@@ -43,8 +43,6 @@ pub enum AttestationErr {
     #[cfg(not(feature = "production"))]
     #[error("Cannot encode verifying key: {0}")]
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
-    #[error("Vec<u8> Conversion Error: {0}")]
-    Conversion(&'static str),
     #[error("Data is repeated")]
     RepeatedData,
     #[error("Kv error: {0}")]
@@ -55,6 +53,8 @@ pub enum AttestationErr {
     AttestationRequest(#[from] entropy_client::errors::AttestationRequestError),
     #[error("Invalid or unknown context value given in query string")]
     UnknownContext,
+    #[error("anyhow error: {0}")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl IntoResponse for AttestationErr {

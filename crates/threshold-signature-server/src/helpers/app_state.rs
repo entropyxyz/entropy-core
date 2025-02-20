@@ -22,6 +22,7 @@ use crate::{
 use anyhow::anyhow;
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::X25519PublicKey;
+use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
     collections::HashMap,
@@ -58,6 +59,26 @@ impl TssState {
     }
 }
 
+/// Fields related to blocknumbers being stored in cache
+#[derive(Debug, Deserialize, Serialize)]
+pub enum BlockNumberFields {
+    LatestBlock,
+    NewUser,
+    Reshare,
+    Attest,
+    ProactiveRefresh,
+}
+
+/// Blocknumbers being stored in cache
+#[derive(Default, Clone)]
+pub struct BlockNumbers {
+    pub latest_block: Arc<RwLock<u32>>,
+    pub new_user: Arc<RwLock<u32>>,
+    pub reshare: Arc<RwLock<u32>>,
+    pub attest: Arc<RwLock<u32>>,
+    pub proactive_refresh: Arc<RwLock<u32>>,
+}
+
 /// In-memory store of application state
 #[derive(Clone)]
 pub struct Cache {
@@ -74,7 +95,7 @@ pub struct Cache {
     /// Maps response x25519 public key to quote nonce
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
     /// Collection of block numbers to store
-    pub block_numbers: Arc<RwLock<HashMap<String, u32>>>,
+    pub block_numbers: Arc<BlockNumbers>,
 }
 
 impl Default for Cache {
@@ -195,40 +216,41 @@ impl Cache {
     }
 
     /// Write the given block number to the `block_number` cache.
-    pub fn write_to_block_numbers(&self, key: String, value: u32) -> anyhow::Result<()> {
-        self.clear_poisioned_block_numbers();
-        let mut block_numbers = self
-            .block_numbers
+    pub fn write_to_block_numbers(&self, key: BlockNumberFields, value: u32) -> anyhow::Result<()> {
+        let block_number_target = self.get_block_number_target(&key);
+        self.clear_poisioned_block_numbers(&block_number_target);
+        let mut block_number = block_number_target
             .write()
-            .map_err(|_| anyhow!("Error getting write write_to_block_numbers lock"))?;
-        block_numbers.insert(key, value);
+            .map_err(|_| anyhow!("Error getting write from write_to_block_numbers lock"))?;
+        *block_number = value;
         Ok(())
     }
 
-    /// Check if the given block number exists in the cache.
-    pub fn exists_in_block_numbers(&self, key: &String) -> anyhow::Result<bool> {
-        self.clear_poisioned_block_numbers();
-        let block_numbers = self
-            .block_numbers
-            .read()
-            .map_err(|_| anyhow!("Error getting read exists_in_block_numbers lock"))?;
-        Ok(block_numbers.contains_key(key))
-    }
-
     /// Returns the number of requests handled so far at the given block number.
-    pub fn read_from_block_numbers(&self, key: &String) -> anyhow::Result<Option<u32>> {
-        self.clear_poisioned_block_numbers();
-        let block_numbers = self
-            .block_numbers
+    pub fn read_from_block_numbers(&self, key: &BlockNumberFields) -> anyhow::Result<u32> {
+        let block_number_target = self.get_block_number_target(key);
+        self.clear_poisioned_block_numbers(&block_number_target);
+        let block_number = block_number_target
             .read()
-            .map_err(|_| anyhow!("Error getting read read_from_block_numbers lock"))?;
-        Ok(block_numbers.get(key).cloned())
+            .map_err(|_| anyhow!("Error getting read from read_to_block_numbers lock"))?;
+        Ok(*block_number)
     }
 
     /// Clears a poisioned lock from request limit
-    pub fn clear_poisioned_block_numbers(&self) {
-        if self.block_numbers.is_poisoned() {
-            self.block_numbers.clear_poison()
+    pub fn clear_poisioned_block_numbers(&self, lock: &Arc<RwLock<u32>>) {
+        if lock.is_poisoned() {
+            lock.clear_poison()
+        }
+    }
+
+    /// Gets block number field in block numbers
+    pub fn get_block_number_target(&self, key: &BlockNumberFields) -> Arc<RwLock<u32>> {
+        match key {
+            BlockNumberFields::LatestBlock => self.block_numbers.latest_block.clone(),
+            BlockNumberFields::NewUser => self.block_numbers.new_user.clone(),
+            BlockNumberFields::Reshare => self.block_numbers.reshare.clone(),
+            BlockNumberFields::Attest => self.block_numbers.attest.clone(),
+            BlockNumberFields::ProactiveRefresh => self.block_numbers.proactive_refresh.clone(),
         }
     }
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
