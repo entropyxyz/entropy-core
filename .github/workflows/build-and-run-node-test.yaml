@@ -8,7 +8,7 @@ on:
       - "pallets/**"
       - "runtime/**"
    
-   schedule:
+  schedule:
     # Build the default branch weekly. Our version of "nightly."
     - cron: '*/25 * * * *'
 
