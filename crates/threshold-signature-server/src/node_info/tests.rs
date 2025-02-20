@@ -15,7 +15,7 @@
 
 use crate::{
     helpers::tests::{initialize_test_logger, setup_client},
-    node_info::api::TssPublicKeys,
+    node_info::api::{BuildDetails, TssPublicKeys, VersionDetails},
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::types::HashingAlgorithm;
@@ -30,13 +30,15 @@ async fn version_test() {
     setup_client().await;
     let client = reqwest::Client::new();
     let response = client.get("http://127.0.0.1:3001/version").send().await.unwrap();
+    let version_details: VersionDetails =
+        serde_json::from_str(&response.text().await.unwrap()).unwrap();
     assert_eq!(
-        response.text().await.unwrap(),
-        format!(
-            "{}-{}\nNon-production build\n",
-            env!("CARGO_PKG_VERSION"),
-            env!("VERGEN_GIT_DESCRIBE")
-        )
+        version_details,
+        VersionDetails {
+            cargo_package_version: env!("CARGO_PKG_VERSION").to_string(),
+            git_tag_commit: env!("VERGEN_GIT_DESCRIBE").to_string(),
+            build: BuildDetails::NonProduction,
+        }
     );
     clean_tests();
 }

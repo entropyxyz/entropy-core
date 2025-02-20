@@ -19,31 +19,51 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
 
-/// Returns the version, commit data and build details
-#[tracing::instrument]
-pub async fn version() -> String {
-    format!(
-        "{}-{}\n{}\n",
-        env!("CARGO_PKG_VERSION"),
-        env!("VERGEN_GIT_DESCRIBE"),
-        get_build_details()
-    )
+/// Version infomation - the output of the `/version` HTTP endpoint
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct VersionDetails {
+    pub cargo_package_version: String,
+    pub git_tag_commit: String,
+    pub build: BuildDetails,
+}
+
+impl VersionDetails {
+    fn new() -> Self {
+        Self {
+            cargo_package_version: env!("CARGO_PKG_VERSION").to_string(),
+            git_tag_commit: env!("VERGEN_GIT_DESCRIBE").to_string(),
+            build: BuildDetails::new(),
+        }
+    }
 }
 
 /// This lets us know this is a production build and gives us the measurement value of the release
 /// image
-#[cfg(feature = "production")]
-fn get_build_details() -> String {
-    match crate::attestation::api::get_measurement_value() {
-        Ok(value) => format!("Production build with measurement value: {}", hex::encode(value)),
-        Err(error) => format!("Production build - failed to get measurement value: {:?}", error),
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub enum BuildDetails {
+    ProductionWithMeasurementValue(String),
+    NonProduction,
+}
+
+impl BuildDetails {
+    #[cfg(not(feature = "production"))]
+    fn new() -> Self {
+        BuildDetails::NonProduction
+    }
+
+    #[cfg(feature = "production")]
+    fn new() -> Self {
+        BuildDetails::Production(match crate::attestation::api::get_measurement_value() {
+            Ok(value) => hex::encode(value),
+            Err(error) => format!("Failed to get measurement value {:?}", error),
+        })
     }
 }
 
-/// This lets us know this is not a production build and so mock TDX quotes will be used
-#[cfg(not(feature = "production"))]
-fn get_build_details() -> String {
-    "Non-production build".to_string()
+/// Returns the version, commit data and build details
+#[tracing::instrument]
+pub async fn version() -> Json<VersionDetails> {
+    Json(VersionDetails::new())
 }
 
 /// Lists the supported hashing algorithms
