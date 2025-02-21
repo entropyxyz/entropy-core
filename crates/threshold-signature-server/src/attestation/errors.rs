@@ -43,8 +43,6 @@ pub enum AttestationErr {
     #[cfg(not(feature = "production"))]
     #[error("Cannot encode verifying key: {0}")]
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
-    #[error("Vec<u8> Conversion Error: {0}")]
-    Conversion(&'static str),
     #[error("Data is repeated")]
     RepeatedData,
     #[error("Kv error: {0}")]
@@ -58,6 +56,8 @@ pub enum AttestationErr {
     #[cfg(feature = "production")]
     #[error("Quote parse: {0}")]
     QuoteParse(#[from] tdx_quote::QuoteParseError),
+    #[error("anyhow error: {0}")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl IntoResponse for AttestationErr {

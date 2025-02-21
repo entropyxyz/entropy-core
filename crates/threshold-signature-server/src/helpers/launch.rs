@@ -21,13 +21,16 @@ use crate::{
     backup_provider::api::{
         get_key_provider_details, make_key_backup, request_recover_encryption_key,
     },
-    chain_api::entropy,
-    helpers::{substrate::query_chain, validator::get_signer_and_x25519_secret},
+    chain_api::{entropy, get_api, get_rpc},
+    helpers::{
+        app_state::BlockNumberFields, substrate::query_chain,
+        validator::get_signer_and_x25519_secret,
+    },
     AppState,
 };
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
-use entropy_kvdb::kv_manager::{error::KvError, KvManager};
+use entropy_kvdb::kv_manager::KvManager;
 use rand::RngCore;
 use rand_core::OsRng;
 use serde::Deserialize;
@@ -47,12 +50,6 @@ pub const DEFAULT_DAVE_MNEMONIC: &str =
     "beef dutch panic monkey black glad audit twice humor gossip wealth drive";
 pub const DEFAULT_EVE_MNEMONIC: &str =
     "impact federal dish number fun crisp various wedding radio immense whisper glue";
-pub const LATEST_BLOCK_NUMBER_NEW_USER: &str = "LATEST_BLOCK_NUMBER_NEW_USER";
-pub const LATEST_BLOCK_NUMBER_RESHARE: &str = "LATEST_BLOCK_NUMBER_RESHARE";
-pub const LATEST_BLOCK_NUMBER_ATTEST: &str = "LATEST_BLOCK_NUMBER_ATTEST";
-pub const LATEST_BLOCK_NUMBER: &str = "LATEST_BLOCK_NUMBER";
-
-pub const LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH: &str = "LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH";
 
 const X25519_SECRET: &str = "X25519_SECRET";
 const SR25519_SEED: &str = "SR25519_SEED";
@@ -256,59 +253,44 @@ pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mn
         .expect("Unable to parse given mnemonic.")
 }
 
-pub async fn setup_latest_block_number(kv: &KvManager) -> Result<(), KvError> {
-    let exists_result_new_user =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_NEW_USER).await.expect("issue querying DB");
-    if !exists_result_new_user {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_NEW_USER.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
-    let exists_result_proactive_refresh =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH).await.expect("issue querying DB");
-    if !exists_result_proactive_refresh {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_PROACTIVE_REFRESH.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
-    let exists_result_reshare =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_RESHARE).await.expect("issue querying DB");
-    if !exists_result_reshare {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
-    let exists_result_attest =
-        kv.kv().exists(LATEST_BLOCK_NUMBER_ATTEST).await.expect("issue querying DB");
-    if !exists_result_attest {
-        let reservation = kv
-            .kv()
-            .reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string())
-            .await
-            .expect("Issue reserving latest block number");
-        kv.kv()
-            .put(reservation, 0u32.to_be_bytes().to_vec())
-            .await
-            .expect("failed to update latest block number");
-    }
+/// Gets current blocknumber and stores them in cache
+pub async fn get_block_number_and_setup_latest_block_number(
+    app_state: AppState,
+) -> Result<(), &'static str> {
+    let url = &app_state.configuration.endpoint;
+    let rpc = get_rpc(url).await.map_err(|_| "Unable to connect to Substrate chain RPC")?;
+    let block_number = rpc
+        .chain_get_header(None)
+        .await
+        .map_err(|_| "Unable to get block number")?
+        .ok_or("Block number option error")?
+        .number;
+
+    setup_latest_block_number(app_state, block_number)
+}
+
+/// Stores current blocknumbers in cache
+pub fn setup_latest_block_number(
+    app_state: AppState,
+    block_number: u32,
+) -> Result<(), &'static str> {
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::LatestBlock, block_number)
+        .map_err(|_| "Error writting latest_block to cache")?;
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::NewUser, block_number)
+        .map_err(|_| "Error writting NewUser to cache")?;
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::Reshare, block_number)
+        .map_err(|_| "Error writting Reshare to cache")?;
+    app_state
+        .cache
+        .write_to_block_numbers(BlockNumberFields::Attest, block_number)
+        .map_err(|_| "Error writting Attest to cache")?;
+
     Ok(())
 }
 
@@ -316,7 +298,6 @@ pub async fn check_node_prerequisites(
     app_state: AppState,
     key_to_backup: Option<[u8; 32]>,
 ) -> Result<(), &'static str> {
-    use crate::chain_api::{get_api, get_rpc};
     let url = &app_state.configuration.endpoint;
     let account_id = app_state.account_id();
 
