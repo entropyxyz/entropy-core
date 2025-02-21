@@ -68,7 +68,7 @@ pub mod module {
         type WeightInfo: WeightInfo;
     }
 
-    pub type MrtdValues = Vec<BoundedVec<u8, ConstU32<48>>>;
+    pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;
 
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
@@ -77,7 +77,7 @@ pub mod module {
         pub max_instructions_per_programs: u64,
         pub threshold: u8,
         pub total_signers: u8,
-        pub accepted_mrtd_values: MrtdValues,
+        pub accepted_measurement_values: MeasurementValues,
         #[serde(skip)]
         pub _config: sp_std::marker::PhantomData<T>,
     }
@@ -88,8 +88,8 @@ pub mod module {
             assert!(self.threshold > 0, "Threhsold too low");
             assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
             assert!(
-                !self.accepted_mrtd_values.is_empty(),
-                "At least one accepted MRTD value is required"
+                !self.accepted_measurement_values.is_empty(),
+                "At least one accepted measurement value is required"
             );
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
@@ -99,7 +99,7 @@ pub mod module {
                 last_session_change: 0,
             };
             SignersInfo::<T>::put(signer_info);
-            AcceptedMrtdValues::<T>::put(self.accepted_mrtd_values.clone());
+            AcceptedMeasurementValues::<T>::put(self.accepted_measurement_values.clone());
         }
     }
 
@@ -137,8 +137,8 @@ pub mod module {
         MaxInstructionsPerProgramsChanged { max_instructions_per_programs: u64 },
         /// Signer Info changed
         SignerInfoChanged { signer_info: SignersSize },
-        /// Accepted MRTD values changed
-        AcceptedMrtdValuesChanged { accepted_mrtd_values: MrtdValues },
+        /// Accepted measurement values changed
+        AcceptedMeasurementValuesChanged { accepted_measurement_values: MeasurementValues },
     }
 
     /// The request limit a user can ask to a specific set of TSS in a block
@@ -159,8 +159,8 @@ pub mod module {
     /// Accepted values of the TDX build-time measurement register - from the currently-supported
     /// releases of entropy-tss
     #[pallet::storage]
-    #[pallet::getter(fn accepted_mrtd_values)]
-    pub type AcceptedMrtdValues<T: Config> = StorageValue<_, MrtdValues, ValueQuery>;
+    #[pallet::getter(fn accepted_measurement_values)]
+    pub type AcceptedMeasurementValues<T: Config> = StorageValue<_, MeasurementValues, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -224,14 +224,16 @@ pub mod module {
         }
 
         #[pallet::call_index(3)]
-        #[pallet::weight( <T as Config>::WeightInfo::change_accepted_mrtd_values())]
-        pub fn change_accepted_mrtd_values(
+        #[pallet::weight( <T as Config>::WeightInfo::change_accepted_measurement_values())]
+        pub fn change_accepted_measurement_values(
             origin: OriginFor<T>,
-            accepted_mrtd_values: MrtdValues,
+            accepted_measurement_values: MeasurementValues,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            AcceptedMrtdValues::<T>::put(&accepted_mrtd_values);
-            Self::deposit_event(Event::AcceptedMrtdValuesChanged { accepted_mrtd_values });
+            AcceptedMeasurementValues::<T>::put(&accepted_measurement_values);
+            Self::deposit_event(Event::AcceptedMeasurementValuesChanged {
+                accepted_measurement_values,
+            });
             Ok(())
         }
     }

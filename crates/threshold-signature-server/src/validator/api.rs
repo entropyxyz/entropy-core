@@ -19,7 +19,7 @@ use crate::{
         get_api, get_rpc, EntropyConfig,
     },
     helpers::{
-        launch::LATEST_BLOCK_NUMBER_RESHARE,
+        app_state::{BlockNumberFields, Cache},
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
     signing_client::{api::get_channels, ProtocolErr},
@@ -61,7 +61,7 @@ pub async fn new_reshare(
 
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-    validate_new_reshare(&api, &rpc, &data, &app_state.kv_store).await?;
+    validate_new_reshare(&api, &rpc, &data, &app_state.cache).await?;
 
     let next_signers_query = entropy::storage().staking_extension().next_signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
@@ -260,15 +260,10 @@ pub async fn validate_new_reshare(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     chain_data: &OcwMessageReshare,
-    kv_manager: &KvManager,
+    cache: &Cache,
 ) -> Result<(), ValidatorErr> {
-    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_RESHARE).await?;
-    if u32::from_be_bytes(
-        last_block_number_recorded
-            .try_into()
-            .map_err(|_| ValidatorErr::Conversion("Block number conversion"))?,
-    ) >= chain_data.block_number
-    {
+    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Reshare)?;
+    if last_block_number_recorded >= chain_data.block_number {
         return Err(ValidatorErr::RepeatedData);
     }
 
@@ -293,9 +288,8 @@ pub async fn validate_new_reshare(
     {
         return Err(ValidatorErr::InvalidData);
     }
-    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_RESHARE).await?;
-    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_RESHARE.to_string()).await?;
-    kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
+
+    cache.write_to_block_numbers(BlockNumberFields::Reshare, chain_data.block_number)?;
 
     Ok(())
 }

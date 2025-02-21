@@ -15,8 +15,17 @@
 //! TDX attestion related shared types and functions
 
 use crate::X25519PublicKey;
-use blake2::{Blake2b512, Digest};
+use blake2::{Blake2b, Blake2b512, Digest};
 use codec::{Decode, Encode};
+
+/// The acceptable TDX measurement value for non-production chainspecs.
+/// This is the measurement given in mock quotes. Mock quotes have all zeros for each of the 5
+/// 48 bit measurement registers. The overall measurement is the Blake2b hash of these values.
+/// So this is the Blake2b hash of 5 * 48 zero bytes.
+pub const MEASUREMENT_VALUE_MOCK_QUOTE: [u8; 32] = [
+    91, 172, 96, 209, 130, 160, 167, 174, 152, 184, 193, 27, 88, 59, 117, 235, 74, 39, 194, 69,
+    147, 72, 129, 25, 224, 24, 189, 103, 224, 20, 107, 116,
+];
 
 /// Input data to be included in a TDX attestation
 pub struct QuoteInputData(pub [u8; 64]);
@@ -115,7 +124,7 @@ pub enum VerifyQuoteError {
     /// Hashed input data does not match what was expected
     IncorrectInputData,
     /// Unacceptable VM image running
-    BadMrtdValue,
+    BadMeasurementValue,
     /// Cannot encode verifying key (PCK)
     CannotEncodeVerifyingKey,
     /// Cannot decode verifying key (PCK)
@@ -141,7 +150,7 @@ impl std::fmt::Display for VerifyQuoteError {
             VerifyQuoteError::IncorrectInputData => {
                 write!(f, "Hashed input data does not match what was expected")
             },
-            VerifyQuoteError::BadMrtdValue => write!(f, "Unacceptable VM image running"),
+            VerifyQuoteError::BadMeasurementValue => write!(f, "Unacceptable VM image running"),
             VerifyQuoteError::CannotEncodeVerifyingKey => {
                 write!(f, "Cannot encode verifying key (PCK)")
             },
@@ -195,4 +204,15 @@ pub fn verify_pck_certificate_chain(
         .verify_with_pck(&provisioning_certification_key)
         .map_err(|_| VerifyQuoteError::PckCertificateVerify)?;
     Ok(provisioning_certification_key)
+}
+
+/// Create a measurement value by hashing together all measurement registers from quote data
+pub fn compute_quote_measurement(quote: &tdx_quote::Quote) -> [u8; 32] {
+    let mut hasher = Blake2b::new();
+    hasher.update(quote.mrtd());
+    hasher.update(quote.rtmr0());
+    hasher.update(quote.rtmr1());
+    hasher.update(quote.rtmr2());
+    hasher.update(quote.rtmr3());
+    hasher.finalize().into()
 }

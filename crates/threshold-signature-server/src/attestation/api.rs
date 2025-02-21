@@ -17,7 +17,7 @@ use crate::{
     attestation::errors::{AttestationErr, QuoteMeasurementErr},
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     helpers::{
-        launch::LATEST_BLOCK_NUMBER_ATTEST,
+        app_state::{BlockNumberFields, Cache},
         substrate::{query_chain, submit_transaction},
     },
     AppState, SubxtAccountId32,
@@ -28,9 +28,8 @@ use axum::{
     http::StatusCode,
 };
 use entropy_client::user::request_attestation;
-use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::{
-    attestation::{QuoteContext, QuoteInputData, VerifyQuoteError},
+    attestation::{compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError},
     OcwMessageAttestationRequest,
 };
 use parity_scale_codec::Decode;
@@ -57,7 +56,7 @@ pub async fn attest(
     let block_number =
         rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
 
-    validate_new_attestation(block_number, &attestation_requests, &app_state.kv_store).await?;
+    validate_new_attestation(block_number, &attestation_requests, &app_state.cache).await?;
 
     // Check whether there is an attestion request for us
     if !attestation_requests.tss_account_ids.contains(&app_state.subxt_account_id().0) {
@@ -147,15 +146,10 @@ pub async fn create_quote(
 pub async fn validate_new_attestation(
     latest_block_number: u32,
     chain_data: &OcwMessageAttestationRequest,
-    kv_manager: &KvManager,
+    cache: &Cache,
 ) -> Result<(), AttestationErr> {
-    let last_block_number_recorded = kv_manager.kv().get(LATEST_BLOCK_NUMBER_ATTEST).await?;
-    if u32::from_be_bytes(
-        last_block_number_recorded
-            .try_into()
-            .map_err(|_| AttestationErr::Conversion("Block number conversion"))?,
-    ) >= chain_data.block_number
-    {
+    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Attest)?;
+    if last_block_number_recorded >= chain_data.block_number {
         return Err(AttestationErr::RepeatedData);
     }
 
@@ -164,10 +158,7 @@ pub async fn validate_new_attestation(
         return Err(AttestationErr::StaleData);
     }
 
-    kv_manager.kv().delete(LATEST_BLOCK_NUMBER_ATTEST).await?;
-    let reservation = kv_manager.kv().reserve_key(LATEST_BLOCK_NUMBER_ATTEST.to_string()).await?;
-    kv_manager.kv().put(reservation, chain_data.block_number.to_be_bytes().to_vec()).await?;
-
+    cache.write_to_block_numbers(BlockNumberFields::Attest, chain_data.block_number)?;
     Ok(())
 }
 
@@ -216,16 +207,16 @@ pub async fn check_quote_measurement(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     quote: &Quote,
 ) -> Result<(), QuoteMeasurementErr> {
-    let mrtd_value = quote.mrtd().to_vec();
-    let query = entropy::storage().parameters().accepted_mrtd_values();
-    let accepted_mrtd_values: Vec<_> = query_chain(api, rpc, query, None)
+    let measurement_value = compute_quote_measurement(quote).to_vec();
+    let query = entropy::storage().parameters().accepted_measurement_values();
+    let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
         .await?
         .ok_or(QuoteMeasurementErr::NoMeasurementValues)?
         .into_iter()
         .map(|v| v.0)
         .collect();
-    if !accepted_mrtd_values.contains(&mrtd_value) {
-        return Err(VerifyQuoteError::BadMrtdValue.into());
+    if !accepted_measurement_values.contains(&measurement_value) {
+        return Err(VerifyQuoteError::BadMeasurementValue.into());
     };
     Ok(())
 }
