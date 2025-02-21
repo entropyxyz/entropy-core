@@ -21,7 +21,8 @@ use crate::{
             spawn_testing_validators, unsafe_get,
         },
     },
-    validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare}, EntropyConfig,
+    validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
+    EntropyConfig,
 };
 use entropy_client::{self as test_client};
 use entropy_client::{
@@ -31,7 +32,9 @@ use entropy_client::{
         entropy::runtime_types::entropy_runtime::RuntimeCall,
         entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
-        entropy::runtime_types::pallet_staking_extension::pallet::{NextSignerInfo, ReshareInfo, ServerInfo},
+        entropy::runtime_types::pallet_staking_extension::pallet::{
+            NextSignerInfo, ReshareInfo, ServerInfo,
+        },
         get_api, get_rpc,
     },
     substrate::query_chain,
@@ -52,7 +55,7 @@ use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use std::collections::HashSet;
-use subxt::{utils::AccountId32, OnlineClient, backend::legacy::LegacyRpcMethods};
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
@@ -61,7 +64,7 @@ async fn test_reshare_basic() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (validator_ips, _validator_ids) =
+    let (_validator_ips, _validator_ids) =
         spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
             .await;
     let force_authoring = true;
@@ -79,13 +82,10 @@ async fn test_reshare_basic() {
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
     let old_signer_ids: HashSet<[u8; 32]> =
         HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
-    let mut signers = Vec::new();
+    let signers = get_current_signers(&api, &rpc).await;
     let mut next_signers = vec![];
     for signer in signer_stash_accounts.iter() {
         next_signers.push(signer);
-        let query = entropy::storage().staking_extension().threshold_servers(signer);
-        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-        signers.push(server_info);
     }
 
     for signer in signers.iter() {
@@ -261,14 +261,14 @@ async fn test_reshare_e2e() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
-    let client = reqwest::Client::new();
 
     // Get current signers
     let signer_query = entropy::storage().staking_extension().signers();
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
     let old_signer_ids: HashSet<[u8; 32]> =
         HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
-    let key_share_before = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
+    let signers = get_current_signers(&api, &rpc).await;
+    let key_share_before = get_all_keys(signers).await;
 
     let mut i = 0;
     // Wait up to 2min for reshare to complete: check once every second if we have a new set of signers.
@@ -291,10 +291,13 @@ async fn test_reshare_e2e() {
     // wait for rotate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
-    let key_share_after = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3002).await;
-    assert_ne!(key_share_before, key_share_after);
+    let signers = get_current_signers(&api, &rpc).await;
+    let key_shares_after = get_all_keys(signers).await;
 
-    let key_share_before_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3003).await;
+    assert_ne!(key_share_before, key_shares_after);
+
+    let signers = get_current_signers(&api, &rpc).await;
+    let key_share_before_2 = get_all_keys(signers).await;
 
     let _ = loop {
         let new_signer_ids: HashSet<[u8; 32]> = {
@@ -316,7 +319,9 @@ async fn test_reshare_e2e() {
     // wait for rotate keyshare 2
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
-    let key_share_after_2 = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), 3003).await;
+    let signers = get_current_signers(&api, &rpc).await;
+    let key_share_after_2 = get_all_keys(signers).await;
+
     assert_ne!(key_share_before_2, key_share_after_2);
 }
 
@@ -485,6 +490,7 @@ async fn test_deletes_key() {
     clean_tests();
 }
 
+/// Get all the network keys from the server info provided
 pub async fn get_all_keys(servers_info: Vec<ServerInfo<AccountId32>>) -> HashSet<Vec<u8>> {
     let client = reqwest::Client::new();
     let mut key_shares = vec![];
@@ -498,6 +504,7 @@ pub async fn get_all_keys(servers_info: Vec<ServerInfo<AccountId32>>) -> HashSet
     HashSet::from_iter(key_shares)
 }
 
+/// Gets the current signers server info
 pub async fn get_current_signers(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
