@@ -74,7 +74,7 @@ jobs:
 
       - name: Build
         env:
-          ENTROPY_TSS_BINARY_URI: ${{need.build-entropy-tss.outputs.artifact-url}}
+          ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.outputs.artifact-url}}
         run: |
           make image-base
 
