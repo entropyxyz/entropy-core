@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
 
-/// Version infomation - the output of the `/version` HTTP endpoint
+/// Version information - the output of the `/version` HTTP endpoint
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct VersionDetails {
     pub cargo_package_version: String,
