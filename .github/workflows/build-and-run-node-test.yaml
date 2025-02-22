@@ -1,14 +1,14 @@
 ---
 name: "Build and test"
 on:
+  schedule:
+    - cron: '*/25 * * * *'
   push:
     paths:
       - "node/**"
       - "crates/**"
       - "pallets/**"
       - "runtime/**" 
-  schedule:
-    - cron: '*/25 * * * *'
 
 jobs:
  node-test:
