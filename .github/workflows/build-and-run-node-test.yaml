@@ -6,10 +6,8 @@ on:
       - "node/**"
       - "crates/**"
       - "pallets/**"
-      - "runtime/**"
-   
+      - "runtime/**" 
   schedule:
-    # Build the default branch weekly. Our version of "nightly."
     - cron: '*/25 * * * *'
 
 jobs:
