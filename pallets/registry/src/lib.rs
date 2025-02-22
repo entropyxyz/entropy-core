@@ -37,6 +37,7 @@
 #![allow(clippy::new_without_default)]
 #![allow(clippy::or_fun_call)]
 #![allow(clippy::derive_partial_eq_without_eq)] // Substrate confuses clippy
+#![allow(clippy::useless_conversion)]
 pub use pallet::*;
 
 #[cfg(test)]

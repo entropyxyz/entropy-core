@@ -35,6 +35,7 @@
 //! `remove_program` - Allows a deployer to remove a program if not in use.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::useless_conversion)]
 pub use pallet::*;
 
 #[cfg(test)]
