@@ -129,7 +129,7 @@ async fn test_reshare_basic() {
             break Ok(new_signer_ids);
         }
         if i > 240 {
-            break Ok::<HashSet<[u8; 32]>, ()>(new_signer_ids);
+            break Err("Timed out waiting for reshare");
         }
         i += 1;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
@@ -513,9 +513,7 @@ pub async fn get_current_signers(
     let signer_query = entropy::storage().staking_extension().signers();
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
     let mut signers = Vec::new();
-    let mut next_signers = vec![];
     for signer in signer_stash_accounts.iter() {
-        next_signers.push(signer);
         let query = entropy::storage().staking_extension().threshold_servers(signer);
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
