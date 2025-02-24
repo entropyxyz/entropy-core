@@ -1,14 +1,12 @@
 ---
 name: "Build and test"
 on:
-  schedule:
-    - cron: '*/25 * * * *'
   push:
     paths:
       - "node/**"
       - "crates/**"
       - "pallets/**"
-      - "runtime/**" 
+      - "runtime/**"
 
 jobs:
  node-test:
@@ -36,4 +34,6 @@ jobs:
         run: |
           pushd node
           cargo build --all-targets --release -j $(nproc)
-          cargo test --all-targets --release -- --test test_reshare_basic
+          cargo test --all-targets --release
+          yarn --cwd ../crates/protocol/nodejs-test test
+          cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm
