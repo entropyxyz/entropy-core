@@ -129,7 +129,6 @@ async fn test_reshare_basic() {
             break Ok(new_signer_ids);
         }
         if i > 240 {
-            println!("pay attention to this line if this is hit but test passes");
             break Ok::<HashSet<[u8; 32]>, ()>(new_signer_ids);
         }
         i += 1;
