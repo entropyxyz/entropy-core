@@ -11,7 +11,7 @@ publish   =false
 [dependencies]
 codec             ={ package="parity-scale-codec", version="3.6.3", default-features=false, features=["derive"] }
 scale-info        ={ version="2.11", default-features=false, features=["derive"] }
-log               ={ version="0.4.25", default-features=false }
+log               ={ version="0.4.26", default-features=false }
 frame-support     ={ version="29.0.0", default-features=false }
 frame-system      ={ version="29.0.0", default-features=false }
 sp-io             ={ version="31.0.0", default-features=false }
