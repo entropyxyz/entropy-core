@@ -1122,7 +1122,6 @@ async fn test_program_with_config() {
 
 // FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
 // it's producing false negatives on our CI runs.
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_jumpstart_network() {
