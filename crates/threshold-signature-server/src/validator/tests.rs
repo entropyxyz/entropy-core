@@ -443,6 +443,7 @@ async fn test_empty_next_signer() {
 }
 
 #[tokio::test]
+#[serial]
 #[should_panic = "Account does not exist, add balance"]
 async fn test_check_balance_for_fees() {
     initialize_test_logger().await;
