@@ -315,7 +315,7 @@ pub async fn do_jump_start(
     pair: sr25519::Pair,
 ) {
     // wait a while, when we rushed it in tests while running the whole network, nodes would fall behind and not fire
-    run_to_block(rpc, 3).await;
+    run_to_block(rpc, 8).await;
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     put_jumpstart_request_on_chain(api, rpc, pair).await;
 

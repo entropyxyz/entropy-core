@@ -137,17 +137,16 @@ pub mod pallet {
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
             let pending = http::Request::post(url, vec![req_body.encode()])
-                .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
             let response =
-                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+                pending.wait().map_err(|_| http::Error::DeadlineReached)?;
 
             // check response code
             if response.code != 200 {
-                log::warn!("Unexpected status code: {}", response.code);
+                log::warn!("Unexpected status code: {} {:?}", response.code, response.body().clone().collect::<Vec<_>>());
                 return Err(http::Error::Unknown);
             }
             let _res_body = response.body().collect::<Vec<u8>>();
