@@ -115,7 +115,7 @@ pub mod pallet {
             if validators_info.is_empty() {
                 return Ok(());
             }
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(10_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
                 .unwrap_or_else(|| b"http://localhost:3001/generate_network_key".to_vec());
@@ -212,7 +212,7 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(10_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"refresh")
                 .unwrap_or_else(|| b"http://localhost:3001/signer/proactive_refresh".to_vec());
@@ -261,7 +261,7 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(10_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_network_key")
                 .unwrap_or_else(|| b"http://localhost:3001/rotate_network_key".to_vec());
@@ -308,7 +308,7 @@ pub mod pallet {
                     return Ok(());
                 }
 
-                let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+                let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(10_000));
                 let kind = sp_core::offchain::StorageKind::PERSISTENT;
                 let from_local = sp_io::offchain::local_storage_get(kind, b"attest")
                     .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
