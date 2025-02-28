@@ -115,7 +115,6 @@ pub mod pallet {
             if validators_info.is_empty() {
                 return Ok(());
             }
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
                 .unwrap_or_else(|| b"http://localhost:3001/generate_network_key".to_vec());
@@ -141,12 +140,15 @@ pub mod pallet {
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response =
-                pending.wait().map_err(|_| http::Error::DeadlineReached)?;
+            let response = pending.wait().map_err(|_| http::Error::DeadlineReached)?;
 
             // check response code
             if response.code != 200 {
-                log::warn!("Unexpected status code: {} {:?}", response.code, response.body().clone().collect::<Vec<_>>());
+                log::warn!(
+                    "Unexpected status code: {} {:?}",
+                    response.code,
+                    response.body().clone().collect::<Vec<_>>()
+                );
                 return Err(http::Error::Unknown);
             }
             let _res_body = response.body().collect::<Vec<u8>>();

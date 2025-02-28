@@ -25,11 +25,11 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{
     decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
-    KeyShareWithAuxInfo, SessionId, SigningSessionInfo, ValidatorInfo
+    KeyShareWithAuxInfo, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
-    HashingAlgorithm, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH,
-    NETWORK_PARENT_KEY, OcwMessageDkg, ValidatorInfo as SharedValidatorInfo
+    HashingAlgorithm, OcwMessageDkg, ValidatorInfo as SharedValidatorInfo, DAVE_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, NETWORK_PARENT_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -72,8 +72,8 @@ use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::entropy_runtime::RuntimeCall,
-        entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
         entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
+        entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
     },
@@ -86,8 +86,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
-            do_jump_start, get_port, initialize_test_logger, run_to_block, setup_client,
-            spawn_testing_validators, store_program_and_register, unsafe_get, call_set_storage,
+            call_set_storage, do_jump_start, get_port, initialize_test_logger, run_to_block,
+            setup_client, spawn_testing_validators, store_program_and_register, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -95,7 +95,7 @@ use crate::{
     r#unsafe::api::{UnsafeBlockNumberQuery, UnsafeQuery, UnsafeRequestLimitQuery},
     user::api::{
         check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
-        RelayerSignatureRequest, validate_jump_start,
+        validate_jump_start, RelayerSignatureRequest,
     },
     validation::EncryptedSignedMessage,
     AppState,
@@ -1944,7 +1944,7 @@ async fn test_validate_jump_start_fail() {
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let app_state = setup_client().await;
 
-    let validators_info =  SharedValidatorInfo {
+    let validators_info = SharedValidatorInfo {
         x25519_public_key: X25519_PUBLIC_KEYS[0],
         ip_address: vec![],
         tss_account: dave.to_account_id().encode(),
@@ -1961,9 +1961,7 @@ async fn test_validate_jump_start_fail() {
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let storage_address_reshare_data = entropy::storage().registry().jumpstart_dkg(block_number);
-    let value_reshare_info =
-        vec![   validators_info
-           ];
+    let value_reshare_info = vec![validators_info];
     // Add reshare
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
