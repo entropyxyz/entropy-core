@@ -543,8 +543,6 @@ pub async fn validate_jump_start(
     cache: &Cache,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
-    dbg!(last_block_number_recorded);
-    dbg!(chain_data.block_number);
 
     if last_block_number_recorded >= chain_data.block_number {
         return Err(UserErr::RepeatedData);

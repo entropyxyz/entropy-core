@@ -45,6 +45,7 @@ pub const PRUNE_BLOCK: u32 = 14400;
 pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
 #[cfg(test)]
 /// Timeout for validators to wait for other validators to join protocol committees
+/// Made longer for testing scenerios
 pub const SETUP_TIMEOUT_SECONDS: u64 = 100;
 
 /// The amount of proactive refreshes we do per session
