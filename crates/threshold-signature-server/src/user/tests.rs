@@ -1954,26 +1954,14 @@ async fn test_validate_jump_start_fail() {
     let mut ocw_message =
         OcwMessageDkg { validators_info: vec![validators_info.clone()], block_number };
 
-    // let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
-    //     .await
-    //     .map_err(|e| e.to_string());
-    // assert_eq!(err_stale_data, Err("Data is stale".to_string()));
-
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(block_number);
-    let value_dkg_info = vec![validators_info];
+    let value_dkg_info = vec![validators_info.clone()];
     // Add DKG
     let call = RuntimeCall::System(SystemsCall::set_storage {
-        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+        items: vec![(storage_address_dkg_data.to_root_bytes(), value_dkg_info.encode())],
     });
 
-    ocw_message.block_number = block_number;
     call_set_storage(&api, &rpc, call).await;
-
-    // let err_incorrect_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
-    //     .await
-    //     .map_err(|e| e.to_string());
-    // assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
 
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
@@ -1982,6 +1970,23 @@ async fn test_validate_jump_start_fail() {
         .await
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, 0).unwrap();
+
+    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(1);
+    // Add DKG
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_dkg_data.to_root_bytes(), value_dkg_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+
+    ocw_message.block_number = 1;
+
+    let err_incorrect_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
+    assert_eq!(err_incorrect_data, Err("Data is stale".to_string()));
+
     clean_tests();
 }
 
