@@ -1960,9 +1960,9 @@ async fn test_validate_jump_start_fail() {
     // assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
-    let storage_address_reshare_data = entropy::storage().registry().jumpstart_dkg(block_number);
-    let value_reshare_info = vec![validators_info];
-    // Add reshare
+    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(block_number);
+    let value_dkg_info = vec![validators_info];
+    // Add DKG
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
     });
