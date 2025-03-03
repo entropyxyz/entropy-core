@@ -185,6 +185,8 @@ pub enum UserErr {
     ProgramVersion,
     #[error("Conversion Error: {0}")]
     TryFromSlice(#[from] std::array::TryFromSliceError),
+    #[error("User Error: {0}")]
+    AppStateError(#[from] crate::helpers::app_state::AppStateError),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

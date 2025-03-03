@@ -19,7 +19,6 @@ use crate::{
     launch::Configuration,
     signing_client::ListenerState,
 };
-use anyhow::anyhow;
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_shared::X25519PublicKey;
 use serde::{Deserialize, Serialize};
@@ -32,6 +31,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
     OnlineClient,
 };
+use thiserror::Error;
 use x25519_dalek::StaticSecret;
 
 /// Represents the state relating to the prerequisite checks
@@ -156,33 +156,33 @@ impl Cache {
     }
 
     /// Write to request limit
-    pub fn write_to_request_limit(&self, key: String, value: u32) -> anyhow::Result<()> {
+    pub fn write_to_request_limit(&self, key: String, value: u32) -> Result<(), AppStateError> {
         self.clear_poisioned_request_limit();
         let mut request_limit = self
             .request_limit
             .write()
-            .map_err(|_| anyhow!("Error getting write write_to_request_limit lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
         request_limit.insert(key, value);
         Ok(())
     }
 
     /// Check if key exists in request limit
-    pub fn exists_in_request_limit(&self, key: &String) -> anyhow::Result<bool> {
+    pub fn exists_in_request_limit(&self, key: &String) -> Result<bool, AppStateError> {
         self.clear_poisioned_request_limit();
         let request_limit = self
             .request_limit
             .read()
-            .map_err(|_| anyhow!("Error getting read exists_in_request_limit lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error reading mutex".to_string()))?;
         Ok(request_limit.contains_key(key))
     }
 
     /// Remove key from request limt
-    pub fn remove_from_request_limit(&self, key: &String) -> anyhow::Result<()> {
+    pub fn remove_from_request_limit(&self, key: &String) -> Result<(), AppStateError> {
         self.clear_poisioned_request_limit();
         let mut request_limit = self
             .request_limit
             .write()
-            .map_err(|_| anyhow!("Error getting write remove_from_request_limit lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
         request_limit.remove(key);
         Ok(())
     }
@@ -193,17 +193,17 @@ impl Cache {
         let request_limit = self
             .request_limit
             .read()
-            .map_err(|_| anyhow!("Error getting read read_from_request_limit lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error reading mutex".to_string()))?;
         Ok(request_limit.get(key).cloned())
     }
 
     /// Clears the request_limit mapping
-    pub fn clear_request_limit(&self) -> anyhow::Result<()> {
+    pub fn clear_request_limit(&self) -> Result<(), AppStateError> {
         self.clear_poisioned_request_limit();
         let mut request_limit = self
             .request_limit
             .write()
-            .map_err(|_| anyhow!("Error getting read read_from_request_limit lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
         request_limit.clear();
         Ok(())
     }
@@ -216,23 +216,27 @@ impl Cache {
     }
 
     /// Write the given block number to the `block_number` cache.
-    pub fn write_to_block_numbers(&self, key: BlockNumberFields, value: u32) -> anyhow::Result<()> {
+    pub fn write_to_block_numbers(
+        &self,
+        key: BlockNumberFields,
+        value: u32,
+    ) -> Result<(), AppStateError> {
         let block_number_target = self.get_block_number_target(&key);
         self.clear_poisioned_block_numbers(&block_number_target);
         let mut block_number = block_number_target
             .write()
-            .map_err(|_| anyhow!("Error getting write from write_to_block_numbers lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
         *block_number = value;
         Ok(())
     }
 
     /// Returns the number of requests handled so far at the given block number.
-    pub fn read_from_block_numbers(&self, key: &BlockNumberFields) -> anyhow::Result<u32> {
+    pub fn read_from_block_numbers(&self, key: &BlockNumberFields) -> Result<u32, AppStateError> {
         let block_number_target = self.get_block_number_target(key);
         self.clear_poisioned_block_numbers(&block_number_target);
         let block_number = block_number_target
             .read()
-            .map_err(|_| anyhow!("Error getting read from read_to_block_numbers lock"))?;
+            .map_err(|_| AppStateError::PosionError("Error reading mutex".to_string()))?;
         Ok(*block_number)
     }
 
@@ -321,4 +325,11 @@ impl AppState {
     pub fn x25519_public_key(&self) -> [u8; 32] {
         x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
     }
+}
+
+/// Errors related to parsing and evaulating programs.
+#[derive(Error, Debug, PartialEq)]
+pub enum AppStateError {
+    #[error("Posion Mutex error: {0}")]
+    PosionError(String),
 }
