@@ -48,6 +48,8 @@ jobs:
     uses: ./.github/workflows/container-build-and-push.yaml
     needs:
       - git-ref-basename
+    outputs:
+      artifact_url: foobar
     with:
       docker_build_arg_package: entropy-tss
       git_ref_basename: ${{ needs.git-ref-basename.outputs.git_ref_basename }}
@@ -82,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: images
-          path: ~/work/yocto-build/yocto-build/reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
+          path: /home/runner/work/yocto-build/yocto-build/reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
 
   release:
     name: Publish new release
