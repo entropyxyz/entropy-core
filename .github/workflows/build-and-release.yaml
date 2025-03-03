@@ -76,15 +76,14 @@ jobs:
         env:
           ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.jobs.build.outputs.artifact-url}}
         run: |
-          echo "Using artifact url: ${{needs.build-entropy-tss.jobs.build.outputs.artifact-url}}"
           make image-base
-          find . -name 'core-image-minimal-tdx-gcp'
+          echo "Using artifact url: ${{needs.build-entropy-tss.jobs.build.outputs.artifact-url}}"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: images
-          path: /home/runner/work/yocto-build/yocto-build/reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
+          path: /home/runner/work/entropy-core/entropy-core/reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
           if-no-files-found: error
 
   release:
