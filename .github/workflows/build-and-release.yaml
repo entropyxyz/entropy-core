@@ -48,8 +48,6 @@ jobs:
     uses: ./.github/workflows/container-build-and-push.yaml
     needs:
       - git-ref-basename
-    outputs:
-      artifact_url: foobar
     with:
       docker_build_arg_package: entropy-tss
       git_ref_basename: ${{ needs.git-ref-basename.outputs.git_ref_basename }}
@@ -76,7 +74,7 @@ jobs:
 
       - name: Build
         env:
-          ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.outputs.artifact-url}}
+          ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.jobs.build.outputs.artifact-url}}
         run: |
           make image-base
 
