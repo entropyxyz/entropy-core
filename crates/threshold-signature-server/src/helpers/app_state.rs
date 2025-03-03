@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
     collections::HashMap,
-    sync::{Arc, PoisonError, RwLock},
+    sync::{Arc, RwLock},
 };
 use subxt::{
     backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
@@ -138,10 +138,9 @@ impl Cache {
     }
 
     /// Mark the node as able to make chain queries. This is called once during prerequisite checks
-    pub fn connected_to_chain_node(
-        &self,
-    ) -> Result<(), PoisonError<std::sync::RwLockWriteGuard<'_, TssState>>> {
-        let mut tss_state = self.tss_state.write()?;
+    pub fn connected_to_chain_node(&self) -> Result<(), AppStateError> {
+        let mut tss_state =
+            self.tss_state.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         if *tss_state == TssState::NoChainConnection {
             *tss_state = TssState::ReadOnlyChainConnection;
         }
@@ -149,8 +148,9 @@ impl Cache {
     }
 
     /// Mark the node as ready. This is called once when the prerequisite checks have passed.
-    pub fn make_ready(&self) -> Result<(), PoisonError<std::sync::RwLockWriteGuard<'_, TssState>>> {
-        let mut tss_state = self.tss_state.write()?;
+    pub fn make_ready(&self) -> Result<(), AppStateError> {
+        let mut tss_state =
+            self.tss_state.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         *tss_state = TssState::Ready;
         Ok(())
     }
@@ -158,10 +158,8 @@ impl Cache {
     /// Write to request limit
     pub fn write_to_request_limit(&self, key: String, value: u32) -> Result<(), AppStateError> {
         self.clear_poisioned_request_limit();
-        let mut request_limit = self
-            .request_limit
-            .write()
-            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
+        let mut request_limit =
+            self.request_limit.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         request_limit.insert(key, value);
         Ok(())
     }
@@ -169,41 +167,33 @@ impl Cache {
     /// Check if key exists in request limit
     pub fn exists_in_request_limit(&self, key: &String) -> Result<bool, AppStateError> {
         self.clear_poisioned_request_limit();
-        let request_limit = self
-            .request_limit
-            .read()
-            .map_err(|_| AppStateError::PosionError("Error reading mutex".to_string()))?;
+        let request_limit =
+            self.request_limit.read().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         Ok(request_limit.contains_key(key))
     }
 
     /// Remove key from request limt
     pub fn remove_from_request_limit(&self, key: &String) -> Result<(), AppStateError> {
         self.clear_poisioned_request_limit();
-        let mut request_limit = self
-            .request_limit
-            .write()
-            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
+        let mut request_limit =
+            self.request_limit.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         request_limit.remove(key);
         Ok(())
     }
 
     /// Reads from request_limit will error if no value, call exists_in_request_limit to check
-    pub fn read_from_request_limit(&self, key: &String) -> anyhow::Result<Option<u32>> {
+    pub fn read_from_request_limit(&self, key: &String) -> Result<Option<u32>, AppStateError> {
         self.clear_poisioned_request_limit();
-        let request_limit = self
-            .request_limit
-            .read()
-            .map_err(|_| AppStateError::PosionError("Error reading mutex".to_string()))?;
+        let request_limit =
+            self.request_limit.read().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         Ok(request_limit.get(key).cloned())
     }
 
     /// Clears the request_limit mapping
     pub fn clear_request_limit(&self) -> Result<(), AppStateError> {
         self.clear_poisioned_request_limit();
-        let mut request_limit = self
-            .request_limit
-            .write()
-            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
+        let mut request_limit =
+            self.request_limit.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         request_limit.clear();
         Ok(())
     }
@@ -223,9 +213,8 @@ impl Cache {
     ) -> Result<(), AppStateError> {
         let block_number_target = self.get_block_number_target(&key);
         self.clear_poisioned_block_numbers(&block_number_target);
-        let mut block_number = block_number_target
-            .write()
-            .map_err(|_| AppStateError::PosionError("Error writing mutex".to_string()))?;
+        let mut block_number =
+            block_number_target.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         *block_number = value;
         Ok(())
     }
@@ -234,9 +223,8 @@ impl Cache {
     pub fn read_from_block_numbers(&self, key: &BlockNumberFields) -> Result<u32, AppStateError> {
         let block_number_target = self.get_block_number_target(key);
         self.clear_poisioned_block_numbers(&block_number_target);
-        let block_number = block_number_target
-            .read()
-            .map_err(|_| AppStateError::PosionError("Error reading mutex".to_string()))?;
+        let block_number =
+            block_number_target.read().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         Ok(*block_number)
     }
 
@@ -261,9 +249,9 @@ impl Cache {
     pub fn unsubscribed_peers(
         &self,
         session_id: &entropy_protocol::SessionId,
-    ) -> Result<Vec<subxt::utils::AccountId32>, crate::signing_client::ProtocolErr> {
+    ) -> Result<Vec<subxt::utils::AccountId32>, AppStateError> {
         self.listener_state.unsubscribed_peers(session_id).map_err(|_| {
-            crate::signing_client::ProtocolErr::SessionError(format!(
+            AppStateError::SessionError(format!(
                 "Unable to get unsubscribed peers for `SessionId` {:?}",
                 session_id,
             ))
@@ -299,7 +287,7 @@ impl AppState {
     /// Convenience function to get chain api and rpc
     pub async fn get_api_rpc(
         &self,
-    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), subxt::Error> {
+    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), AppStateError> {
         Ok((
             get_api(&self.configuration.endpoint).await?,
             get_rpc(&self.configuration.endpoint).await?,
@@ -327,9 +315,13 @@ impl AppState {
     }
 }
 
-/// Errors related to parsing and evaulating programs.
-#[derive(Error, Debug, PartialEq)]
+/// Errors related to app state.
+#[derive(Error, Debug)]
 pub enum AppStateError {
     #[error("Posion Mutex error: {0}")]
     PosionError(String),
+    #[error("Session Error: {0}")]
+    SessionError(String),
+    #[error("Subxt: {0}")]
+    Subxt(#[from] subxt::Error),
 }
