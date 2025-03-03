@@ -7,7 +7,7 @@ ARG DEBIAN_CODENAME=bullseye
 # Version of Ubuntu to deploy with.
 ARG UBUNTU_VERSION=20.04
 
-FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim as build
+FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim AS build
 ARG TARGETPLATFORM
 ARG PACKAGE
 ARG RUST_STABLE_VERSION
@@ -98,7 +98,7 @@ RUN --mount=type=ssh \
 # Next stage will contain just our built binary, without dependencies.
 FROM docker.io/library/ubuntu:${UBUNTU_VERSION}
 ARG PACKAGE
-ENV entropy_binary $PACKAGE
+ENV entropy_binary=$PACKAGE
 
 # Prepare the distribution image with necessary runtime dependencies.
 RUN export DEBIAN_FRONTEND=noninteractive \
