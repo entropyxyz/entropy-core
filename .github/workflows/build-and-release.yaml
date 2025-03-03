@@ -74,10 +74,10 @@ jobs:
 
       - name: Build
         env:
-          ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.jobs.build.outputs.artifact-url}}
+          ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.outputs.artifact_url}}
         run: |
           make image-base
-          echo "Using artifact url: ${{needs.build-entropy-tss.jobs.build.outputs.artifact-url}}"
+          echo "Using artifact url: ${{needs.build-entropy-tss.outputs.artifact_url}}"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
