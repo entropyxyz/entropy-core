@@ -28,8 +28,8 @@ use entropy_protocol::{
     KeyShareWithAuxInfo, SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
-    HashingAlgorithm, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH,
-    NETWORK_PARENT_KEY,
+    HashingAlgorithm, OcwMessageDkg, ValidatorInfo as SharedValidatorInfo, DAVE_VERIFYING_KEY,
+    DEFAULT_VERIFYING_KEY_NOT_REGISTERED, DEVICE_KEY_HASH, NETWORK_PARENT_KEY,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -72,6 +72,7 @@ use crate::{
     chain_api::{
         entropy, entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
         entropy::runtime_types::entropy_runtime::RuntimeCall,
+        entropy::runtime_types::frame_system::pallet::Call as SystemsCall,
         entropy::runtime_types::pallet_balances::pallet::Call as BalancesCall,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance, get_api, get_rpc,
         EntropyConfig,
@@ -85,8 +86,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
-            do_jump_start, get_port, initialize_test_logger, run_to_block, setup_client,
-            spawn_testing_validators, store_program_and_register, unsafe_get,
+            call_set_storage, do_jump_start, get_port, initialize_test_logger, run_to_block,
+            setup_client, spawn_testing_validators, store_program_and_register, unsafe_get,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -94,7 +95,7 @@ use crate::{
     r#unsafe::api::{UnsafeBlockNumberQuery, UnsafeQuery, UnsafeRequestLimitQuery},
     user::api::{
         check_hash_pointer_out_of_bounds, increment_or_wipe_request_limit, request_limit_check,
-        RelayerSignatureRequest,
+        validate_jump_start, RelayerSignatureRequest,
     },
     validation::EncryptedSignedMessage,
     AppState,
@@ -1122,7 +1123,6 @@ async fn test_program_with_config() {
 
 // FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
 // it's producing false negatives on our CI runs.
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_jumpstart_network() {
@@ -1132,7 +1132,7 @@ async fn test_jumpstart_network() {
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
 
-    let force_authoring = true;
+    let force_authoring = false;
     let context =
         test_node_process_testing_state(ChainSpecType::Integration, force_authoring).await;
     let api = get_api(&context[0].ws_url).await.unwrap();
@@ -1929,6 +1929,65 @@ async fn test_get_oracle_data() {
         get_oracle_data(&api, &rpc, vec!["random_heading".encode()]).await.unwrap();
     assert_eq!(oracle_data_fail.len(), 1);
     assert_eq!(oracle_data_fail[0].len(), 0);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_validate_jump_start_fail() {
+    initialize_test_logger().await;
+    clean_tests();
+
+    let dave = AccountKeyring::Dave;
+
+    let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let app_state = setup_client().await;
+
+    let validators_info = SharedValidatorInfo {
+        x25519_public_key: X25519_PUBLIC_KEYS[0],
+        ip_address: vec![],
+        tss_account: dave.to_account_id().encode(),
+    };
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let mut ocw_message =
+        OcwMessageDkg { validators_info: vec![validators_info.clone()], block_number };
+
+    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(block_number);
+    let value_dkg_info = vec![validators_info.clone()];
+    // Add DKG
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_dkg_data.to_root_bytes(), value_dkg_info.encode())],
+    });
+
+    call_set_storage(&api, &rpc, call).await;
+
+    // manipulates cache to get to repeated data error
+    app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
+
+    let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, 0).unwrap();
+
+    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(1);
+    // Add DKG
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_dkg_data.to_root_bytes(), value_dkg_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+
+    ocw_message.block_number = 1;
+
+    let err_incorrect_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
+    assert_eq!(err_incorrect_data, Err("Data is stale".to_string()));
+
+    clean_tests();
 }
 
 pub async fn submit_transaction_request(

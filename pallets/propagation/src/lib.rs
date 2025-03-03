@@ -115,7 +115,6 @@ pub mod pallet {
             if validators_info.is_empty() {
                 return Ok(());
             }
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
                 .unwrap_or_else(|| b"http://localhost:3001/generate_network_key".to_vec());
@@ -137,17 +136,19 @@ pub mod pallet {
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
             let pending = http::Request::post(url, vec![req_body.encode()])
-                .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response =
-                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            let response = pending.wait().map_err(|_| http::Error::DeadlineReached)?;
 
             // check response code
             if response.code != 200 {
-                log::warn!("Unexpected status code: {}", response.code);
+                log::warn!(
+                    "Unexpected status code: {} {:?}",
+                    response.code,
+                    response.body().clone().collect::<Vec<_>>()
+                );
                 return Err(http::Error::Unknown);
             }
             let _res_body = response.body().collect::<Vec<u8>>();
@@ -164,7 +165,7 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(10_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"reshare_validators")
                 .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
@@ -212,7 +213,7 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"refresh")
                 .unwrap_or_else(|| b"http://localhost:3001/signer/proactive_refresh".to_vec());
@@ -261,7 +262,7 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_network_key")
                 .unwrap_or_else(|| b"http://localhost:3001/rotate_network_key".to_vec());
@@ -308,7 +309,7 @@ pub mod pallet {
                     return Ok(());
                 }
 
-                let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+                let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
                 let kind = sp_core::offchain::StorageKind::PERSISTENT;
                 let from_local = sp_io::offchain::local_storage_get(kind, b"attest")
                     .unwrap_or_else(|| b"http://localhost:3001/attest".to_vec());
