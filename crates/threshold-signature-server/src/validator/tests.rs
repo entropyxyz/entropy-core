@@ -263,7 +263,7 @@ async fn test_reshare_e2e() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
-    
+
     run_to_block(&rpc, 7).await;
 
     // Get current signers
