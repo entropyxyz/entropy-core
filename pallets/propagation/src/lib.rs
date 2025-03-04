@@ -165,7 +165,6 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"reshare_validators")
                 .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
@@ -186,13 +185,11 @@ pub mod pallet {
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
             let pending = http::Request::post(url, vec![req_body.encode()])
-                .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response =
-                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            let response = pending.wait().map_err(|_| http::Error::DeadlineReached)?;
 
             // check response code
             if response.code != 200 {
