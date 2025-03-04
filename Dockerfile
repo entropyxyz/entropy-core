@@ -33,13 +33,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --profile minimal \
       --default-toolchain none \
     && $HOME/.cargo/bin/rustup default "${RUST_STABLE_VERSION}" \
-    && if [ "amd64" = ${TARGETPLATFORM#"linux/"} ]; then \
-        export RUST_PLATFORM=x86_64; \
-    else \
-        export RUST_PLATFORM=aarch64; \
-    fi; $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-${RUST_PLATFORM}-unknown-linux-gnu" --profile minimal \
+    && $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-x86_64-unknown-linux-gnu" --profile minimal \
     && $HOME/.cargo/bin/rustup component add rust-src rustfmt clippy \
-    && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown
+    && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown \
+    && if [ "amd64" = ${TARGETPLATFORM#"linux/"} ]; then \
+      $HOME/.cargo/bin/rustup target add aarch64-unknown-linux-gnu; \
+    fi;
 
 # Now fetch and build our own source code. This is a somewhat involved
 # set of shell commands but the basic idea is that we are running the
