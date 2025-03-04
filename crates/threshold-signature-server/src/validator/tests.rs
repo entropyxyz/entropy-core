@@ -84,6 +84,8 @@ async fn test_reshare_basic() {
         HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
     let signers = get_current_signers(&api, &rpc).await;
     let mut next_signers = vec![];
+    run_to_block(&rpc, 7).await;
+
     for signer in signer_stash_accounts.iter() {
         next_signers.push(signer);
     }
@@ -96,6 +98,7 @@ async fn test_reshare_basic() {
     next_signers.remove(0);
     let binding = dave_stash.to_account_id().into();
     next_signers.push(&binding);
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
     let value_next_signers =
@@ -260,6 +263,8 @@ async fn test_reshare_e2e() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
+    
+    run_to_block(&rpc, 7).await;
 
     // Get current signers
     let signer_query = entropy::storage().staking_extension().signers();
