@@ -185,7 +185,7 @@ pub enum UserErr {
     ProgramVersion,
     #[error("Conversion Error: {0}")]
     TryFromSlice(#[from] std::array::TryFromSliceError),
-    #[error("User Error: {0}")]
+    #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
 }
 

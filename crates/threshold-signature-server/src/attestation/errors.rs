@@ -58,7 +58,7 @@ pub enum AttestationErr {
     QuoteParse(#[from] tdx_quote::QuoteParseError),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
-    #[error("User Error: {0}")]
+    #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
 }
 
