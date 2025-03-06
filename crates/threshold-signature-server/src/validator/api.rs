@@ -58,10 +58,10 @@ pub async fn new_reshare(
     }
 
     let data = OcwMessageReshare::decode(&mut encoded_data.as_ref())?;
+
     let api = get_api(&app_state.configuration.endpoint).await?;
     let rpc = get_rpc(&app_state.configuration.endpoint).await?;
     validate_new_reshare(&api, &rpc, &data, &app_state.cache).await?;
-    dbg!("in reshare lfg: {}", std::time::SystemTime::now());
 
     let next_signers_query = entropy::storage().staking_extension().next_signers();
     let next_signers = query_chain(&api, &rpc, next_signers_query, None)
@@ -286,7 +286,6 @@ pub async fn validate_new_reshare(
 
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Reshare)?;
     cache.write_to_block_numbers(BlockNumberFields::Reshare, chain_data.block_number)?;
-    dbg!(last_block_number_recorded, chain_data.block_number);
     if last_block_number_recorded >= chain_data.block_number {
         return Err(ValidatorErr::RepeatedData);
     }
