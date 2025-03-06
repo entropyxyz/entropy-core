@@ -55,3 +55,7 @@ jobs:
           cargo test --all-targets --release
           yarn --cwd ../crates/protocol/nodejs-test test
           cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm
+      - name: Skip tests when no code changes have been made
+        if: needs.check-paths.outputs.run_tests == 'false'
+        run: |
+          echo "Skipping tests as no code changes have been made"
