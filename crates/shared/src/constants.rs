@@ -40,8 +40,13 @@ pub const MIN_BALANCE: u128 = 10_000_000_000;
 /// The amount of blocks before a tx request is pruned from the kvdb
 pub const PRUNE_BLOCK: u32 = 14400;
 
+#[cfg(not(test))]
 /// Timeout for validators to wait for other validators to join protocol committees
 pub const SETUP_TIMEOUT_SECONDS: u64 = 20;
+#[cfg(test)]
+/// Timeout for validators to wait for other validators to join protocol committees
+/// Made longer for testing scenerio
+pub const SETUP_TIMEOUT_SECONDS: u64 = 100;
 
 /// The amount of proactive refreshes we do per session
 pub const REFRESHES_PER_SESSION: u32 = 10;

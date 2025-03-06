@@ -44,9 +44,6 @@ use synedrion::k256::ecdsa::VerifyingKey;
 
 const GOERLI_CHAIN_ID: u64 = 5;
 
-// FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
-// it's producing false negatives on our CI runs.
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn integration_test_sign_eth_tx() {

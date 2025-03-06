@@ -461,14 +461,7 @@ pub async fn generate_network_key(
     validate_jump_start(&data, &api, &rpc, &app_state.cache).await?;
 
     let app_state = app_state.clone();
-    // Do the DKG protocol in another task, so we can already respond
-    tokio::spawn(async move {
-        if let Err(err) = setup_dkg(api, &rpc, data, app_state).await {
-            // TODO here we would check the error and if it relates to a misbehaving node,
-            // use the slashing mechanism
-            tracing::error!("User registration failed {:?}", err);
-        }
-    });
+    setup_dkg(api, &rpc, data, app_state).await?;
 
     Ok(StatusCode::OK)
 }
@@ -543,13 +536,14 @@ pub async fn confirm_jump_start(
 /// Validates network jump start endpoint.
 ///
 /// Checks the chain for validity of data and block number of data matches current block
-async fn validate_jump_start(
+pub async fn validate_jump_start(
     chain_data: &OcwMessageDkg,
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     cache: &Cache,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
+
     if last_block_number_recorded >= chain_data.block_number {
         return Err(UserErr::RepeatedData);
     }

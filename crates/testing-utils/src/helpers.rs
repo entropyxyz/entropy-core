@@ -42,7 +42,7 @@ pub async fn spawn_tss_nodes_and_start_chain(
 
     // Here we need to force authoring otherwise we won't be able to get our chain in the right
     // state to be jump started.
-    let force_authoring = true;
+    let force_authoring = false;
     let substrate_context = test_node_process_testing_state(chain_spec_type, force_authoring).await;
     let api = get_api(&substrate_context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();

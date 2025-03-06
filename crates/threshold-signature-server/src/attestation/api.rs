@@ -41,6 +41,7 @@ use x25519_dalek::StaticSecret;
 /// HTTP POST endpoint to initiate a TDX attestation.
 /// The body of the request should be a 32 byte random nonce used to show 'freshness' of the
 /// quote.
+///
 /// The response body contains a mock TDX v4 quote serialized as described in the
 /// [Index TDX DCAP Quoting Library API](https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf).
 pub async fn attest(
@@ -176,6 +177,16 @@ pub async fn create_quote(
 
     Ok(configfs_tsm::create_quote(input_data.0)
         .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?)
+}
+
+/// Get the measurement value from this build by generating a quote.
+/// This is used by the `/version` HTTP route to display measurement details of the current build.
+#[cfg(feature = "production")]
+pub fn get_measurement_value() -> Result<[u8; 32], AttestationErr> {
+    let quote_raw = configfs_tsm::create_quote([0; 64])
+        .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?;
+    let quote = Quote::from_bytes(&quote_raw)?;
+    Ok(compute_quote_measurement(&quote))
 }
 
 /// Querystring for the GET `/attest` endpoint

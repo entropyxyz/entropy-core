@@ -68,6 +68,8 @@ pub enum BackupProviderError {
     QuoteMeasurement(#[from] crate::attestation::errors::QuoteMeasurementErr),
     #[error("Timed out waiting to be connected to chain")]
     NotConnectedToChain,
+    #[error("Application State Error: {0}")]
+    AppStateError(#[from] crate::helpers::app_state::AppStateError),
 }
 
 impl IntoResponse for BackupProviderError {

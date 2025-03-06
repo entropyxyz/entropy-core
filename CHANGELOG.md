@@ -39,6 +39,8 @@ runtime
   extrinsics no longer take a PCK certificate chain. Rather, the certificate chain is extracted from the
   provided quote. The test CLI `change-threshold-accounts` command also no longer takes a PCK
   certificate chain.
+- In [#1305](https://github.com/entropyxyz/entropy-core/pull/1305) the output of the entropy-tss
+  `/version` HTTP route was changed to include additional build details.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -67,6 +69,7 @@ runtime
 - Extract PCK certificate chain from quotes ([#1209](https://github.com/entropyxyz/entropy-core/pull/1209))
 - Allow different versions for programs ([#1250](https://github.com/entropyxyz/entropy-core/pull/1250))
 - Attestation quote verification should check both run-time and build-time measurement values ([#1303](https://github.com/entropyxyz/entropy-core/pull/1303))
+- `/version` HTTP route gives measurement value on production builds ([#1305](https://github.com/entropyxyz/entropy-core/pull/1305))
 
 ### Fixed
 

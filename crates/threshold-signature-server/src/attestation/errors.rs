@@ -53,8 +53,13 @@ pub enum AttestationErr {
     AttestationRequest(#[from] entropy_client::errors::AttestationRequestError),
     #[error("Invalid or unknown context value given in query string")]
     UnknownContext,
+    #[cfg(feature = "production")]
+    #[error("Quote parse: {0}")]
+    QuoteParse(#[from] tdx_quote::QuoteParseError),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
+    #[error("Application State Error: {0}")]
+    AppStateError(#[from] crate::helpers::app_state::AppStateError),
 }
 
 impl IntoResponse for AttestationErr {

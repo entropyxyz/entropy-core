@@ -7,7 +7,7 @@ ARG DEBIAN_CODENAME=bullseye
 # Version of Ubuntu to deploy with.
 ARG UBUNTU_VERSION=20.04
 
-FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim as build
+FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim AS build
 ARG TARGETPLATFORM
 ARG PACKAGE
 ARG RUST_STABLE_VERSION
@@ -37,7 +37,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         export RUST_PLATFORM=x86_64; \
     else \
         export RUST_PLATFORM=aarch64; \
-    fi; $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-${RUST_PLATFORM}-unknown-linux-gnu" --profile minimal \
+    fi; $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-${RUST_PLATFORM}-unknown-linux-gnu" \
+      --profile minimal --force-non-host \
     && $HOME/.cargo/bin/rustup component add rust-src rustfmt clippy \
     && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown
 
@@ -98,7 +99,7 @@ RUN --mount=type=ssh \
 # Next stage will contain just our built binary, without dependencies.
 FROM docker.io/library/ubuntu:${UBUNTU_VERSION}
 ARG PACKAGE
-ENV entropy_binary $PACKAGE
+ENV entropy_binary=$PACKAGE
 
 # Prepare the distribution image with necessary runtime dependencies.
 RUN export DEBIAN_FRONTEND=noninteractive \

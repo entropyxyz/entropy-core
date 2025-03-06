@@ -97,6 +97,8 @@ pub enum ValidatorErr {
     TryFromSlice(#[from] TryFromSliceError),
     #[error("Node has started fresh and not yet successfully set up")]
     NotReady,
+    #[error("Application State Error: {0}")]
+    AppStateError(#[from] crate::helpers::app_state::AppStateError),
 }
 
 impl IntoResponse for ValidatorErr {
