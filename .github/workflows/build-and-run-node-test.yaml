@@ -24,7 +24,7 @@ jobs:
 
   node-test:
     needs: check-paths
-    runs-on: ubuntu-latest
+    runs-on: core-build-runner
     steps:
       - uses: actions/checkout@v4
       - name: Increase swap
