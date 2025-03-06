@@ -1,9 +1,6 @@
 ---
 name: "Build and test"
-on:
-  push:
-    branches:
-      - "*"
+on: ["push"]
 
 jobs:
  node-test:
