@@ -210,6 +210,9 @@ async fn test_reshare_basic() {
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 5).await;
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let signers = get_current_signers(&api, &rpc).await;
     let key_share_before_2 = get_all_keys(signers).await;
