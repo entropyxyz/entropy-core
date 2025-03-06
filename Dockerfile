@@ -37,7 +37,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         export RUST_PLATFORM=x86_64; \
     else \
         export RUST_PLATFORM=aarch64; \
-    fi; $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-${RUST_PLATFORM}-unknown-linux-gnu" --profile minimal \
+    fi; $HOME/.cargo/bin/rustup toolchain install "${RUST_STABLE_VERSION}-${RUST_PLATFORM}-unknown-linux-gnu" \
+      --profile minimal --force-non-host \
     && $HOME/.cargo/bin/rustup component add rust-src rustfmt clippy \
     && $HOME/.cargo/bin/rustup target add wasm32-unknown-unknown
 
