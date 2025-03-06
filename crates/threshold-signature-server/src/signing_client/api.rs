@@ -62,12 +62,7 @@ use crate::{
     AppState,
 };
 
-#[cfg(not(test))]
 pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 10;
-
-#[cfg(test)]
-pub const SUBSCRIBE_TIMEOUT_SECONDS: u64 = 100;
-
 /// HTTP POST endpoint called by the a Substrate node during proactive refresh.
 ///
 /// In particular, it is the Propogation pallet, with the use of an off-chain worker, which
