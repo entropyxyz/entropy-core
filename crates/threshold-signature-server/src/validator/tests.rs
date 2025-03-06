@@ -365,6 +365,7 @@ async fn test_reshare_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
+    let alice = AccountKeyring::Alice;
 
     let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
@@ -380,7 +381,7 @@ async fn test_reshare_validation_fail() {
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
     let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
     let value_reshare_info =
         ReshareInfo { block_number: block_number + 1, new_signers: vec![dave.public().encode()] };
@@ -388,14 +389,9 @@ async fn test_reshare_validation_fail() {
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
     });
-
-    ocw_message.block_number = block_number;
     call_set_storage(&api, &rpc, call).await;
-
-    let err_incorrect_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
-        .await
-        .map_err(|e| e.to_string());
-    assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    ocw_message.block_number = block_number;
 
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::Reshare, block_number + 5).unwrap();
@@ -404,6 +400,22 @@ async fn test_reshare_validation_fail() {
         .await
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    let value_reshare_info =
+        ReshareInfo { block_number: 25, new_signers: vec![alice.public().encode()] };
+    // Add reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    ocw_message.block_number = block_number;
+
+    let err_incorrect_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
+    assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
+
     clean_tests();
 }
 
