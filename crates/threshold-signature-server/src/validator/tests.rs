@@ -215,7 +215,7 @@ async fn test_reshare_basic() {
     let signers = get_current_signers(&api, &rpc).await;
     let key_share_before_2 = get_all_keys(signers).await;
 
-    next_signers.remove(0);    
+    next_signers.remove(0);
     let binding = alice_stash.to_account_id().into();
     next_signers.push(&binding);
 
