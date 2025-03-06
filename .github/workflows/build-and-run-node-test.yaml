@@ -2,11 +2,8 @@
 name: "Build and test"
 on:
   push:
-    paths:
-      - "node/**"
-      - "crates/**"
-      - "pallets/**"
-      - "runtime/**"
+    branches:
+      - "*"
 
 jobs:
  node-test:
