@@ -41,6 +41,7 @@ use x25519_dalek::StaticSecret;
 /// HTTP POST endpoint to initiate a TDX attestation.
 /// The body of the request should be a 32 byte random nonce used to show 'freshness' of the
 /// quote.
+///
 /// The response body contains a mock TDX v4 quote serialized as described in the
 /// [Index TDX DCAP Quoting Library API](https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf).
 pub async fn attest(
