@@ -189,7 +189,7 @@ pub mod pallet {
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response = pending.wait().map_err(|_| http::Error::DeadlineReached)?;
+            let response = pending.wait()?;
 
             // check response code
             if response.code != 200 {
