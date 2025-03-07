@@ -459,7 +459,7 @@ pub async fn generate_network_key(
     }
 
     validate_jump_start(&data, &api, &rpc, &app_state.cache).await?;
-
+    dbg!("passed validate lfg");
     let app_state = app_state.clone();
     setup_dkg(api, &rpc, data, app_state).await?;
 
@@ -543,7 +543,8 @@ pub async fn validate_jump_start(
     cache: &Cache,
 ) -> Result<(), UserErr> {
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
-
+    dbg!(last_block_number_recorded);
+    dbg!(chain_data.block_number);
     if last_block_number_recorded >= chain_data.block_number {
         return Err(UserErr::RepeatedData);
     }
