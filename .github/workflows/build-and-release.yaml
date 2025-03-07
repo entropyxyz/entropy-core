@@ -56,10 +56,39 @@ jobs:
       DOCKER_HUB_CI_TOKEN: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
 
+  push-binary-to-meta-entropy-tss:
+    name: Commits the built binary to the meta-entropy-tss repository
+    needs:
+      - git-ref-basename
+      - build-entropy-tss
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Target Repo
+        env:
+          GITHUB_APP_TOKEN: ${{ secrets.GITHUB_APP_TOKEN_FOR_META_ENTROPY_TSS }}
+        run: |
+          git clone https://oauth2:${GITHUB_APP_TOKEN}@github.com/entropyxyz/meta-entropy-tss.git
+          cd meta-entropy-tss
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Download entropy-tss binary
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "!*.dockerbuild"
+
+      - name: Make Changes
+        run: |
+          find . -maxdepth 1 -type f -name "entropy-tss*linux_amd64" -exec mv {} meta-entropy-tss/recipes-core/entropy-tss/entropy-tss \;
+          cd meta-entropy-tss
+          git add .
+          git commit -m "Update binary from entropy-core release pipeline ${{ needs.build.outputs.git_ref_basename }}"
+          git push origin main
+
   build-entropy-tss-cvm-image:
     name: Build confidential virtual machine image for entropy-tss
     needs:
-      - build-entropy-tss
+      - push-binary-to-meta-entropy-tss
     runs-on: core-build-runner
     steps:
       - name: Check out the yocto-build repository
@@ -73,11 +102,8 @@ jobs:
             version: latest
 
       - name: Build
-        env:
-          ENTROPY_TSS_BINARY_URI: ${{needs.build-entropy-tss.outputs.artifact_url}}
         run: |
           make image-base
-          echo "Using artifact url: ${{needs.build-entropy-tss.outputs.artifact_url}}"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
