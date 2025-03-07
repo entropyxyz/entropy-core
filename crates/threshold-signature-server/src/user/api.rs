@@ -542,13 +542,6 @@ pub async fn validate_jump_start(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     cache: &Cache,
 ) -> Result<(), UserErr> {
-    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
-    dbg!(last_block_number_recorded);
-    dbg!(chain_data.block_number);
-    if last_block_number_recorded >= chain_data.block_number {
-        return Err(UserErr::RepeatedData);
-    }
-
     let latest_block_number = rpc
         .chain_get_header(None)
         .await?
@@ -567,8 +560,13 @@ pub async fn validate_jump_start(
     if verifying_data != chain_data.validators_info {
         return Err(UserErr::InvalidData);
     }
-
+    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
     cache.write_to_block_numbers(BlockNumberFields::NewUser, chain_data.block_number)?;
+    dbg!(last_block_number_recorded);
+    dbg!(chain_data.block_number);
+    if last_block_number_recorded >= chain_data.block_number {
+        return Err(UserErr::RepeatedData);
+    }
 
     Ok(())
 }
