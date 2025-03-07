@@ -18,7 +18,7 @@ jobs:
             echo "changes_detected=false" >> $GITHUB_ENV
           fi
       - name: Set output
-        run: echo "::set-output name=changes_detected::${{ env.changes_detected }}"
+        run: echo "changes_detected=${{ env.changes_detected }}" >> $GITHUB_OUTPUT
 
   node-test:
     needs: check-paths
