@@ -4,6 +4,7 @@ on: ["push"]
 
 jobs:
   check-paths:
+    name: Detect whether code changes have been made
     runs-on: ubuntu-latest
     outputs:
       run_tests: ${{ steps.filter.outputs.changes_detected }}
