@@ -31,11 +31,17 @@ on:
       CI_MACHINE_USER_TOKEN:
         description: Fine-grained GitHub Personal Access Token specific for CI.
         required: true
+    outputs:
+      artifact_url:
+        description: Url of the uploaded binary
+        value: ${{ jobs.build.outputs.artifact_url }}
 
 jobs:
   build:
     name: Build and upload ${{ inputs.docker_build_arg_package }} binary
     runs-on: core-build-runner
+    outputs:
+        artifact_url: ${{ steps.artifact-upload-step.outputs.artifact-url }}
     steps:
       - uses: actions/checkout@v4
       # Occasionally our builds will run out of free hard disk space.
@@ -112,6 +118,7 @@ jobs:
               > ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}-chain-spec-${{ inputs.git_ref_basename }}-${{ github.sha }}.json
       - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
         uses: actions/upload-artifact@v4
+        id: artifact-upload-step
         with:
           name: ${{ inputs.docker_build_arg_package}}_${{ inputs.git_ref_basename }}
           path: ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}*
