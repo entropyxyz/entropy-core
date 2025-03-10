@@ -1950,11 +1950,7 @@ async fn test_validate_jump_start_fail() {
         tss_account: dave.to_account_id().encode(),
     };
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let mut ocw_message =
-        OcwMessageDkg { validators_info: vec![validators_info.clone()], block_number };
-
-    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(block_number);
+    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(2);
     let value_dkg_info = vec![validators_info.clone()];
     // Add DKG
     let call = RuntimeCall::System(SystemsCall::set_storage {
@@ -1962,6 +1958,12 @@ async fn test_validate_jump_start_fail() {
     });
 
     call_set_storage(&api, &rpc, call).await;
+    
+    run_to_block(&rpc, 3).await;
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    let mut ocw_message =
+        OcwMessageDkg { validators_info: vec![validators_info.clone()], block_number };
 
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
