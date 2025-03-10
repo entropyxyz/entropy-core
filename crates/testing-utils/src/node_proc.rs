@@ -128,7 +128,7 @@ impl TestNodeProcessBuilder {
         R: Config,
     {
         let mut cmd = process::Command::new(&self.node_path);
-        cmd.env("RUST_LOG", "error").arg(&self.chain_type).arg("--tmp");
+        cmd.env("RUST_LOG", "info").arg(&self.chain_type).arg("--tmp");
         if self.force_authoring {
             cmd.arg("--force-authoring");
         }
