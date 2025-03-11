@@ -547,8 +547,6 @@ pub async fn validate_jump_start(
         .await?
         .ok_or_else(|| UserErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
-    dbg!(latest_block_number.saturating_sub(1));
-    dbg!(chain_data.block_number);
 
     // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
@@ -567,8 +565,7 @@ pub async fn validate_jump_start(
 
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
     cache.write_to_block_numbers(BlockNumberFields::NewUser, chain_data.block_number)?;
-    dbg!(last_block_number_recorded);
-    dbg!(chain_data.block_number);
+
     if last_block_number_recorded >= chain_data.block_number {
         return Err(UserErr::RepeatedData);
     }
