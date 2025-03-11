@@ -5,6 +5,7 @@ on: ["push"]
 jobs:
  node-test:
     runs-on: core-build-runner
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Increase swap
