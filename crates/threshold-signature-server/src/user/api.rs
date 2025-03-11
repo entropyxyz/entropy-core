@@ -459,7 +459,6 @@ pub async fn generate_network_key(
     }
 
     validate_jump_start(&data, &api, &rpc, &app_state.cache).await?;
-    dbg!("passed validate lfg");
     let app_state = app_state.clone();
     setup_dkg(api, &rpc, data, app_state).await?;
 
