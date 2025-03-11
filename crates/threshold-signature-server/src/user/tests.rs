@@ -19,6 +19,7 @@ use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client as test_client,
     client::update_programs,
+    substrate::submit_transaction_with_pair,
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
 use entropy_kvdb::clean_tests;
@@ -1933,54 +1934,54 @@ async fn test_get_oracle_data() {
 
 #[tokio::test]
 #[serial]
-async fn test_validate_jump_start_fail() {
+async fn test_validate_jump_start_fail_repeated() {
     initialize_test_logger().await;
     clean_tests();
 
     let dave = AccountKeyring::Dave;
+    let alice = AccountKeyring::Alice;
 
-    let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
+    let cxt = &test_node_process_testing_state(ChainSpecType::Integration, false).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
-    let app_state = setup_client().await;
+
+    let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
+        setup_kv_store(&Some(ValidatorName::Alice), Some(build_db_path(&None))).await.unwrap();
+    let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
+
+    let app_state =
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
 
     let validators_info = SharedValidatorInfo {
         x25519_public_key: X25519_PUBLIC_KEYS[0],
-        ip_address: vec![],
+        ip_address: vec![80, 80],
         tss_account: dave.to_account_id().encode(),
     };
 
-    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(2);
-    let value_dkg_info = vec![validators_info.clone()];
-    // Add DKG
-    let call = RuntimeCall::System(SystemsCall::set_storage {
-        items: vec![(storage_address_dkg_data.to_root_bytes(), value_dkg_info.encode())],
-    });
+    let jump_start_request = entropy::tx().registry().jump_start_network();
+    let result =
+        submit_transaction_with_pair(&api, &rpc, &alice.pair(), &jump_start_request, None)
+            .await
+            .unwrap();
 
-    call_set_storage(&api, &rpc, call).await;
-    
-    run_to_block(&rpc, 3).await;
-
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    let block_number = 2; //rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
     let mut ocw_message =
         OcwMessageDkg { validators_info: vec![validators_info.clone()], block_number };
-
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
+    run_to_block(&rpc, 3).await;
 
+    let jump_start_progress_query = entropy::storage().registry().jumpstart_dkg(2);
+    let jump_start_progress =
+        query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
+    let validators_info: Vec<_> = jump_start_progress.into_iter().map(|v| v.0).collect();
+
+    let mut ocw_message =
+        OcwMessageDkg { validators_info, block_number };
     let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
         .await
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
-
-    app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, 0).unwrap();
-
-    let storage_address_dkg_data = entropy::storage().registry().jumpstart_dkg(1);
-    // Add DKG
-    let call = RuntimeCall::System(SystemsCall::set_storage {
-        items: vec![(storage_address_dkg_data.to_root_bytes(), value_dkg_info.encode())],
-    });
-    call_set_storage(&api, &rpc, call).await;
 
     ocw_message.block_number = 1;
 

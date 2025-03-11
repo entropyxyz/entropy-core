@@ -556,12 +556,15 @@ pub async fn validate_jump_start(
     }
 
     // Check that the on-chain selected validators match those from the HTTP request
-    // let verifying_data_query = entropy::storage().registry().jumpstart_dkg(chain_data.block_number);
-    // let verifying_data = query_chain(api, rpc, verifying_data_query, None).await?.unwrap();
-    // let verifying_data: Vec<_> = verifying_data.into_iter().map(|v| v.0).collect();
-    // if verifying_data != chain_data.validators_info {
-    //     return Err(UserErr::InvalidData);
-    // }
+    let verifying_data_query = entropy::storage().registry().jumpstart_dkg(chain_data.block_number);
+    let verifying_data = query_chain(api, rpc, verifying_data_query, None)
+        .await?
+        .ok_or_else(|| UserErr::ChainFetch("Error getting jumpstart data"))?;
+    let verifying_data: Vec<_> = verifying_data.into_iter().map(|v| v.0).collect();
+    if verifying_data != chain_data.validators_info {
+        return Err(UserErr::InvalidData);
+    }
+
     let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
     cache.write_to_block_numbers(BlockNumberFields::NewUser, chain_data.block_number)?;
     dbg!(last_block_number_recorded);
