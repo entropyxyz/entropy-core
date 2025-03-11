@@ -84,6 +84,10 @@ async fn test_reshare_basic() {
         HashSet::from_iter(signer_stash_accounts.clone().into_iter().map(|id| id.0));
     let signers = get_current_signers(&api, &rpc).await;
     let mut next_signers = vec![];
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 3).await;
+
     for signer in signer_stash_accounts.iter() {
         next_signers.push(signer);
     }
@@ -96,6 +100,7 @@ async fn test_reshare_basic() {
     next_signers.remove(0);
     let binding = dave_stash.to_account_id().into();
     next_signers.push(&binding);
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
     let value_next_signers =
@@ -207,6 +212,7 @@ async fn test_reshare_basic() {
         let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
         assert!(!key_share.is_empty());
     }
+
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
     let signers = get_current_signers(&api, &rpc).await;
     let key_share_before_2 = get_all_keys(signers).await;
@@ -260,6 +266,9 @@ async fn test_reshare_e2e() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
+
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    run_to_block(&rpc, block_number + 3).await;
 
     // Get current signers
     let signer_query = entropy::storage().staking_extension().signers();
@@ -359,6 +368,7 @@ async fn test_reshare_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
+    let alice = AccountKeyring::Alice;
 
     let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
@@ -374,7 +384,7 @@ async fn test_reshare_validation_fail() {
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is stale".to_string()));
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
     let storage_address_reshare_data = entropy::storage().staking_extension().reshare_data();
     let value_reshare_info =
         ReshareInfo { block_number: block_number + 1, new_signers: vec![dave.public().encode()] };
@@ -382,14 +392,9 @@ async fn test_reshare_validation_fail() {
     let call = RuntimeCall::System(SystemsCall::set_storage {
         items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
     });
-
-    ocw_message.block_number = block_number;
     call_set_storage(&api, &rpc, call).await;
-
-    let err_incorrect_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
-        .await
-        .map_err(|e| e.to_string());
-    assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    ocw_message.block_number = block_number;
 
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::Reshare, block_number + 5).unwrap();
@@ -398,6 +403,22 @@ async fn test_reshare_validation_fail() {
         .await
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    let value_reshare_info =
+        ReshareInfo { block_number: 25, new_signers: vec![alice.public().encode()] };
+    // Add reshare
+    let call = RuntimeCall::System(SystemsCall::set_storage {
+        items: vec![(storage_address_reshare_data.to_root_bytes(), value_reshare_info.encode())],
+    });
+    call_set_storage(&api, &rpc, call).await;
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    ocw_message.block_number = block_number;
+
+    let err_incorrect_data = validate_new_reshare(&api, &rpc, &ocw_message, &app_state.cache)
+        .await
+        .map_err(|e| e.to_string());
+    assert_eq!(err_incorrect_data, Err("Data is not verifiable".to_string()));
+
     clean_tests();
 }
 
