@@ -53,10 +53,12 @@ impl BuildDetails {
 
     #[cfg(feature = "production")]
     fn new() -> Self {
-        BuildDetails::Production(match crate::attestation::api::get_measurement_value() {
-            Ok(value) => hex::encode(value),
-            Err(error) => format!("Failed to get measurement value {:?}", error),
-        })
+        BuildDetails::ProductionWithMeasurementValue(
+            match crate::attestation::api::get_measurement_value() {
+                Ok(value) => hex::encode(value),
+                Err(error) => format!("Failed to get measurement value {:?}", error),
+            },
+        )
     }
 }
 
