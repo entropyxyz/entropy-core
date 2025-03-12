@@ -73,7 +73,7 @@ jobs:
       - name: Determine if this is a production release
         id: check-production
         run: |
-          if [[ "$TAG_NAME" == *production* ]]; then
+          if [[ ${{ github.ref_name }} == *production* ]]; then
             echo "PRODUCTION=true" >> $GITHUB_ENV
           else
             echo "PRODUCTION=false" >> $GITHUB_ENV
