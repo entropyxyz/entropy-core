@@ -220,18 +220,11 @@ pub async fn validate_proactive_refresh(
     cache: &Cache,
     ocw_data: &OcwMessageProactiveRefresh,
 ) -> Result<(), ProtocolErr> {
-    let last_block_number_recorded =
-        cache.read_from_block_numbers(&BlockNumberFields::ProactiveRefresh)?;
-
     let latest_block_number = rpc
         .chain_get_header(None)
         .await?
         .ok_or_else(|| ProtocolErr::OptionUnwrapError("Failed to get block number".to_string()))?
         .number;
-    // prevents multiple repeated messages being sent
-    if last_block_number_recorded >= latest_block_number {
-        return Err(ProtocolErr::RepeatedData);
-    }
 
     let proactive_info_query = entropy::storage().staking_extension().proactive_refresh();
     let proactive_info = query_chain(api, rpc, proactive_info_query, None)
@@ -252,7 +245,13 @@ pub async fn validate_proactive_refresh(
         return Err(ProtocolErr::InvalidData);
     }
 
-    cache.write_to_block_numbers(BlockNumberFields::ProactiveRefresh, latest_block_number)?;
+    let last_block_number_recorded = cache
+        .read_write_to_block_numbers(BlockNumberFields::ProactiveRefresh, latest_block_number)?;
+
+    // prevents multiple repeated messages being sent
+    if last_block_number_recorded >= latest_block_number {
+        return Err(ProtocolErr::RepeatedData);
+    }
     Ok(())
 }
 

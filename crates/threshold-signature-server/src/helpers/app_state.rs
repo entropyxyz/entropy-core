@@ -216,7 +216,7 @@ impl Cache {
         self.clear_poisioned_block_numbers(&block_number_target);
         let mut block_number =
             block_number_target.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
-        let current_number = block_number.clone();
+        let current_number = *block_number;
         *block_number = value;
         Ok(current_number)
     }
