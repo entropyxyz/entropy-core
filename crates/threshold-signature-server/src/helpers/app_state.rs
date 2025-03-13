@@ -205,6 +205,22 @@ impl Cache {
         }
     }
 
+    /// Reads and writes the given block number to the `block_number` cache.
+    /// Maintains lock for both operations
+    pub fn read_write_to_block_numbers(
+        &self,
+        key: BlockNumberFields,
+        value: u32,
+    ) -> Result<u32, AppStateError> {
+        let block_number_target = self.get_block_number_target(&key);
+        self.clear_poisioned_block_numbers(&block_number_target);
+        let mut block_number =
+            block_number_target.write().map_err(|e| AppStateError::PosionError(e.to_string()))?;
+        let current_number = block_number.clone();
+        *block_number = value;
+        Ok(current_number)
+    }
+
     /// Write the given block number to the `block_number` cache.
     pub fn write_to_block_numbers(
         &self,
