@@ -64,6 +64,9 @@ tagged as the final release.
 - [ ] Ensure **all** CI checks on `master` pass
 - [ ] Create a Git tag From the squashed release PR commit on `master`
     - Make sure to follow [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
+    - If this release is intended to be used in test network which does not involve TDX hardware,
+      the release tag must specify `non-TDX`, eg 'test/release/vX.Y.Z-rc.1+non-TDX'. This will
+      ensure that the TSS node generates mock TDX quotes and the chain node will consider them valid.
     - `git tag release/vX.Y.Z-rc.1` - meaning release candidate number 1. If all goes well this can
       later by tagged as `release/vX.Y.Z`
     - Nice to have: sign the tag with an offline GPG key (`git tag -s ...`)
