@@ -107,7 +107,6 @@ async fn test_attest() {
     panic!("Waited 10 blocks and attestation is still pending");
 }
 
-#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_attest_validation_fail() {
@@ -118,8 +117,8 @@ async fn test_attest_validation_fail() {
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     let app_state = setup_client().await;
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let ocw_message = OcwMessageAttestationRequest { tss_account_ids: vec![], block_number };
+    let mut block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
+    let mut ocw_message = OcwMessageAttestationRequest { tss_account_ids: vec![], block_number };
     let err_stale_data = validate_new_attestation(block_number, &ocw_message, &app_state.cache)
         .await
         .map_err(|e| e.to_string());
@@ -128,7 +127,8 @@ async fn test_attest_validation_fail() {
 
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::Attest, block_number + 5).unwrap();
-
+    block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number - 1;
+    ocw_message.block_number = block_number;
     let err_repeated_data = validate_new_attestation(block_number, &ocw_message, &app_state.cache)
         .await
         .map_err(|e| e.to_string());

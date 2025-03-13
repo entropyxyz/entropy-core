@@ -149,17 +149,16 @@ pub async fn validate_new_attestation(
     chain_data: &OcwMessageAttestationRequest,
     cache: &Cache,
 ) -> Result<(), AttestationErr> {
-    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Attest)?;
-    if last_block_number_recorded >= chain_data.block_number {
-        return Err(AttestationErr::RepeatedData);
-    }
-
     // we subtract 1 as the message info is coming from the previous block
     if latest_block_number.saturating_sub(1) != chain_data.block_number {
         return Err(AttestationErr::StaleData);
     }
 
+    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Attest)?;
     cache.write_to_block_numbers(BlockNumberFields::Attest, chain_data.block_number)?;
+    if last_block_number_recorded >= chain_data.block_number {
+        return Err(AttestationErr::RepeatedData);
+    }
     Ok(())
 }
 
