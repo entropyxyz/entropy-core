@@ -16,77 +16,21 @@
 use crate::{
     attestation::errors::{AttestationErr, QuoteMeasurementErr},
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
-    helpers::{
-        app_state::{BlockNumberFields, Cache},
-        substrate::{query_chain, submit_transaction},
-    },
+    helpers::substrate::query_chain,
     AppState, SubxtAccountId32,
 };
 use axum::{
-    body::Bytes,
     extract::{Query, State},
     http::StatusCode,
 };
 use entropy_client::user::request_attestation;
-use entropy_shared::{
-    attestation::{compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError},
-    OcwMessageAttestationRequest,
+use entropy_shared::attestation::{
+    compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError,
 };
-use parity_scale_codec::Decode;
 use serde::Deserialize;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 use tdx_quote::Quote;
 use x25519_dalek::StaticSecret;
-
-/// HTTP POST endpoint to initiate a TDX attestation.
-/// The body of the request should be a 32 byte random nonce used to show 'freshness' of the
-/// quote.
-///
-/// The response body contains a mock TDX v4 quote serialized as described in the
-/// [Index TDX DCAP Quoting Library API](https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf).
-pub async fn attest(
-    State(app_state): State<AppState>,
-    input: Bytes,
-) -> Result<StatusCode, AttestationErr> {
-    let attestation_requests = OcwMessageAttestationRequest::decode(&mut input.as_ref())?;
-
-    let api = get_api(&app_state.configuration.endpoint).await?;
-    let rpc = get_rpc(&app_state.configuration.endpoint).await?;
-
-    // We also need the current block number as input
-    let block_number =
-        rpc.chain_get_header(None).await?.ok_or_else(|| AttestationErr::BlockNumber)?.number;
-
-    validate_new_attestation(block_number, &attestation_requests, &app_state.cache).await?;
-
-    // Check whether there is an attestion request for us
-    if !attestation_requests.tss_account_ids.contains(&app_state.subxt_account_id().0) {
-        return Ok(StatusCode::OK);
-    }
-
-    // Get the input nonce for this attestation
-    // Also acts as chain check to make sure data is on chain
-    let nonce = {
-        let pending_attestation_query =
-            entropy::storage().attestation().pending_attestations(app_state.signer().account_id());
-        query_chain(&api, &rpc, pending_attestation_query, None)
-            .await?
-            .ok_or_else(|| AttestationErr::Unexpected)?
-    };
-
-    // TODO (#1181): since this endpoint is currently only used in tests we don't know what the context should be
-    let context = QuoteContext::Validate;
-
-    let quote =
-        create_quote(nonce, app_state.subxt_account_id(), &app_state.x25519_secret, context)
-            .await?;
-
-    // Submit the quote
-    let attest_tx = entropy::tx().attestation().attest(quote.clone());
-    submit_transaction(&api, &rpc, &app_state.signer(), &attest_tx, None).await?;
-
-    Ok(StatusCode::OK)
-}
 
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
 /// body.
@@ -140,26 +84,6 @@ pub async fn create_quote(
         .as_bytes()
         .to_vec();
     Ok(quote)
-}
-
-/// Validates attest endpoint
-/// Checks to make sure that attestation is not repeated or old
-pub async fn validate_new_attestation(
-    latest_block_number: u32,
-    chain_data: &OcwMessageAttestationRequest,
-    cache: &Cache,
-) -> Result<(), AttestationErr> {
-    // we subtract 1 as the message info is coming from the previous block
-    if latest_block_number.saturating_sub(1) != chain_data.block_number {
-        return Err(AttestationErr::StaleData);
-    }
-
-    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Attest)?;
-    cache.write_to_block_numbers(BlockNumberFields::Attest, chain_data.block_number)?;
-    if last_block_number_recorded >= chain_data.block_number {
-        return Err(AttestationErr::RepeatedData);
-    }
-    Ok(())
 }
 
 /// Create a TDX quote in production
