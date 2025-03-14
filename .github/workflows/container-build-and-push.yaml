@@ -70,6 +70,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
+      - name: Determine if this is release is non-TDX or production
+        id: check-production
+        run: |
+          if [[ ${{ github.ref_name }} == *non-TDX* ]]; then
+            echo "PRODUCTION=false" >> $GITHUB_ENV
+          else
+            echo "PRODUCTION=true" >> $GITHUB_ENV
+          fi
       - name: Build and push ${{ inputs.docker_build_arg_package }} container image
         id: docker-build
         uses: docker/build-push-action@v6
@@ -77,6 +85,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             PACKAGE=${{ inputs.docker_build_arg_package }}
+            PRODUCTION=${{ env.PRODUCTION }}
           secrets: |
             credentials=${{ secrets.CI_MACHINE_USER_TOKEN }}
           labels: ${{ steps.meta.outputs.labels }}
