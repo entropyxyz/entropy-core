@@ -16,13 +16,7 @@
 use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
-    helpers::{
-        app_state::BlockNumberFields,
-        tests::{
-            initialize_test_logger, run_to_block, setup_client, spawn_testing_validators,
-            unsafe_get,
-        },
-    },
+    helpers::tests::{initialize_test_logger, setup_client, spawn_testing_validators, unsafe_get},
 };
 use entropy_kvdb::clean_tests;
 use entropy_shared::{
@@ -155,41 +149,27 @@ async fn test_proactive_refresh_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
-    let eve = AccountKeyring::Eve;
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
     let app_state = setup_client().await;
-    let validators_info = vec![
-        entropy_shared::ValidatorInfo {
-            ip_address: "127.0.0.1:3001".as_bytes().to_vec(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            tss_account: TSS_ACCOUNTS[0].clone().encode(),
-        },
-        entropy_shared::ValidatorInfo {
-            ip_address: "127.0.0.1:3002".as_bytes().to_vec(),
-            x25519_public_key: X25519_PUBLIC_KEYS[1],
-            tss_account: TSS_ACCOUNTS[1].clone().encode(),
-        },
-    ];
 
-    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
-    let ocw_message = OcwMessageProactiveRefresh {
-        validators_info,
-        proactive_refresh_keys: vec![dave.to_account_id().encode(), eve.to_account_id().encode()],
+    let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    let mut ocw_message = OcwMessageProactiveRefresh {
+        validators_info: vec![],
+        proactive_refresh_keys: vec![],
         block_number,
     };
-    run_to_block(&rpc, block_number).await;
-
-    // manipulates cache to get to repeated data error
-    app_state
-        .cache
-        .write_to_block_numbers(BlockNumberFields::ProactiveRefresh, block_number)
-        .unwrap();
 
     let err_stale_data = validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_message)
         .await
         .map_err(|e| e.to_string());
     assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    ocw_message.proactive_refresh_keys = vec![dave.to_account_id().encode()];
+    let err_stale_data = validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_message)
+        .await
+        .map_err(|e| e.to_string());
+    assert_eq!(err_stale_data, Err("Proactive Refresh data incorrect".to_string()));
     clean_tests();
 }

@@ -284,8 +284,8 @@ pub async fn validate_new_reshare(
         return Err(ValidatorErr::InvalidData);
     }
 
-    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::Reshare)?;
-    cache.write_to_block_numbers(BlockNumberFields::Reshare, chain_data.block_number)?;
+    let last_block_number_recorded =
+        cache.read_write_to_block_numbers(BlockNumberFields::Reshare, chain_data.block_number)?;
     if last_block_number_recorded >= chain_data.block_number {
         return Err(ValidatorErr::RepeatedData);
     }

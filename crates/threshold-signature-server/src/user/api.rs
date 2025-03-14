@@ -563,9 +563,8 @@ pub async fn validate_jump_start(
         return Err(UserErr::InvalidData);
     }
 
-    let last_block_number_recorded = cache.read_from_block_numbers(&BlockNumberFields::NewUser)?;
-    cache.write_to_block_numbers(BlockNumberFields::NewUser, chain_data.block_number)?;
-
+    let last_block_number_recorded =
+        cache.read_write_to_block_numbers(BlockNumberFields::NewUser, chain_data.block_number)?;
     if last_block_number_recorded >= chain_data.block_number {
         return Err(UserErr::RepeatedData);
     }
