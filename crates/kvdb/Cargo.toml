@@ -31,7 +31,7 @@ tracing={ version="0.1", default-features=false }
 
 # Misc
 sled            ="0.34.7"
-bincode         ="1.3.3"
+bincode         ="2.0.1"
 entropy-protocol={ version="0.3.0", path="../protocol" }
 
 [dev-dependencies]
