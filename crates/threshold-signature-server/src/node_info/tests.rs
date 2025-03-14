@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
+    attestation::api::get_pck,
     helpers::tests::{initialize_test_logger, setup_client},
     node_info::api::{BuildDetails, TssPublicKeys, VersionDetails},
 };
@@ -82,6 +83,7 @@ async fn info_test() {
             tss_account: TSS_ACCOUNTS[0].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             ready: true,
+            provisioning_certification_key: get_pck(TSS_ACCOUNTS[0].clone()).unwrap(),
         }
     );
     clean_tests();
