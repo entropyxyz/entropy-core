@@ -26,7 +26,7 @@ use axum::{
 use entropy_client::user::request_attestation;
 use entropy_shared::{
     attestation::{compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError},
-    BoundedVecEncodedVerifyingKey, OcwMessageAttestationRequest,
+    BoundedVecEncodedVerifyingKey,
 };
 use serde::Deserialize;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
