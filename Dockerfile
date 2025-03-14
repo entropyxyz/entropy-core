@@ -6,6 +6,8 @@ ARG RUST_STABLE_VERSION=1.78.0
 ARG DEBIAN_CODENAME=bullseye
 # Version of Ubuntu to deploy with.
 ARG UBUNTU_VERSION=20.04
+# Whether to build with the production feature flag in order to validate real TDX quotes
+ARG PRODUCTION=false
 
 FROM --platform=$BUILDPLATFORM docker.io/library/debian:${DEBIAN_CODENAME}-20230522-slim AS build
 ARG TARGETPLATFORM
@@ -86,13 +88,17 @@ RUN --mount=type=ssh \
         export BINUTILS_PATH=/usr/${RUST_PLATFORM}-linux-gnu/bin; \
     fi; $HOME/.cargo/bin/rustup target add "${RUST_PLATFORM}-unknown-linux-gnu" \
     && $HOME/.cargo/bin/rustup component add --target wasm32-unknown-unknown rust-src \
-    && if [ "linux/arm64" = "${TARGETPLATFORM}" ]; then \
+    && if [ "$PRODUCTION" = "true" ]; then \
+        export ADDITIONAL_CARGO_ARGS="--features production"; \
+    fi; \
+    if [ "linux/arm64" = "${TARGETPLATFORM}" ]; then \
         export PKG_CONFIG_SYSROOT_DIR="/usr/aarch64-linux-gnu"; \
         export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/aarch64-linux-gnu/include/"; \
     fi; CARGO_NET_GIT_FETCH_WITH_CLI=true \
         CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="cc" \
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc" \
-        $HOME/.cargo/bin/cargo build --release -p "${PACKAGE}" --target "${RUST_PLATFORM}-unknown-linux-gnu" \
+        $HOME/.cargo/bin/cargo build --release -p "${PACKAGE}" --target \
+        "${RUST_PLATFORM}-unknown-linux-gnu" ${ADDITIONAL_CARGO_ARGS} \
     && ${BINUTILS_PATH}/strip "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" \
     && install "target/${RUST_PLATFORM}-unknown-linux-gnu/release/${PACKAGE}" /usr/local/bin
 

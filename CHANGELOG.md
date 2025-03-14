@@ -41,6 +41,9 @@ runtime
   certificate chain.
 - In [#1305](https://github.com/entropyxyz/entropy-core/pull/1305) the output of the entropy-tss
   `/version` HTTP route was changed to include additional build details.
+- In [#1349](https://github.com/entropyxyz/entropy-core/pull/1349) the release pipeline was changed
+  to make mock TDX quotes opt-in. That is, if you want the released build to work on non-TDX
+  hardware for testing, you must specify `non-TDX` in the release tag.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
