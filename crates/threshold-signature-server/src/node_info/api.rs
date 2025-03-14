@@ -12,9 +12,9 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use crate::{node_info::errors::GetInfoError, AppState};
+use crate::{attestation::api::get_pck, node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
-use entropy_shared::{types::HashingAlgorithm, X25519PublicKey};
+use entropy_shared::{types::HashingAlgorithm, BoundedVecEncodedVerifyingKey, X25519PublicKey};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
@@ -84,6 +84,8 @@ pub struct TssPublicKeys {
     pub tss_account: AccountId32,
     /// The public encryption key
     pub x25519_public_key: X25519PublicKey,
+    /// The Provisioning Certification Key used in TDX quotes
+    pub provisioning_certification_key: BoundedVecEncodedVerifyingKey,
 }
 
 /// Returns the TS server's public keys and HTTP endpoint
@@ -93,5 +95,6 @@ pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKey
         ready: app_state.cache.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
         tss_account: app_state.subxt_account_id(),
+        provisioning_certification_key: get_pck(app_state.subxt_account_id()).unwrap(),
     }))
 }

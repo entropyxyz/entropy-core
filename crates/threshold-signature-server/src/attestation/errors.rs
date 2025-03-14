@@ -40,9 +40,10 @@ pub enum AttestationErr {
     #[cfg(feature = "production")]
     #[error("Quote generation: {0}")]
     QuoteGeneration(String),
-    #[cfg(not(feature = "production"))]
     #[error("Cannot encode verifying key: {0}")]
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
+    #[error("Verifying key is not 33 bytes long")]
+    BadVerifyingKeyLength,
     #[error("Data is repeated")]
     RepeatedData,
     #[error("Kv error: {0}")]
