@@ -79,17 +79,6 @@ pub struct OcwMessageProactiveRefresh {
     pub proactive_refresh_keys: Vec<Vec<u8>>,
 }
 
-/// Offchain worker message for requesting a TDX attestation
-#[cfg(not(feature = "wasm"))]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
-pub struct OcwMessageAttestationRequest {
-    /// The account ids of all TSS servers who must submit an attestation this block
-    pub tss_account_ids: Vec<[u8; 32]>,
-    /// The block height at which this attestation request was made.
-    pub block_number: BlockNumber,
-}
-
 /// 256-bit hashing algorithms for deriving the point to be signed.
 #[cfg_attr(any(feature = "wasm", feature = "std"), derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "std", derive(EnumIter))]

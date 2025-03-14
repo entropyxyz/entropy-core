@@ -29,12 +29,8 @@ pub enum AttestationErr {
     UserErr(#[from] crate::user::UserErr),
     #[error("Input must be 32 bytes: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
-    #[error("Could not get block number")]
-    BlockNumber,
     #[error("Substrate: {0}")]
     SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
-    #[error("Got an attestation request but there is no pending attestation request on chain")]
-    Unexpected,
     #[error("Could not decode message: {0}")]
     Codec(#[from] parity_scale_codec::Error),
     #[cfg(feature = "production")]
@@ -44,12 +40,8 @@ pub enum AttestationErr {
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
     #[error("Verifying key is not 33 bytes long")]
     BadVerifyingKeyLength,
-    #[error("Data is repeated")]
-    RepeatedData,
     #[error("Kv error: {0}")]
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
-    #[error("Data is stale")]
-    StaleData,
     #[error("Attestation request: {0}")]
     AttestationRequest(#[from] entropy_client::errors::AttestationRequestError),
     #[error("Invalid or unknown context value given in query string")]

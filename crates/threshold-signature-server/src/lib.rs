@@ -173,7 +173,7 @@ pub mod validator;
 
 pub use crate::helpers::{app_state::AppState, launch, validator::get_signer_and_x25519_secret};
 use crate::{
-    attestation::api::{attest, get_attest},
+    attestation::api::get_attest,
     backup_provider::api::{backup_encryption_key, quote_nonce, recover_encryption_key},
     chain_api::EntropyConfig,
     health::api::healthz,
@@ -206,7 +206,6 @@ pub fn app(app_state: AppState) -> Router {
         .route("/signer/proactive_refresh", post(proactive_refresh))
         .route("/validator/reshare", post(new_reshare))
         .route("/rotate_network_key", post(rotate_network_key))
-        .route("/attest", post(attest))
         .route("/attest", get(get_attest))
         .route("/backup_encryption_key", post(backup_encryption_key))
         .route("/recover_encryption_key", post(recover_encryption_key))
