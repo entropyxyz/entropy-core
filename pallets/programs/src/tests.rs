@@ -13,25 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::{mock::*, Error, ProgramInfo, Programs};
+use entropy_shared::{DEVICE_KEY_PROXY, TEST_PROGRAM_WASM_BYTECODE};
 use frame_support::{assert_noop, assert_ok, traits::Currency, BoundedVec};
 use pallet_balances::Error as BalancesError;
 use sp_runtime::traits::Hash;
 
-use crate::{mock::*, Error, ProgramInfo, Programs};
-
 /// consts used for testing
 const PROGRAM_MODIFICATION_ACCOUNT: u64 = 1u64;
+/// Any valid program
+const PROGRAM: &[u8] = TEST_PROGRAM_WASM_BYTECODE;
+/// Any valid program, use device key proxy because already in shared file
+const PROGRAM_2: &[u8] = DEVICE_KEY_PROXY;
 
 #[test]
 fn set_program() {
     new_test_ext().execute_with(|| {
-        let program = vec![10u8, 11u8];
-        let program_2 = vec![12u8, 13u8];
+        let init_balance = 10000000;
+        let program = PROGRAM.to_vec();
+        let program_2 = PROGRAM_2.to_vec();
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
         let oracle_data_pointers = BoundedVec::try_from([vec![16u8]].to_vec()).unwrap();
         let version_number = 0u8;
-        let too_long = vec![1u8, 2u8, 3u8, 4u8, 5u8];
+        let too_long = vec![1u8; 1000001];
         let mut hash_input: Vec<u8> = vec![];
         hash_input.extend(&program);
         hash_input.extend(&configuration_schema);
@@ -68,7 +73,7 @@ fn set_program() {
             BalancesError::<Test>::InsufficientBalance
         );
 
-        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, 100);
+        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, init_balance);
 
         let (_oracle_length, hash_input_with_oracle) =
             ProgramsPallet::get_length_and_hash_of_oracle(&oracle_data_pointers, hash_input)
@@ -104,7 +109,11 @@ fn set_program() {
             "Program gets set to owner"
         );
         // deposit taken
-        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 75, "Deposit charged");
+        more_asserts::assert_lt!(
+            Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT),
+            init_balance,
+            "Deposit charged"
+        );
 
         // program is already set
         assert_noop!(
@@ -149,7 +158,8 @@ fn set_program() {
 #[test]
 fn remove_program() {
     new_test_ext().execute_with(|| {
-        let program = vec![10u8, 11u8];
+        let init_balance = 10000000;
+        let program = PROGRAM.to_vec();
         let configuration_schema = vec![14u8];
         let auxiliary_data_schema = vec![15u8];
         let oracle_data_pointers = BoundedVec::try_from([vec![16u8]].to_vec()).unwrap();
@@ -180,7 +190,7 @@ fn remove_program() {
         );
 
         // set a program
-        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, 100);
+        Balances::make_free_balance_be(&PROGRAM_MODIFICATION_ACCOUNT, init_balance);
         assert_ok!(ProgramsPallet::set_program(
             RuntimeOrigin::signed(PROGRAM_MODIFICATION_ACCOUNT),
             program.clone(),
@@ -205,7 +215,12 @@ fn remove_program() {
             PROGRAM_MODIFICATION_ACCOUNT,
             "Program modification account gets set"
         );
-        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 75, "Deposit charged");
+        // deposit taken
+        more_asserts::assert_lt!(
+            Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT),
+            init_balance,
+            "Deposit charged"
+        );
 
         // not authorized
         assert_noop!(
@@ -224,7 +239,11 @@ fn remove_program() {
             "Program removed from owner"
         );
         // refunded
-        assert_eq!(Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT), 100, "User gets refunded");
+        assert_eq!(
+            Balances::free_balance(PROGRAM_MODIFICATION_ACCOUNT),
+            init_balance,
+            "User gets refunded"
+        );
     });
 }
 

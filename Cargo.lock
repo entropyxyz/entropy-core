@@ -2620,12 +2620,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "entropy-programs-core"
+version = "0.11.0"
+source = "git+https://github.com/entropyxyz/programs.git?branch=Add-validate-program-function#1adbc3414c5d8bb4b9c39a7036009ab48c0e904a"
+dependencies = [
+ "getrandom 0.2.15",
+ "serde",
+ "wit-bindgen",
+ "witgen",
+]
+
+[[package]]
 name = "entropy-programs-runtime"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1d5617ea52abc9c4eed998053a2dcf163f926224a1302fb75d4cc31ae99e700"
 dependencies = [
- "entropy-programs-core",
+ "entropy-programs-core 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror 1.0.68",
+ "wasmtime 12.0.2",
+]
+
+[[package]]
+name = "entropy-programs-runtime"
+version = "0.11.0"
+source = "git+https://github.com/entropyxyz/programs.git?branch=Add-validate-program-function#1adbc3414c5d8bb4b9c39a7036009ab48c0e904a"
+dependencies = [
+ "entropy-programs-core 0.11.0 (git+https://github.com/entropyxyz/programs.git?branch=Add-validate-program-function)",
  "thiserror 1.0.68",
  "wasmtime 12.0.2",
 ]
@@ -2843,7 +2864,7 @@ dependencies = [
  "configfs-tsm",
  "entropy-client",
  "entropy-kvdb",
- "entropy-programs-runtime",
+ "entropy-programs-runtime 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "entropy-protocol",
  "entropy-shared",
  "entropy-testing-utils",
@@ -7291,10 +7312,13 @@ dependencies = [
 name = "pallet-programs"
 version = "0.3.0"
 dependencies = [
+ "entropy-programs-runtime 0.11.0 (git+https://github.com/entropyxyz/programs.git?branch=Add-validate-program-function)",
+ "entropy-shared",
  "frame-benchmarking",
  "frame-support 29.0.2",
  "frame-system",
  "log",
+ "more-asserts",
  "pallet-balances",
  "pallet-oracle",
  "parity-scale-codec",

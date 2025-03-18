@@ -30,7 +30,7 @@ use entropy_protocol::{
 };
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED,
-    DEVICE_KEY_HASH, NETWORK_PARENT_KEY,
+    DEVICE_KEY_HASH, NETWORK_PARENT_KEY, TEST_PROGRAM_WASM_BYTECODE,
 };
 use entropy_testing_utils::{
     chain_api::{
@@ -40,8 +40,8 @@ use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, BOB_STASH_ADDRESS, CHARLIE_STASH_ADDRESS, FAUCET_PROGRAM,
         FERDIE_X25519_SECRET_KEY, PREIMAGE_SHOULD_SUCCEED, TEST_BASIC_TRANSACTION,
-        TEST_INFINITE_LOOP_BYTECODE, TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH,
-        TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS,
+        TEST_INFINITE_LOOP_BYTECODE, TEST_ORACLE_BYTECODE, TEST_PROGRAM_CUSTOM_HASH, TSS_ACCOUNTS,
+        X25519_PUBLIC_KEYS,
     },
     helpers::spawn_tss_nodes_and_start_chain,
     substrate_context::{test_context_stationary, testing_context},

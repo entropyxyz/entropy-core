@@ -279,7 +279,7 @@ pub async fn store_program_and_register(
         self as test_client,
         chain_api::entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     };
-    use entropy_testing_utils::constants::TEST_PROGRAM_WASM_BYTECODE;
+    use entropy_shared::TEST_PROGRAM_WASM_BYTECODE;
     use sp_core::Pair;
 
     let program_hash = test_client::store_program(

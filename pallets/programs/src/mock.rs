@@ -69,7 +69,7 @@ impl system::Config for Test {
 }
 
 parameter_types! {
-  pub const MaxBytecodeLength: u32 = 5;
+  pub const MaxBytecodeLength: u32 = 1000000;
   pub const ProgramDepositPerByte: u32 = 5;
   pub const MaxOwnedPrograms: u32 = 1;
   pub const MaxOracleLookups: u32 = 2;

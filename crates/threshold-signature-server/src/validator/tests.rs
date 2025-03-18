@@ -41,11 +41,12 @@ use entropy_client::{
     Hasher,
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::{OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY};
+use entropy_shared::{
+    OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY, TEST_PROGRAM_WASM_BYTECODE,
+};
 use entropy_testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, RANDOM_ACCOUNT,
-        TEST_PROGRAM_WASM_BYTECODE,
     },
     substrate_context::{test_node_process_testing_state, testing_context},
     test_context_stationary, ChainSpecType,

@@ -22,9 +22,9 @@ use entropy_client::{
 };
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{decode_verifying_key, RecoverableSignature};
+use entropy_shared::TEST_PROGRAM_WASM_BYTECODE;
 use entropy_testing_utils::{
-    constants::{AUXILARY_DATA_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE},
-    helpers::spawn_tss_nodes_and_start_chain,
+    constants::AUXILARY_DATA_SHOULD_SUCCEED, helpers::spawn_tss_nodes_and_start_chain,
     ChainSpecType,
 };
 use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};

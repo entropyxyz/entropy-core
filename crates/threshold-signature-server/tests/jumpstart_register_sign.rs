@@ -21,10 +21,9 @@ use entropy_client::{
     client as test_client, Hasher,
 };
 use entropy_kvdb::clean_tests;
+use entropy_shared::TEST_PROGRAM_WASM_BYTECODE;
 use entropy_testing_utils::{
-    constants::{
-        AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
-    },
+    constants::{AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED},
     helpers::spawn_tss_nodes_and_start_chain,
     ChainSpecType,
 };

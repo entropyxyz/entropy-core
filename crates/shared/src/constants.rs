@@ -60,6 +60,11 @@ pub const MORTALITY_BLOCKS: u64 = 32;
 /// Size of the verification key
 pub const VERIFICATION_KEY_LENGTH: u32 = 33;
 
+/// The following constants are values used for integration testing specific to the
+/// `example_barebones_with_auxilary.wasm` from the `programs` repo.
+pub const TEST_PROGRAM_WASM_BYTECODE: &[u8] =
+    include_bytes!("../example_barebones_with_auxilary.wasm");
+
 /// `device_key_proxy.wasm` from the `programs` repo.
 pub const DEVICE_KEY_PROXY: &[u8] = include_bytes!("../device_key_proxy.wasm");
 

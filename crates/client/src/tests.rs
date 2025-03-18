@@ -19,9 +19,12 @@ use crate::{
     update_programs,
 };
 
-use entropy_shared::attestation::{QuoteContext, QuoteInputData};
+use entropy_shared::{
+    attestation::{QuoteContext, QuoteInputData},
+    TEST_PROGRAM_WASM_BYTECODE,
+};
 use entropy_testing_utils::{
-    constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
+    constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
     test_node_process_testing_state, ChainSpecType,

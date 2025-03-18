@@ -52,6 +52,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 
+    use entropy_programs_runtime::{Config as ProgramConfig, Runtime};
     use frame_support::{
         pallet_prelude::*,
         traits::{Currency, ReservableCurrency},
@@ -227,6 +228,8 @@ pub mod pallet {
         CannotFindOracleData,
         /// The oracle data length is too long.
         OracleDataLengthExceeded,
+        /// Program is unable to be validate as program.
+        BadProgram,
     }
 
     #[pallet::call]
@@ -245,6 +248,7 @@ pub mod pallet {
             version_number: u8,
         ) -> DispatchResultWithPostInfo {
             let deployer = ensure_signed(origin)?;
+
             let mut hash_input = vec![];
             hash_input.extend(&new_program);
             hash_input.extend(&configuration_schema);
@@ -268,6 +272,9 @@ pub mod pallet {
                 Error::<T>::ProgramLengthExceeded
             );
             ensure!(!Programs::<T>::contains_key(program_hash), Error::<T>::ProgramAlreadySet);
+
+            let mut runtime = Runtime::new(ProgramConfig { fuel: 0u64 });
+            runtime.validate_program(&new_program).map_err(|_| Error::<T>::BadProgram)?;
 
             Self::reserve_program_deposit(&deployer, new_program_length)?;
 
