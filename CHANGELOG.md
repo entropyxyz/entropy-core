@@ -44,6 +44,8 @@ runtime
 - In [#1349](https://github.com/entropyxyz/entropy-core/pull/1349) the release pipeline was changed
   to make mock TDX quotes opt-in. That is, if you want the released build to work on non-TDX
   hardware for testing, you must specify `non-TDX` in the release tag.
+- In [#1357](https://github.com/entropyxyz/entropy-core/pull/1357) the output of the entropy-tss
+  `/info` HTTP route was changed to include the provisioning certification key.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -73,6 +75,7 @@ runtime
 - Allow different versions for programs ([#1250](https://github.com/entropyxyz/entropy-core/pull/1250))
 - Attestation quote verification should check both run-time and build-time measurement values ([#1303](https://github.com/entropyxyz/entropy-core/pull/1303))
 - `/version` HTTP route gives measurement value on production builds ([#1305](https://github.com/entropyxyz/entropy-core/pull/1305))
+- Include Provisioning Certification Key (PCK) in the entropy-tss `/info` HTTP route output ([#1357](https://github.com/entropyxyz/entropy-core/pull/1357))
 
 ### Fixed
 
