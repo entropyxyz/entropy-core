@@ -23,6 +23,8 @@ use thiserror::Error;
 pub enum GetInfoError {
     #[error("Could not get public keys: {0}")]
     User(#[from] crate::user::errors::UserErr),
+    #[error("Could not get Provisioning Certification Key: {0}")]
+    Attestation(#[from] crate::attestation::errors::AttestationErr),
 }
 
 impl IntoResponse for GetInfoError {

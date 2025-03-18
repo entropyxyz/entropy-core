@@ -24,8 +24,9 @@ use axum::{
     http::StatusCode,
 };
 use entropy_client::user::request_attestation;
-use entropy_shared::attestation::{
-    compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError,
+use entropy_shared::{
+    attestation::{compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError},
+    BoundedVecEncodedVerifyingKey,
 };
 use serde::Deserialize;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
@@ -110,6 +111,44 @@ pub fn get_measurement_value() -> Result<[u8; 32], AttestationErr> {
         .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?;
     let quote = Quote::from_bytes(&quote_raw)?;
     Ok(compute_quote_measurement(&quote))
+}
+
+/// Get our Provisioning Certification Key (PCK)
+/// This generates a quote and gets the public key from it
+#[cfg(feature = "production")]
+pub fn get_pck(
+    _tss_account: SubxtAccountId32,
+) -> Result<BoundedVecEncodedVerifyingKey, AttestationErr> {
+    let quote_raw = configfs_tsm::create_quote([0; 64])
+        .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?;
+    let quote = Quote::from_bytes(&quote_raw)?;
+    let pck = quote.verify().map_err(|e| {
+        AttestationErr::QuoteGeneration(format!("Could not get PCK from quote {:?}", e))
+    })?;
+
+    let pck =
+        BoundedVecEncodedVerifyingKey::try_from(tdx_quote::encode_verifying_key(&pck)?.to_vec())
+            .map_err(|_| AttestationErr::BadVerifyingKeyLength)?;
+    Ok(pck)
+}
+
+/// Get our Provisioning Certification Key (PCK)
+/// In mock mode, this is derived from the TSS account ID
+#[cfg(not(feature = "production"))]
+pub fn get_pck(
+    tss_account: SubxtAccountId32,
+) -> Result<BoundedVecEncodedVerifyingKey, AttestationErr> {
+    use rand::{rngs::StdRng, SeedableRng};
+
+    // This is generated deterministically from TSS account id
+    let mut pck_seeder = StdRng::from_seed(tss_account.0);
+    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+
+    let pck = BoundedVecEncodedVerifyingKey::try_from(
+        tdx_quote::encode_verifying_key(pck.verifying_key())?.to_vec(),
+    )
+    .map_err(|_| AttestationErr::BadVerifyingKeyLength)?;
+    Ok(pck)
 }
 
 /// Querystring for the GET `/attest` endpoint
