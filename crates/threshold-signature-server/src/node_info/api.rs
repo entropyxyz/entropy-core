@@ -95,6 +95,6 @@ pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKey
         ready: app_state.cache.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
         tss_account: app_state.subxt_account_id(),
-        provisioning_certification_key: get_pck(app_state.subxt_account_id()).unwrap(),
+        provisioning_certification_key: get_pck(app_state.subxt_account_id())?,
     }))
 }

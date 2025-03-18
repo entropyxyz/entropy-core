@@ -121,7 +121,7 @@ pub fn get_pck(
 ) -> Result<BoundedVecEncodedVerifyingKey, AttestationErr> {
     let quote_raw = configfs_tsm::create_quote([0; 64])
         .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?;
-    let quote = Quote::from_bytes(&quote_raw).unwrap();
+    let quote = Quote::from_bytes(&quote_raw)?;
     let pck = quote.verify().map_err(|e| {
         AttestationErr::QuoteGeneration(format!("Could not get PCK from quote {:?}", e))
     })?;
