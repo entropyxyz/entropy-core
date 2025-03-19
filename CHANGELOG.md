@@ -76,6 +76,7 @@ runtime
 - Attestation quote verification should check both run-time and build-time measurement values ([#1303](https://github.com/entropyxyz/entropy-core/pull/1303))
 - `/version` HTTP route gives measurement value on production builds ([#1305](https://github.com/entropyxyz/entropy-core/pull/1305))
 - Include Provisioning Certification Key (PCK) in the entropy-tss `/info` HTTP route output ([#1357](https://github.com/entropyxyz/entropy-core/pull/1357))
+- Change entropy-tss storage location for TDX production builds ([#1361](https://github.com/entropyxyz/entropy-core/pull/1361))
 
 ### Fixed
 
