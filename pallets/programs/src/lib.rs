@@ -230,6 +230,8 @@ pub mod pallet {
         OracleDataLengthExceeded,
         /// Program is unable to be validate as program.
         BadProgram,
+        /// Program version not applicable
+        ProgramVersion,
     }
 
     #[pallet::call]
@@ -273,9 +275,7 @@ pub mod pallet {
             );
             ensure!(!Programs::<T>::contains_key(program_hash), Error::<T>::ProgramAlreadySet);
 
-            let mut runtime = Runtime::new(ProgramConfig { fuel: 0u64 });
-            runtime.validate_program(&new_program).map_err(|_| Error::<T>::BadProgram)?;
-
+            Self::evaluate_validate_program(new_program.clone(), version_number)?;
             Self::reserve_program_deposit(&deployer, new_program_length)?;
 
             Programs::<T>::insert(
@@ -424,6 +424,17 @@ pub mod pallet {
                     length.checked_add(oracle_data.len()).ok_or(Error::<T>::ArithmeticError)?;
             }
             Ok((length, hash_input))
+        }
+
+        pub fn evaluate_validate_program(program: Vec<u8>, version_number: u8) -> DispatchResult {
+            match version_number {
+                0 => {
+                    let mut runtime = Runtime::new(ProgramConfig { fuel: 0u64 });
+                    runtime.validate_program(&program).map_err(|_| Error::<T>::BadProgram)?;
+                },
+                _ => Err(Error::<T>::ProgramVersion)?,
+            }
+            Ok(())
         }
     }
 }
