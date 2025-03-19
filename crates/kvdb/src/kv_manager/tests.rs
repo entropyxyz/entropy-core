@@ -31,11 +31,11 @@ use super::{
 use crate::{
     clean_tests,
     encrypted_sled::{Db, Result},
-    get_db_path,
+    get_db_path, BuildType,
 };
 
 pub fn open_with_test_key() -> Result<Db> {
-    Db::open(get_db_path(true), [1; 32])
+    Db::open(get_db_path(BuildType::Test), [1; 32])
 }
 
 #[test]
