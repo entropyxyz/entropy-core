@@ -18,13 +18,18 @@ pub mod encrypted_sled;
 pub mod kv_manager;
 use std::{fs, path::PathBuf};
 
+/// The intended environment entropy-tss is build for
 #[derive(PartialEq)]
 pub enum BuildType {
+    /// Automated tests
     Test,
+    /// A production-like test deployment without TDX
     ProductionNoTdx,
+    /// A production deployment with TDX
     ProductionTdx,
 }
 
+/// Build the path used to store the key-value database
 pub fn get_db_path(build_type: BuildType) -> String {
     let mut root: PathBuf = if build_type == BuildType::ProductionTdx {
         "/persist".into()
