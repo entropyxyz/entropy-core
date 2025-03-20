@@ -60,13 +60,36 @@ tagged as the final release.
     - Make sure nothing has gone into `master` in the meantime or you may have you repeat the
       previous steps!
 
+## Build CVM image for `entropy-tss`
+
+If this is a release intended for running a test network on TDX using Google Cloud Platform, do the
+following:
+
+- Make a PR to [`meta-entropy-tss`](https://github.com/entropyxyz/meta-entropy-tss) updating the
+  revision of entropy-tss to the release branch: [here](https://github.com/entropyxyz/meta-entropy-tss/blob/b621096b36ab13703f72954dab37fd47c2f642e9/recipes-core/entropy-tss/entropy-tss.bb#L42-L43).
+- Merge that PR.
+- Make a release in the [`yocto-build`](https://github.com/entropyxyz/yocto-build) repo, by cloning
+  the repo and doing `git tag -s release/vX.Y.Z-rc.1 && git push origin release/vX.Y.Z-rc.1`
+- The CVM image will be built in CI.
+- Deploy the TSS nodes and get their details. There will soon be an automated way to do this but for
+  now we just have [this script](https://github.com/entropyxyz/yocto-build/blob/main/gcp-deploy) to
+  deploy a single node which you can use like this:
+   - Download the CVM image from the release artifacts of the build you just created
+   - Run the script with the name of the release tag and the path to the image: `./gcp-deploy release/vX.Y.Z.rc1 core-image-minimal-tdx-gcp.rootfs.wic.tar.gz`
+   - Get the IPs of the TSS nodes (listed under `EXTERNAL_IP` in the output of the deploy script)
+   - On one of them, get the TDX measurement value of this build from the output of `curl <ip address>:3001/version`
+   - For each of them, get the TSS public keys from the output of `curl <ip address>:3001/info`
+- Make a commit to the release branch putting the measurement value and TSS public keys in the TDX
+  testnet chainspec [here](https://github.com/entropyxyz/entropy-core/blob/c62f94aa9cf781d6fa5e25a1b981bab70e3bc721/node/cli/src/chain_spec/tdx_testnet.rs#L25) and [here](https://github.com/entropyxyz/entropy-core/blob/c62f94aa9cf781d6fa5e25a1b981bab70e3bc721/node/cli/src/chain_spec/tdx_testnet.rs#L35-L66)
+
 ## Publish Artifacts
 - [ ] Ensure **all** CI checks on `master` pass
 - [ ] Create a Git tag From the squashed release PR commit on `master`
     - Make sure to follow [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
     - If this release is intended to be used in test network which does not involve TDX hardware,
-      the release tag must specify `non-TDX`, eg 'test/release/vX.Y.Z-rc.1+non-TDX'. This will
-      ensure that the TSS node generates mock TDX quotes and the chain node will consider them valid.
+      and you skipped the section above, the release tag must specify `non-TDX`, eg 'test/release/vX.Y.Z-rc.1+non-TDX'.
+      This will ensure that the TSS node generates mock TDX quotes and the chain node will consider
+      them valid.
     - `git tag release/vX.Y.Z-rc.1` - meaning release candidate number 1. If all goes well this can
       later by tagged as `release/vX.Y.Z`
     - Nice to have: sign the tag with an offline GPG key (`git tag -s ...`)
@@ -89,6 +112,7 @@ tagged as the final release.
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
+    - If you made a TDX CVM image release, copy a link to into into the release notes
 - [ ] Inform relevant parties (e.g, by posting on Discord)
 
 ## Promote Release Candidate
