@@ -18,7 +18,7 @@ pub mod encrypted_sled;
 pub mod kv_manager;
 use std::{fs, path::PathBuf};
 
-/// The intended environment entropy-tss is build for
+/// The intended environment entropy-tss is built for
 #[derive(PartialEq)]
 pub enum BuildType {
     /// Automated tests
