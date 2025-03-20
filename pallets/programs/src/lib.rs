@@ -426,6 +426,7 @@ pub mod pallet {
             Ok((length, hash_input))
         }
 
+        /// Evaluate if a program is valid
         pub fn evaluate_validate_program(program: Vec<u8>, version_number: u8) -> DispatchResult {
             match version_number {
                 0 => {
