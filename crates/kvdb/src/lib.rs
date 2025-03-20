@@ -18,10 +18,26 @@ pub mod encrypted_sled;
 pub mod kv_manager;
 use std::{fs, path::PathBuf};
 
-pub fn get_db_path(testing: bool) -> String {
-    let mut root: PathBuf = std::env::current_dir().expect("could not get home directory");
+/// The intended environment entropy-tss is built for
+#[derive(PartialEq)]
+pub enum BuildType {
+    /// Automated tests
+    Test,
+    /// A production-like test deployment without TDX
+    ProductionNoTdx,
+    /// A production deployment with TDX
+    ProductionTdx,
+}
+
+/// Build the path used to store the key-value database
+pub fn get_db_path(build_type: BuildType) -> String {
+    let mut root: PathBuf = if build_type == BuildType::ProductionTdx {
+        "/persist".into()
+    } else {
+        std::env::current_dir().expect("could not get home directory")
+    };
     root.push(".entropy");
-    if testing {
+    if build_type == BuildType::Test {
         root.push("testing");
     } else {
         root.push("production");
@@ -34,7 +50,7 @@ pub fn get_db_path(testing: bool) -> String {
 }
 
 pub fn clean_tests() {
-    let db_path = get_db_path(true);
+    let db_path = get_db_path(BuildType::Test);
     if fs::metadata(db_path.clone()).is_ok() {
         let _result = std::fs::remove_dir_all(db_path);
     }

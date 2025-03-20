@@ -30,7 +30,7 @@ use crate::{
 };
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
-use entropy_kvdb::kv_manager::KvManager;
+use entropy_kvdb::{get_db_path, kv_manager::KvManager, BuildType};
 use rand::RngCore;
 use rand_core::OsRng;
 use serde::Deserialize;
@@ -161,10 +161,16 @@ pub async fn setup_kv_store(
 /// different test accounts when testing
 pub fn build_db_path(validator_name: &Option<ValidatorName>) -> PathBuf {
     if cfg!(test) {
-        return PathBuf::from(entropy_kvdb::get_db_path(true));
+        return PathBuf::from(get_db_path(BuildType::Test));
     }
 
-    let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
+    let build_type = if cfg!(feature = "production") {
+        BuildType::ProductionTdx
+    } else {
+        BuildType::ProductionNoTdx
+    };
+
+    let mut root: PathBuf = PathBuf::from(get_db_path(build_type));
     // Alice has no extra subdirectory
     if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
