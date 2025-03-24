@@ -24,11 +24,17 @@ use rand::{rngs::StdRng, SeedableRng};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 pub use tdx_quote::encode_verifying_key;
 
+/// A return type for spawning a tss node and entropy blockchain
 pub struct TssTestingResult {
+    /// Context for the running substrate nodes
     pub substrate_context: Vec<TestNodeProcess<EntropyConfig>>,
+    /// Api connection to substrate blockchain
     pub api: OnlineClient<EntropyConfig>,
+    /// Rpc connection to substrate blockchain
     pub rpc: LegacyRpcMethods<EntropyConfig>,
+    /// TSS validator ip addresses
     pub validator_ips: Vec<String>,
+    /// TSS validator account ids
     pub validator_ids: Vec<PartyId>,
 }
 
