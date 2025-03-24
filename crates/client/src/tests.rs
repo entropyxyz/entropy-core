@@ -215,7 +215,7 @@ async fn test_store_and_remove_program() {
 async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+    let { _ctx, api, rpc, _validator_ips, _validator_ids } =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Store a program

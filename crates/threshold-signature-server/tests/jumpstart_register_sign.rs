@@ -25,7 +25,7 @@ use entropy_testing_utils::{
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, TEST_PROGRAM_WASM_BYTECODE,
     },
-    helpers::spawn_tss_nodes_and_start_chain,
+    helpers::{spawn_tss_nodes_and_start_chain, TssTestingResult},
     ChainSpecType,
 };
 use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
@@ -44,8 +44,13 @@ async fn integration_test_register_sign() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
+    let TssTestingResult {
+        substrate_context: _ctx,
+        api,
+        rpc,
+        validator_ips: _validator_ips,
+        validator_ids: _validator_ids,
+    } = spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // First jumpstart the network
     do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
