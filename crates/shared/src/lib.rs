@@ -22,7 +22,6 @@ pub use constants::*;
 pub use types::*;
 pub mod attestation;
 pub mod constants;
-#[cfg(feature = "production")]
 pub mod tss_node_info;
 pub mod types;
 

@@ -15,7 +15,7 @@
 //! Output types used by the TSS `/info` and `/version` routes
 
 use crate::{BoundedVecEncodedVerifyingKey, X25519PublicKey};
-use subxt::utils::AccountId32;
+use sp_runtime::AccountId32;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
