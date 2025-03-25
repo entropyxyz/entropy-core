@@ -29,7 +29,7 @@ use entropy_kvdb::clean_tests;
 use entropy_shared::user::ValidatorInfo;
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    helpers::{spawn_tss_nodes_and_start_chain, TssTestingResult},
+    helpers::spawn_tss_nodes_and_start_chain,
     ChainSpecType,
 };
 use serial_test::serial;
@@ -41,13 +41,8 @@ async fn backup_provider_test() {
     clean_tests();
     initialize_test_logger().await;
 
-    let TssTestingResult {
-        substrate_context: _ctx,
-        api,
-        rpc,
-        validator_ips: _validator_ips,
-        validator_ids: _validator_ids,
-    } = spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+    let spawn_results =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let storage_path: PathBuf = ".entropy/testing/test_db_validator1".into();
     // For testing we use TSS account ID as the db encryption key
@@ -57,7 +52,15 @@ async fn backup_provider_test() {
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path.clone()).await.unwrap();
+    make_key_backup(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        key,
+        tss_signer.signer(),
+        storage_path.clone(),
+    )
+    .await
+    .unwrap();
 
     let key_provider_details = get_key_provider_details(storage_path).unwrap();
     let recovered_key = request_recover_encryption_key(key_provider_details).await.unwrap();

@@ -24,14 +24,20 @@ use rand::{rngs::StdRng, SeedableRng};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 pub use tdx_quote::encode_verifying_key;
 
-/// A type used to encapsulate the TSS and Substrate connections required during testing.
-pub struct TssTestingResult {
-    /// Context for the running substrate nodes
-    pub substrate_context: Vec<TestNodeProcess<EntropyConfig>>,
+/// A type used to encapsulate Substrate chain connections
+pub struct ChainConnection {
     /// API connection to Substrate blockchain
     pub api: OnlineClient<EntropyConfig>,
     /// RPC connection to Substrate blockchain
     pub rpc: LegacyRpcMethods<EntropyConfig>,
+}
+
+/// A type used to encapsulate the TSS and Substrate connections required during testing.
+pub struct TssTestingResult {
+    /// Context for the running substrate nodes
+    pub substrate_context: Vec<TestNodeProcess<EntropyConfig>>,
+    /// An api and rpc connection to the chain
+    pub chain_connection: ChainConnection,
     /// TSS validator IP addresses
     pub validator_ips: Vec<String>,
     /// TSS validator account IDs
@@ -53,7 +59,12 @@ pub async fn spawn_tss_nodes_and_start_chain(chain_spec_type: ChainSpecType) -> 
     let api = get_api(&substrate_context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();
 
-    TssTestingResult { substrate_context, api, rpc, validator_ips, validator_ids }
+    TssTestingResult {
+        substrate_context,
+        chain_connection: ChainConnection { api, rpc },
+        validator_ips,
+        validator_ids,
+    }
 }
 
 /// Get the mock PCK that will be used for a given TSS account ID
