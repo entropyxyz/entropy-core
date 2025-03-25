@@ -33,4 +33,4 @@ wasm-no-std=["sp-runtime"]
 user-native=["dep:subxt", "subxt/native"]
 user-wasm  =["dep:subxt", "subxt/web"]
 # Enables non-mock TDX quote verification
-production=[]
+production=["dep:subxt", "subxt/native"]

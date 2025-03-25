@@ -19,30 +19,12 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use subxt::utils::AccountId32;
 
-/// Version information - the output of the `/version` HTTP endpoint
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct VersionDetails {
-    pub cargo_package_version: String,
-    pub git_tag_commit: String,
-    pub build: BuildDetails,
-}
-
-impl VersionDetails {
-    fn new() -> Self {
-        Self {
-            cargo_package_version: env!("CARGO_PKG_VERSION").to_string(),
-            git_tag_commit: env!("VERGEN_GIT_DESCRIBE").to_string(),
-            build: BuildDetails::new(),
-        }
+fn new_version_details() -> VersionDetails {
+    VersionDetails {
+        cargo_package_version: env!("CARGO_PKG_VERSION").to_string(),
+        git_tag_commit: env!("VERGEN_GIT_DESCRIBE").to_string(),
+        build: BuildDetails::new(),
     }
-}
-
-/// This lets us know this is a production build and gives us the measurement value of the release
-/// image
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub enum BuildDetails {
-    ProductionWithMeasurementValue(String),
-    NonProduction,
 }
 
 impl BuildDetails {
@@ -73,19 +55,6 @@ pub async fn version() -> Json<VersionDetails> {
 pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
     let hashing_algos = HashingAlgorithm::iter().collect::<Vec<_>>();
     Json(hashing_algos)
-}
-
-/// Public signing and encryption keys associated with a TS server
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
-pub struct TssPublicKeys {
-    /// Indicates that all prerequisite checks have passed
-    pub ready: bool,
-    /// The TSS account ID
-    pub tss_account: AccountId32,
-    /// The public encryption key
-    pub x25519_public_key: X25519PublicKey,
-    /// The Provisioning Certification Key used in TDX quotes
-    pub provisioning_certification_key: BoundedVecEncodedVerifyingKey,
 }
 
 /// Returns the TS server's public keys and HTTP endpoint
