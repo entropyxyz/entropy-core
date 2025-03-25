@@ -71,13 +71,7 @@ async fn backup_provider_unit_test() {
     clean_tests();
     initialize_test_logger().await;
 
-    let TssTestingResult {
-        substrate_context: _ctx,
-        api: _api,
-        rpc: _rpc,
-        validator_ips: _validator_ips,
-        validator_ids: _validator_ids,
-    } = spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+let _spawn_result = spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let key_provider_details = BackupProviderDetails {
         provider: ValidatorInfo {
