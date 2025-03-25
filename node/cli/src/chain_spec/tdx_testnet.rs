@@ -47,7 +47,7 @@ fn tdx_devnet_four_node_initial_tss_servers(
                 client.get(format!("{tss_endpoint}/info")).send().unwrap().json().unwrap();
 
             (
-                sp_runtime::AccountId32::new(details.tss_account.0),
+                details.tss_account,
                 details.x25519_public_key,
                 tss_endpoint.clone(),
                 details.provisioning_certification_key,
