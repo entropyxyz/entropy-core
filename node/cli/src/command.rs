@@ -76,6 +76,16 @@ impl SubstrateCli for Cli {
     // | testnet           | Four nodes, Two threshold servers, Own Seed, Testnet Configuration |
     // | tdx-testnet       | Four nodes, Four threshold servers, Alice Bob Chalie and Dave, Development Configuration adapted for TDX testnet |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
+        #[cfg(feature = "production")]
+        if id == "tdx-testnet" {
+            return Ok(Box::new(chain_spec::tdx_testnet::tdx_testnet_config([
+                "127.0.0.1:3001".to_string(),
+                "127.0.0.1:3001".to_string(),
+                "127.0.0.1:3001".to_string(),
+                "127.0.0.1:3001".to_string(),
+            ])));
+        }
+
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
             "devnet-local" => Box::new(chain_spec::dev::devnet_local_four_node_config()),
@@ -89,7 +99,6 @@ impl SubstrateCli for Cli {
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
             "testnet" => Box::new(chain_spec::testnet::testnet_config()),
-            "tdx-testnet" => Box::new(chain_spec::tdx_testnet::tdx_testnet_config()),
             path => {
                 Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)
             },

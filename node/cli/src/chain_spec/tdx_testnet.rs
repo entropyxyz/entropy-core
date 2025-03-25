@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::{dev::development_genesis_config, get_account_id_from_seed, ChainSpec};
+use crate::chain_spec::{
+    dev::development_genesis_config, get_account_id_from_seed, ChainSpec, MeasurementValues,
+};
 
 use entropy_runtime::wasm_binary_unwrap;
-use entropy_shared::{BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey};
+use entropy_shared::{
+    tss_node_info::{BuildDetails, TssPublicKeys, VersionDetails},
+    BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey,
+};
 use sc_service::ChainType;
 use sp_core::sr25519;
 use sp_runtime::BoundedVec;
-
-/// The build time measurement value from the current entropy-tss VM images
-const ACCEPTED_MEASUREMENT: [u8; 32] = [0; 32];
 
 lazy_static::lazy_static! {
     /// This is the PCK from the certificates of the current TDX machine we are using for testing
@@ -33,46 +35,34 @@ lazy_static::lazy_static! {
 }
 
 fn tdx_devnet_four_node_initial_tss_servers(
+    tss_endpoints: [String; 4],
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, BoundedVecEncodedVerifyingKey)> {
-    let tss_ip = std::env::var("ENTROPY_TESTNET_TSS_IP")
-        .expect("ENTROPY_TESTNET_TSS_IP environment variable to be set");
+    let client = reqwest::blocking::Client::new();
 
-    let alice = (
-        crate::chain_spec::tss_account_id::ALICE.clone(),
-        crate::chain_spec::tss_x25519_public_key::ALICE,
-        format!("{tss_ip}:3001"),
-        PCK.clone(),
-    );
+    tss_endpoints
+        .iter()
+        .map(|tss_endpoint| {
+            // Get the public keys of the 4 TSS nodes running at genesis
+            let details: TssPublicKeys =
+                client.get(format!("{tss_endpoint}/info")).send().unwrap().json().unwrap();
 
-    let bob = (
-        crate::chain_spec::tss_account_id::BOB.clone(),
-        crate::chain_spec::tss_x25519_public_key::BOB,
-        format!("{tss_ip}:3002"),
-        PCK.clone(),
-    );
-
-    let charlie = (
-        crate::chain_spec::tss_account_id::CHARLIE.clone(),
-        crate::chain_spec::tss_x25519_public_key::CHARLIE,
-        format!("{tss_ip}:3003"),
-        PCK.clone(),
-    );
-
-    let dave = (
-        crate::chain_spec::tss_account_id::DAVE.clone(),
-        crate::chain_spec::tss_x25519_public_key::DAVE,
-        format!("{tss_ip}:3004"),
-        PCK.clone(),
-    );
-
-    vec![alice, bob, charlie, dave]
+            (
+                sp_runtime::AccountId32::new(details.tss_account.0),
+                details.x25519_public_key,
+                tss_endpoint.clone(),
+                details.provisioning_certification_key,
+            )
+        })
+        .collect()
 }
 
 /// The configuration used for the TDX testnet.
 ///
 /// Since Entropy requires at two-of-three threshold setup, and requires an additional relayer node,
 /// we spin up four validators: Alice, Bob, Charlie and Dave.
-pub fn tdx_testnet_config() -> ChainSpec {
+pub fn tdx_testnet_config(tss_endpoints: [String; 4]) -> ChainSpec {
+    let measurement_values = get_measurement_values(&tss_endpoints);
+
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("TDX-testnet")
         .with_id("tdx")
@@ -87,8 +77,19 @@ pub fn tdx_testnet_config() -> ChainSpec {
             ],
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
-            tdx_devnet_four_node_initial_tss_servers(),
-            Some(vec![BoundedVec::try_from(ACCEPTED_MEASUREMENT.to_vec()).unwrap()]),
+            tdx_devnet_four_node_initial_tss_servers(tss_endpoints),
+            Some(measurement_values),
         ))
         .build()
+}
+
+/// Get the measurement value for the currently deployed TSS nodes
+fn get_measurement_values(tss_endpoints: &[String; 4]) -> MeasurementValues {
+    let client = reqwest::blocking::Client::new();
+    let version_details: VersionDetails =
+        client.get(format!("{}/version", tss_endpoints[0])).send().unwrap().json().unwrap();
+    if let BuildDetails::ProductionWithMeasurementValue(measurement_value) = version_details.build {
+        return vec![BoundedVec::try_from(hex::decode(measurement_value).unwrap()).unwrap()];
+    }
+    panic!("Not a production entropy-tss build");
 }
