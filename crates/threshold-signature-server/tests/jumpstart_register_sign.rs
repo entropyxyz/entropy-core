@@ -44,11 +44,15 @@ async fn integration_test_register_sign() {
     initialize_test_logger().await;
     clean_tests();
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
-        spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
+    let spawn_results = spawn_tss_nodes_and_start_chain(ChainSpecType::Integration).await;
 
     // First jumpstart the network
-    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+    do_jump_start(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        AccountKeyring::Alice.pair(),
+    )
+    .await;
 
     // Now register an account
     let account_owner = AccountKeyring::Ferdie.pair();
@@ -56,8 +60,8 @@ async fn integration_test_register_sign() {
 
     // Store a program
     let program_pointer = test_client::store_program(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &account_owner,
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -70,8 +74,8 @@ async fn integration_test_register_sign() {
 
     // Register, using that program
     let (verifying_key, _registered_info) = test_client::register(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         account_owner.clone(),
         AccountId32(account_owner.public().0),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
@@ -81,8 +85,8 @@ async fn integration_test_register_sign() {
 
     // Sign a message
     let recoverable_signature = test_client::sign(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         signature_request_author.pair(),
         verifying_key,
         PREIMAGE_SHOULD_SUCCEED.to_vec(),

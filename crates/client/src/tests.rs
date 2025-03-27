@@ -215,13 +215,12 @@ async fn test_store_and_remove_program() {
 async fn test_remove_program_reference_counter() {
     let program_owner = AccountKeyring::Ferdie.pair();
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
-
     // Store a program
     let program_pointer = store_program(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &program_owner,
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -234,8 +233,8 @@ async fn test_remove_program_reference_counter() {
 
     // Register, using that program
     let (verifying_key, _registered_info) = register(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         program_owner.clone(),
         AccountId32(program_owner.public().0),
         BoundedVec(vec![ProgramInstance { program_pointer, program_config: vec![] }]),
@@ -244,12 +243,19 @@ async fn test_remove_program_reference_counter() {
     .unwrap();
 
     // Removing program fails because program is being used
-    assert!(remove_program(&api, &rpc, &program_owner, program_pointer).await.is_err());
+    assert!(remove_program(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &program_owner,
+        program_pointer
+    )
+    .await
+    .is_err());
 
     // Now stop using the program
     update_programs(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         verifying_key,
         &program_owner,
         BoundedVec(vec![ProgramInstance {
@@ -261,7 +267,14 @@ async fn test_remove_program_reference_counter() {
     .unwrap();
 
     // We can now remove the program because no-one is using it
-    remove_program(&api, &rpc, &program_owner, program_pointer).await.unwrap();
+    remove_program(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &program_owner,
+        program_pointer,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
