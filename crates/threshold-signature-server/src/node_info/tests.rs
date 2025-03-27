@@ -80,7 +80,7 @@ async fn info_test() {
     assert_eq!(
         public_keys,
         TssPublicKeys {
-            tss_account: TSS_ACCOUNTS[0].clone(),
+            tss_account: TSS_ACCOUNTS[0].0.into(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             ready: true,
             provisioning_certification_key: get_pck(TSS_ACCOUNTS[0].clone()).unwrap(),

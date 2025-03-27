@@ -33,6 +33,7 @@
 
 pub mod dev;
 pub mod integration_tests;
+#[cfg(feature = "production")]
 pub mod tdx_testnet;
 pub mod testnet;
 

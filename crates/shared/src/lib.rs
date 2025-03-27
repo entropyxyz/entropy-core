@@ -22,6 +22,7 @@ pub use constants::*;
 pub use types::*;
 pub mod attestation;
 pub mod constants;
+pub mod tss_node_info;
 pub mod types;
 
 #[cfg(any(feature = "user-native", feature = "user-wasm"))]

@@ -14,58 +14,33 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use crate::{attestation::api::get_pck, node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
-use entropy_shared::{types::HashingAlgorithm, BoundedVecEncodedVerifyingKey, X25519PublicKey};
-use serde::{Deserialize, Serialize};
+pub use entropy_shared::tss_node_info::{BuildDetails, TssPublicKeys, VersionDetails};
+use entropy_shared::types::HashingAlgorithm;
 use strum::IntoEnumIterator;
-use subxt::utils::AccountId32;
 
-/// Version information - the output of the `/version` HTTP endpoint
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct VersionDetails {
-    pub cargo_package_version: String,
-    pub git_tag_commit: String,
-    pub build: BuildDetails,
+#[cfg(not(feature = "production"))]
+fn get_build_details() -> BuildDetails {
+    BuildDetails::NonProduction
 }
 
-impl VersionDetails {
-    fn new() -> Self {
-        Self {
-            cargo_package_version: env!("CARGO_PKG_VERSION").to_string(),
-            git_tag_commit: env!("VERGEN_GIT_DESCRIBE").to_string(),
-            build: BuildDetails::new(),
-        }
-    }
-}
-
-/// This lets us know this is a production build and gives us the measurement value of the release
-/// image
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub enum BuildDetails {
-    ProductionWithMeasurementValue(String),
-    NonProduction,
-}
-
-impl BuildDetails {
-    #[cfg(not(feature = "production"))]
-    fn new() -> Self {
-        BuildDetails::NonProduction
-    }
-
-    #[cfg(feature = "production")]
-    fn new() -> Self {
-        BuildDetails::ProductionWithMeasurementValue(
-            match crate::attestation::api::get_measurement_value() {
-                Ok(value) => hex::encode(value),
-                Err(error) => format!("Failed to get measurement value {:?}", error),
-            },
-        )
-    }
+#[cfg(feature = "production")]
+fn get_build_details() -> BuildDetails {
+    BuildDetails::ProductionWithMeasurementValue(
+        match crate::attestation::api::get_measurement_value() {
+            Ok(value) => hex::encode(value),
+            Err(error) => format!("Failed to get measurement value {:?}", error),
+        },
+    )
 }
 
 /// Returns the version, commit data and build details
 #[tracing::instrument]
 pub async fn version() -> Json<VersionDetails> {
-    Json(VersionDetails::new())
+    Json(VersionDetails {
+        cargo_package_version: env!("CARGO_PKG_VERSION").to_string(),
+        git_tag_commit: env!("VERGEN_GIT_DESCRIBE").to_string(),
+        build: get_build_details(),
+    })
 }
 
 /// Lists the supported hashing algorithms
@@ -75,26 +50,13 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
     Json(hashing_algos)
 }
 
-/// Public signing and encryption keys associated with a TS server
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
-pub struct TssPublicKeys {
-    /// Indicates that all prerequisite checks have passed
-    pub ready: bool,
-    /// The TSS account ID
-    pub tss_account: AccountId32,
-    /// The public encryption key
-    pub x25519_public_key: X25519PublicKey,
-    /// The Provisioning Certification Key used in TDX quotes
-    pub provisioning_certification_key: BoundedVecEncodedVerifyingKey,
-}
-
 /// Returns the TS server's public keys and HTTP endpoint
 #[tracing::instrument(skip_all)]
 pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
     Ok(Json(TssPublicKeys {
         ready: app_state.cache.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
-        tss_account: app_state.subxt_account_id(),
+        tss_account: app_state.subxt_account_id().0.into(),
         provisioning_certification_key: get_pck(app_state.subxt_account_id())?,
     }))
 }
