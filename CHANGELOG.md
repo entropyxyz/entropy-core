@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...master)
+
+## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 
 ### Breaking Changes
 - In [#1104](https://github.com/entropyxyz/entropy-core/pull/1104) the `/validator/rotate_network_key` endpoint was renamed to `rotate_network_key`
