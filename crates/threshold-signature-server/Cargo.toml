@@ -32,7 +32,7 @@ tokio  ={ version="1.44", features=["macros", "fs", "rt-multi-thread", "io-util"
 
 # HTTP
 reqwest={ version="0.12.12", features=["json", "stream"] }
-axum   ={ version="0.8.2", features=["ws"] }
+axum   ={ version="0.8.3", features=["ws"] }
 
 # Substrate
 subxt             ="0.35.3"

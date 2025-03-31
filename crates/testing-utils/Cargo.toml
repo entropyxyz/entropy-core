@@ -17,7 +17,7 @@ parity-scale-codec="3.7.2"
 lazy_static       ="1.5.0"
 hex-literal       ="1.0.0"
 tokio             ={ version="1.44", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
-axum              ={ version="0.8.2" }
+axum              ={ version="0.8.3" }
 entropy-shared    ={ version="0.3.0", path="../shared" }
 entropy-kvdb      ={ version="0.3.0", path="../kvdb", default-features=false }
 entropy-tss       ={ version="0.3.0", path="../threshold-signature-server", features=["test_helpers"] }
