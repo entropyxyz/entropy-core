@@ -57,7 +57,7 @@ pub async fn request_backup_encryption_key(
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "http://{}/backup_encryption_key",
+            "http://{}/v1/backup_encryption_key",
             backup_provider_details.provider.ip_address
         ))
         .header("Content-Type", "application/json")
@@ -101,7 +101,7 @@ pub async fn request_recover_encryption_key(
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "http://{}/recover_encryption_key",
+            "http://{}/v1/recover_encryption_key",
             backup_provider_details.provider.ip_address
         ))
         .header("Content-Type", "application/json")
@@ -353,7 +353,7 @@ async fn request_quote_nonce(
     let client = reqwest::Client::new();
     let response = client
         .post(format!(
-            "http://{}/backup_provider_quote_nonce",
+            "http://{}/v1/backup_provider_quote_nonce",
             backup_provider_details.provider.ip_address
         ))
         .header("Content-Type", "application/json")

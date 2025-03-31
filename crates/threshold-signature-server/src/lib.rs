@@ -210,7 +210,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/v1/backup_encryption_key", post(backup_encryption_key))
         .route("/v1/recover_encryption_key", post(recover_encryption_key))
         .route("/v1/backup_provider_quote_nonce", post(quote_nonce))
-        .route("/v1/healthz", get(healthz))
+        .route("/healthz", get(healthz))
         .route("/v1/version", get(get_version))
         .route("/v1/hashes", get(hashes))
         .route("/v1/info", get(info))

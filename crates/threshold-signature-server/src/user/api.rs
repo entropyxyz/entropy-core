@@ -154,7 +154,8 @@ pub async fn relay_tx(
                             &[],
                         )?;
 
-                        let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
+                        let url =
+                            format!("http://{}/v1/user/sign_tx", signer_info.ip_address.clone());
 
                         let response = client
                             .post(url)
