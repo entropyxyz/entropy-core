@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-programs'
-version   ='0.3.0'
+version   ='0.4.0'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -23,7 +23,7 @@ sp-io             ={ version="31.0.0", default-features=false }
 sp-runtime        ={ version="32.0.0", default-features=false }
 sp-staking        ={ version="27.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
-pallet-oracle     ={ version='0.3.0', path='../oracle', default-features=false }
+pallet-oracle     ={ version='0.4.0', path='../oracle', default-features=false }
 
 [dev-dependencies]
 pallet-balances={ version="29.0.0" }
