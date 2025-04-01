@@ -35,7 +35,7 @@ sp-inherents          ={ version="27.0.0", default-features=false }
 sp-io                 ={ version="31.0.0", default-features=false }
 sp-npos-elections     ={ version="27.0.0", default-features=false }
 sp-offchain           ={ version="27.0.0", default-features=false }
-sp-runtime            ={ version="32.0.0", default-features=false }
+sp-runtime            ={ version="40.1.0", default-features=false }
 sp-session            ={ version="28.0.0", default-features=false }
 sp-staking            ={ version="27.0.0", default-features=false }
 sp-std                ={ version="14.0.0", default-features=false }
@@ -45,14 +45,14 @@ sp-version            ={ version="30.0.0", default-features=false }
 sp-genesis-builder    ={ version="0.8.0", default-features=false }
 
 # FRAME Dependencies
-frame-benchmarking             ={ version="29.0.0", default-features=false, optional=true }
+frame-benchmarking             ={ version="39.0.0", default-features=false, optional=true }
 frame-election-provider-support={ version="29.0.0", default-features=false }
 frame-executive                ={ version="29.0.0", default-features=false }
-frame-support                  ={ version="29.0.0", default-features=false }
-frame-system                   ={ version="29.0.0", default-features=false }
-frame-system-benchmarking      ={ version="29.0.0", default-features=false, optional=true }
-frame-system-rpc-runtime-api   ={ version="27.0.0", default-features=false }
-frame-try-runtime              ={ version="0.35.0", default-features=false, optional=true }
+frame-support                  ={ version="39.1.0", default-features=false }
+frame-system                   ={ version="39.1.0", default-features=false }
+frame-system-benchmarking      ={ version="39.0.0", default-features=false, optional=true }
+frame-system-rpc-runtime-api   ={ version="35.0.0", default-features=false }
+frame-try-runtime              ={ version="0.45.0", default-features=false, optional=true }
 
 # Substrate Pallets
 pallet-authority-discovery                   ={ version="29.0.0", default-features=false }
