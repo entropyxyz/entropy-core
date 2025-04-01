@@ -313,9 +313,8 @@ async fn select_backup_provider(
     })
 }
 
-/// `/backup_provider_quote_nonce`
-/// HTTP POST route which provides a quote nonce to be used in the quote when requesting to recover
-/// an encryption key.
+/// HTTP POST route `/backup_provider_quote_nonce` which provides a quote nonce to be used in the
+/// quote when requesting to recover an encryption key.
 /// The nonce is returned encrypted with the given ephemeral public key. This key is also used as a
 /// lookup key for the nonce.
 pub async fn quote_nonce(
@@ -350,6 +349,7 @@ async fn request_quote_nonce(
     backup_provider_details: &BackupProviderDetails,
 ) -> Result<[u8; 32], BackupProviderError> {
     let response_key = PublicKey::from(response_secret_key).to_bytes();
+    let response_key = serde_json::to_string(&response_key)?;
 
     let get_quote_nonce = || async {
         let client = reqwest::Client::new();
@@ -359,18 +359,24 @@ async fn request_quote_nonce(
                 backup_provider_details.provider.ip_address
             ))
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&response_key).unwrap())
+            .body(response_key.clone())
             .send()
             .await
             .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
 
         let status = response.status();
         if status != reqwest::StatusCode::OK {
-            let text = response.text().await.unwrap();
+            let text = response.text().await.map_err(|err| backoff::Error::Transient {
+                err: err.to_string(),
+                retry_after: None,
+            })?;
             return Err(backoff::Error::Transient { err: text, retry_after: None });
         }
 
-        let response_bytes = response.bytes().await.unwrap();
+        let response_bytes = response
+            .bytes()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
         Ok(response_bytes.to_vec())
     };
 
