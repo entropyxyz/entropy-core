@@ -105,7 +105,9 @@ pub async fn setup_kv_store(
     // Check for existing database with backup details
     if let Ok(key_provider_details) = get_key_provider_details(storage_path.clone()) {
         // Retrieve encryption key from another TSS node
+        tracing::info!("Existing database found - recovering encryption key...");
         let key = request_recover_encryption_key(key_provider_details).await?;
+        tracing::info!("Key recovered successfully");
 
         // Open existing db with recovered key
         let kv_manager = KvManager::new(storage_path, key)?;
@@ -126,6 +128,7 @@ pub async fn setup_kv_store(
         let pair = sr25519::Pair::from_seed(&sr25519_seed);
         Ok((kv_manager, pair, x25519_secret.into(), None))
     } else {
+        tracing::info!("No existing database found - generating fresh keys...");
         // Generate TSS account (or use ValidatorName to get a test account)
         let (pair, seed, x25519_secret, encryption_key) = if cfg!(test) || validator_name.is_some()
         {

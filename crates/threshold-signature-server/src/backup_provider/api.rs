@@ -82,6 +82,7 @@ pub async fn request_recover_encryption_key(
     let response_key = PublicKey::from(&response_secret_key).to_bytes();
 
     let quote_nonce = request_quote_nonce(&response_secret_key, &backup_provider_details).await?;
+    tracing::info!("Successfully retrieved quote nonce from backup provider");
 
     // Quote input contains: key_provider_details.tss_account, and response_key
     let quote = create_quote(
@@ -321,7 +322,9 @@ pub async fn quote_nonce(
     State(app_state): State<AppState>,
     Json(response_key): Json<X25519PublicKey>,
 ) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
+    tracing::info!("Got request for quote nonce");
     if !app_state.cache.is_ready() {
+        tracing::info!("Cannot provide quote nonce as not yet ready");
         return Err(BackupProviderError::NotReady);
     }
 
@@ -352,6 +355,7 @@ async fn request_quote_nonce(
     let response_key = serde_json::to_string(&response_key)?;
 
     let get_quote_nonce = || async {
+        tracing::info!("Requesting quote nonce");
         let client = reqwest::Client::new();
         let response = client
             .post(format!(
