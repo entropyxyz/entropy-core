@@ -313,6 +313,7 @@ async fn select_backup_provider(
     })
 }
 
+/// `/backup_provider_quote_nonce`
 /// HTTP POST route which provides a quote nonce to be used in the quote when requesting to recover
 /// an encryption key.
 /// The nonce is returned encrypted with the given ephemeral public key. This key is also used as a
@@ -350,24 +351,35 @@ async fn request_quote_nonce(
 ) -> Result<[u8; 32], BackupProviderError> {
     let response_key = PublicKey::from(response_secret_key).to_bytes();
 
-    let client = reqwest::Client::new();
-    let response = client
-        .post(format!(
-            "http://{}/backup_provider_quote_nonce",
-            backup_provider_details.provider.ip_address
-        ))
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&response_key)?)
-        .send()
-        .await?;
+    let get_quote_nonce = || async {
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!(
+                "http://{}/backup_provider_quote_nonce",
+                backup_provider_details.provider.ip_address
+            ))
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&response_key).unwrap())
+            .send()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
 
-    let status = response.status();
-    if status != reqwest::StatusCode::OK {
-        let text = response.text().await?;
-        return Err(BackupProviderError::BadProviderResponse(status, text));
-    }
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let text = response.text().await.unwrap();
+            return Err(backoff::Error::Transient { err: text, retry_after: None });
+        }
 
-    let response_bytes = response.bytes().await?;
+        let response_bytes = response.bytes().await.unwrap();
+        Ok(response_bytes.to_vec())
+    };
+
+    // Use the default maximum elapsed time of 15 minutes.
+    let backoff = backoff::ExponentialBackoff::default();
+
+    let response_bytes: Vec<u8> = backoff::future::retry(backoff.clone(), get_quote_nonce)
+        .await
+        .map_err(BackupProviderError::FailedToRetrieveNonce)?;
 
     let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
     let signed_message = encrypted_response.decrypt(response_secret_key, &[])?;
