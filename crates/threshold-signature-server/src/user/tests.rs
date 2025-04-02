@@ -1444,7 +1444,7 @@ pub async fn verify_signature(
             let sig_recovery = <sr25519::Pair as Pair>::verify(
                 &signing_result.clone().unwrap().1,
                 BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
-                &sr25519::Public(validator_info.tss_account.0),
+                &sr25519::Public::from(validator_info.tss_account.0),
             );
             sig_recovery_results.push(sig_recovery)
         }

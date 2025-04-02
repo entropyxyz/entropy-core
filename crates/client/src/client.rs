@@ -187,7 +187,7 @@ pub async fn sign(
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signature_of_signature,
             decoded_sig.clone(),
-            &sr25519::Public(signer_info.tss_account.0),
+            &sr25519::Public::from(signer_info.tss_account.0),
         );
         sig_recovery_results.push(sig_recovery)
     }
@@ -647,7 +647,7 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
     Ok(SessionKeys {
         babe: sp_consensus_babe::app::Public(SRPublic(babe)),
         grandpa: sp_consensus_grandpa::app::Public(EDPublic(grandpa)),
-        im_online: pallet_im_online::sr25519::app_sr25519::Public(SRPublic(im_online)),
+        im_online: pallet_im_online::sr25519::app_sr25519::Public::from(SRPublic(im_online)),
         authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
     })
 }

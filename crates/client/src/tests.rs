@@ -54,7 +54,7 @@ async fn test_change_endpoint() {
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        let public_key = sr25519::Public(tss_account_id.0);
+        let public_key = sr25519::Public::from(tss_account_id.0);
 
         let input_data =
             QuoteInputData::new(public_key, x25519_public_key, nonce, QuoteContext::ChangeEndpoint);
