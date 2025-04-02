@@ -47,7 +47,7 @@ runtime
 - In [#1357](https://github.com/entropyxyz/entropy-core/pull/1357) the output of the entropy-tss
   `/info` HTTP route was changed to include the provisioning certification key.
 - In [#1377](https://github.com/entropyxyz/entropy-core/pull/1377) all endpoints except for the 
-  healhz in the TSS had a /v1 added to them.
+  healthz in the TSS had a /v1 added to them.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
