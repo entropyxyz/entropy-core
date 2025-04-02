@@ -82,6 +82,7 @@ pub async fn request_recover_encryption_key(
     let response_key = PublicKey::from(&response_secret_key).to_bytes();
 
     let quote_nonce = request_quote_nonce(&response_secret_key, &backup_provider_details).await?;
+    tracing::info!("Successfully retrieved quote nonce from backup provider");
 
     // Quote input contains: key_provider_details.tss_account, and response_key
     let quote = create_quote(
@@ -98,24 +99,44 @@ pub async fn request_recover_encryption_key(
         quote,
     };
 
-    let client = reqwest::Client::new();
-    let response = client
-        .post(format!(
-            "http://{}/v1/recover_encryption_key",
-            backup_provider_details.provider.ip_address
-        ))
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&key_request)?)
-        .send()
-        .await?;
+    let key_request = serde_json::to_string(&key_request)?;
 
-    let status = response.status();
-    if status != reqwest::StatusCode::OK {
-        let text = response.text().await?;
-        return Err(BackupProviderError::BadProviderResponse(status, text));
-    }
+    let get_encryption_key = || async {
+        tracing::info!("Requesting encryption key from backup provider");
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!(
+                "http://{}/v1/recover_encryption_key",
+                backup_provider_details.provider.ip_address
+            ))
+            .header("Content-Type", "application/json")
+            .body(key_request.clone())
+            .send()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
 
-    let response_bytes = response.bytes().await?;
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let text = response.text().await.map_err(|err| backoff::Error::Transient {
+                err: err.to_string(),
+                retry_after: None,
+            })?;
+            return Err(backoff::Error::Transient { err: text, retry_after: None });
+        }
+
+        let response_bytes = response
+            .bytes()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
+        Ok(response_bytes.to_vec())
+    };
+
+    // Use the default maximum elapsed time of 15 minutes.
+    let backoff = backoff::ExponentialBackoff::default();
+
+    let response_bytes: Vec<u8> = backoff::future::retry(backoff.clone(), get_encryption_key)
+        .await
+        .map_err(BackupProviderError::FailedToRetrieveKey)?;
 
     // Decrypt the response
     let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
@@ -313,15 +334,17 @@ async fn select_backup_provider(
     })
 }
 
-/// HTTP POST route which provides a quote nonce to be used in the quote when requesting to recover
-/// an encryption key.
+/// HTTP POST route `/backup_provider_quote_nonce` which provides a quote nonce to be used in the
+/// quote when requesting to recover an encryption key.
 /// The nonce is returned encrypted with the given ephemeral public key. This key is also used as a
 /// lookup key for the nonce.
 pub async fn quote_nonce(
     State(app_state): State<AppState>,
     Json(response_key): Json<X25519PublicKey>,
 ) -> Result<Json<EncryptedSignedMessage>, BackupProviderError> {
+    tracing::info!("Got request for quote nonce");
     if !app_state.cache.is_ready() {
+        tracing::info!("Cannot provide quote nonce as not yet ready");
         return Err(BackupProviderError::NotReady);
     }
 
@@ -349,25 +372,44 @@ async fn request_quote_nonce(
     backup_provider_details: &BackupProviderDetails,
 ) -> Result<[u8; 32], BackupProviderError> {
     let response_key = PublicKey::from(response_secret_key).to_bytes();
+    let response_key = serde_json::to_string(&response_key)?;
 
-    let client = reqwest::Client::new();
-    let response = client
-        .post(format!(
-            "http://{}/v1/backup_provider_quote_nonce",
-            backup_provider_details.provider.ip_address
-        ))
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&response_key)?)
-        .send()
-        .await?;
+    let get_quote_nonce = || async {
+        tracing::info!("Requesting quote nonce");
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!(
+                "http://{}/v1/backup_provider_quote_nonce",
+                backup_provider_details.provider.ip_address
+            ))
+            .header("Content-Type", "application/json")
+            .body(response_key.clone())
+            .send()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
 
-    let status = response.status();
-    if status != reqwest::StatusCode::OK {
-        let text = response.text().await?;
-        return Err(BackupProviderError::BadProviderResponse(status, text));
-    }
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let text = response.text().await.map_err(|err| backoff::Error::Transient {
+                err: err.to_string(),
+                retry_after: None,
+            })?;
+            return Err(backoff::Error::Transient { err: text, retry_after: None });
+        }
 
-    let response_bytes = response.bytes().await?;
+        let response_bytes = response
+            .bytes()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
+        Ok(response_bytes.to_vec())
+    };
+
+    // Use the default maximum elapsed time of 15 minutes.
+    let backoff = backoff::ExponentialBackoff::default();
+
+    let response_bytes: Vec<u8> = backoff::future::retry(backoff.clone(), get_quote_nonce)
+        .await
+        .map_err(BackupProviderError::FailedToRetrieveNonce)?;
 
     let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
     let signed_message = encrypted_response.decrypt(response_secret_key, &[])?;
