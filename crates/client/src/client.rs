@@ -23,6 +23,7 @@ use crate::{
                 bounded_collections::bounded_vec::BoundedVec,
                 entropy_runtime::SessionKeys,
                 pallet_im_online,
+                pallet_im_online::sr25519::app_sr25519::Public as IMONPublic,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
@@ -647,7 +648,9 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
     Ok(SessionKeys {
         babe: sp_consensus_babe::app::Public(SRPublic(babe)),
         grandpa: sp_consensus_grandpa::app::Public(EDPublic(grandpa)),
-        im_online: pallet_im_online::sr25519::app_sr25519::Public::from(SRPublic(im_online)),
+        im_online: pallet_im_online::sr25519::app_sr25519::Public::from(IMONPublic(SRPublic(
+            im_online,
+        ))),
         authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
     })
 }
