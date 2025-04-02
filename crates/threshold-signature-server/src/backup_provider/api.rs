@@ -99,24 +99,44 @@ pub async fn request_recover_encryption_key(
         quote,
     };
 
-    let client = reqwest::Client::new();
-    let response = client
-        .post(format!(
-            "http://{}/recover_encryption_key",
-            backup_provider_details.provider.ip_address
-        ))
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&key_request)?)
-        .send()
-        .await?;
+    let key_request = serde_json::to_string(&key_request)?;
 
-    let status = response.status();
-    if status != reqwest::StatusCode::OK {
-        let text = response.text().await?;
-        return Err(BackupProviderError::BadProviderResponse(status, text));
-    }
+    let get_encryption_key = || async {
+        tracing::info!("Requesting encryption key from backup provider");
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!(
+                "http://{}/recover_encryption_key",
+                backup_provider_details.provider.ip_address
+            ))
+            .header("Content-Type", "application/json")
+            .body(key_request.clone())
+            .send()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
 
-    let response_bytes = response.bytes().await?;
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let text = response.text().await.map_err(|err| backoff::Error::Transient {
+                err: err.to_string(),
+                retry_after: None,
+            })?;
+            return Err(backoff::Error::Transient { err: text, retry_after: None });
+        }
+
+        let response_bytes = response
+            .bytes()
+            .await
+            .map_err(|err| backoff::Error::Transient { err: err.to_string(), retry_after: None })?;
+        Ok(response_bytes.to_vec())
+    };
+
+    // Use the default maximum elapsed time of 15 minutes.
+    let backoff = backoff::ExponentialBackoff::default();
+
+    let response_bytes: Vec<u8> = backoff::future::retry(backoff.clone(), get_encryption_key)
+        .await
+        .map_err(BackupProviderError::FailedToRetrieveKey)?;
 
     // Decrypt the response
     let encrypted_response: EncryptedSignedMessage = serde_json::from_slice(&response_bytes)?;
