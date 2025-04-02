@@ -70,6 +70,10 @@ pub enum BackupProviderError {
     NotConnectedToChain,
     #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
+    #[error("Failed to retrieve nonce from backup provider during recovery: {0}")]
+    FailedToRetrieveNonce(String),
+    #[error("Failed to retrieve encryption key from backup provider during recovery: {0}")]
+    FailedToRetrieveKey(String),
 }
 
 impl IntoResponse for BackupProviderError {
