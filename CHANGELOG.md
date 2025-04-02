@@ -36,7 +36,7 @@ runtime
   for testing. If this is not desired it should be set to `None`.
 - In [#1216](https://github.com/entropyxyz/entropy-core/pull/1216) the `--setup-only` option for `entropy-tss`
   was removed. `entropy-tss` should be started only once, and the public keys retrieved using the `/info`
-  http route.
+  http route. When `entropy`
 - In [#1209](https://github.com/entropyxyz/entropy-core/pull/1209) the `validate` and `change_threshold_accounts`
   extrinsics no longer take a PCK certificate chain. Rather, the certificate chain is extracted from the
   provided quote. The test CLI `change-threshold-accounts` command also no longer takes a PCK
@@ -48,6 +48,11 @@ runtime
   hardware for testing, you must specify `non-TDX` in the release tag.
 - In [#1357](https://github.com/entropyxyz/entropy-core/pull/1357) the output of the entropy-tss
   `/info` HTTP route was changed to include the provisioning certification key.
+- [#1249](https://github.com/entropyxyz/entropy-core/pull/1249) together with [#1216](https://github.com/entropyxyz/entropy-core/pull/1216)
+  means that `entropy-tss` no longer has persistent storage of the key used to encrypt its data. If
+  the process is restarted, it will attempt to retrieve a backup of this encryption key from another
+  running TSS node. If all TSS nodes are simultaneously stopped, it will be impossible to recover
+  and the network key will be lost.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
