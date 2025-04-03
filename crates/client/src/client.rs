@@ -160,7 +160,7 @@ pub async fn sign(
     )?;
     let message_json = serde_json::to_string(&encrypted_message)?;
 
-    let url = format!("http://{}/user/relay_tx", validator_info.ip_address);
+    let url = format!("http://{}/v1/user/relay_tx", validator_info.ip_address);
 
     let result = client
         .post(url)
@@ -530,7 +530,8 @@ pub async fn get_tdx_quote(
     quote_context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
     let response =
-        reqwest::get(format!("http://{}/attest?context={}", tss_endpoint, quote_context)).await?;
+        reqwest::get(format!("http://{}/v1/attest?context={}", tss_endpoint, quote_context))
+            .await?;
     if response.status() != reqwest::StatusCode::OK {
         return Err(ClientError::QuoteGet(response.text().await?));
     }

@@ -129,7 +129,7 @@ pub async fn submit_transaction_requests(
         validator_urls
             .iter()
             .map(|ip| async {
-                let url = format!("http://{}/signer/proactive_refresh", ip.clone());
+                let url = format!("http://{}/v1/signer/proactive_refresh", ip.clone());
                 mock_client
                     .post(url)
                     .header("Content-Type", "application/json")

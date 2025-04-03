@@ -171,7 +171,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         &[],
     )
     .unwrap();
-    let url = format!("http://{}/user/sign_tx", spawn_results.validator_ips[0]);
+    let url = format!("http://{}/v1/user/sign_tx", spawn_results.validator_ips[0]);
     let signature_request_responses_fail_not_relayer = mock_client
         .post(url)
         .header("Content-Type", "application/json")
@@ -601,7 +601,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
         &spawn_results.chain_connection.rpc,
     )
     .await;
-    let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
+    let relayer_url = format!("http://{}/v1/user/relay_tx", relayer_ip_and_key.0.clone());
 
     let mock_client = reqwest::Client::new();
 
@@ -623,7 +623,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     )
     .unwrap();
     let failed_res = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
+        .post("http://127.0.0.1:3001/v1/user/sign_tx")
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&failed_signed_message).unwrap())
         .send()
@@ -659,7 +659,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     .unwrap();
 
     let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
+        .post("http://127.0.0.1:3001/v1/user/sign_tx")
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&user_input_bad).unwrap())
         .send()
@@ -864,7 +864,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", &validator_ip_and_key.0.clone());
+        let ws_endpoint = format!("ws://{}/v1/ws", &validator_ip_and_key.0.clone());
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
@@ -2228,7 +2228,7 @@ pub async fn submit_transaction_request(
     )
     .unwrap();
 
-    let url = format!("http://{}/user/relay_tx", validator_urls_and_keys.0.clone());
+    let url = format!("http://{}/v1/user/relay_tx", validator_urls_and_keys.0.clone());
     mock_client
         .post(url)
         .header("Content-Type", "application/json")
@@ -2262,7 +2262,7 @@ pub async fn submit_transaction_sign_tx_requests(
     )
     .unwrap();
 
-    let url = format!("http://{}/user/sign_tx", validator_urls_and_keys.0.clone());
+    let url = format!("http://{}/v1/user/sign_tx", validator_urls_and_keys.0.clone());
     mock_client
         .post(url)
         .header("Content-Type", "application/json")

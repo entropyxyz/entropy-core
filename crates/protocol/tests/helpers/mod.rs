@@ -237,7 +237,7 @@ async fn open_protocol_connections(
         })
         .map(|validator_info| async move {
             // Open a ws connection
-            let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
+            let ws_endpoint = format!("ws://{}/v1/ws", validator_info.ip_address);
             let (ws_stream, _response) = connect_async(ws_endpoint).await?;
 
             // Send a SubscribeMessage in the payload of the final handshake message
