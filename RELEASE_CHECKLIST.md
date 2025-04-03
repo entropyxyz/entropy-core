@@ -45,7 +45,7 @@ tagged as the final release.
       `entropyxyz/entropy:local-vX.Y.Z-rc.1`
     - Build the images and spin up the network using `docker compose up`
     - Jumpstart the network using:
-        - `cargo run -p entropy-test-cli -- jumpstart-network`
+        - `cargo run -p entropy-test-cli -- jumpstart-network -m //One`
     - Register an account using:
         - `cargo run -p entropy-test-cli -- register ./crates/testing-utils/template_barebones.wasm -m //One`
     - Request a signature using:
