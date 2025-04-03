@@ -238,6 +238,7 @@ pub fn development_genesis_config(
                     )
                 })
                 .collect::<Vec<_>>(),
+                non_authority_keys: vec![],
         },
         "staking": StakingConfig {
             validator_count: initial_authorities.len() as u32,
