@@ -75,6 +75,7 @@ sp-inherents                = { version = "34.0.0" }
 sp-keyring                  = { version = "39.0.0" }
 sp-keystore                 = { version = "0.40.0" }
 sp-runtime                  = { version = "39.0.1" }
+sp-statement-store          ={ version="18.0.0" }
 sp-timestamp                = { version = "34.0.0" }
 sp-transaction-storage-proof= { version = "34.0.0" }
 substrate-frame-rpc-system  = { version = "39.0.0" }

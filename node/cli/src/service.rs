@@ -41,20 +41,40 @@ use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use futures::prelude::*;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::{self, SlotProportion};
-use sc_executor::NativeElseWasmExecutor;
-use sc_network::{event::Event, NetworkEventStream, NetworkService};
-use sc_network_sync::{strategy::warp::WarpSyncParams, SyncingService};
+use sc_network::{
+    event::Event, service::traits::NetworkService, NetworkBackend, NetworkEventStream,
+};
+use sc_network_sync::SyncingService;
 use sc_offchain::OffchainDb;
-use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
+use sc_service::{
+    config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager, WarpSyncConfig,
+};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_core::offchain::DbExternalities;
 use sp_runtime::traits::Block as BlockT;
+use std::path::Path;
 
 use crate::cli::Cli;
+
+/// Host functions required for kitchensink runtime and Substrate node.
+#[cfg(not(feature = "runtime-benchmarks"))]
+pub type HostFunctions =
+    (sp_io::SubstrateHostFunctions, sp_statement_store::runtime_api::HostFunctions);
+
+/// Host functions required for kitchensink runtime and Substrate node.
+#[cfg(feature = "runtime-benchmarks")]
+pub type HostFunctions = (
+    sp_io::SubstrateHostFunctions,
+    sp_statement_store::runtime_api::HostFunctions,
+    frame_benchmarking::benchmarking::HostFunctions,
+);
+
+/// A specialized `WasmExecutor` intended to use across substrate node. It provides all required
+/// HostFunctions.
+pub type RuntimeExecutor = sc_executor::WasmExecutor<HostFunctions>;
 /// The full client type definition.
-pub type FullClient =
-    sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
+pub type FullClient = sc_service::TFullClient<Block, RuntimeApi, RuntimeExecutor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
@@ -67,28 +87,8 @@ pub type TransactionPool = sc_transaction_pool::FullPool<Block, FullClient>;
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
-// Our native executor instance.
-pub struct ExecutorDispatch;
-
-impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
-    /// Only enable the benchmarking host functions when we actually want to benchmark.
-    #[cfg(feature = "runtime-benchmarks")]
-    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-    /// Otherwise we only use the default Substrate host functions.
-    #[cfg(not(feature = "runtime-benchmarks"))]
-    type ExtendHostFunctions = ();
-
-    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-        entropy_runtime::api::dispatch(method, data)
-    }
-
-    fn native_version() -> sc_executor::NativeVersion {
-        entropy_runtime::native_version()
-    }
-}
-
-/// Creates a new partial node.
 #[allow(clippy::type_complexity)]
+/// Creates a new partial node.
 pub fn new_partial(
     config: &Configuration,
 ) -> Result<
@@ -100,7 +100,6 @@ pub fn new_partial(
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             impl Fn(
-                sc_rpc_api::DenyUnsafe,
                 sc_rpc::SubscriptionTaskExecutor,
             ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
@@ -125,7 +124,7 @@ pub fn new_partial(
         })
         .transpose()?;
 
-    let executor = sc_service::new_native_or_wasm_executor(config);
+    let executor = sc_service::new_wasm_executor(&config.executor);
 
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, _>(
@@ -153,7 +152,6 @@ pub fn new_partial(
     let (grandpa_block_import, grandpa_link) = grandpa::block_import(
         client.clone(),
         GRANDPA_JUSTIFICATION_PERIOD,
-        #[allow(clippy::redundant_clone)]
         &(client.clone() as Arc<_>),
         select_chain.clone(),
         telemetry.as_ref().map(|x| x.handle()),
@@ -167,8 +165,8 @@ pub fn new_partial(
     )?;
 
     let slot_duration = babe_link.config().slot_duration();
-    let (import_queue, babe_worker_handle) = sc_consensus_babe::import_queue(
-        sc_consensus_babe::ImportQueueParams {
+    let (import_queue, babe_worker_handle) =
+        sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
             link: babe_link.clone(),
             block_import: block_import.clone(),
             justification_import: Some(Box::new(justification_import)),
@@ -178,10 +176,10 @@ pub fn new_partial(
                 let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                 let slot =
-                sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                    *timestamp,
-                    slot_duration,
-                );
+				sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+					*timestamp,
+					slot_duration,
+				);
 
                 Ok((slot, timestamp))
             },
@@ -189,8 +187,7 @@ pub fn new_partial(
             registry: config.prometheus_registry(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
-        },
-    )?;
+        })?;
 
     let import_setup = (block_import, grandpa_link, babe_link);
 
@@ -214,7 +211,7 @@ pub fn new_partial(
         let chain_spec = config.chain_spec.cloned_box();
         let backend = backend.clone();
 
-        let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
+        let rpc_extensions_builder = move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
@@ -261,7 +258,7 @@ pub struct NewFullBase {
     /// The client instance of the node.
     pub client: Arc<FullClient>,
     /// The networking service of the node.
-    pub network: Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+    pub network: Arc<dyn NetworkService>,
     /// The syncing service of the node.
     pub sync: Arc<SyncingService<Block>>,
     /// The transaction pool of the node.
@@ -271,7 +268,7 @@ pub struct NewFullBase {
 }
 
 /// Creates a full service from the configuration.
-pub fn new_full_base(
+pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
     config: Configuration,
     disable_hardware_benchmarks: bool,
     with_startup_data: impl FnOnce(
@@ -283,7 +280,7 @@ pub fn new_full_base(
     let hwbench = (!disable_hardware_benchmarks)
         .then_some(config.database.path().map(|database_path| {
             let _ = std::fs::create_dir_all(database_path);
-            sc_sysinfo::gather_hwbench(Some(database_path))
+            sc_sysinfo::gather_hwbench(Some(database_path), &SUBSTRATE_REFERENCE_HARDWARE)
         }))
         .flatten();
 
@@ -298,14 +295,26 @@ pub fn new_full_base(
         other: (rpc_builder, import_setup, rpc_setup, mut telemetry),
     } = new_partial(&config)?;
 
+    let metrics = N::register_notification_metrics(
+        config.prometheus_config.as_ref().map(|cfg| &cfg.registry),
+    );
     let shared_voter_state = rpc_setup;
-    let auth_disc_publish_non_global_ips = config.network.allow_non_globals_in_dht;
-    let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
+    let mut net_config = sc_network::config::FullNetworkConfiguration::<_, _, N>::new(
+        &config.network,
+        config.prometheus_config.as_ref().map(|cfg| cfg.registry.clone()),
+    );
 
+    let auth_disc_publish_non_global_ips = config.network.allow_non_globals_in_dht;
+
+    let peer_store_handle = net_config.peer_store_handle();
     let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
     let grandpa_protocol_name = grandpa::protocol_standard_name(&genesis_hash, &config.chain_spec);
     let (grandpa_protocol_config, grandpa_notification_service) =
-        grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone());
+        grandpa::grandpa_peers_set_config::<_, N>(
+            grandpa_protocol_name.clone(),
+            metrics.clone(),
+            Arc::clone(&peer_store_handle),
+        );
     net_config.add_notification_protocol(grandpa_protocol_config);
 
     let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
@@ -313,7 +322,6 @@ pub fn new_full_base(
         import_setup.1.shared_authority_set().clone(),
         Vec::default(),
     ));
-
     let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_service) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
@@ -323,8 +331,9 @@ pub fn new_full_base(
             spawn_handle: task_manager.spawn_handle(),
             import_queue,
             block_announce_validator_builder: None,
-            warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
+            warp_sync_config: Some(WarpSyncConfig::WithProvider(warp_sync)),
             block_relay: None,
+            metrics,
         })?;
 
     if config.offchain_worker.enabled {
@@ -340,7 +349,7 @@ pub fn new_full_base(
                 transaction_pool: Some(OffchainTransactionPoolFactory::new(
                     transaction_pool.clone(),
                 )),
-                network_provider: network.clone(),
+                network_provider: Arc::new(network.clone()),
                 is_validator: config.role.is_authority(),
                 enable_http_requests: true,
                 custom_extensions: move |_| vec![],
@@ -381,7 +390,7 @@ pub fn new_full_base(
         }
     }
 
-    let role = config.role.clone();
+    let role = config.role;
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks =
         Some(sc_consensus_slots::BackoffAuthoringOnFinalizedHeadLagging::default());
@@ -406,7 +415,7 @@ pub fn new_full_base(
 
     if let Some(hwbench) = hwbench {
         sc_sysinfo::print_hwbench(&hwbench);
-        match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench) {
+        match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench, role.is_authority()) {
             Err(err) if role.is_authority() => {
                 log::warn!(
 				"⚠️  The hardware does not meet the minimal requirements {} for role 'Authority' find out more at:\n\
@@ -504,7 +513,7 @@ pub fn new_full_base(
                     ..Default::default()
                 },
                 client.clone(),
-                network.clone(),
+                Arc::new(network.clone()),
                 Box::pin(dht_event_stream),
                 authority_discovery_role,
                 prometheus_registry.clone(),
@@ -575,14 +584,33 @@ pub fn new_full_base(
 
 /// Builds a new service for a full client.
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
-    let database_source = config.database.clone();
-    let task_manager =
-        new_full_base(config, cli.no_hardware_benchmarks, |_, _| (), cli.tss_server_endpoint)
-            .map(|NewFullBase { task_manager, .. }| task_manager)?;
-    if let Some(path) = database_source.path() {
+    let database_path = config.database.path().map(Path::to_path_buf);
+
+    let task_manager = match config.network.network_backend {
+        sc_network::config::NetworkBackendType::Libp2p => {
+            new_full_base::<sc_network::NetworkWorker<_, _>>(
+                config,
+                cli.no_hardware_benchmarks,
+                |_, _| (),
+                cli.tss_server_endpoint,
+            )
+            .map(|NewFullBase { task_manager, .. }| task_manager)?
+        },
+        sc_network::config::NetworkBackendType::Litep2p => {
+            new_full_base::<sc_network::Litep2pNetworkBackend>(
+                config,
+                cli.no_hardware_benchmarks,
+                |_, _| (),
+                cli.tss_server_endpoint,
+            )
+            .map(|NewFullBase { task_manager, .. }| task_manager)?
+        },
+    };
+
+    if let Some(database_path) = database_path {
         sc_storage_monitor::StorageMonitorService::try_spawn(
             cli.storage_monitor,
-            path.to_path_buf(),
+            database_path,
             &task_manager.spawn_essential_handle(),
         )
         .map_err(|e| ServiceError::Application(e.into()))?;

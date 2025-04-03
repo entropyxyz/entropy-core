@@ -2608,6 +2608,7 @@ dependencies = [
  "sp-keyring 39.0.0",
  "sp-keystore 0.40.0",
  "sp-runtime 39.0.5",
+ "sp-statement-store 18.0.0",
  "sp-timestamp 34.0.0",
  "sp-tracing 17.0.1",
  "sp-transaction-storage-proof 34.0.0",
