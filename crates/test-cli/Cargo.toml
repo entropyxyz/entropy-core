@@ -12,7 +12,7 @@ edition    ='2021'
 entropy-client    ={ version="0.3.0", path="../client" }
 clap              ={ version="4.5.35", features=["derive"] }
 colored           ="3.0.0"
-subxt             ="0.35.3"
+subxt             ="0.38.0"
 sp-core           = "34.0.0"
 anyhow            ="1.0.97"
 tokio             ={ version="1.44", features=["macros", "rt-multi-thread", "io-util", "process"] }

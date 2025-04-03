@@ -59,7 +59,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    config::PolkadotExtrinsicParamsBuilder as Params,
+    config::DefaultExtrinsicParamsBuilder as Params,
     ext::sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
