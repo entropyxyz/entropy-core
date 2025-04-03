@@ -211,13 +211,12 @@ pub fn new_partial(
         let chain_spec = config.chain_spec.cloned_box();
         let backend = backend.clone();
 
-        let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
+        let rpc_extensions_builder = move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 select_chain: select_chain.clone(),
                 chain_spec: chain_spec.cloned_box(),
-                deny_unsafe,
                 babe: crate::rpc::BabeDeps {
                     keystore: keystore.clone(),
                     babe_worker_handle: babe_worker_handle.clone(),
