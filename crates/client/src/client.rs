@@ -22,7 +22,6 @@ use crate::{
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec,
                 entropy_runtime::SessionKeys,
-                pallet_im_online,
                 pallet_im_online::sr25519::app_sr25519::Public as IMONPublic,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
@@ -59,8 +58,7 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use futures::stream::StreamExt;
 use sp_core::{
-    ed25519::Public as EDPublic,
-    sr25519::{self, Public as SRPublic, Signature},
+    sr25519::{self, Signature},
     Pair,
 };
 use subxt::{
@@ -647,7 +645,7 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
     Ok(SessionKeys {
         babe: sp_consensus_babe::app::Public(babe),
         grandpa: sp_consensus_grandpa::app::Public(grandpa),
-        im_online: pallet_im_online::sr25519::app_sr25519::Public::from(IMONPublic(im_online)),
+        im_online: IMONPublic(im_online),
         authority_discovery: sp_authority_discovery::app::Public(authority_discovery),
     })
 }
