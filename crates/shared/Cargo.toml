@@ -17,11 +17,11 @@ strum       ="0.27.1"
 strum_macros="0.27.1"
 blake2      ={ version="0.10.4", default-features=false }
 
-sp-runtime = { version = "39.0.1", default-features = false, optional = true, features = ["serde"] }
-sp-std     = { version = "14.0.0", default-features = false }
+sp-runtime ={ version="39.0.1", default-features=false, optional=true, features=["serde"] }
+sp-std     ={ version="14.0.0", default-features=false }
 lazy_static={ version="1.5.0", features=["spin_no_std"] }
 hex-literal="1.0.0"
-sp-core    = { version = "34.0.0", default-features = false }
+sp-core    ={ version="34.0.0", default-features=false }
 subxt      ={ version="0.38.0", default-features=false, optional=true }
 tdx-quote  ="0.0.3"
 

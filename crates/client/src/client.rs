@@ -59,8 +59,8 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use futures::stream::StreamExt;
 use sp_core::{
-    sr25519::{self, Signature, Public as SRPublic},
     ed25519::Public as EDPublic,
+    sr25519::{self, Public as SRPublic, Signature},
     Pair,
 };
 use subxt::{
@@ -647,9 +647,7 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
     Ok(SessionKeys {
         babe: sp_consensus_babe::app::Public(babe),
         grandpa: sp_consensus_grandpa::app::Public(grandpa),
-        im_online: pallet_im_online::sr25519::app_sr25519::Public::from(IMONPublic(
-            im_online,
-        )),
+        im_online: pallet_im_online::sr25519::app_sr25519::Public::from(IMONPublic(im_online)),
         authority_discovery: sp_authority_discovery::app::Public(authority_discovery),
     })
 }

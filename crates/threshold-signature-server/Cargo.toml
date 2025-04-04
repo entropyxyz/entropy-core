@@ -37,8 +37,8 @@ axum   ={ version="0.8.3", features=["ws"] }
 # Substrate
 subxt             ="0.38.0"
 parity-scale-codec="3.7.2"
-sp-core           = { version = "34.0.0", default-features = false }
-sp-keyring        = "39.0.0"
+sp-core           ={ version="34.0.0", default-features=false }
+sp-keyring        ="39.0.0"
 
 # Entropy
 entropy-shared  ={ version="0.3.0", path="../shared" }
