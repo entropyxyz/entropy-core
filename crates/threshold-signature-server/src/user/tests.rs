@@ -1691,7 +1691,8 @@ async fn test_device_key_proxy() {
     };
 
     // check to make sure config data stored properly
-    let program_query = entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));
+    let program_query =
+        entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));
     let program_data = query_chain(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
