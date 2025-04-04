@@ -200,21 +200,21 @@ use tracing::Level;
 
 pub fn app(app_state: AppState) -> Router {
     let mut routes = Router::new()
-        .route("/generate_network_key", post(generate_network_key))
-        .route("/user/sign_tx", post(sign_tx))
-        .route("/user/relay_tx", post(relay_tx))
-        .route("/signer/proactive_refresh", post(proactive_refresh))
-        .route("/validator/reshare", post(new_reshare))
-        .route("/rotate_network_key", post(rotate_network_key))
-        .route("/attest", get(get_attest))
-        .route("/backup_encryption_key", post(backup_encryption_key))
-        .route("/recover_encryption_key", post(recover_encryption_key))
-        .route("/backup_provider_quote_nonce", post(quote_nonce))
+        .route("/v1/generate_network_key", post(generate_network_key))
+        .route("/v1/user/sign_tx", post(sign_tx))
+        .route("/v1/user/relay_tx", post(relay_tx))
+        .route("/v1/signer/proactive_refresh", post(proactive_refresh))
+        .route("/v1/validator/reshare", post(new_reshare))
+        .route("/v1/rotate_network_key", post(rotate_network_key))
+        .route("/v1/attest", get(get_attest))
+        .route("/v1/backup_encryption_key", post(backup_encryption_key))
+        .route("/v1/recover_encryption_key", post(recover_encryption_key))
+        .route("/v1/backup_provider_quote_nonce", post(quote_nonce))
         .route("/healthz", get(healthz))
-        .route("/version", get(get_version))
-        .route("/hashes", get(hashes))
-        .route("/info", get(info))
-        .route("/ws", get(ws_handler));
+        .route("/v1/version", get(get_version))
+        .route("/v1/hashes", get(hashes))
+        .route("/v1/info", get(info))
+        .route("/v1/ws", get(ws_handler));
 
     // Unsafe routes are for testing purposes only
     // they are unsafe as they can expose vulnerabilites

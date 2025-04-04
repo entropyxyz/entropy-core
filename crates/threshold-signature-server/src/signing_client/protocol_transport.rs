@@ -73,7 +73,7 @@ pub async fn open_protocol_connections(
             );
 
             // Open a ws connection
-            let ws_endpoint = format!("ws://{}/ws", validator_info.ip_address);
+            let ws_endpoint = format!("ws://{}/v1/ws", validator_info.ip_address);
             let (ws_stream, _response) =
                 connect_async(ws_endpoint).await.map_err(|e| ProtocolErr::ConnectionError {
                     source: e,

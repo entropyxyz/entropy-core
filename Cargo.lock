@@ -1356,9 +1356,9 @@ dependencies = [
 
 [[package]]
 name = "blake3"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34a796731680be7931955498a16a10b2270c7762963d5d570fdbfe02dcbf314f"
+checksum = "389a099b34312839e16420d499a9cad9650541715937ffbdd40d36f49e77eeb3"
 dependencies = [
  "arrayref",
  "arrayvec 0.7.4",
@@ -3461,7 +3461,7 @@ dependencies = [
 
 [[package]]
 name = "entropy"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "clap",
  "entropy-runtime",
@@ -3539,7 +3539,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-client"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -3573,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-create-test-keyshares"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "entropy-kvdb",
  "entropy-shared",
@@ -3586,7 +3586,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-kvdb"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "bincode 1.3.3",
  "chacha20poly1305 0.9.1",
@@ -3631,7 +3631,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-protocol"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3673,7 +3673,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-runtime"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -3709,7 +3709,7 @@ dependencies = [
  "pallet-offences",
  "pallet-offences-benchmarking",
  "pallet-oracle",
- "pallet-parameters 0.3.0",
+ "pallet-parameters 0.4.0-rc.1",
  "pallet-preimage",
  "pallet-programs",
  "pallet-propagation",
@@ -3758,7 +3758,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-shared"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "blake2 0.10.6",
  "hex-literal 1.0.0",
@@ -3778,7 +3778,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-test-cli"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "bincode 1.3.3",
@@ -3800,7 +3800,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-testing-utils"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "axum",
  "entropy-kvdb",
@@ -3826,7 +3826,7 @@ dependencies = [
 
 [[package]]
 name = "entropy-tss"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -8908,7 +8908,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-attestation"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -8918,7 +8918,7 @@ dependencies = [
  "log",
  "pallet-bags-list",
  "pallet-balances",
- "pallet-parameters 0.3.0",
+ "pallet-parameters 0.4.0-rc.1",
  "pallet-session",
  "pallet-slashing",
  "pallet-staking",
@@ -9945,7 +9945,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-oracle"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 38.2.0",
@@ -9978,7 +9978,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-parameters"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -10031,7 +10031,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-programs"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 38.2.0",
@@ -10050,7 +10050,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-propagation"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -10064,7 +10064,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-balances",
  "pallet-oracle",
- "pallet-parameters 0.3.0",
+ "pallet-parameters 0.4.0-rc.1",
  "pallet-programs",
  "pallet-registry",
  "pallet-session",
@@ -10154,7 +10154,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-registry"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "bip32",
  "entropy-shared",
@@ -10167,7 +10167,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-balances",
  "pallet-oracle",
- "pallet-parameters 0.3.0",
+ "pallet-parameters 0.4.0-rc.1",
  "pallet-programs",
  "pallet-session",
  "pallet-slashing",
@@ -10464,7 +10464,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-slashing"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -10531,7 +10531,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-extension"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "entropy-shared",
  "frame-benchmarking",
@@ -10541,7 +10541,7 @@ dependencies = [
  "log",
  "pallet-bags-list",
  "pallet-balances",
- "pallet-parameters 0.3.0",
+ "pallet-parameters 0.4.0-rc.1",
  "pallet-session",
  "pallet-slashing",
  "pallet-staking",
@@ -10688,7 +10688,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-pause"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support 38.2.0",

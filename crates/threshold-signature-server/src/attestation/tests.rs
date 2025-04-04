@@ -40,7 +40,7 @@ async fn test_get_attest() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let quote_bytes = reqwest::get("http://127.0.0.1:3002/attest?context=validate")
+    let quote_bytes = reqwest::get("http://127.0.0.1:3002/v1/attest?context=validate")
         .await
         .unwrap()
         .bytes()

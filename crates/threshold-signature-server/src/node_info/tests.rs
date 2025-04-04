@@ -30,7 +30,7 @@ async fn version_test() {
     initialize_test_logger().await;
     setup_client().await;
     let client = reqwest::Client::new();
-    let response = client.get("http://127.0.0.1:3001/version").send().await.unwrap();
+    let response = client.get("http://127.0.0.1:3001/v1/version").send().await.unwrap();
     let version_details: VersionDetails =
         serde_json::from_str(&response.text().await.unwrap()).unwrap();
     assert_eq!(
@@ -50,7 +50,7 @@ async fn hashes_test() {
     clean_tests();
     initialize_test_logger().await;
     setup_client().await;
-    let response = reqwest::get("http://127.0.0.1:3001/hashes").await.unwrap();
+    let response = reqwest::get("http://127.0.0.1:3001/v1/hashes").await.unwrap();
 
     let algorithms: Vec<HashingAlgorithm> = response.json().await.unwrap();
     assert_eq!(
@@ -75,7 +75,7 @@ async fn info_test() {
     initialize_test_logger().await;
     setup_client().await;
     let client = reqwest::Client::new();
-    let response = client.get("http://127.0.0.1:3001/info").send().await.unwrap();
+    let response = client.get("http://127.0.0.1:3001/v1/info").send().await.unwrap();
     let public_keys: TssPublicKeys = response.json().await.unwrap();
     assert_eq!(
         public_keys,
