@@ -11,4 +11,4 @@ jobs:
         uses: ./.github/actions/install-dependencies/
       - name: Check runtime-benchmarks
         run: |
-          pushd node && cargo check --features=runtime-benchmarks
+          pushd node && cargo build --features=runtime-benchmarks
