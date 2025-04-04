@@ -186,6 +186,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let session_genesis = pallet_session::GenesisConfig::<Test> {
         // (AccountId, ValidatorId, SessionKey)
         keys: (0..=num_validators).map(|id| (id, id, UintAuthorityId(id))).collect(),
+        non_authority_keys: vec![]
     };
 
     let _ = session_genesis.assimilate_storage(&mut storage);

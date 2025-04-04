@@ -259,7 +259,7 @@ async fn test_remove_program_reference_counter() {
         verifying_key,
         &program_owner,
         BoundedVec(vec![ProgramInstance {
-            program_pointer: H256([0; 32]),
+            program_pointer: subxt::utils::H256([0; 32]),
             program_config: vec![],
         }]),
     )
