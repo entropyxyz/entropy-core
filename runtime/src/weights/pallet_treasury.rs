@@ -56,67 +56,22 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	/// Proof: `Treasury::Proposals` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `MaxEncodedLen`)
 	fn spend_local() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `42`
+		//  Measured:  `76`
 		//  Estimated: `1887`
-		// Minimum execution time: 15_810_000 picoseconds.
-		Weight::from_parts(16_737_000, 0)
+		// Minimum execution time: 12_520_000 picoseconds.
+		Weight::from_parts(12_910_000, 0)
 			.saturating_add(Weight::from_parts(0, 1887))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	/// Storage: `Treasury::ProposalCount` (r:1 w:1)
-	/// Proof: `Treasury::ProposalCount` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `Treasury::Proposals` (r:0 w:1)
-	/// Proof: `Treasury::Proposals` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `MaxEncodedLen`)
-	fn propose_spend() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `143`
-		//  Estimated: `1489`
-		// Minimum execution time: 31_569_000 picoseconds.
-		Weight::from_parts(32_868_000, 0)
-			.saturating_add(Weight::from_parts(0, 1489))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
-	/// Storage: `Treasury::Proposals` (r:1 w:1)
-	/// Proof: `Treasury::Proposals` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:1 w:1)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	fn reject_proposal() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `301`
-		//  Estimated: `3593`
-		// Minimum execution time: 45_203_000 picoseconds.
-		Weight::from_parts(47_055_000, 0)
-			.saturating_add(Weight::from_parts(0, 3593))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
-	/// Storage: `Treasury::Proposals` (r:1 w:0)
-	/// Proof: `Treasury::Proposals` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `MaxEncodedLen`)
-	/// Storage: `Treasury::Approvals` (r:1 w:1)
-	/// Proof: `Treasury::Approvals` (`max_values`: Some(1), `max_size`: Some(402), added: 897, mode: `MaxEncodedLen`)
-	/// The range of component `p` is `[0, 99]`.
-	fn approve_proposal(p: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `463 + p * (8 ±0)`
-		//  Estimated: `3573`
-		// Minimum execution time: 10_833_000 picoseconds.
-		Weight::from_parts(14_353_526, 0)
-			.saturating_add(Weight::from_parts(0, 3573))
-			// Standard Error: 2_918
-			.saturating_add(Weight::from_parts(90_132, 0).saturating_mul(p.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `Treasury::Approvals` (r:1 w:1)
 	/// Proof: `Treasury::Approvals` (`max_values`: Some(1), `max_size`: Some(402), added: 897, mode: `MaxEncodedLen`)
 	fn remove_approval() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `127`
+		//  Measured:  `161`
 		//  Estimated: `1887`
-		// Minimum execution time: 8_338_000 picoseconds.
-		Weight::from_parts(8_774_000, 0)
+		// Minimum execution time: 6_870_000 picoseconds.
+		Weight::from_parts(7_210_000, 0)
 			.saturating_add(Weight::from_parts(0, 1887))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -127,75 +82,89 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	/// Proof: `Treasury::Approvals` (`max_values`: Some(1), `max_size`: Some(402), added: 897, mode: `MaxEncodedLen`)
 	/// Storage: `Treasury::Proposals` (r:99 w:99)
 	/// Proof: `Treasury::Proposals` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:198 w:198)
+	/// Storage: `System::Account` (r:99 w:99)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `Bounties::BountyApprovals` (r:1 w:1)
 	/// Proof: `Bounties::BountyApprovals` (`max_values`: Some(1), `max_size`: Some(402), added: 897, mode: `MaxEncodedLen`)
 	/// The range of component `p` is `[0, 99]`.
 	fn on_initialize_proposals(p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `475 + p * (253 ±0)`
-		//  Estimated: `1887 + p * (5206 ±0)`
-		// Minimum execution time: 40_944_000 picoseconds.
-		Weight::from_parts(52_948_321, 0)
+		//  Measured:  `70 + p * (157 ±0)`
+		//  Estimated: `1887 + p * (2603 ±0)`
+		// Minimum execution time: 34_150_000 picoseconds.
+		Weight::from_parts(30_791_832, 0)
 			.saturating_add(Weight::from_parts(0, 1887))
-			// Standard Error: 30_336
-			.saturating_add(Weight::from_parts(42_834_231, 0).saturating_mul(p.into()))
+			// Standard Error: 10_350
+			.saturating_add(Weight::from_parts(23_389_161, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().reads((3_u64).saturating_mul(p.into())))
+			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(p.into())))
 			.saturating_add(T::DbWeight::get().writes(3))
-			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(p.into())))
-			.saturating_add(Weight::from_parts(0, 5206).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(p.into())))
+			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(p.into()))
 	}
+	/// Storage: `AssetRate::ConversionRateToNative` (r:1 w:0)
+	/// Proof: `AssetRate::ConversionRateToNative` (`max_values`: None, `max_size`: Some(1238), added: 3713, mode: `MaxEncodedLen`)
 	/// Storage: `Treasury::SpendCount` (r:1 w:1)
 	/// Proof: `Treasury::SpendCount` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Treasury::Spends` (r:0 w:1)
-	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(69), added: 2544, mode: `MaxEncodedLen`)
+	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(1853), added: 4328, mode: `MaxEncodedLen`)
 	fn spend() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `42`
-		//  Estimated: `1489`
-		// Minimum execution time: 13_303_000 picoseconds.
-		Weight::from_parts(13_968_000, 0)
-			.saturating_add(Weight::from_parts(0, 1489))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
-	}
-	/// Storage: `Treasury::Spends` (r:1 w:1)
-	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(69), added: 2544, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:1 w:1)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	fn payout() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `199`
-		//  Estimated: `3593`
-		// Minimum execution time: 65_504_000 picoseconds.
-		Weight::from_parts(66_371_000, 0)
-			.saturating_add(Weight::from_parts(0, 3593))
+		//  Measured:  `148`
+		//  Estimated: `4703`
+		// Minimum execution time: 21_711_000 picoseconds.
+		Weight::from_parts(22_110_000, 0)
+			.saturating_add(Weight::from_parts(0, 4703))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	/// Storage: `Treasury::Spends` (r:1 w:1)
-	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(69), added: 2544, mode: `MaxEncodedLen`)
-	fn check_status() -> Weight {
+	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(1853), added: 4328, mode: `MaxEncodedLen`)
+	/// Storage: `XcmPallet::QueryCounter` (r:1 w:1)
+	/// Proof: `XcmPallet::QueryCounter` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DeliveryFeeFactor` (r:1 w:0)
+	/// Proof: `Dmp::DeliveryFeeFactor` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `XcmPallet::SupportedVersion` (r:1 w:0)
+	/// Proof: `XcmPallet::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DownwardMessageQueues` (r:1 w:1)
+	/// Proof: `Dmp::DownwardMessageQueues` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DownwardMessageQueueHeads` (r:1 w:1)
+	/// Proof: `Dmp::DownwardMessageQueueHeads` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `XcmPallet::Queries` (r:0 w:1)
+	/// Proof: `XcmPallet::Queries` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn payout() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `160`
-		//  Estimated: `3534`
-		// Minimum execution time: 14_880_000 picoseconds.
-		Weight::from_parts(15_567_000, 0)
-			.saturating_add(Weight::from_parts(0, 3534))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `326`
+		//  Estimated: `5318`
+		// Minimum execution time: 51_281_000 picoseconds.
+		Weight::from_parts(52_120_000, 0)
+			.saturating_add(Weight::from_parts(0, 5318))
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	/// Storage: `Treasury::Spends` (r:1 w:1)
-	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(69), added: 2544, mode: `MaxEncodedLen`)
+	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(1853), added: 4328, mode: `MaxEncodedLen`)
+	/// Storage: `XcmPallet::Queries` (r:1 w:1)
+	/// Proof: `XcmPallet::Queries` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn check_status() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `240`
+		//  Estimated: `5318`
+		// Minimum execution time: 25_011_000 picoseconds.
+		Weight::from_parts(25_420_000, 0)
+			.saturating_add(Weight::from_parts(0, 5318))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	/// Storage: `Treasury::Spends` (r:1 w:1)
+	/// Proof: `Treasury::Spends` (`max_values`: None, `max_size`: Some(1853), added: 4328, mode: `MaxEncodedLen`)
 	fn void_spend() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `160`
-		//  Estimated: `3534`
-		// Minimum execution time: 13_825_000 picoseconds.
-		Weight::from_parts(14_161_000, 0)
-			.saturating_add(Weight::from_parts(0, 3534))
+		//  Measured:  `212`
+		//  Estimated: `5318`
+		// Minimum execution time: 14_960_000 picoseconds.
+		Weight::from_parts(15_320_000, 0)
+			.saturating_add(Weight::from_parts(0, 5318))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

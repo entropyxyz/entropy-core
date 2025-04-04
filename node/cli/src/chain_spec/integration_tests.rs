@@ -150,6 +150,7 @@ pub fn integration_tests_genesis_config(
                     )
                 })
                 .collect::<Vec<_>>(),
+                non_authority_keys: vec![],
         },
         "staking": StakingConfig {
             validator_count: initial_authorities.len() as u32,
@@ -250,7 +251,7 @@ pub fn integration_tests_genesis_config(
         "sudo": SudoConfig { key: Some(root_key.clone()) },
         "babe": BabeConfig {
             authorities: vec![],
-            epoch_config: Some(entropy_runtime::BABE_GENESIS_EPOCH_CONFIG),
+            epoch_config: entropy_runtime::BABE_GENESIS_EPOCH_CONFIG,
             ..Default::default()
         },
         "imOnline": ImOnlineConfig { keys: vec![] },
