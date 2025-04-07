@@ -16,21 +16,20 @@
 //! A wrapper for the threshold signing library to handle sending and receiving messages.
 
 use futures::future::try_join_all;
+use k256::{ecdsa::VerifyingKey, EncodedPoint};
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
 use std::sync::Arc;
 use subxt::utils::AccountId32;
 use synedrion::{
-    ecdsa::VerifyingKey,
-    k256::EncodedPoint,
-    make_aux_gen_session, make_interactive_signing_session, make_key_init_session,
-    make_key_resharing_session,
-    sessions::{FinalizeOutcome, Session, SessionId as SynedrionSessionId},
+    KeyInit,
+    //sessions::{FinalizeOutcome, Session, SessionId as SynedrionSessionId},
     signature::{self, hazmat::RandomizedPrehashSigner},
-    AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, PrehashedMessage,
+    AuxInfo, KeyShare, NewHolder, OldHolder, PrehashedMessage,
     RecoverableSignature, ThresholdKeyShare,
 };
+use manul::session::Session;
 use tokio::{sync::mpsc, task::spawn_blocking};
 
 use crate::{
@@ -223,6 +222,8 @@ pub async fn execute_signing_protocol(
 
     let session_id_hash = session_id.blake2(None)?;
 
+    let entry_point =
+    let session = Session::<>::new(&mut OsRng, id, signer, entry_point)
     let session = make_interactive_signing_session(
         &mut OsRng,
         SynedrionSessionId::from_seed(session_id_hash.as_slice()),
@@ -265,13 +266,17 @@ pub async fn execute_dkg(
 
     let (verifying_key, old_holder, mut chans) = if includes_me {
         // First run the key init session.
-        let session = make_key_init_session(
-            &mut OsRng,
-            SynedrionSessionId::from_seed(session_id_hash.as_slice()),
-            pair.clone(),
-            &key_init_parties,
-        )
-        .map_err(ProtocolExecutionErr::SessionCreation)?;
+        let entry_point = KeyInit::new(key_init_parties).unwrap();
+        let session = Session::<_, KeyParams>::new(&mut OsRng, id, pair.clone(), entry_point).unwrap();
+        //
+        //
+        //let session = make_key_init_session(
+        //    &mut OsRng,
+        //    SynedrionSessionId::from_seed(session_id_hash.as_slice()),
+        //    pair.clone(),
+        //    &key_init_parties,
+        //)
+        //.map_err(ProtocolExecutionErr::SessionCreation)?;
 
         let init_keyshare = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
 
