@@ -848,7 +848,7 @@ checksum = "33415e24172c1b7d6066f6d999545375ab8e1d95421d6784bdfff9496f292387"
 dependencies = [
  "bitcoin_hashes",
  "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
  "zeroize",
@@ -1805,13 +1805,13 @@ dependencies = [
 
 [[package]]
 name = "crypto-bigint"
-version = "0.6.0-rc.6"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d748d1f5b807ee6d0df5a548d0130417295c3aaed1dcbbb3d6a2e7106e11fcca"
+checksum = "96272c2ff28b807e09250b180ad1fb7889a3258f7455759b5c3c58b719467130"
 dependencies = [
  "num-traits",
  "rand_core 0.6.4",
- "serdect 0.3.0-rc.0",
+ "serdect 0.3.0",
  "subtle 2.6.1",
  "zeroize",
 ]
@@ -1859,11 +1859,11 @@ dependencies = [
 
 [[package]]
 name = "crypto-primes"
-version = "0.6.0-pre.2"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9fad3f7645c77d3e0269f3e74a8dd25746de992b16bcecbb316059836e0b366"
+checksum = "2acbaf157961745008b5a80ee1cc974150691304fe9177edf69747142bfd9878"
 dependencies = [
- "crypto-bigint 0.6.0-rc.6",
+ "crypto-bigint 0.6.1",
  "rand_core 0.6.4",
 ]
 
@@ -2088,6 +2088,7 @@ dependencies = [
  "const-oid",
  "der_derive",
  "flagset",
+ "pem-rfc7468",
  "zeroize",
 ]
 
@@ -2152,6 +2153,17 @@ name = "derive-syn-parse"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d65d7ce8132b7c0e54497a4d9a55a1c2a0912a0d786cf894472ba818fba45762"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
+name = "derive-where"
+version = "1.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62d671cc41a825ebabc75757b62d3d168c577f9149b2d49ece1dad1f72119d25"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2440,6 +2452,7 @@ dependencies = [
  "generic-array 0.14.7",
  "group",
  "hkdf",
+ "pem-rfc7468",
  "pkcs8",
  "rand_core 0.6.4",
  "sec1",
@@ -2564,7 +2577,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion",
+ "synedrion 0.3.0-dev",
  "tdx-quote",
  "thiserror 2.0.12",
  "tokio",
@@ -2581,7 +2594,7 @@ dependencies = [
  "entropy-testing-utils",
  "entropy-tss",
  "sp-core 31.0.0",
- "synedrion",
+ "synedrion 0.2.0",
  "tokio",
 ]
 
@@ -2600,7 +2613,7 @@ dependencies = [
  "serial_test",
  "sled",
  "sp-core 31.0.0",
- "synedrion",
+ "synedrion 0.2.0",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -2649,6 +2662,8 @@ dependencies = [
  "hpke-rs-crypto",
  "hpke-rs-rust-crypto",
  "js-sys",
+ "k256",
+ "manul",
  "num",
  "num_cpus",
  "rand_core 0.6.4",
@@ -2660,7 +2675,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion",
+ "synedrion 0.3.0-dev",
  "thiserror 2.0.12",
  "tokio",
  "tokio-tungstenite",
@@ -2818,7 +2833,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion",
+ "synedrion 0.3.0-dev",
  "tdx-quote",
  "tokio",
  "tracing",
@@ -2877,7 +2892,7 @@ dependencies = [
  "strum 0.27.1",
  "subxt",
  "subxt-signer",
- "synedrion",
+ "synedrion 0.3.0-dev",
  "tdx-quote",
  "thiserror 2.0.12",
  "tokio",
@@ -2949,6 +2964,16 @@ name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
+
+[[package]]
+name = "erased-serde"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e004d887f51fcb9fef17317a2f3525c887d8aa3f4f50fed920816a688284a5b7"
+dependencies = [
+ "serde",
+ "typeid",
+]
 
 [[package]]
 name = "errno"
@@ -5924,6 +5949,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "manul"
+version = "0.2.0-dev"
+source = "git+https://github.com/entropyxyz/manul.git?rev=9810d0188d64d4fca3c95efd75e3b565c5db4233#9810d0188d64d4fca3c95efd75e3b565c5db4233"
+dependencies = [
+ "derive-where",
+ "digest 0.10.7",
+ "displaydoc",
+ "erased-serde",
+ "rand_core 0.6.4",
+ "serde",
+ "serde-encoded-bytes",
+ "signature",
+ "tinyvec",
+ "tracing",
+]
+
+[[package]]
 name = "maplit"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7385,6 +7427,7 @@ dependencies = [
  "frame-election-provider-support",
  "frame-support 29.0.2",
  "frame-system",
+ "k256",
  "log",
  "pallet-authorship",
  "pallet-bags-list",
@@ -7407,7 +7450,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "synedrion",
+ "synedrion 0.3.0-dev",
 ]
 
 [[package]]
@@ -7773,7 +7816,7 @@ checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes",
  "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
 ]
@@ -7959,6 +8002,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e459365e590736a54c3fa561947c84837534b8e9af6fc5bf781307e82658fae"
 dependencies = [
  "base64 0.22.1",
+]
+
+[[package]]
+name = "pem-rfc7468"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88b39c9bfcfc231068454382784bb460aae594343fb030d46e9f50a645418412"
+dependencies = [
+ "base64ct",
 ]
 
 [[package]]
@@ -8343,6 +8395,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "353e1ca18966c16d9deb1c69278edbc5f194139612772bd9537af60ac231e1e6"
 dependencies = [
  "elliptic-curve",
+ "serdect 0.2.0",
 ]
 
 [[package]]
@@ -11812,9 +11865,9 @@ dependencies = [
 
 [[package]]
 name = "serdect"
-version = "0.3.0-rc.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a504c8ee181e3e594d84052f983d60afe023f4d94d050900be18062bbbf7b58"
+checksum = "f42f67da2385b51a5f9652db9c93d78aeaf7610bf5ec366080b6de810604af53"
 dependencies = [
  "base16ct",
  "serde",
@@ -14317,7 +14370,7 @@ checksum = "a619936bb0dd5fa8f8e79c703590c6a10be9e2160b61a2e85484f9f053a3c5b0"
 dependencies = [
  "bincode 2.0.0-rc.3",
  "bip32",
- "crypto-bigint 0.6.0-rc.6",
+ "crypto-bigint 0.6.1",
  "crypto-primes",
  "digest 0.10.7",
  "displaydoc",
@@ -14330,6 +14383,34 @@ dependencies = [
  "sha2 0.10.8",
  "sha3",
  "signature",
+ "zeroize",
+]
+
+[[package]]
+name = "synedrion"
+version = "0.3.0-dev"
+source = "git+https://github.com/entropyxyz/synedrion.git#1b9e459cb3fdb70da9e9a9eb535ed586b008f22f"
+dependencies = [
+ "bip32",
+ "crypto-bigint 0.6.1",
+ "crypto-primes",
+ "digest 0.10.7",
+ "displaydoc",
+ "ecdsa",
+ "elliptic-curve",
+ "hashing-serializer",
+ "k256",
+ "manul",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
+ "secrecy 0.10.3",
+ "serde",
+ "serde-encoded-bytes",
+ "sha3",
+ "signature",
+ "tiny-curve",
+ "tracing",
  "zeroize",
 ]
 
@@ -14560,6 +14641,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-curve"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3839423882e7687ba6339ed468baea296bc13599969293c560ca3f7fc816be24"
+dependencies = [
+ "bip32",
+ "ecdsa",
+ "elliptic-curve",
+ "num-traits",
+ "primeorder",
+ "sha2 0.10.8",
+]
+
+[[package]]
 name = "tiny-keccak"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -14574,6 +14669,7 @@ version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87cc5ceb3875bb20c2890005a4e226a4651264a5c75edb2421b52861a0a0cb50"
 dependencies = [
+ "serde",
  "tinyvec_macros",
 ]
 
@@ -15159,6 +15255,12 @@ dependencies = [
  "rand 0.8.5",
  "static_assertions",
 ]
+
+[[package]]
+name = "typeid"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "typenum"
