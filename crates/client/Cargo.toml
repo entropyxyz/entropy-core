@@ -32,6 +32,7 @@ base64            ={ version="0.22.0", optional=true }
 synedrion         ={ git="https://github.com/entropyxyz/synedrion.git", optional=true }
 hex               ={ version="0.4.3", optional=true }
 parity-scale-codec={ version="3.7.2", default-features=false, optional=true }
+k256      ={ version = "0.13", default-features = false, features = ["ecdsa"], optional=true }
 
 # Only for the browser
 js-sys={ version="0.3.74", optional=true }
@@ -64,6 +65,7 @@ full-client=[
   "dep:reqwest",
   "dep:base64",
   "dep:synedrion",
+  "dep:k256",
   "dep:hex",
   "dep:parity-scale-codec",
 ]

@@ -2565,6 +2565,7 @@ dependencies = [
  "futures",
  "hex",
  "js-sys",
+ "k256",
  "num",
  "parity-scale-codec",
  "rand 0.8.5",
