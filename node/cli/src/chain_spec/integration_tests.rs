@@ -235,7 +235,7 @@ pub fn integration_tests_genesis_config(
         "elections": ElectionsConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take(num_endowed_accounts.div_ceil(2))
                 .cloned()
                 .map(|member| (member, STASH))
                 .collect(),
@@ -243,7 +243,7 @@ pub fn integration_tests_genesis_config(
         "technicalCommittee": TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take(num_endowed_accounts.div_ceil(2))
                 .cloned()
                 .collect(),
             phantom: Default::default(),
