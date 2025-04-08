@@ -11,7 +11,7 @@ edition    ='2021'
 [dependencies]
 async-trait        ="0.1.88"
 entropy-shared     ={ version="0.4.0-rc.1", path="../shared", default-features=false }
-synedrion          ="0.2.0"
+synedrion          ="0.3.0"
 serde              ={ version="1.0", features=["derive"], default-features=false }
 subxt              ={ version="0.35.3", default-features=false }
 sp-core            ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
