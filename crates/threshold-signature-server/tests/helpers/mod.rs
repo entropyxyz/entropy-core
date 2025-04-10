@@ -53,7 +53,7 @@ pub async fn verify_signature(
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signing_result.clone().unwrap().1,
             BASE64_STANDARD.decode(signing_result.unwrap().0).unwrap(),
-            &sr25519::Public(TSS_ACCOUNTS[i].0),
+            &sr25519::Public::from(TSS_ACCOUNTS[i].0),
         );
         assert!(sig_recovery);
         i += 1;

@@ -51,7 +51,7 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `NominationPools::MinJoinBond` (r:1 w:0)
 	/// Proof: `NominationPools::MinJoinBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
@@ -70,28 +70,30 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::MaxPoolMembers` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForPoolMembers` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForPoolMembers` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:1 w:0)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListNodes` (r:3 w:3)
-	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListBags` (r:2 w:2)
-	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListNodes` (r:3 w:3)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListBags` (r:2 w:2)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	fn join() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3518`
+		//  Measured:  `3358`
 		//  Estimated: `8877`
-		// Minimum execution time: 256_544_000 picoseconds.
-		Weight::from_parts(260_805_000, 0)
+		// Minimum execution time: 215_842_000 picoseconds.
+		Weight::from_parts(218_182_000, 0)
 			.saturating_add(Weight::from_parts(0, 8877))
-			.saturating_add(T::DbWeight::get().reads(20))
+			.saturating_add(T::DbWeight::get().reads(21))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::RewardPools` (r:1 w:1)
@@ -104,30 +106,32 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:1 w:0)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListNodes` (r:3 w:3)
-	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListBags` (r:2 w:2)
-	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListNodes` (r:3 w:3)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListBags` (r:2 w:2)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	fn bond_extra_transfer() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3532`
+		//  Measured:  `3368`
 		//  Estimated: `8877`
-		// Minimum execution time: 259_862_000 picoseconds.
-		Weight::from_parts(262_660_000, 0)
+		// Minimum execution time: 214_562_000 picoseconds.
+		Weight::from_parts(216_331_000, 0)
 			.saturating_add(Weight::from_parts(0, 8877))
-			.saturating_add(T::DbWeight::get().reads(17))
+			.saturating_add(T::DbWeight::get().reads(18))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
 	/// Storage: `NominationPools::ClaimPermissions` (r:1 w:0)
 	/// Proof: `NominationPools::ClaimPermissions` (`max_values`: None, `max_size`: Some(41), added: 2516, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::RewardPools` (r:1 w:1)
@@ -140,30 +144,32 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:1 w:0)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListNodes` (r:2 w:2)
-	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListBags` (r:2 w:2)
-	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListNodes` (r:2 w:2)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListBags` (r:2 w:2)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	fn bond_extra_other() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3441`
+		//  Measured:  `3278`
 		//  Estimated: `8799`
-		// Minimum execution time: 301_317_000 picoseconds.
-		Weight::from_parts(303_281_000, 0)
+		// Minimum execution time: 246_702_000 picoseconds.
+		Weight::from_parts(248_282_000, 0)
 			.saturating_add(Weight::from_parts(0, 8799))
-			.saturating_add(T::DbWeight::get().reads(17))
+			.saturating_add(T::DbWeight::get().reads(18))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
 	/// Storage: `NominationPools::ClaimPermissions` (r:1 w:0)
 	/// Proof: `NominationPools::ClaimPermissions` (`max_values`: None, `max_size`: Some(41), added: 2516, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::RewardPools` (r:1 w:1)
@@ -174,16 +180,16 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	fn claim_payout() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1238`
-		//  Estimated: `3719`
-		// Minimum execution time: 103_222_000 picoseconds.
-		Weight::from_parts(105_342_000, 0)
-			.saturating_add(Weight::from_parts(0, 3719))
+		//  Measured:  `1138`
+		//  Estimated: `4182`
+		// Minimum execution time: 85_921_000 picoseconds.
+		Weight::from_parts(86_420_000, 0)
+			.saturating_add(Weight::from_parts(0, 4182))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::RewardPools` (r:1 w:1)
@@ -202,26 +208,28 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::MinNominatorBond` (r:1 w:0)
 	/// Proof: `Staking::MinNominatorBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:1 w:0)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListNodes` (r:3 w:3)
-	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListBags` (r:2 w:2)
-	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListNodes` (r:3 w:3)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListBags` (r:2 w:2)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::SubPoolsStorage` (r:1 w:1)
-	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(24382), added: 26857, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForSubPoolsStorage` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForSubPoolsStorage` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn unbond() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3708`
-		//  Estimated: `27847`
-		// Minimum execution time: 238_730_000 picoseconds.
-		Weight::from_parts(242_773_000, 0)
-			.saturating_add(Weight::from_parts(0, 27847))
-			.saturating_add(T::DbWeight::get().reads(20))
+		//  Measured:  `3548`
+		//  Estimated: `8877`
+		// Minimum execution time: 196_581_000 picoseconds.
+		Weight::from_parts(197_982_000, 0)
+			.saturating_add(Weight::from_parts(0, 8877))
+			.saturating_add(T::DbWeight::get().reads(21))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
 	/// Storage: `NominationPools::BondedPools` (r:1 w:0)
@@ -232,43 +240,51 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CurrentEra` (r:1 w:0)
 	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:1 w:0)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::ReversePoolIdLookup` (r:1 w:0)
+	/// Proof: `NominationPools::ReversePoolIdLookup` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[0, 100]`.
 	fn pool_withdraw_unbonded(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1904`
+		//  Measured:  `1843`
 		//  Estimated: `4764`
-		// Minimum execution time: 99_193_000 picoseconds.
-		Weight::from_parts(102_214_029, 0)
+		// Minimum execution time: 79_951_000 picoseconds.
+		Weight::from_parts(81_372_250, 0)
 			.saturating_add(Weight::from_parts(0, 4764))
-			// Standard Error: 1_330
-			.saturating_add(Weight::from_parts(64_649, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(7))
+			// Standard Error: 397
+			.saturating_add(Weight::from_parts(17_010, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CurrentEra` (r:1 w:0)
 	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::SubPoolsStorage` (r:1 w:1)
-	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(24382), added: 26857, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:1 w:0)
 	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(193), added: 2668, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::ReversePoolIdLookup` (r:1 w:0)
+	/// Proof: `NominationPools::ReversePoolIdLookup` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForPoolMembers` (r:1 w:1)
@@ -278,30 +294,32 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// The range of component `s` is `[0, 100]`.
 	fn withdraw_unbonded_update(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2293`
-		//  Estimated: `27847`
-		// Minimum execution time: 187_794_000 picoseconds.
-		Weight::from_parts(193_229_436, 0)
-			.saturating_add(Weight::from_parts(0, 27847))
-			// Standard Error: 2_123
-			.saturating_add(Weight::from_parts(89_772, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(11))
+		//  Measured:  `2233`
+		//  Estimated: `4764`
+		// Minimum execution time: 157_181_000 picoseconds.
+		Weight::from_parts(158_794_627, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			// Standard Error: 577
+			.saturating_add(Weight::from_parts(18_736, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CurrentEra` (r:1 w:0)
 	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::SubPoolsStorage` (r:1 w:1)
-	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(24382), added: 26857, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:1)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::SlashingSpans` (r:1 w:0)
 	/// Proof: `Staking::SlashingSpans` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:1)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:2 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:2 w:1)
@@ -312,12 +330,12 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:0)
 	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::ReversePoolIdLookup` (r:1 w:1)
+	/// Proof: `NominationPools::ReversePoolIdLookup` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForPoolMembers` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForPoolMembers` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `NominationPools::ReversePoolIdLookup` (r:1 w:1)
-	/// Proof: `NominationPools::ReversePoolIdLookup` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForReversePoolIdLookup` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForReversePoolIdLookup` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::RewardPools` (r:1 w:1)
@@ -335,17 +353,15 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `NominationPools::ClaimPermissions` (r:0 w:1)
 	/// Proof: `NominationPools::ClaimPermissions` (`max_values`: None, `max_size`: Some(41), added: 2516, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[0, 100]`.
-	fn withdraw_unbonded_kill(s: u32, ) -> Weight {
+	fn withdraw_unbonded_kill(_s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2752`
-		//  Estimated: `27847`
-		// Minimum execution time: 334_846_000 picoseconds.
-		Weight::from_parts(342_266_815, 0)
-			.saturating_add(Weight::from_parts(0, 27847))
-			// Standard Error: 3_293
-			.saturating_add(Weight::from_parts(254, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(24))
-			.saturating_add(T::DbWeight::get().writes(20))
+		//  Measured:  `2625`
+		//  Estimated: `8538`
+		// Minimum execution time: 276_063_000 picoseconds.
+		Weight::from_parts(278_579_392, 0)
+			.saturating_add(Weight::from_parts(0, 8538))
+			.saturating_add(T::DbWeight::get().reads(25))
+			.saturating_add(T::DbWeight::get().writes(21))
 	}
 	/// Storage: `NominationPools::LastPoolId` (r:1 w:1)
 	/// Proof: `NominationPools::LastPoolId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
@@ -360,19 +376,21 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `NominationPools::CounterForBondedPools` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForBondedPools` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::MaxPoolMembersPerPool` (r:1 w:0)
 	/// Proof: `NominationPools::MaxPoolMembersPerPool` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::MaxPoolMembers` (r:1 w:0)
 	/// Proof: `NominationPools::MaxPoolMembers` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::CounterForPoolMembers` (r:1 w:1)
 	/// Proof: `NominationPools::CounterForPoolMembers` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:2 w:2)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:1)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:2 w:2)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:1)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::VirtualStakers` (r:1 w:0)
+	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:2 w:1)
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Freezes` (r:2 w:1)
@@ -393,22 +411,28 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
 	fn create() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1308`
+		//  Measured:  `1202`
 		//  Estimated: `8538`
-		// Minimum execution time: 256_840_000 picoseconds.
-		Weight::from_parts(259_983_000, 0)
+		// Minimum execution time: 200_752_000 picoseconds.
+		Weight::from_parts(202_142_000, 0)
 			.saturating_add(Weight::from_parts(0, 8538))
-			.saturating_add(T::DbWeight::get().reads(24))
+			.saturating_add(T::DbWeight::get().reads(25))
 			.saturating_add(T::DbWeight::get().writes(17))
 	}
 	/// Storage: `NominationPools::BondedPools` (r:1 w:0)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::PoolMembers` (r:1 w:0)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::MinNominatorBond` (r:1 w:0)
 	/// Proof: `Staking::MinNominatorBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::MinCreateBond` (r:1 w:0)
+	/// Proof: `NominationPools::MinCreateBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::MinJoinBond` (r:1 w:0)
+	/// Proof: `NominationPools::MinJoinBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:1)
 	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::MaxNominatorsCount` (r:1 w:0)
@@ -417,25 +441,25 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CurrentEra` (r:1 w:0)
 	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListNodes` (r:1 w:1)
-	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListBags` (r:1 w:1)
-	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::CounterForListNodes` (r:1 w:1)
-	/// Proof: `BagsList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListNodes` (r:1 w:1)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListBags` (r:1 w:1)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::CounterForListNodes` (r:1 w:1)
+	/// Proof: `VoterList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CounterForNominators` (r:1 w:1)
 	/// Proof: `Staking::CounterForNominators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 16]`.
 	fn nominate(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1948`
+		//  Measured:  `1993`
 		//  Estimated: `4556 + n * (2520 ±0)`
-		// Minimum execution time: 89_373_000 picoseconds.
-		Weight::from_parts(89_803_523, 0)
+		// Minimum execution time: 92_781_000 picoseconds.
+		Weight::from_parts(91_455_668, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
-			// Standard Error: 9_792
-			.saturating_add(Weight::from_parts(2_365_055, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(12))
+			// Standard Error: 4_353
+			.saturating_add(Weight::from_parts(1_788_595, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(5))
 			.saturating_add(Weight::from_parts(0, 2520).saturating_mul(n.into()))
@@ -448,10 +472,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	fn set_state() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1453`
+		//  Measured:  `1397`
 		//  Estimated: `4556`
-		// Minimum execution time: 41_134_000 picoseconds.
-		Weight::from_parts(42_596_000, 0)
+		// Minimum execution time: 38_470_000 picoseconds.
+		Weight::from_parts(39_110_000, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -465,13 +489,13 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// The range of component `n` is `[1, 256]`.
 	fn set_metadata(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `565`
+		//  Measured:  `498`
 		//  Estimated: `3735`
-		// Minimum execution time: 18_296_000 picoseconds.
-		Weight::from_parts(18_973_808, 0)
+		// Minimum execution time: 14_360_000 picoseconds.
+		Weight::from_parts(14_754_526, 0)
 			.saturating_add(Weight::from_parts(0, 3735))
-			// Standard Error: 142
-			.saturating_add(Weight::from_parts(2_290, 0).saturating_mul(n.into()))
+			// Standard Error: 47
+			.saturating_add(Weight::from_parts(1_052, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -491,8 +515,8 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 6_288_000 picoseconds.
-		Weight::from_parts(6_478_000, 0)
+		// Minimum execution time: 4_250_000 picoseconds.
+		Weight::from_parts(4_410_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -500,40 +524,44 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	fn update_roles() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `565`
+		//  Measured:  `498`
 		//  Estimated: `3719`
-		// Minimum execution time: 21_829_000 picoseconds.
-		Weight::from_parts(22_711_000, 0)
+		// Minimum execution time: 18_120_000 picoseconds.
+		Weight::from_parts(18_500_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `NominationPools::BondedPools` (r:1 w:0)
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::PoolMembers` (r:1 w:0)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Ledger` (r:1 w:0)
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::MinNominatorBond` (r:1 w:0)
+	/// Proof: `Staking::MinNominatorBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Validators` (r:1 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:1)
 	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CounterForNominators` (r:1 w:1)
 	/// Proof: `Staking::CounterForNominators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListNodes` (r:1 w:1)
-	/// Proof: `BagsList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::ListBags` (r:1 w:1)
-	/// Proof: `BagsList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
-	/// Storage: `BagsList::CounterForListNodes` (r:1 w:1)
-	/// Proof: `BagsList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListNodes` (r:1 w:1)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::ListBags` (r:1 w:1)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
+	/// Storage: `VoterList::CounterForListNodes` (r:1 w:1)
+	/// Proof: `VoterList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn chill() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2117`
+		//  Measured:  `2166`
 		//  Estimated: `4556`
-		// Minimum execution time: 82_724_000 picoseconds.
-		Weight::from_parts(85_102_000, 0)
+		// Minimum execution time: 85_640_000 picoseconds.
+		Weight::from_parts(86_401_000, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
-			.saturating_add(T::DbWeight::get().reads(9))
+			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
@@ -546,10 +574,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	fn set_commission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `837`
+		//  Measured:  `770`
 		//  Estimated: `3719`
-		// Minimum execution time: 43_491_000 picoseconds.
-		Weight::from_parts(44_485_000, 0)
+		// Minimum execution time: 37_840_000 picoseconds.
+		Weight::from_parts(38_341_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -560,10 +588,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::GlobalMaxCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn set_commission_max() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `605`
+		//  Measured:  `538`
 		//  Estimated: `3719`
-		// Minimum execution time: 22_130_000 picoseconds.
-		Weight::from_parts(22_921_000, 0)
+		// Minimum execution time: 18_060_000 picoseconds.
+		Weight::from_parts(18_470_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -572,10 +600,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	fn set_commission_change_rate() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `565`
+		//  Measured:  `498`
 		//  Estimated: `3719`
-		// Minimum execution time: 21_834_000 picoseconds.
-		Weight::from_parts(22_496_000, 0)
+		// Minimum execution time: 18_000_000 picoseconds.
+		Weight::from_parts(18_230_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -584,25 +612,25 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
 	fn set_commission_claim_permission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `565`
+		//  Measured:  `498`
 		//  Estimated: `3719`
-		// Minimum execution time: 21_530_000 picoseconds.
-		Weight::from_parts(22_531_000, 0)
+		// Minimum execution time: 17_240_000 picoseconds.
+		Weight::from_parts(17_690_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:0)
-	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(237), added: 2712, mode: `MaxEncodedLen`)
+	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::ClaimPermissions` (r:1 w:1)
 	/// Proof: `NominationPools::ClaimPermissions` (`max_values`: None, `max_size`: Some(41), added: 2516, mode: `MaxEncodedLen`)
 	fn set_claim_permission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `575`
-		//  Estimated: `3702`
-		// Minimum execution time: 17_998_000 picoseconds.
-		Weight::from_parts(18_504_000, 0)
-			.saturating_add(Weight::from_parts(0, 3702))
+		//  Measured:  `508`
+		//  Estimated: `4182`
+		// Minimum execution time: 15_661_000 picoseconds.
+		Weight::from_parts(16_020_000, 0)
+			.saturating_add(Weight::from_parts(0, 4182))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -616,10 +644,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	fn claim_commission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1068`
+		//  Measured:  `968`
 		//  Estimated: `3719`
-		// Minimum execution time: 83_852_000 picoseconds.
-		Weight::from_parts(85_593_000, 0)
+		// Minimum execution time: 71_691_000 picoseconds.
+		Weight::from_parts(72_270_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -634,12 +662,44 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	fn adjust_pool_deposit() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1047`
+		//  Measured:  `947`
 		//  Estimated: `4764`
-		// Minimum execution time: 94_584_000 picoseconds.
-		Weight::from_parts(95_706_000, 0)
+		// Minimum execution time: 80_551_000 picoseconds.
+		Weight::from_parts(80_990_000, 0)
 			.saturating_add(Weight::from_parts(0, 4764))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	fn apply_slash() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 3_010_000 picoseconds.
+		Weight::from_parts(3_190_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+	fn apply_slash_fail() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 3_120_000 picoseconds.
+		Weight::from_parts(3_200_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+	fn pool_migrate() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 2_900_000 picoseconds.
+		Weight::from_parts(2_980_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+	fn migrate_delegation() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 2_820_000 picoseconds.
+		Weight::from_parts(2_930_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
 	}
 }

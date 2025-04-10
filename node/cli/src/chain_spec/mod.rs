@@ -36,7 +36,7 @@ pub mod integration_tests;
 pub mod tdx_testnet;
 pub mod testnet;
 
-pub use entropy_runtime::{AccountId, RuntimeGenesisConfig, Signature};
+pub use entropy_runtime::{AccountId, Signature};
 pub use entropy_shared::attestation::MEASUREMENT_VALUE_MOCK_QUOTE;
 
 use entropy_runtime::{Block, SessionKeys};
@@ -181,7 +181,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<Extensions>;
 
 fn session_keys(
     grandpa: GrandpaId,

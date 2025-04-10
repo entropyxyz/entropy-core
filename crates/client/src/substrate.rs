@@ -22,12 +22,12 @@ use sp_core::{sr25519, Pair};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks::ExtrinsicEvents,
-    config::PolkadotExtrinsicParamsBuilder as Params,
-    storage::address::{StorageAddress, Yes},
-    tx::{Signer, TxPayload, TxStatus},
+    config::DefaultExtrinsicParamsBuilder as Params,
+    tx::{Payload, Signer, TxStatus},
     utils::{AccountId32, MultiSignature, H256},
     Config, OnlineClient,
 };
+use subxt_core::{storage::address::Address, utils::Yes};
 
 pub use crate::errors::SubstrateError;
 
@@ -35,7 +35,7 @@ pub use crate::errors::SubstrateError;
 ///
 /// Optionally takes a nonce, otherwise it grabs the latest nonce from the chain
 ///
-pub async fn submit_transaction<Call: TxPayload, S: Signer<EntropyConfig>>(
+pub async fn submit_transaction<Call: Payload, S: Signer<EntropyConfig>>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     signer: &S,
@@ -76,7 +76,7 @@ pub async fn submit_transaction<Call: TxPayload, S: Signer<EntropyConfig>>(
 }
 
 /// Convenience function to send a transaction to the Entropy chain giving a sr25519::Pair to sign with
-pub async fn submit_transaction_with_pair<Call: TxPayload>(
+pub async fn submit_transaction_with_pair<Call: Payload>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     pair: &sr25519::Pair,
@@ -90,14 +90,14 @@ pub async fn submit_transaction_with_pair<Call: TxPayload>(
 /// Gets data from the Entropy chain
 ///
 /// Optionally takes a block hash, otherwise the latest block hash from the chain is used
-pub async fn query_chain<Address>(
+pub async fn query_chain<Addr>(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    storage_call: Address,
+    storage_call: Addr,
     block_hash_option: Option<H256>,
-) -> Result<Option<Address::Target>, SubstrateError>
+) -> Result<Option<Addr::Target>, SubstrateError>
 where
-    Address: StorageAddress<IsFetchable = Yes>,
+    Addr: Address<IsFetchable = Yes>,
 {
     let block_hash = if let Some(block_hash) = block_hash_option {
         block_hash

@@ -129,6 +129,8 @@ impl TestNodeProcessBuilder {
     {
         let mut cmd = process::Command::new(&self.node_path);
         cmd.env("RUST_LOG", "error").arg(&self.chain_type).arg("--tmp");
+        cmd.arg("--unsafe-force-node-key-generation");
+        cmd.arg("--public-addr=/ip4/0.0.0.0/tcp/30333");
         if self.force_authoring {
             cmd.arg("--force-authoring");
         }

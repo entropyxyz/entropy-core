@@ -32,29 +32,24 @@
 //! The Substrate runtime. This can be compiled with `#[no_std]`, ready for Wasm.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
-#![allow(unused_imports)]
-
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 512.
+#![recursion_limit = "512"]
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_election_provider_support::{
-    bounds::ElectionBoundsBuilder, generate_solution_type, onchain, BalancingConfig,
-    ElectionDataProvider, ExtendedBalance, NposSolution, SequentialPhragmen, VoteWeight,
+    bounds::ElectionBoundsBuilder, onchain, BalancingConfig, ElectionDataProvider,
+    SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
     construct_runtime,
     dispatch::DispatchClass,
-    genesis_builder_helper::{build_config, create_default_config},
+    genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::Get,
     parameter_types,
     sp_runtime::RuntimeDebug,
     traits::{
         fungible::{self, HoldConsideration},
-        tokens::{
-            nonfungibles_v2::Inspect, pay::PayAssetFromAccount, GetSalary, Pay, PayFromAccount,
-            PaymentStatus, Preservation, UnityAssetBalanceConversion,
-        },
-        ConstU16, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
+        tokens::{Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion},
+        ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
         WithdrawReasons,
     },
@@ -62,7 +57,7 @@ use frame_support::{
         constants::{
             BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
         },
-        IdentityFee, Weight,
+        ConstantMultiplier, IdentityFee, Weight,
     },
     PalletId,
 };
@@ -84,6 +79,7 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
+#[allow(deprecated)]
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use scale_info::TypeInfo;
@@ -248,7 +244,7 @@ type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
 pub struct DealWithFees;
 impl OnUnbalanced<NegativeImbalance> for DealWithFees {
-    fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
+    fn on_unbalanceds(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
         if let Some(fees) = fees_then_tips.next() {
             // for fees, 80% to treasury, 20% to author
             let mut split = fees.ration(80, 20);
@@ -356,6 +352,11 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
     type Version = Version;
+    type SingleBlockMigrations = ();
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 impl pallet_utility::Config for Runtime {
@@ -547,6 +548,9 @@ parameter_types! {
   pub MaximumMultiplier: Multiplier = Bounded::max_value();
 }
 
+// Can't use `FungibleAdapter` here until Treasury pallet migrates to fungibles
+// <https://github.com/paritytech/polkadot-sdk/issues/226>
+#[allow(deprecated)]
 impl pallet_transaction_payment::Config for Runtime {
     type FeeMultiplierUpdate = TargetedFeeAdjustment<
         Self,
@@ -555,7 +559,7 @@ impl pallet_transaction_payment::Config for Runtime {
         MinimumMultiplier,
         MaximumMultiplier,
     >;
-    type LengthToFee = IdentityFee<Balance>;
+    type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type RuntimeEvent = RuntimeEvent;
@@ -694,7 +698,6 @@ impl pallet_staking::Config for Runtime {
     type MaxExposurePageSize = MaxExposurePageSize;
     type MaxControllersInDeprecationBatch = ConstU32<5314>;
     type NextNewSession = Session;
-    type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     // send the slashed funds to the treasury.
     type Reward = ();
     type RewardRemainder = Treasury;
@@ -707,6 +710,7 @@ impl pallet_staking::Config for Runtime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = Timestamp;
     type VoterList = BagsList;
+    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
     type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
 
@@ -749,7 +753,7 @@ parameter_types! {
         .get(DispatchClass::Normal);
 }
 
-generate_solution_type!(
+frame_election_provider_support::generate_solution_type!(
     #[compact]
     pub struct NposCompactSolution16::<
         VoterIndex = u32,
@@ -1040,19 +1044,11 @@ parameter_types! {
 }
 
 impl pallet_treasury::Config for Runtime {
-    type ApproveOrigin = EitherOfDiverse<
-        EnsureRoot<AccountId>,
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>,
-    >;
     type Burn = Burn;
     type BurnDestination = ();
     type Currency = Balances;
     type MaxApprovals = MaxApprovals;
-    type OnSlash = Treasury;
     type PalletId = TreasuryPalletId;
-    type ProposalBond = ProposalBond;
-    type ProposalBondMaximum = ProposalBondMaximum;
-    type ProposalBondMinimum = ProposalBondMinimum;
     type RejectOrigin = EitherOfDiverse<
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
@@ -1142,6 +1138,7 @@ impl pallet_bounties::Config for Runtime {
     type DataDepositPerByte = DataDepositPerByte;
     type MaximumReasonLength = MaximumReasonLength;
     type RuntimeEvent = RuntimeEvent;
+    type OnSlash = Treasury;
     type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
@@ -1154,6 +1151,7 @@ impl pallet_tips::Config for Runtime {
     type TipFindersFee = TipFindersFee;
     type TipReportDepositBase = TipReportDepositBase;
     type Tippers = Elections;
+    type OnSlash = Treasury;
     type WeightInfo = weights::pallet_tips::WeightInfo<Runtime>;
 }
 
@@ -1429,8 +1427,9 @@ impl pallet_nomination_pools::Config for Runtime {
     type RuntimeFreezeReason = RuntimeFreezeReason;
     type RewardCounter = FixedU128;
     type RuntimeEvent = RuntimeEvent;
-    type Staking = Staking;
     type U256ToBalance = U256ToBalance;
+    type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
+    type AdminOrigin = EnsureRoot<AccountId>;
     type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Runtime>;
 }
 
@@ -1635,7 +1634,6 @@ mod benches {
       [pallet_collective, Council]
       [pallet_programs, Programs]
       [pallet_democracy, Democracy]
-      [pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
       [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
       [pallet_staking_extension, StakingExtension]
@@ -1679,8 +1677,8 @@ impl_runtime_apis! {
       Executive::execute_block(block);
     }
 
-    fn initialize_block(header: &<Block as BlockT>::Header) {
-      Executive::initialize_block(header)
+    fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
+        Executive::initialize_block(header)
     }
   }
 
@@ -1830,12 +1828,16 @@ impl_runtime_apis! {
   }
 
   impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
-    fn create_default_config() -> Vec<u8> {
-        create_default_config::<RuntimeGenesisConfig>()
+    fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
+        build_state::<RuntimeGenesisConfig>(config)
     }
 
-    fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
-        build_config::<RuntimeGenesisConfig>(config)
+    fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
+        get_preset::<RuntimeGenesisConfig>(id, |_| None)
+    }
+
+    fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
+        vec![]
     }
 }
 
