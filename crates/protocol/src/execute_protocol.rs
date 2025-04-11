@@ -15,30 +15,26 @@
 
 //! A wrapper for the threshold signing library to handle sending and receiving messages.
 
-use futures::future::try_join_all;
+use blake2::Blake2s256;
 use k256::{ecdsa::VerifyingKey, EncodedPoint};
-use manul::session::{Session, SessionId as ManulSessionId};
+use manul::{
+    protocol::Protocol,
+    session::{
+        tokio::{par_run_session, MessageIn, MessageOut},
+        Session, SessionId as ManulSessionId, SessionOutcome, SessionReport,
+    },
+    signature::RandomizedDigestSigner,
+};
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{sr25519, Pair};
-use std::sync::Arc;
 use subxt::utils::AccountId32;
 use synedrion::{
-    //sessions::{FinalizeOutcome, Session, SessionId as SynedrionSessionId},
-    signature::{self, hazmat::RandomizedPrehashSigner},
-    AuxGen,
-    AuxInfo,
-    InteractiveSigning,
-    KeyInit,
-    KeyResharing,
-    KeyShare,
-    NewHolder,
-    OldHolder,
-    PrehashedMessage,
-    RecoverableSignature,
-    ThresholdKeyShare,
+    signature::{self},
+    AuxGen, AuxInfo, InteractiveSigning, KeyInit, KeyResharing, KeyShare, NewHolder, OldHolder,
+    PrehashedMessage, RecoverableSignature, ThresholdKeyShare,
 };
-use tokio::{sync::mpsc, task::spawn_blocking};
+use tokio::sync::mpsc;
 
 use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
@@ -66,17 +62,70 @@ impl signature::Keypair for PairWrapper {
     }
 }
 
-impl RandomizedPrehashSigner<sr25519::Signature> for PairWrapper {
-    fn sign_prehash_with_rng(
+impl RandomizedDigestSigner<Blake2s256, sr25519::Signature> for PairWrapper {
+    fn try_sign_digest_with_rng(
         &self,
         _rng: &mut impl CryptoRngCore,
-        prehash: &[u8],
+        prehash: Blake2s256,
     ) -> Result<sr25519::Signature, signature::Error> {
         // TODO: doesn't seem like there's a way to randomize signing?
         Ok(self.0.sign(prehash))
     }
 }
 
+impl std::fmt::Debug for PairWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+pub async fn execute_protocol_generic<P>(
+    chans: &mut Channels,
+    session: Session<P, super::EntropySessionParameters>,
+) -> P::Result
+where
+    P: Protocol<KeyParams::Verifier>,
+{
+    let (tx_in, rx_in) = mpsc::channel::<MessageIn<KeyParams>>(1024);
+    let (tx_out, rx_out) = mpsc::channel::<MessageOut<KeyParams>>(1024);
+
+    let session_id = session.session_id();
+
+    let broadcast_out = chans.0;
+    tokio::spawn(async move {
+        while let Some(msg_out) = rx_out.recv().await {
+            broadcast_out
+                .send(ProtocolMessage::new(&msg_out.from, &msg_out.to, msg_out.message))
+                .unwrap();
+        }
+    });
+
+    let rx = chans.1;
+    tokio::spawn(async move {
+        while let Some(protocol_message) = rx.recv().await {
+            let from = protocol_message.from;
+            if let ProtocolMessagePayload::Message(message) = protocol_message.payload {
+                tx_in
+                    .send(MessageOut {
+                        session_id,
+                        from: protocol_message.from,
+                        to: protocol_message.to,
+                        message: *message,
+                    })
+                    .await
+                    .unwrap();
+            }
+        }
+    });
+
+    let session_report = par_run_session(&mut OsRng, &tx_out, &mut rx_out, session).await.unwrap();
+
+    if let SessionOutcome::Result(output) = session_report.outcome {
+        return output;
+    } else {
+        panic!("Session not successful");
+    };
+}
 //pub async fn execute_protocol_generic<Res: synedrion::ProtocolResult + 'static>(
 //    chans: &mut Channels,
 //    session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
@@ -216,10 +265,10 @@ pub async fn execute_signing_protocol(
     mut chans: Channels,
     key_share: &KeyShare<KeyParams, PartyId>,
     aux_info: &AuxInfo<KeyParams, PartyId>,
-    prehashed_message: &PrehashedMessage,
+    prehashed_message: &PrehashedMessage<k256::Secp256k1>,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
-) -> Result<RecoverableSignature, ProtocolExecutionErr> {
+) -> Result<RecoverableSignature<KeyParams>, ProtocolExecutionErr> {
     tracing::debug!("Executing signing protocol");
     tracing::trace!("Using key share with verifying key {:?}", &key_share.verifying_key());
 
@@ -230,7 +279,8 @@ pub async fn execute_signing_protocol(
 
     let session_id_hash = session_id.blake2(None)?;
 
-    let entry_point = InteractiveSigning::new(prehashed_message, key_share, aux_info).unwrap();
+    let entry_point =
+        InteractiveSigning::new(prehashed_message.clone(), key_share, aux_info).unwrap();
     let session = Session::<_, KeyParams>::new(
         &mut OsRng,
         ManulSessionId::from_seed(session_id_hash.as_slice()),
@@ -248,7 +298,7 @@ pub async fn execute_signing_protocol(
     //)
     //.map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    Ok(execute_protocol_generic(&mut chans, session, session_id_hash).await?)
+    Ok(execute_protocol_generic(&mut chans, session).await?)
 }
 
 /// Execute dkg.
@@ -289,7 +339,7 @@ pub async fn execute_dkg(
         .unwrap();
         //.map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        let init_keyshare = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
+        let init_keyshare = execute_protocol_generic(&mut chans, session).await?;
 
         tracing::info!("Finished key init protocol");
 
@@ -349,22 +399,18 @@ pub async fn execute_dkg(
         }),
         party_ids.clone(),
         threshold,
-    )
-    .unwrap();
+    );
 
     let session_id_hash = session_id.blake2(Some(Subsession::Reshare))?;
+    let manul_session_id = ManulSessionId::from_seed(session_id_hash.as_slice());
 
-    let session = Session::<_, KeyParams>::new(
-        &mut OsRng,
-        ManulSessionId::from_seed(session_id_hash.as_slice()),
-        pair.clone(),
-        entry_point,
-    )
-    .unwrap();
+    let session =
+        Session::<_, KeyParams>::new(&mut OsRng, manul_session_id, pair.clone(), entry_point)
+            .unwrap();
     //.map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let new_key_share_option =
-        execute_protocol_generic(&mut chans, session, session_id_hash).await?;
+    let new_key_share_option = execute_protocol_generic(&mut chans, session).await;
+
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
     tracing::info!("Finished reshare protocol");
@@ -383,7 +429,7 @@ pub async fn execute_dkg(
     .unwrap();
     //.map_err(ProtocolExecutionErr::SessionCreation)?;
 
-    let aux_info = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
+    let aux_info = execute_protocol_generic(&mut chans, session).await?;
     tracing::info!("Finished aux gen protocol");
 
     Ok((new_key_share, aux_info))
@@ -400,7 +446,7 @@ pub async fn execute_reshare(
     session_id: SessionId,
     mut chans: Channels,
     threshold_pair: &sr25519::Pair,
-    inputs: KeyResharingInputs<KeyParams, PartyId>,
+    entry_point: KeyResharing<KeyParams, PartyId>,
     verifiers: &BTreeSet<PartyId>,
     aux_info_option: Option<AuxInfo<KeyParams, PartyId>>,
 ) -> Result<
@@ -414,16 +460,18 @@ pub async fn execute_reshare(
 
     let session_id_hash = session_id.blake2(None)?;
 
-    let session = make_key_resharing_session(
-        &mut OsRng,
-        SynedrionSessionId::from_seed(session_id_hash.as_slice()),
-        pair,
-        verifiers,
-        inputs.clone(),
-    )
-    .map_err(ProtocolExecutionErr::SessionCreation)?;
+    let session_id_hash = session_id.blake2(Some(Subsession::Reshare))?;
 
-    let new_key_share = execute_protocol_generic(&mut chans, session, session_id_hash).await?;
+    let session = Session::<_, KeyParams>::new(
+        &mut OsRng,
+        ManulSessionId::from_seed(session_id_hash.as_slice()),
+        pair.clone(),
+        entry_point,
+    )
+    .unwrap();
+    //.map_err(ProtocolExecutionErr::SessionCreation)?;
+
+    let new_key_share = execute_protocol_generic(&mut chans, session).await?;
 
     tracing::info!("Completed reshare protocol");
 
@@ -433,15 +481,25 @@ pub async fn execute_reshare(
         tracing::info!("Executing aux gen session as part of reshare");
         // Now run an aux gen session
         let session_id_hash_aux_data = session_id.blake2(Some(Subsession::AuxGen))?;
-        let session = make_aux_gen_session(
-            &mut OsRng,
-            SynedrionSessionId::from_seed(session_id_hash_aux_data.as_slice()),
-            PairWrapper(threshold_pair.clone()),
-            &inputs.new_holders,
-        )
-        .map_err(ProtocolExecutionErr::SessionCreation)?;
 
-        execute_protocol_generic(&mut chans, session, session_id_hash_aux_data).await?
+        let entry_point = AuxGen::new(verifiers.clone()).unwrap();
+
+        let session = Session::<_, KeyParams>::new(
+            &mut OsRng,
+            ManulSessionId::from_seed(session_id_hash.as_slice()),
+            pair.clone(),
+            entry_point,
+        )
+        .unwrap();
+        //let session = make_aux_gen_session(
+        //    &mut OsRng,
+        //    SynedrionSessionId::from_seed(session_id_hash_aux_data.as_slice()),
+        //    PairWrapper(threshold_pair.clone()),
+        //    &inputs.new_holders,
+        //)
+        //.map_err(ProtocolExecutionErr::SessionCreation)?;
+
+        execute_protocol_generic(&mut chans, session).await?
     };
 
     Ok((new_key_share.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?, aux_info))

@@ -24,7 +24,7 @@ entropy-tss={ version="0.4.0-rc.1", path="../threshold-signature-server", featur
   "test_helpers",
 ] }
 entropy-protocol={ version="0.4.0-rc.1", path="../protocol" }
-synedrion={ git="https://github.com/entropyxyz/synedrion.git"}
+synedrion="0.3.0"
 hex="0.4.3"
 rand_core="0.6.4"
 rand="0.8.5"

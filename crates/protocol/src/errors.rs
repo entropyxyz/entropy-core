@@ -13,18 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use synedrion::{
-    sessions, AuxGenResult, InteractiveSigningResult, KeyInitResult, KeyResharingResult,
-    ProtocolResult,
-};
+//use synedrion::{
+//    sessions, AuxGenResult, InteractiveSigningResult, KeyInitResult, KeyResharingResult,
+//    ProtocolResult,
+//};
+use manul::protocol::LocalError;
 use thiserror::Error;
 
 use crate::{protocol_message::ProtocolMessage, KeyParams, PartyId};
 
 #[derive(Debug, Error)]
-pub enum GenericProtocolError<Res: ProtocolResult> {
-    #[error("Synedrion session error {0}")]
-    Joined(Box<sessions::Error<Res, PartyId>>),
+pub enum GenericProtocolError {
+    //#[error("Synedrion local error {0}")]
+    //Local(#[from] LocalError),
+    //#[error("Synedrion session error {0}")]
+    //Joined(Box<sessions::Error<Res, PartyId>>),
     #[error("Incoming message stream error: {0}")]
     IncomingStream(String),
     #[error("Broadcast error: {0}")]
@@ -37,99 +40,99 @@ pub enum GenericProtocolError<Res: ProtocolResult> {
     JoinHandle(#[from] tokio::task::JoinError),
 }
 
-impl<Res: ProtocolResult> From<sessions::LocalError> for GenericProtocolError<Res> {
-    fn from(err: sessions::LocalError) -> Self {
-        Self::Joined(Box::new(sessions::Error::Local(err)))
-    }
-}
-
-impl<Res: ProtocolResult> From<sessions::RemoteError<PartyId>> for GenericProtocolError<Res> {
-    fn from(err: sessions::RemoteError<PartyId>) -> Self {
-        Self::Joined(Box::new(sessions::Error::Remote(err)))
-    }
-}
-
-impl<Res: ProtocolResult> From<sessions::Error<Res, PartyId>> for GenericProtocolError<Res> {
-    fn from(err: sessions::Error<Res, PartyId>) -> Self {
-        Self::Joined(Box::new(err))
-    }
-}
-
-impl From<GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>>
-    for ProtocolExecutionErr
-{
-    fn from(err: GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>) -> Self {
-        tracing::error!("{:?}", err);
-        match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::SigningProtocolError(err),
-            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-        }
-    }
-}
-
-impl From<GenericProtocolError<KeyInitResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<KeyInitResult<KeyParams, PartyId>>) -> Self {
-        tracing::error!("{:?}", err);
-        match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
-            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-        }
-    }
-}
-
-impl From<GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>) -> Self {
-        tracing::error!("{:?}", err);
-        match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
-            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-        }
-    }
-}
-
-impl From<GenericProtocolError<AuxGenResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
-    fn from(err: GenericProtocolError<AuxGenResult<KeyParams, PartyId>>) -> Self {
-        tracing::error!("{:?}", err);
-        match err {
-            GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
-            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-        }
-    }
-}
+//impl<Res: ProtocolResult> From<sessions::LocalError> for GenericProtocolError<Res> {
+//    fn from(err: sessions::LocalError) -> Self {
+//        Self::Joined(Box::new(sessions::Error::Local(err)))
+//    }
+//}
+//
+//impl<Res: ProtocolResult> From<sessions::RemoteError<PartyId>> for GenericProtocolError<Res> {
+//    fn from(err: sessions::RemoteError<PartyId>) -> Self {
+//        Self::Joined(Box::new(sessions::Error::Remote(err)))
+//    }
+//}
+//
+//impl<Res: ProtocolResult> From<sessions::Error<Res, PartyId>> for GenericProtocolError<Res> {
+//    fn from(err: sessions::Error<Res, PartyId>) -> Self {
+//        Self::Joined(Box::new(err))
+//    }
+//}
+//
+//impl From<GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>>
+//    for ProtocolExecutionErr
+//{
+//    fn from(err: GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>) -> Self {
+//        tracing::error!("{:?}", err);
+//        match err {
+//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::SigningProtocolError(err),
+//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
+//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
+//        }
+//    }
+//}
+//
+//impl From<GenericProtocolError<KeyInitResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
+//    fn from(err: GenericProtocolError<KeyInitResult<KeyParams, PartyId>>) -> Self {
+//        tracing::error!("{:?}", err);
+//        match err {
+//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
+//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
+//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
+//        }
+//    }
+//}
+//
+//impl From<GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
+//    fn from(err: GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>) -> Self {
+//        tracing::error!("{:?}", err);
+//        match err {
+//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
+//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
+//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
+//        }
+//    }
+//}
+//
+//impl From<GenericProtocolError<AuxGenResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
+//    fn from(err: GenericProtocolError<AuxGenResult<KeyParams, PartyId>>) -> Self {
+//        tracing::error!("{:?}", err);
+//        match err {
+//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
+//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
+//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
+//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
+//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
+//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
+//        }
+//    }
+//}
 
 /// An error during or while setting up a protocol session
 #[derive(Debug, Error)]
 pub enum ProtocolExecutionErr {
     #[error("Incoming message stream error: {0}")]
     IncomingStream(String),
-    #[error("Synedrion session creation error: {0}")]
-    SessionCreation(sessions::LocalError),
-    #[error("Synedrion signing session error")]
-    SigningProtocolError(
-        Box<sessions::Error<InteractiveSigningResult<KeyParams, PartyId>, PartyId>>,
-    ),
-    #[error("Synedrion key init session error")]
-    KeyInitProtocolError(Box<sessions::Error<KeyInitResult<KeyParams, PartyId>, PartyId>>),
-    #[error("Synedrion key reshare session error")]
-    KeyReshareProtocolError(Box<sessions::Error<KeyResharingResult<KeyParams, PartyId>, PartyId>>),
-    #[error("Synedrion aux generation session error")]
-    AuxGenProtocolError(Box<sessions::Error<AuxGenResult<KeyParams, PartyId>, PartyId>>),
+    //#[error("Synedrion session creation error: {0}")]
+    //SessionCreation(sessions::LocalError),
+    //#[error("Synedrion signing session error")]
+    //SigningProtocolError(
+    //    Box<sessions::Error<InteractiveSigningResult<KeyParams, PartyId>, PartyId>>,
+    //),
+    //#[error("Synedrion key init session error")]
+    //KeyInitProtocolError(Box<sessions::Error<KeyInitResult<KeyParams, PartyId>, PartyId>>),
+    //#[error("Synedrion key reshare session error")]
+    //KeyReshareProtocolError(Box<sessions::Error<KeyResharingResult<KeyParams, PartyId>, PartyId>>),
+    //#[error("Synedrion aux generation session error")]
+    //AuxGenProtocolError(Box<sessions::Error<AuxGenResult<KeyParams, PartyId>, PartyId>>),
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Mpsc send error: {0}")]
