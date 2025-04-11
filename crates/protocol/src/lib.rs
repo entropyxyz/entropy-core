@@ -33,15 +33,15 @@ use std::{
 
 use blake2::{Blake2s256, Digest};
 use errors::{ProtocolExecutionErr, VerifyingKeyError};
+use k256::{
+    ecdsa::{RecoveryId, Signature, VerifyingKey},
+    EncodedPoint,
+};
+use manul::signature::DigestVerifier;
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
 use synedrion::{
-    ecdsa::VerifyingKey,
-    k256::{
-        ecdsa::{RecoveryId, Signature},
-        EncodedPoint,
-    },
     signature::{self, hazmat::PrehashVerifier},
     AuxInfo, ThresholdKeyShare,
 };
@@ -83,13 +83,13 @@ impl From<sr25519::Public> for PartyId {
     }
 }
 
-impl PrehashVerifier<sr25519::Signature> for PartyId {
-    fn verify_prehash(
+impl DigestVerifier<Blake2s256, sr25519::Signature> for PartyId {
+    fn verify_digest(
         &self,
-        prehash: &[u8],
+        digest: Blake2s256,
         signature: &sr25519::Signature,
     ) -> Result<(), signature::Error> {
-        if sr25519::Pair::verify(signature, prehash, &self.to_public()) {
+        if sr25519::Pair::verify(signature, digest.finalize(), &self.to_public()) {
             Ok(())
         } else {
             Err(signature::Error::new())
@@ -124,14 +124,53 @@ impl fmt::Display for PartyId {
     }
 }
 
+pub struct EntropySessionParameters;
+
+impl manul::session::SessionParameters for EntropySessionParameters {
+    type Signer = execute_protocol::PairWrapper;
+    type Verifier = PartyId;
+    type Signature = sr25519::Signature;
+    type Digest = Blake2s256;
+    type WireFormat = F;
+}
+
+#[derive(Debug)]
+pub struct BincodeWireFormat;
+
+impl manul::session::WireFormat for BincodeWireFormat {
+    fn serialize<T: Serialize>(value: T) -> Result<Box<[u8]>, manul::protocol::LocalError> {
+        Ok(bincode::serialize(&value).unwrap().into())
+    }
+
+    type Deserializer<'de>;
+
+    fn deserializer(bytes: &[u8]) -> Self::Deserializer<'_> {
+        bincode::deserialize(bytes)
+    }
+}
+
+/// A wrapper for a bincode deserializer.
+#[allow(missing_debug_implementations)]
+pub struct BincodeDeserializer<'de>(postcard::Deserializer<'de, postcard::de_flavors::Slice<'de>>);
+
+impl<'de> AsTransientDeserializer<'de> for PostcardDeserializer<'de> {
+    type Error = postcard::Error;
+
+    fn as_transient_deserializer<'a>(
+        &'a mut self,
+    ) -> impl serde::Deserializer<'de, Error = Self::Error> {
+        &mut self.0
+    }
+}
+
 #[cfg(not(test))]
-use synedrion::ProductionParams;
+use synedrion::k256::ProductionParams112;
 /// Parameters used for the threshold signing scheme in production
 #[cfg(not(test))]
-pub type KeyParams = ProductionParams;
+pub type KeyParams = ProductionParams112;
 
 #[cfg(test)]
-use synedrion::TestParams;
+use synedrion::dev::TestParams;
 /// Parameters used for the threshold signing scheme in tests (faster but less secure)
 #[cfg(test)]
 pub type KeyParams = TestParams;
