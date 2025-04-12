@@ -39,12 +39,10 @@ use k256::{
 };
 use manul::signature::DigestVerifier;
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde_persistent_deserializer::{AsTransientDeserializer, PersistentDeserializer};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
-use synedrion::{
-    signature::{self, hazmat::PrehashVerifier},
-    AuxInfo, ThresholdKeyShare,
-};
+use synedrion::{signature, AuxInfo, ThresholdKeyShare};
 
 /// The current version number of the protocol message format or protocols themselves
 pub const PROTOCOL_MESSAGE_VERSION: u32 = 1;
@@ -131,7 +129,7 @@ impl manul::session::SessionParameters for EntropySessionParameters {
     type Verifier = PartyId;
     type Signature = sr25519::Signature;
     type Digest = Blake2s256;
-    type WireFormat = F;
+    type WireFormat = BincodeWireFormat;
 }
 
 #[derive(Debug)]
@@ -142,19 +140,24 @@ impl manul::session::WireFormat for BincodeWireFormat {
         Ok(bincode::serialize(&value).unwrap().into())
     }
 
-    type Deserializer<'de>;
+    type Deserializer<'de> = PersistentDeserializer<BincodeDeserializer<'de>>;
 
     fn deserializer(bytes: &[u8]) -> Self::Deserializer<'_> {
-        bincode::deserialize(bytes)
+        PersistentDeserializer::new(BincodeDeserializer(bincode::de::Deserializer::from_slice(
+            bytes,
+            bincode::config::DefaultOptions::new(),
+        )))
     }
 }
 
 /// A wrapper for a bincode deserializer.
 #[allow(missing_debug_implementations)]
-pub struct BincodeDeserializer<'de>(postcard::Deserializer<'de, postcard::de_flavors::Slice<'de>>);
+pub struct BincodeDeserializer<'de>(
+    bincode::de::Deserializer<bincode::de::read::SliceReader<'de>, bincode::config::DefaultOptions>,
+);
 
-impl<'de> AsTransientDeserializer<'de> for PostcardDeserializer<'de> {
-    type Error = postcard::Error;
+impl<'de> AsTransientDeserializer<'de> for BincodeDeserializer<'de> {
+    type Error = bincode::Error;
 
     fn as_transient_deserializer<'a>(
         &'a mut self,
