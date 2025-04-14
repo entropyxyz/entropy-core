@@ -2661,6 +2661,7 @@ dependencies = [
  "rand_core 0.6.4",
  "schnorrkel",
  "serde",
+ "serde-persistent-deserializer",
  "serde_json",
  "serial_test",
  "snow",
@@ -11769,6 +11770,15 @@ checksum = "41015be3fac3ea5ca130f052836e50662c574547baca4d482e69e834f266e8d5"
 dependencies = [
  "base64 0.22.1",
  "hex",
+ "serde",
+]
+
+[[package]]
+name = "serde-persistent-deserializer"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1f52002cbca6cb233262e7ab1a04d4214c3a13f4ee93cec344286ff14b01147"
+dependencies = [
  "serde",
 ]
 

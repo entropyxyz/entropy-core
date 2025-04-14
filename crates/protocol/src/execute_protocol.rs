@@ -40,10 +40,10 @@ use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
     protocol_message::{ProtocolMessage, ProtocolMessagePayload},
     protocol_transport::Broadcaster,
-    KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
+    EntropySessionParameters, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
 };
 
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::BTreeSet;
 
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
 pub type ChannelOut = Broadcaster;
@@ -81,13 +81,13 @@ impl std::fmt::Debug for PairWrapper {
 
 pub async fn execute_protocol_generic<P>(
     chans: &mut Channels,
-    session: Session<P, super::EntropySessionParameters>,
+    session: Session<P, EntropySessionParameters>,
 ) -> P::Result
 where
     P: Protocol<KeyParams::Verifier>,
 {
-    let (tx_in, rx_in) = mpsc::channel::<MessageIn<KeyParams>>(1024);
-    let (tx_out, rx_out) = mpsc::channel::<MessageOut<KeyParams>>(1024);
+    let (tx_in, rx_in) = mpsc::channel::<MessageIn<EntropySessionParameters>>(1024);
+    let (tx_out, rx_out) = mpsc::channel::<MessageOut<EntropySessionParameters>>(1024);
 
     let session_id = session.session_id();
 
