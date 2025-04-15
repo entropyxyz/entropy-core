@@ -10,7 +10,7 @@ At the moment this project **does not** adhere to
 ## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...master)
 
 ### Breaking
-- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substreate version was updated, this could cause changes to the chainspec file as well requires a stratagery for command line argument ```--public-addr``` and for handling ```node-key-generation```
+- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
 
 ### Changed
 - Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
