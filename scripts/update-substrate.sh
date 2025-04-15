@@ -9,6 +9,7 @@ dir=(
   runtime
   node/cli
   pallets/*
+  crates/*
 )
 
 for d in ${dir[@]}
