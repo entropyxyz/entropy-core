@@ -28,6 +28,8 @@ pub enum SubstrateError {
     BadEvent(String),
     #[error("User is not registered on-chain")]
     NotRegistered,
+    #[error("subxt_core error: {0}")]
+    SubxtCoreError(#[from] subxt_core::Error),
 }
 
 /// An error on getting the current subgroup signers
@@ -119,6 +121,8 @@ pub enum ClientError {
     BadVerifyingKeyLength,
     #[error("There are no validators which can act as a relay node for signature requests")]
     NoNonSigningValidators,
+    #[error("subxt_core error: {0}")]
+    SubxtCoreError(#[from] subxt_core::Error),
     #[error("Scale decode: {0}")]
     Codec(#[from] parity_scale_codec::Error),
     #[error("Attestation request: {0}")]

@@ -118,26 +118,26 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(m.into()))
 	}
-	/// Storage: `TechnicalMembership::Members` (r:1 w:1)
-	/// Proof: `TechnicalMembership::Members` (`max_values`: Some(1), `max_size`: Some(3202), added: 3697, mode: `MaxEncodedLen`)
-	/// Storage: `TechnicalCommittee::Proposals` (r:1 w:0)
-	/// Proof: `TechnicalCommittee::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `TechnicalMembership::Prime` (r:1 w:0)
-	/// Proof: `TechnicalMembership::Prime` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
-	/// Storage: `TechnicalCommittee::Members` (r:0 w:1)
-	/// Proof: `TechnicalCommittee::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `TechnicalCommittee::Prime` (r:0 w:1)
-	/// Proof: `TechnicalCommittee::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Membership::Members` (r:1 w:1)
+	/// Proof: `Membership::Members` (`max_values`: Some(1), `max_size`: Some(3202), added: 3697, mode: `MaxEncodedLen`)
+	/// Storage: `Collective::Proposals` (r:1 w:0)
+	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Membership::Prime` (r:1 w:0)
+	/// Proof: `Membership::Prime` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Collective::Members` (r:0 w:1)
+	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Collective::Prime` (r:0 w:1)
+	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `m` is `[1, 100]`.
-	fn reset_member(m: u32, ) -> Weight {
+	fn reset_members(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `243 + m * (64 ±0)`
+		//  Measured:  `206 + m * (64 ±0)`
 		//  Estimated: `4687 + m * (64 ±0)`
-		// Minimum execution time: 18_990_000 picoseconds.
-		Weight::from_parts(20_488_348, 0)
+		// Minimum execution time: 15_980_000 picoseconds.
+		Weight::from_parts(17_188_812, 0)
 			.saturating_add(Weight::from_parts(0, 4687))
-			// Standard Error: 2_393
-			.saturating_add(Weight::from_parts(143_442, 0).saturating_mul(m.into()))
+			// Standard Error: 611
+			.saturating_add(Weight::from_parts(160_008, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(m.into()))
@@ -186,20 +186,17 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(2))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(m.into()))
 	}
-	/// Storage: `TechnicalMembership::Prime` (r:0 w:1)
-	/// Proof: `TechnicalMembership::Prime` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
-	/// Storage: `TechnicalCommittee::Prime` (r:0 w:1)
-	/// Proof: `TechnicalCommittee::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// The range of component `m` is `[1, 100]`.
-	fn clear_prime(m: u32, ) -> Weight {
+	/// Storage: `Membership::Prime` (r:0 w:1)
+	/// Proof: `Membership::Prime` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Collective::Prime` (r:0 w:1)
+	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn clear_prime() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 3_513_000 picoseconds.
-		Weight::from_parts(3_938_328, 0)
+		// Minimum execution time: 2_590_000 picoseconds.
+		Weight::from_parts(2_680_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 323
-			.saturating_add(Weight::from_parts(47, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }

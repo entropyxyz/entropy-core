@@ -59,7 +59,7 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    config::PolkadotExtrinsicParamsBuilder as Params,
+    config::DefaultExtrinsicParamsBuilder as Params,
     ext::sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
@@ -252,8 +252,14 @@ async fn test_signature_requests_fail_on_different_conditions() {
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: vec![],
+            },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: vec![],
+            },
         ]),
     )
     .await
@@ -1225,8 +1231,14 @@ async fn test_program_with_config() {
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
-            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: config.to_vec(),
+            },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: config.to_vec(),
+            },
         ]),
     )
     .await
@@ -1444,7 +1456,7 @@ pub async fn verify_signature(
             let sig_recovery = <sr25519::Pair as Pair>::verify(
                 &signing_result.clone().unwrap().1,
                 BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
-                &sr25519::Public(validator_info.tss_account.0),
+                &sr25519::Public::from(validator_info.tss_account.0),
             );
             sig_recovery_results.push(sig_recovery)
         }
@@ -1679,7 +1691,8 @@ async fn test_device_key_proxy() {
     };
 
     // check to make sure config data stored properly
-    let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
+    let program_query =
+        entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));
     let program_data = query_chain(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
@@ -1709,7 +1722,7 @@ async fn test_device_key_proxy() {
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: *DEVICE_KEY_HASH,
+            program_pointer: subxt::utils::H256(DEVICE_KEY_HASH.0),
             program_config: serde_json::to_vec(&device_key_user_config).unwrap(),
         }]),
     )
