@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::v2::*;
+
 use frame_system::{EventRecord, RawOrigin};
 
 use super::*;
@@ -28,27 +29,32 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-benchmarks! {
-  attest {
-    let attestee: T::AccountId = whitelisted_caller();
-    let quote = [0; 32].to_vec();
-  }: _(RawOrigin::Signed(attestee.clone()), quote.clone())
-  verify {
-    assert_last_event::<T>(
-        Event::<T>::AttestationMade.into()
-    );
+#[benchmarks]
+mod benchmarks {
+    use super::*;
 
-    // Check that there is no longer a pending attestation
-    assert!(!<PendingAttestations<T>>::contains_key(attestee));
-  }
+    #[benchmark]
+    fn attest() {
+        let attestee: T::AccountId = whitelisted_caller();
+        let quote = [0; 32].to_vec();
 
-  request_attestation {
-    let attestee: T::AccountId = whitelisted_caller();
-  }: _(RawOrigin::Signed(attestee.clone()))
-  verify {
-    // We're expecting a pending attestation queued up
-    assert!(<PendingAttestations<T>>::contains_key(attestee));
-  }
+        #[extrinsic_call]
+        _(RawOrigin::Signed(attestee.clone()), quote.clone());
+        assert_last_event::<T>(Event::<T>::AttestationMade.into());
+
+        // Check that there is no longer a pending attestation
+        assert!(!<PendingAttestations<T>>::contains_key(attestee));
+    }
+
+    #[benchmark]
+    fn request_attestation() {
+        let attestee: T::AccountId = whitelisted_caller();
+
+        #[extrinsic_call]
+        _(RawOrigin::Signed(attestee.clone()));
+        // We're expecting a pending attestation queued up
+        assert!(<PendingAttestations<T>>::contains_key(attestee));
+    }
+    impl_benchmark_test_suite!(AttestationPallet, crate::mock::new_test_ext(), crate::mock::Test);
 }
 
-impl_benchmark_test_suite!(AttestationPallet, crate::mock::new_test_ext(), crate::mock::Test);
