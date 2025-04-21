@@ -172,7 +172,7 @@ pub mod module {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight( <T as Config>::WeightInfo::max_instructions_per_programs())]
+        #[pallet::weight( <T as Config>::WeightInfo::change_max_instructions_per_programs())]
         pub fn change_max_instructions_per_programs(
             origin: OriginFor<T>,
             max_instructions_per_programs: u64,
