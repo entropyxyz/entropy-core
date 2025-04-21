@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_benchmarking::benchmarks;
-use frame_support::assert_ok;
+use frame_benchmarking::v2::*;
 use frame_system::EventRecord;
 use sp_std::vec;
 
@@ -30,64 +29,67 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-benchmarks! {
-  change_request_limit {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-  }: {
-    assert_ok!(
-      <Parameters<T>>::change_request_limit(origin, 15)
-    );
-  }
-  verify {
-    assert_last_event::<T>(Event::RequestLimitChanged{ request_limit: 15}.into());
-  }
+#[benchmarks]
+mod benchmarks {
+    use super::*;
 
-  max_instructions_per_programs {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-  }: {
-    assert_ok!(
-      <Parameters<T>>::change_max_instructions_per_programs(origin, 15)
-    );
-  }
-  verify {
-    assert_last_event::<T>(Event::MaxInstructionsPerProgramsChanged{ max_instructions_per_programs: 15}.into());
-  }
+    #[benchmark]
+    fn change_request_limit() {
+        let origin = T::UpdateOrigin::try_successful_origin().unwrap();
 
-  change_signers_info {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-    pallet_session::CurrentIndex::<T>::put(1);
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, 15.clone());
 
-    let SignersSize {
-        threshold: old_threshold,
-        total_signers: old_total_signers,
-        last_session_change: old_last_session_change,
-    } = SignersInfo::<T>::get();
+        assert_last_event::<T>(Event::RequestLimitChanged { request_limit: 15 }.into());
+    }
 
-    let signer_info = SignersSize {
-        total_signers: old_total_signers + 1,
-        threshold: old_threshold + 1,
-        last_session_change: old_last_session_change + 1,
-    };
-  }: {
-    assert_ok!(
-      <Parameters<T>>::change_signers_info(origin, signer_info.total_signers, signer_info.threshold)
-    );
-  }
-  verify {
-    assert_last_event::<T>(Event::SignerInfoChanged{ signer_info }.into());
-  }
+    #[benchmark]
+    fn change_max_instructions_per_programs() {
+        let origin = T::UpdateOrigin::try_successful_origin().unwrap();
 
-  change_accepted_measurement_values {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-    let accepted_measurement_values = vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()];
-  }: {
-    assert_ok!(
-      <Parameters<T>>::change_accepted_measurement_values(origin, accepted_measurement_values.clone())
-    );
-  }
-  verify {
-    assert_last_event::<T>(Event::AcceptedMeasurementValuesChanged{ accepted_measurement_values }.into());
-  }
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, 15.clone());
 
-  impl_benchmark_test_suite!(Parameters, crate::mock::new_test_ext(), crate::mock::Runtime);
+        assert_last_event::<T>(
+            Event::MaxInstructionsPerProgramsChanged { max_instructions_per_programs: 15 }.into(),
+        );
+    }
+
+    #[benchmark]
+    fn change_signers_info() {
+        let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+        pallet_session::CurrentIndex::<T>::put(1);
+
+        let SignersSize {
+            threshold: old_threshold,
+            total_signers: old_total_signers,
+            last_session_change: old_last_session_change,
+        } = SignersInfo::<T>::get();
+
+        let signer_info = SignersSize {
+            total_signers: old_total_signers + 1,
+            threshold: old_threshold + 1,
+            last_session_change: old_last_session_change + 1,
+        };
+
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, signer_info.total_signers, signer_info.threshold);
+
+        assert_last_event::<T>(Event::SignerInfoChanged { signer_info }.into());
+    }
+
+    #[benchmark]
+    fn change_accepted_measurement_values() {
+        let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+        let accepted_measurement_values = vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()];
+
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, accepted_measurement_values.clone());
+
+        assert_last_event::<T>(
+            Event::AcceptedMeasurementValuesChanged { accepted_measurement_values }.into(),
+        );
+    }
+
+    impl_benchmark_test_suite!(Parameters, crate::mock::new_test_ext(), crate::mock::Runtime);
 }
