@@ -229,7 +229,7 @@ mod benchamrks {
     #[benchmark]
     fn change_threshold_accounts(s: Linear<0, { MAX_SIGNERS as u32 }>) {
         let caller: T::AccountId = whitelisted_caller();
-        let _bonder: T::AccountId = account("bond", 0, SEED);
+        let _bonder: T::AccountId = account("bond", 1, SEED);
 
         let validator_id_res =
             <T as pallet_session::Config>::ValidatorId::try_from(_bonder.clone())
@@ -241,8 +241,8 @@ mod benchamrks {
         let bonder: T::ValidatorId =
             validator_id_res.expect("Issue converting account id into validator id");
 
-        let threshold: T::AccountId = account("threshold", 0, SEED);
-        let new_threshold: T::AccountId = account("new_threshold", 0, SEED);
+        let threshold: T::AccountId = account("threshold2", 1, SEED);
+        let new_threshold: T::AccountId = account("new_threshold", 1, SEED);
 
         let x25519_public_key: [u8; 32] = NULL_ARR;
         let endpoint = b"http://localhost:3001".to_vec();
@@ -279,7 +279,10 @@ mod benchamrks {
             endpoint: b"http://localhost:3001".to_vec(),
             tss_account: new_threshold.clone(),
             x25519_public_key: NULL_ARR,
-            provisioning_certification_key: BoundedVec::default(),
+            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
+                .to_vec()
+                .try_into()
+                .unwrap(),
         };
 
         assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
@@ -294,8 +297,8 @@ mod benchamrks {
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
-        let bonder: T::AccountId = account("bond", 0, SEED);
-        let threshold: T::AccountId = account("threshold", 0, SEED);
+        let bonder: T::AccountId = account("bond", 2, SEED);
+        let threshold: T::AccountId = account("threshold", 2, SEED);
 
         let signers = vec![validator_id_res.clone(); s as usize];
         Signers::<T>::put(signers.clone());
@@ -327,8 +330,8 @@ mod benchamrks {
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
-        let bonder: T::AccountId = account("bond", 0, SEED);
-        let threshold: T::AccountId = account("threshold", 0, SEED);
+        let bonder: T::AccountId = account("bond", 3, SEED);
+        let threshold: T::AccountId = account("threshold", 3, SEED);
 
         let signers = vec![validator_id_res.clone(); c as usize];
         Signers::<T>::put(signers.clone());
@@ -364,8 +367,8 @@ mod benchamrks {
         n: Linear<0, { MaxNominationsOf::<T>::get() }>,
     ) {
         let caller: T::AccountId = whitelisted_caller();
-        let bonder: T::AccountId = account("bond", 0, SEED);
-        let threshold: T::AccountId = account("threshold", 0, SEED);
+        let bonder: T::AccountId = account("bond", 4, SEED);
+        let threshold: T::AccountId = account("threshold", 4, SEED);
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
@@ -401,8 +404,8 @@ mod benchamrks {
     #[benchmark]
     fn validate() {
         let caller: T::AccountId = whitelisted_caller();
-        let bonder: T::AccountId = account("bond", 0, SEED);
-        let threshold_account: T::AccountId = account("threshold", 0, SEED);
+        let bonder: T::AccountId = account("bond", 5, SEED);
+        let threshold_account: T::AccountId = account("threshold", 5, SEED);
 
         let validator_id = <T as pallet_session::Config>::ValidatorId::try_from(bonder.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
@@ -442,7 +445,7 @@ mod benchamrks {
     }
 
     #[benchmark]
-    fn confirm_key_reshare(c: Linear<0, { MAX_SIGNERS as u32 }>) {
+    fn confirm_key_reshare_confirmed(c: Linear<0, { MAX_SIGNERS as u32 }>) {
         // leave a space for two as not to rotate and only confirm rotation
         let confirmation_num = c.checked_sub(2).unwrap_or(0);
         let signer_num = MAX_SIGNERS - 1;
@@ -450,7 +453,7 @@ mod benchamrks {
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
-        let second_signer: T::AccountId = account("second_signer", 0, SEED);
+        let second_signer: T::AccountId = account("second_signer", 6, SEED);
         let second_signer_id =
             <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
                 .or(Err(Error::<T>::InvalidValidatorId))
@@ -482,7 +485,7 @@ mod benchamrks {
         let validator_id_res = <T as pallet_session::Config>::ValidatorId::try_from(caller.clone())
             .or(Err(Error::<T>::InvalidValidatorId))
             .unwrap();
-        let second_signer: T::AccountId = account("second_signer", 0, SEED);
+        let second_signer: T::AccountId = account("second_signer", 7, SEED);
         let second_signer_id =
             <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
                 .or(Err(Error::<T>::InvalidValidatorId))
@@ -545,7 +548,7 @@ mod benchamrks {
         // r -> adds remove indexes in
 
         let mut validator_ids = create_validators::<T>(v, 1);
-        let second_signer: T::AccountId = account("second_signer", 0, 10);
+        let second_signer: T::AccountId = account("second_signer", 8, 10);
         let second_signer_id =
             <T as pallet_session::Config>::ValidatorId::try_from(second_signer.clone())
                 .or(Err(Error::<T>::InvalidValidatorId))
@@ -583,7 +586,7 @@ mod benchamrks {
     fn report_unstable_peer(s: Linear<0, { (MAX_SIGNERS - 2) as u32 }>) {
         // We subtract `2` here to give room to our test signers
         let threshold_reporter: T::AccountId = whitelisted_caller();
-        let threshold_offender: T::AccountId = account("threshold_offender", 0, SEED);
+        let threshold_offender: T::AccountId = account("threshold_offender", 9, SEED);
 
         let reporter_validator_id =
             <T as pallet_session::Config>::ValidatorId::try_from(threshold_reporter.clone())
