@@ -57,4 +57,3 @@ mod benchmarks {
     }
     impl_benchmark_test_suite!(AttestationPallet, crate::mock::new_test_ext(), crate::mock::Test);
 }
-

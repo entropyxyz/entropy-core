@@ -241,7 +241,7 @@ mod benchamrks {
         let bonder: T::ValidatorId =
             validator_id_res.expect("Issue converting account id into validator id");
 
-        let threshold: T::AccountId = account("threshold2", 1, SEED);
+        let threshold: T::AccountId = account("threshold", 1, SEED);
         let new_threshold: T::AccountId = account("new_threshold", 1, SEED);
 
         let x25519_public_key: [u8; 32] = NULL_ARR;
@@ -275,14 +275,17 @@ mod benchamrks {
             quote,
         );
 
+        let provisioning_certification_key = if cfg!(test) {
+            BoundedVec::default()
+        } else {
+            MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap()
+        };
+
         let server_info = ServerInfo {
             endpoint: b"http://localhost:3001".to_vec(),
             tss_account: new_threshold.clone(),
             x25519_public_key: NULL_ARR,
-            provisioning_certification_key: MOCK_PCK_DERIVED_FROM_NULL_ARRAY
-                .to_vec()
-                .try_into()
-                .unwrap(),
+            provisioning_certification_key,
         };
 
         assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
