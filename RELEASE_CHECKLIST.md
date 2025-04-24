@@ -4,7 +4,7 @@ This is instructions for creating a release candidate, which on finding it works
 tagged as the final release.
 
 ## Pre-Prep
-- [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Discord)
+- [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Slack)
 - [ ] Create a release branch, e.g., for release candidate `1`: `release/vX.Y.Z-rc.1`.
 
 ## Prep the Runtime and Node
@@ -87,7 +87,7 @@ tagged as the final release.
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
-- [ ] Inform relevant parties (e.g, by posting on Discord)
+- [ ] Inform relevant parties (e.g, by posting on Slack)
 
 ## Promote Release Candidate
 - [ ] If something turns out to not work correctly when using the release, follow this checklist
