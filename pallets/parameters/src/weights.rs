@@ -45,7 +45,7 @@ use core::marker::PhantomData;
 /// Weight functions needed for pallet_transaction_pause.
 pub trait WeightInfo {
        fn change_request_limit() -> Weight;
-       fn max_instructions_per_programs() -> Weight;
+       fn change_max_instructions_per_programs() -> Weight;
        fn change_signers_info() -> Weight;
        fn change_accepted_measurement_values() -> Weight;
 }
@@ -67,7 +67,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
     /// Storage: `Parameters::MaxInstructionsPerPrograms` (r:0 w:1)
     /// Proof: `Parameters::MaxInstructionsPerPrograms` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-    fn max_instructions_per_programs() -> Weight {
+    fn change_max_instructions_per_programs() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
@@ -118,7 +118,7 @@ impl WeightInfo for () {
 
     /// Storage: `Parameters::MaxInstructionsPerPrograms` (r:0 w:1)
     /// Proof: `Parameters::MaxInstructionsPerPrograms` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-    fn max_instructions_per_programs() -> Weight {
+    fn change_max_instructions_per_programs() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`

@@ -19,15 +19,25 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as Oracle;
-use frame_benchmarking::benchmarks;
+use frame_benchmarking::v2::*;
 
-benchmarks! {
-  on_initialize {
-  }: {
-    Oracle::<T>::on_initialize(50u32.into());
-    } verify {
-    assert_eq!(OracleData::<T>::get(BoundedVec::try_from("block_number_entropy".encode()).unwrap()).unwrap()[0], 50);
+#[benchmarks]
+mod benchmarks {
+    use super::*;
+
+    #[benchmark]
+    fn on_initialize() {
+        #[block]
+        {
+            Oracle::<T>::on_initialize(50u32.into());
+        }
+
+        assert_eq!(
+            OracleData::<T>::get(BoundedVec::try_from("block_number_entropy".encode()).unwrap())
+                .unwrap()[0],
+            50
+        );
     }
 
-  impl_benchmark_test_suite!(Oracle, crate::mock::new_test_ext(), crate::mock::Test);
+    impl_benchmark_test_suite!(Oracle, crate::mock::new_test_ext(), crate::mock::Test);
 }

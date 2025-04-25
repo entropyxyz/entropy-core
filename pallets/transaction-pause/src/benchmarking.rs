@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use frame_benchmarking::benchmarks;
-use frame_support::assert_ok;
+use frame_benchmarking::v2::*;
 use frame_system::EventRecord;
 
 use super::*;
@@ -29,30 +28,51 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-benchmarks! {
-  pause_transaction {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+#[benchmarks]
+mod benchmarks {
+    use super::*;
 
-  }: {
-    assert_ok!(
-      <TransactionPause<T>>::pause_transaction(origin, b"Balances".to_vec(), b"transfer".to_vec())
+    #[benchmark]
+    fn pause_transaction() {
+        let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, b"Balances".to_vec(), b"transfer".to_vec());
+
+        assert_last_event::<T>(
+            Event::TransactionPaused {
+                pallet_name_bytes: b"Balances".to_vec(),
+                function_name_bytes: b"transfer".to_vec(),
+            }
+            .into(),
+        );
+    }
+
+    #[benchmark]
+    fn unpause_transaction() {
+        let origin = T::UpdateOrigin::try_successful_origin().unwrap();
+        <TransactionPause<T>>::pause_transaction(
+            origin.clone(),
+            b"Balances".to_vec(),
+            b"transfer".to_vec(),
+        )
+        .unwrap();
+
+        #[extrinsic_call]
+        _(origin as T::RuntimeOrigin, b"Balances".to_vec(), b"transfer".to_vec());
+
+        assert_last_event::<T>(
+            Event::TransactionUnpaused {
+                pallet_name_bytes: b"Balances".to_vec(),
+                function_name_bytes: b"transfer".to_vec(),
+            }
+            .into(),
+        );
+    }
+
+    impl_benchmark_test_suite!(
+        TransactionPause,
+        crate::mock::ExtBuilder::default().build(),
+        crate::mock::Runtime
     );
-  }
-  verify {
-    assert_last_event::<T>(Event::TransactionPaused{ pallet_name_bytes: b"Balances".to_vec(), function_name_bytes: b"transfer".to_vec()}.into());
-  }
-
-  unpause_transaction {
-    let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-    <TransactionPause<T>>::pause_transaction(origin.clone(), b"Balances".to_vec(), b"transfer".to_vec())?;
-  }: {
-    assert_ok!(
-      <TransactionPause<T>>::unpause_transaction(origin, b"Balances".to_vec(), b"transfer".to_vec())
-    );
-  }
-  verify {
-    assert_last_event::<T>(Event::TransactionUnpaused{ pallet_name_bytes: b"Balances".to_vec(), function_name_bytes: b"transfer".to_vec()}.into());
-  }
-
-  impl_benchmark_test_suite!(TransactionPause, crate::mock::ExtBuilder::default().build(), crate::mock::Runtime);
 }
