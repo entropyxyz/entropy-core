@@ -39,7 +39,7 @@ pub struct ProtocolMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProtocolMessagePayload {
     /// The signed protocol message
-    Message(Vec<u8>),
+    Message(Message<PartyId>),
     /// A verifying key for parties who were not present in the key init session
     VerifyingKey(Vec<u8>),
 }
@@ -54,7 +54,7 @@ impl TryFrom<&[u8]> for ProtocolMessage {
 }
 
 impl ProtocolMessage {
-    pub(crate) fn new(from: &PartyId, to: &PartyId, payload: Vec<u8>) -> Self {
+    pub(crate) fn new(from: &PartyId, to: &PartyId, payload: Message<PartyId>) -> Self {
         Self {
             from: from.clone(),
             to: to.clone(),

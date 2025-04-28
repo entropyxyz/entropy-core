@@ -35,7 +35,7 @@ use std::{
     time::Duration,
 };
 use subxt::utils::AccountId32;
-use synedrion::{AuxInfo, KeyResharingInputs, KeyShare, NewHolder, OldHolder, ThresholdKeyShare};
+use synedrion::{AuxInfo, KeyResharing, KeyShare, NewHolder, OldHolder, ThresholdKeyShare};
 use tokio::{
     net::{TcpListener, TcpStream},
     time::timeout,
@@ -120,7 +120,7 @@ pub async fn server(
                 channels,
                 &keyshare.unwrap(),
                 &aux_info.unwrap(),
-                &session_info.message_hash,
+                (&session_info.message_hash).into(),
                 &pair,
                 tss_accounts,
             )
@@ -133,16 +133,16 @@ pub async fn server(
             let old_key = threshold_keyshare.unwrap();
             let party_ids: BTreeSet<PartyId> =
                 tss_accounts.iter().cloned().map(PartyId::new).collect();
-            let inputs = KeyResharingInputs {
-                old_holder: Some(OldHolder { key_share: old_key.clone() }),
-                new_holder: Some(NewHolder {
-                    verifying_key: old_key.verifying_key(),
+            let inputs = KeyResharing::new(
+                Some(OldHolder { key_share: old_key.clone() }),
+                Some(NewHolder {
+                    verifying_key: old_key.verifying_key().unwrap(),
                     old_threshold: party_ids.len(),
                     old_holders: party_ids.clone(),
                 }),
-                new_holders: party_ids.clone(),
-                new_threshold: old_key.threshold(),
-            };
+                party_ids.clone(),
+                old_key.threshold(),
+            );
 
             let new_keyshare =
                 execute_reshare(session_id, channels, &pair, inputs, &party_ids, None).await?;

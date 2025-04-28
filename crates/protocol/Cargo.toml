@@ -11,7 +11,8 @@ edition    ='2021'
 [dependencies]
 async-trait                  ="0.1.88"
 entropy-shared               ={ version="0.4.0-rc.1", path="../shared", default-features=false }
-synedrion                    ={ version="0.3.0", features=["k256", "dev"] }
+# synedrion                    ={ version="0.3.0", features=["k256", "dev"] }
+synedrion                    ={ path="../../../synedrion", features=["k256", "dev"] }
 serde                        ={ version="1.0", features=["derive"], default-features=false }
 subxt                        ={ version="0.35.3", default-features=false }
 sp-core                      ={ version="31.0.0", default-features=false, features=["full_crypto", "serde"] }
@@ -33,7 +34,7 @@ hpke-rs-crypto               ="0.2.0"
 hpke-rs-rust-crypto          ="0.2.0"
 num                          ="0.4.3"
 k256                         ={ version="0.13", default-features=false, features=["ecdsa"] }
-manul                        ={ version="0.2.0", features=["tokio"] }
+manul                        ={ git="https://github.com/entropyxyz/manul.git", rev="f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0", features=["tokio"] }
 serde-persistent-deserializer={ version="0.3" }
 
 # Used only with the `server` feature to implement the WsConnection trait
@@ -48,6 +49,7 @@ wasm-bindgen-derive ={ version="0.3", optional=true }
 js-sys              ={ version="0.3.74", optional=true }
 base64              ={ version="0.22.1", optional=true }
 schnorrkel          ={ version="0.11.4", default-features=false, features=["std"], optional=true }
+tracing-subscriber = {version="0.3.19", features=["env-filter"]}
 
 [dev-dependencies]
 serial_test="3.2.0"

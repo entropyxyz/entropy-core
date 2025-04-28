@@ -19,12 +19,13 @@
 
 use entropy_protocol::{KeyParams, PartyId, SessionId, SigningSessionInfo, ValidatorInfo};
 use futures::future;
+use k256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use std::{cmp::min, time::Instant};
 use subxt::utils::AccountId32;
-use synedrion::{ecdsa::VerifyingKey, AuxInfo, KeyShare, ThresholdKeyShare};
+use synedrion::{AuxInfo, KeyShare, ThresholdKeyShare};
 use tokio::{net::TcpListener, runtime::Runtime, sync::oneshot};
 use x25519_dalek::StaticSecret;
 
@@ -34,7 +35,7 @@ use helpers::{server, ProtocolOutput};
 use std::collections::BTreeSet;
 
 /// The maximum number of worker threads that tokio should use
-const MAX_THREADS: usize = 16;
+const MAX_THREADS: usize = 4;
 
 #[test]
 #[serial]
@@ -57,6 +58,10 @@ fn refresh_protocol_with_time_logged() {
 #[test]
 #[serial]
 fn dkg_protocol_with_time_logged() {
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env()) // respects RUST_LOG
+        .init();
+
     let num_parties = min(num_cpus::get(), MAX_THREADS);
     get_tokio_runtime(num_parties).block_on(async {
         test_dkg_with_parties(num_parties).await;
@@ -78,7 +83,7 @@ async fn test_sign_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
     let aux_infos = AuxInfo::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids);
-    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key().unwrap();
+    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key();
 
     let parties: Vec<_> = pairs
         .iter()
@@ -114,7 +119,7 @@ async fn test_sign_with_parties(num_parties: usize) {
 async fn test_refresh_with_parties(num_parties: usize) {
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let keyshares = KeyShare::<KeyParams, PartyId>::new_centralized(&mut OsRng, &ids, None);
-    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key().unwrap();
+    let verifying_key = keyshares[&PartyId::from(pairs[0].public())].verifying_key();
 
     let session_id = SessionId::Reshare {
         verifying_key: verifying_key.to_encoded_point(true).as_bytes().to_vec(),
@@ -135,7 +140,7 @@ async fn test_refresh_with_parties(num_parties: usize) {
     let threshold = parties.len();
     let mut outputs = test_protocol_with_parties(parties, session_id, threshold).await;
     if let ProtocolOutput::Reshare(keyshare) = outputs.pop().unwrap() {
-        assert!(keyshare.verifying_key() == verifying_key);
+        assert!(keyshare.verifying_key().unwrap() == verifying_key);
     } else {
         panic!("Unexpected protocol output");
     }
@@ -177,7 +182,7 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
         .into_iter()
         .filter_map(|output| {
             if let ProtocolOutput::Dkg((threshold_keyshare, aux_info)) = output {
-                let keyshare = threshold_keyshare.to_key_share(&signing_committee);
+                let keyshare = threshold_keyshare.to_key_share(&signing_committee).unwrap();
                 if signing_committee.contains(keyshare.owner()) {
                     let pair = pairs
                         .iter()
@@ -198,7 +203,7 @@ async fn test_dkg_and_sign_with_parties(num_parties: usize) {
         })
         .collect();
 
-    let verifying_key = parties[0].keyshare.clone().unwrap().verifying_key().unwrap();
+    let verifying_key = parties[0].keyshare.clone().unwrap().verifying_key();
 
     let message_hash = [0u8; 32];
     let session_id = SessionId::Sign(SigningSessionInfo {

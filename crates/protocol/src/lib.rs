@@ -42,7 +42,7 @@ use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use serde_persistent_deserializer::{AsTransientDeserializer, PersistentDeserializer};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
-use synedrion::{signature, AuxInfo, ThresholdKeyShare};
+use synedrion::{k256::ProductionParams112, signature, AuxInfo, ThresholdKeyShare};
 
 /// The current version number of the protocol message format or protocols themselves
 pub const PROTOCOL_MESSAGE_VERSION: u32 = 1;
@@ -166,8 +166,6 @@ impl<'de> AsTransientDeserializer<'de> for BincodeDeserializer<'de> {
     }
 }
 
-#[cfg(not(test))]
-use synedrion::k256::ProductionParams112;
 /// Parameters used for the threshold signing scheme in production
 #[cfg(not(test))]
 pub type KeyParams = ProductionParams112;
@@ -176,7 +174,7 @@ pub type KeyParams = ProductionParams112;
 use synedrion::dev::TestParams;
 /// Parameters used for the threshold signing scheme in tests (faster but less secure)
 #[cfg(test)]
-pub type KeyParams = TestParams;
+pub type KeyParams = ProductionParams112; //TestParams;
 
 pub use synedrion::KeyShare;
 
