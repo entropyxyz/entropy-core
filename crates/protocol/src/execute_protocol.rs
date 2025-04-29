@@ -37,7 +37,7 @@ use synedrion::{
 use tokio::sync::mpsc;
 
 use crate::{
-    errors::{GenericProtocolError, ProtocolExecutionErr},
+    errors::ProtocolExecutionErr,
     protocol_message::{ProtocolMessage, ProtocolMessagePayload},
     protocol_transport::Broadcaster,
     EntropySessionParameters, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
@@ -45,12 +45,15 @@ use crate::{
 
 use std::collections::BTreeSet;
 
+/// For incoming protocol messages
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
+/// For outgoing protocol messages
 pub type ChannelOut = Broadcaster;
 
 /// Thin wrapper broadcasting channel out and messages from other nodes in
 pub struct Channels(pub ChannelOut, pub ChannelIn);
 
+/// Wraps [sr25519::Pair] with the needed traits to using for signing protocol messages
 #[derive(Clone)]
 pub struct PairWrapper(pub sr25519::Pair);
 
@@ -80,10 +83,11 @@ impl std::fmt::Debug for PairWrapper {
     }
 }
 
+/// Execute any of the protocols with a given session
 pub async fn execute_protocol_generic<P>(
     mut chans: Channels,
     session: Session<P, EntropySessionParameters>,
-) -> Result<(P::Result, Channels), GenericProtocolError>
+) -> Result<(P::Result, Channels), ProtocolExecutionErr>
 where
     P: Protocol<PartyId>,
     <P as manul::protocol::Protocol<PartyId>>::ProtocolError: std::marker::Send,
@@ -93,6 +97,7 @@ where
     let (tx_in, mut rx_in) = mpsc::channel::<MessageIn<EntropySessionParameters>>(1024);
     let (tx_out, mut rx_out) = mpsc::channel::<MessageOut<EntropySessionParameters>>(1024);
 
+    // Handle outgoing messages
     let broadcast_out = chans.0.clone();
     tokio::spawn(async move {
         while let Some(msg_out) = rx_out.recv().await {
@@ -107,6 +112,7 @@ where
         }
     });
 
+    // Handle incoming messages
     let (stop_signal_tx, mut stop_signal_rx) = mpsc::channel(1);
     let join_handle = tokio::spawn(async move {
         loop {
@@ -132,6 +138,7 @@ where
         chans
     });
 
+    // Run protocol
     let session_report = par_run_session(&mut OsRng, &tx_out, &mut rx_in, session).await?;
 
     // Send closing signal to incoming message loop so we can get channels back
@@ -140,8 +147,8 @@ where
 
     match session_report.outcome {
         SessionOutcome::Result(output) => Ok((output, chans)),
-        SessionOutcome::Terminated => Err(GenericProtocolError::Terminated),
-        SessionOutcome::NotEnoughMessages => Err(GenericProtocolError::NotEnoughMessages),
+        SessionOutcome::Terminated => Err(ProtocolExecutionErr::Terminated),
+        SessionOutcome::NotEnoughMessages => Err(ProtocolExecutionErr::NotEnoughMessages),
     }
 }
 
