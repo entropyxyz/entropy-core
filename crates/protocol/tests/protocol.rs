@@ -35,11 +35,15 @@ use helpers::{server, ProtocolOutput};
 use std::collections::BTreeSet;
 
 /// The maximum number of worker threads that tokio should use
-const MAX_THREADS: usize = 4;
+const MAX_THREADS: usize = 8;
 
 #[test]
 #[serial]
 fn sign_protocol_with_time_logged() {
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     let num_parties = min(num_cpus::get(), MAX_THREADS);
     get_tokio_runtime(num_parties).block_on(async {
         test_sign_with_parties(num_parties).await;
@@ -49,6 +53,10 @@ fn sign_protocol_with_time_logged() {
 #[test]
 #[serial]
 fn refresh_protocol_with_time_logged() {
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     let num_parties = min(num_cpus::get(), MAX_THREADS);
     get_tokio_runtime(num_parties).block_on(async {
         test_refresh_with_parties(num_parties).await;
@@ -59,7 +67,7 @@ fn refresh_protocol_with_time_logged() {
 #[serial]
 fn dkg_protocol_with_time_logged() {
     tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env()) // respects RUST_LOG
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
     let num_parties = min(num_cpus::get(), MAX_THREADS);
@@ -71,6 +79,10 @@ fn dkg_protocol_with_time_logged() {
 #[test]
 #[serial]
 fn t_of_n_dkg_and_sign() {
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     let cpus = min(num_cpus::get(), MAX_THREADS);
     // For this test we need at least 3 parties
     let parties = 3;
@@ -162,7 +174,7 @@ async fn test_dkg_with_parties(num_parties: usize) {
 async fn test_dkg_and_sign_with_parties(num_parties: usize) {
     let threshold = num_parties - 1;
     if threshold < 2 {
-        panic!("Not enought parties to test threshold signing");
+        panic!("Not enough parties to test threshold signing");
     }
     let (pairs, ids) = get_keypairs_and_ids(num_parties);
     let dkg_parties =
