@@ -40,10 +40,6 @@ const MAX_THREADS: usize = 8;
 #[test]
 #[serial]
 fn sign_protocol_with_time_logged() {
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
-
     let num_parties = min(num_cpus::get(), MAX_THREADS);
     get_tokio_runtime(num_parties).block_on(async {
         test_sign_with_parties(num_parties).await;
@@ -53,10 +49,6 @@ fn sign_protocol_with_time_logged() {
 #[test]
 #[serial]
 fn refresh_protocol_with_time_logged() {
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
-
     let num_parties = min(num_cpus::get(), MAX_THREADS);
     get_tokio_runtime(num_parties).block_on(async {
         test_refresh_with_parties(num_parties).await;
@@ -66,10 +58,6 @@ fn refresh_protocol_with_time_logged() {
 #[test]
 #[serial]
 fn dkg_protocol_with_time_logged() {
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
-
     let num_parties = min(num_cpus::get(), MAX_THREADS);
     get_tokio_runtime(num_parties).block_on(async {
         test_dkg_with_parties(num_parties).await;
@@ -79,10 +67,6 @@ fn dkg_protocol_with_time_logged() {
 #[test]
 #[serial]
 fn t_of_n_dkg_and_sign() {
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
-
     let cpus = min(num_cpus::get(), MAX_THREADS);
     // For this test we need at least 3 parties
     let parties = 3;
