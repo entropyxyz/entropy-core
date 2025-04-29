@@ -20,101 +20,29 @@
 use manul::protocol::LocalError;
 use thiserror::Error;
 
-use crate::{protocol_message::ProtocolMessage, KeyParams, PartyId};
+use crate::protocol_message::ProtocolMessage;
 
 #[derive(Debug, Error)]
 pub enum GenericProtocolError {
-    //#[error("Synedrion local error {0}")]
-    //Local(#[from] LocalError),
-    //#[error("Synedrion session error {0}")]
-    //Joined(Box<sessions::Error<Res, PartyId>>),
-    #[error("Incoming message stream error: {0}")]
-    IncomingStream(String),
-    #[error("Broadcast error: {0}")]
-    Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
-    #[error("Mpsc send error: {0}")]
-    Mpsc(#[from] tokio::sync::mpsc::error::SendError<ProtocolMessage>),
-    #[error("Could not get session out of Arc - session has finalized before message processing finished")]
-    ArcUnwrapError,
+    #[error("Manul local error {0}")]
+    Local(String),
+    // #[error("Incoming message stream error: {0}")]
+    // IncomingStream(String),
     #[error("Message processing task panic or cancellation: {0}")]
     JoinHandle(#[from] tokio::task::JoinError),
+    #[error("The protocol session was terminated by the user")]
+    Terminated,
+    #[error("The protocol execution stalled because not enough messages were received to finalize the round")]
+    NotEnoughMessages,
+    #[error("Could not sent stop signal to incoming message handler - likely the handler has already terminated")]
+    StopSignal(#[from] tokio::sync::mpsc::error::SendError<()>),
 }
 
-//impl<Res: ProtocolResult> From<sessions::LocalError> for GenericProtocolError<Res> {
-//    fn from(err: sessions::LocalError) -> Self {
-//        Self::Joined(Box::new(sessions::Error::Local(err)))
-//    }
-//}
-//
-//impl<Res: ProtocolResult> From<sessions::RemoteError<PartyId>> for GenericProtocolError<Res> {
-//    fn from(err: sessions::RemoteError<PartyId>) -> Self {
-//        Self::Joined(Box::new(sessions::Error::Remote(err)))
-//    }
-//}
-//
-//impl<Res: ProtocolResult> From<sessions::Error<Res, PartyId>> for GenericProtocolError<Res> {
-//    fn from(err: sessions::Error<Res, PartyId>) -> Self {
-//        Self::Joined(Box::new(err))
-//    }
-//}
-//
-//impl From<GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>>
-//    for ProtocolExecutionErr
-//{
-//    fn from(err: GenericProtocolError<InteractiveSigningResult<KeyParams, PartyId>>) -> Self {
-//        tracing::error!("{:?}", err);
-//        match err {
-//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::SigningProtocolError(err),
-//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-//        }
-//    }
-//}
-//
-//impl From<GenericProtocolError<KeyInitResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
-//    fn from(err: GenericProtocolError<KeyInitResult<KeyParams, PartyId>>) -> Self {
-//        tracing::error!("{:?}", err);
-//        match err {
-//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyInitProtocolError(err),
-//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-//        }
-//    }
-//}
-//
-//impl From<GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
-//    fn from(err: GenericProtocolError<KeyResharingResult<KeyParams, PartyId>>) -> Self {
-//        tracing::error!("{:?}", err);
-//        match err {
-//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::KeyReshareProtocolError(err),
-//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-//        }
-//    }
-//}
-//
-//impl From<GenericProtocolError<AuxGenResult<KeyParams, PartyId>>> for ProtocolExecutionErr {
-//    fn from(err: GenericProtocolError<AuxGenResult<KeyParams, PartyId>>) -> Self {
-//        tracing::error!("{:?}", err);
-//        match err {
-//            GenericProtocolError::Joined(err) => ProtocolExecutionErr::AuxGenProtocolError(err),
-//            GenericProtocolError::IncomingStream(err) => ProtocolExecutionErr::IncomingStream(err),
-//            GenericProtocolError::Broadcast(err) => ProtocolExecutionErr::Broadcast(err),
-//            GenericProtocolError::Mpsc(err) => ProtocolExecutionErr::Mpsc(err),
-//            GenericProtocolError::ArcUnwrapError => ProtocolExecutionErr::ArcUnwrapError,
-//            GenericProtocolError::JoinHandle(err) => ProtocolExecutionErr::JoinHandle(err),
-//        }
-//    }
-//}
+impl From<LocalError> for GenericProtocolError {
+    fn from(err: LocalError) -> Self {
+        Self::Local(format!("{err:?}"))
+    }
+}
 
 /// An error during or while setting up a protocol session
 #[derive(Debug, Error)]
@@ -157,6 +85,16 @@ pub enum ProtocolExecutionErr {
     JoinHandle(#[from] tokio::task::JoinError),
     #[error("Could not get validating key from keyshare")]
     NoValidatingKey,
+    #[error("Generic protocol error: {0}")]
+    GenericProtocolError(#[from] GenericProtocolError),
+    #[error("Manul local error {0}")]
+    Local(String),
+}
+
+impl From<LocalError> for ProtocolExecutionErr {
+    fn from(err: LocalError) -> Self {
+        Self::Local(format!("{err:?}"))
+    }
 }
 
 #[derive(Debug, Error)]

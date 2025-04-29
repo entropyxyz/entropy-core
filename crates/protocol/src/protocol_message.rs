@@ -17,7 +17,6 @@ use std::str;
 
 use manul::session::Message;
 use serde::{Deserialize, Serialize};
-use sp_core::sr25519;
 
 use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
