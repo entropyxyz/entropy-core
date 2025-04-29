@@ -18,10 +18,10 @@
 use blake2::{Blake2s256, Digest};
 use k256::{ecdsa::VerifyingKey, EncodedPoint};
 use manul::{
-    protocol::{PartyId, Protocol},
+    protocol::Protocol,
     session::{
         tokio::{par_run_session, MessageIn, MessageOut},
-        Session, SessionId as ManulSessionId, SessionOutcome, SessionReport,
+        Session, SessionId as ManulSessionId, SessionOutcome,
     },
     signature::RandomizedDigestSigner,
 };
@@ -41,8 +41,7 @@ use crate::{
     errors::{GenericProtocolError, ProtocolExecutionErr},
     protocol_message::{ProtocolMessage, ProtocolMessagePayload},
     protocol_transport::Broadcaster,
-    EntropySessionParameters, KeyParams, KeyShareWithAuxInfo, PartyId as EntropyPartyId, SessionId,
-    Subsession,
+    EntropySessionParameters, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
 };
 
 use std::collections::BTreeSet;
@@ -57,7 +56,7 @@ pub struct Channels(pub ChannelOut, pub ChannelIn);
 pub struct PairWrapper(pub sr25519::Pair);
 
 impl signature::Keypair for PairWrapper {
-    type VerifyingKey = EntropyPartyId;
+    type VerifyingKey = PartyId;
 
     fn verifying_key(&self) -> Self::VerifyingKey {
         self.0.public().into()
@@ -87,9 +86,10 @@ pub async fn execute_protocol_generic<P>(
     session: Session<P, EntropySessionParameters>,
 ) -> (P::Result, Channels)
 where
-    P: Protocol<EntropyPartyId>,
-    <P as manul::protocol::Protocol<EntropyPartyId>>::ProtocolError: std::marker::Send,
-    <P as manul::protocol::Protocol<EntropyPartyId>>::ProtocolError: Sync,
+    P: Protocol<PartyId>,
+    <P as manul::protocol::Protocol<PartyId>>::ProtocolError: std::marker::Send,
+    <P as manul::protocol::Protocol<PartyId>>::ProtocolError: Sync,
+    <P as manul::protocol::Protocol<PartyId>>::Result: std::marker::Send,
 {
     let (tx_in, mut rx_in) = mpsc::channel::<MessageIn<EntropySessionParameters>>(1024);
     let (tx_out, mut rx_out) = mpsc::channel::<MessageOut<EntropySessionParameters>>(1024);
@@ -103,23 +103,36 @@ where
         }
     });
 
+    let (stop_signal_tx, mut stop_signal_rx) = mpsc::channel(1);
     let join_handle = tokio::spawn(async move {
-        while let Some(protocol_message) = chans.1.recv().await {
-            let from = protocol_message.from;
-            if let ProtocolMessagePayload::Message(message) = protocol_message.payload {
-                tx_in.send(MessageIn { from, message }).await.unwrap();
+        loop {
+            tokio::select! {
+                protocol_message_option = chans.1.recv() => {
+                    if let Some(protocol_message) = protocol_message_option {
+                        let from = protocol_message.from;
+                        if let ProtocolMessagePayload::Message(message) = protocol_message.payload {
+                            tx_in.send(MessageIn { from, message }).await.unwrap();
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                _ = stop_signal_rx.recv() => {
+                    break;
+                }
             }
         }
-        debug!("Channel handling finished");
         chans
     });
 
-    debug!("Session starting");
     let session_report = par_run_session(&mut OsRng, &tx_out, &mut rx_in, session).await.unwrap();
-    debug!("session finished");
+
+    // Send closing signal to incoming message loop so we can get channels back
+    stop_signal_tx.send(()).await.unwrap();
+    let chans = join_handle.await.unwrap();
 
     if let SessionOutcome::Result(output) = session_report.outcome {
-        let chans = join_handle.await.unwrap();
+        debug!("returning");
         return (output, chans);
     } else {
         panic!("Session not successful");
@@ -134,9 +147,9 @@ where
 )]
 pub async fn execute_signing_protocol(
     session_id: SessionId,
-    mut chans: Channels,
-    key_share: &KeyShare<KeyParams, EntropyPartyId>,
-    aux_info: &AuxInfo<KeyParams, EntropyPartyId>,
+    chans: Channels,
+    key_share: &KeyShare<KeyParams, PartyId>,
+    aux_info: &AuxInfo<KeyParams, PartyId>,
     prehashed_message: &PrehashedMessage<k256::Secp256k1>,
     threshold_pair: &sr25519::Pair,
     threshold_accounts: Vec<AccountId32>,
@@ -144,8 +157,8 @@ pub async fn execute_signing_protocol(
     tracing::debug!("Executing signing protocol");
     tracing::trace!("Using key share with verifying key {:?}", &key_share.verifying_key());
 
-    let party_ids: BTreeSet<EntropyPartyId> =
-        threshold_accounts.iter().cloned().map(EntropyPartyId::new).collect();
+    let party_ids: BTreeSet<PartyId> =
+        threshold_accounts.iter().cloned().map(PartyId::new).collect();
 
     let pair = PairWrapper(threshold_pair.clone());
 
@@ -180,12 +193,12 @@ pub async fn execute_dkg(
 ) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
     tracing::debug!("Executing DKG");
 
-    let party_ids: BTreeSet<EntropyPartyId> =
-        threshold_accounts.iter().cloned().map(EntropyPartyId::new).collect();
+    let party_ids: BTreeSet<PartyId> =
+        threshold_accounts.iter().cloned().map(PartyId::new).collect();
 
     let pair = PairWrapper(threshold_pair.clone());
 
-    let my_party_id = EntropyPartyId::new(AccountId32(threshold_pair.public().0));
+    let my_party_id = PartyId::new(AccountId32(threshold_pair.public().0));
 
     let session_id_hash = session_id.blake2(Some(Subsession::KeyInit))?;
     let (key_init_parties, includes_me) =
@@ -253,9 +266,9 @@ pub async fn execute_dkg(
     };
 
     // Now reshare to all n parties
-    let entry_point = KeyResharing::<KeyParams, EntropyPartyId>::new(
+    let entry_point = KeyResharing::<KeyParams, PartyId>::new(
         old_holder,
-        Some(NewHolder::<KeyParams, EntropyPartyId> {
+        Some(NewHolder::<KeyParams, PartyId> {
             verifying_key,
             old_threshold: threshold,
             old_holders: key_init_parties,
@@ -314,11 +327,11 @@ pub async fn execute_reshare(
     session_id: SessionId,
     chans: Channels,
     threshold_pair: &sr25519::Pair,
-    entry_point: KeyResharing<KeyParams, EntropyPartyId>,
-    verifiers: &BTreeSet<EntropyPartyId>,
-    aux_info_option: Option<AuxInfo<KeyParams, EntropyPartyId>>,
+    entry_point: KeyResharing<KeyParams, PartyId>,
+    verifiers: &BTreeSet<PartyId>,
+    aux_info_option: Option<AuxInfo<KeyParams, PartyId>>,
 ) -> Result<
-    (ThresholdKeyShare<KeyParams, EntropyPartyId>, AuxInfo<KeyParams, EntropyPartyId>),
+    (ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>),
     ProtocolExecutionErr,
 > {
     tracing::info!("Executing reshare");
@@ -359,12 +372,6 @@ pub async fn execute_reshare(
             entry_point,
         )
         .unwrap();
-        //let session = make_aux_gen_session(
-        //    &mut OsRng,
-        //    SynedrionSessionId::from_seed(session_id_hash_aux_data.as_slice()),
-        //    PairWrapper(threshold_pair.clone()),
-        //    &inputs.new_holders,
-        //)
         //.map_err(ProtocolExecutionErr::SessionCreation)?;
 
         execute_protocol_generic(chans, session).await.0
@@ -375,12 +382,12 @@ pub async fn execute_reshare(
 
 /// Psuedo-randomly select a subset of the parties of size `threshold`
 fn get_key_init_parties(
-    my_party_id: &EntropyPartyId,
+    my_party_id: &PartyId,
     threshold: usize,
-    validators: &BTreeSet<EntropyPartyId>,
+    validators: &BTreeSet<PartyId>,
     session_id_hash: &[u8],
-) -> Result<(BTreeSet<EntropyPartyId>, bool), ProtocolExecutionErr> {
-    let validators = validators.iter().cloned().collect::<Vec<EntropyPartyId>>();
+) -> Result<(BTreeSet<PartyId>, bool), ProtocolExecutionErr> {
+    let validators = validators.iter().cloned().collect::<Vec<PartyId>>();
     let mut parties = BTreeSet::new();
     let mut includes_self = false;
     let number = BigUint::from_bytes_be(session_id_hash);
