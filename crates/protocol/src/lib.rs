@@ -31,6 +31,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use bincode::Options;
 use blake2::{Blake2s256, Digest};
 use errors::{ProtocolExecutionErr, VerifyingKeyError};
 use k256::{
@@ -137,7 +138,10 @@ pub struct BincodeWireFormat;
 
 impl manul::session::WireFormat for BincodeWireFormat {
     fn serialize<T: Serialize>(value: T) -> Result<Box<[u8]>, manul::protocol::LocalError> {
-        Ok(bincode::serialize(&value).unwrap().into())
+        Ok(bincode::config::DefaultOptions::new()
+            .serialize(&value)
+            .map_err(|e| manul::protocol::LocalError::new(format!("{e:?}")))?
+            .into())
     }
 
     type Deserializer<'de> = PersistentDeserializer<BincodeDeserializer<'de>>;
