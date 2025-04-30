@@ -2587,7 +2587,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synedrion 0.3.0",
  "tdx-quote",
  "thiserror 2.0.12",
  "tokio",
