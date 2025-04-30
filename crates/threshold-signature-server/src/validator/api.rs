@@ -41,7 +41,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
     OnlineClient,
 };
-use synedrion::{KeyResharingInputs, NewHolder, OldHolder};
+use synedrion::{KeyResharing, NewHolder, OldHolder};
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
 ///
@@ -150,12 +150,8 @@ async fn do_reshare(
         .ok_or_else(|| ValidatorErr::ChainFetch("Failed to get signers info"))?
         .threshold;
 
-    let inputs = KeyResharingInputs {
-        old_holder,
-        new_holder: Some(new_holder),
-        new_holders: new_holders.clone(),
-        new_threshold: threshold as usize,
-    };
+    let inputs =
+        KeyResharing::new(old_holder, Some(new_holder), new_holders.clone(), threshold as usize);
 
     let session_id = SessionId::Reshare { verifying_key, block_number: data.block_number };
     let account_id = app_state.subxt_account_id();

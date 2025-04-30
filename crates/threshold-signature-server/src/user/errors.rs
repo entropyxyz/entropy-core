@@ -187,6 +187,8 @@ pub enum UserErr {
     TryFromSlice(#[from] std::array::TryFromSliceError),
     #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
+    #[error("Manul local error: {0}")]
+    ManulLocal(String),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {
@@ -200,5 +202,11 @@ impl IntoResponse for UserErr {
         tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}
+
+impl From<manul::session::LocalError> for UserErr {
+    fn from(err: manul::session::LocalError) -> Self {
+        Self::ManulLocal(format!("{err:?}"))
     }
 }
