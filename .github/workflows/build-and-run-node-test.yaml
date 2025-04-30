@@ -3,12 +3,34 @@ name: "Build and test"
 on: ["push"]
 
 jobs:
+  code-paths-changed:
+    name: Detect whether code changes have been made
+    runs-on: ubuntu-latest
+    outputs:
+      run_tests: ${{ steps.filter.outputs.changes_detected }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for relevant changes
+        id: filter
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "^(node/|crates/|pallets/|runtime/)"; then
+            echo "changes_detected=true" >> $GITHUB_ENV
+          else
+            echo "changes_detected=false" >> $GITHUB_ENV
+          fi
+      - name: Set output
+        run: echo "changes_detected=${{ env.changes_detected }}" >> $GITHUB_OUTPUT
+
   node-test:
+    needs: code-paths-changed
     runs-on: core-build-runner
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Increase swap
+        if: needs.code-paths-changed.outputs.run_tests == 'true'
         run: |
           sudo swapoff -a
           sudo dd if=/dev/zero of=/swapfile bs=1G count=8
@@ -17,8 +39,10 @@ jobs:
           sudo swapon /swapfile
           grep Swap /proc/meminfo
       - name: Install dependencies
+        if: needs.code-paths-changed.outputs.run_tests == 'true'
         uses: ./.github/actions/install-dependencies/
       - name: Build entropy-protocol nodejs package
+        if: needs.code-paths-changed.outputs.run_tests == 'true'
         run: |
           cd crates/protocol
           make build-nodejs-testing
@@ -26,9 +50,14 @@ jobs:
           yarn
           cd ../../..
       - name: Run `cargo build && cargo test`
+        if: needs.code-paths-changed.outputs.run_tests == 'true'
         run: |
           pushd node
           cargo build --all-targets --release -j $(nproc)
           cargo test --all-targets --release
           yarn --cwd ../crates/protocol/nodejs-test test
           cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm
+      - name: Skip tests when no code changes have been made
+        if: needs.code-paths-changed.outputs.run_tests == 'false'
+        run: |
+          echo "Skipping tests as no code changes have been made"

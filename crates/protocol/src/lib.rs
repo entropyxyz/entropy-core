@@ -70,7 +70,7 @@ impl PartyId {
     fn to_public(&self) -> sr25519::Public {
         // TODO (#376): assuming that `Public` and `AccountId32` represent the same 32 bytes.
         // Ideally we should use only one of those throughout the code, probably `Public`.
-        sr25519::Public(self.0 .0)
+        sr25519::Public::from(self.0 .0)
     }
 }
 

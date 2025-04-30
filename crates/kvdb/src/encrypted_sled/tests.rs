@@ -16,10 +16,10 @@
 use serial_test::serial;
 
 use super::kv::EncryptedDb;
-use crate::{clean_tests, encrypted_sled::Db, get_db_path};
+use crate::{clean_tests, encrypted_sled::Db, get_db_path, BuildType};
 
 fn setup_db(key: [u8; 32]) -> Db {
-    EncryptedDb::open(get_db_path(true), key).unwrap()
+    EncryptedDb::open(get_db_path(BuildType::Test), key).unwrap()
 }
 
 #[test]
@@ -69,7 +69,7 @@ fn test_encrypted_sled() {
 #[serial]
 fn test_use_existing_key() {
     let db = setup_db([1; 32]);
-    let db_path = get_db_path(true);
+    let db_path = get_db_path(BuildType::Test);
     drop(db);
     // open existing db
     assert!(EncryptedDb::open(db_path, [1; 32]).is_ok());
@@ -80,7 +80,7 @@ fn test_use_existing_key() {
 #[serial]
 fn test_key() {
     let db = setup_db([1; 32]);
-    let db_path = get_db_path(true);
+    let db_path = get_db_path(BuildType::Test);
 
     drop(db);
 

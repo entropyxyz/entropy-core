@@ -16,18 +16,18 @@ codec     ={ package="parity-scale-codec", version="3.6.3", default-features=fal
 scale-info={ version="2.11", default-features=false, features=["derive"] }
 log       ={ version="0.4.27", default-features=false }
 
-frame-benchmarking={ version="29.0.0", default-features=false, optional=true }
-frame-support     ={ version="29.0.0", default-features=false }
-frame-system      ={ version="29.0.0", default-features=false }
-sp-io             ={ version="31.0.0", default-features=false }
-sp-runtime        ={ version="32.0.0", default-features=false }
-sp-staking        ={ version="27.0.0", default-features=false }
+frame-benchmarking={ version="38.0.0", default-features=false, optional=true }
+frame-support     ={ version="38.0.0", default-features=false }
+frame-system      ={ version="38.0.0", default-features=false }
+sp-io             ={ version="38.0.0", default-features=false }
+sp-runtime        ={ version="39.0.1", default-features=false }
+sp-staking        ={ version="36.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 pallet-oracle     ={ version='0.4.0-rc.1', path='../oracle', default-features=false }
 
 [dev-dependencies]
-pallet-balances={ version="29.0.0" }
-sp-core        ={ version="29.0.0", default-features=false }
+pallet-balances={ version="39.0.0" }
+sp-core        ={ version="34.0.0", default-features=false }
 
 [features]
 default=['std']
