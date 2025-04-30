@@ -179,7 +179,7 @@ pub async fn execute_signing_protocol(
     let session_id_hash = session_id.blake2(None)?;
 
     let entry_point =
-        InteractiveSigning::new(prehashed_message.clone(), key_share.clone(), aux_info.clone())?;
+        InteractiveSigning::new(*prehashed_message, key_share.clone(), aux_info.clone())?;
 
     let session = Session::<_, EntropySessionParameters>::new(
         &mut OsRng,

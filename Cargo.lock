@@ -2587,7 +2587,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.3.0",
+ "synedrion",
  "tdx-quote",
  "thiserror 2.0.12",
  "tokio",
@@ -2604,7 +2604,7 @@ dependencies = [
  "entropy-testing-utils",
  "entropy-tss",
  "sp-core 31.0.0",
- "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
+ "synedrion",
  "tokio",
 ]
 
@@ -2623,7 +2623,7 @@ dependencies = [
  "serial_test",
  "sled",
  "sp-core 31.0.0",
- "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
+ "synedrion",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -2686,7 +2686,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
+ "synedrion",
  "thiserror 2.0.12",
  "tokio",
  "tokio-tungstenite",
@@ -2847,7 +2847,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.3.0",
+ "synedrion",
  "tdx-quote",
  "tokio",
  "tracing",
@@ -2908,7 +2908,7 @@ dependencies = [
  "strum 0.27.1",
  "subxt",
  "subxt-signer",
- "synedrion 0.3.0",
+ "synedrion",
  "tdx-quote",
  "thiserror 2.0.12",
  "tokio",
@@ -7472,7 +7472,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
+ "synedrion",
 ]
 
 [[package]]
@@ -14402,33 +14402,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
 dependencies = [
  "futures-core",
-]
-
-[[package]]
-name = "synedrion"
-version = "0.3.0"
-dependencies = [
- "bip32",
- "crypto-bigint 0.6.1",
- "crypto-primes",
- "digest 0.10.7",
- "displaydoc",
- "ecdsa",
- "elliptic-curve",
- "hashing-serializer",
- "k256",
- "manul",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "rand_core 0.6.4",
- "secrecy 0.10.3",
- "serde",
- "serde-encoded-bytes",
- "sha3",
- "signature",
- "tiny-curve",
- "tracing",
- "zeroize",
 ]
 
 [[package]]
