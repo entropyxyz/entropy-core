@@ -2604,7 +2604,7 @@ dependencies = [
  "entropy-testing-utils",
  "entropy-tss",
  "sp-core 31.0.0",
- "synedrion 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
  "tokio",
 ]
 
@@ -2623,7 +2623,7 @@ dependencies = [
  "serial_test",
  "sled",
  "sp-core 31.0.0",
- "synedrion 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -2673,7 +2673,7 @@ dependencies = [
  "hpke-rs-rust-crypto",
  "js-sys",
  "k256",
- "manul 0.2.1-dev",
+ "manul",
  "num",
  "num_cpus",
  "rand_core 0.6.4",
@@ -2686,7 +2686,7 @@ dependencies = [
  "sp-core 31.0.0",
  "sp-keyring 34.0.0",
  "subxt",
- "synedrion 0.3.0",
+ "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
  "thiserror 2.0.12",
  "tokio",
  "tokio-tungstenite",
@@ -2839,7 +2839,7 @@ dependencies = [
  "hex-literal",
  "k256",
  "lazy_static",
- "manul 0.2.1-dev",
+ "manul",
  "parity-scale-codec",
  "project-root",
  "rand 0.8.5",
@@ -2884,7 +2884,7 @@ dependencies = [
  "hostname 0.4.0",
  "k256",
  "lazy_static",
- "manul 0.2.1-dev",
+ "manul",
  "more-asserts",
  "num",
  "parity-scale-codec",
@@ -5967,24 +5967,6 @@ dependencies = [
 
 [[package]]
 name = "manul"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce6bd3e34734b404f6e95cd32c3a65a3de506e6717494e07ff5bda905490046f"
-dependencies = [
- "derive-where",
- "digest 0.10.7",
- "displaydoc",
- "erased-serde",
- "rand_core 0.6.4",
- "serde",
- "serde-encoded-bytes",
- "signature",
- "tinyvec",
- "tracing",
-]
-
-[[package]]
-name = "manul"
 version = "0.2.1-dev"
 source = "git+https://github.com/entropyxyz/manul.git?rev=f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0#f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0"
 dependencies = [
@@ -7490,7 +7472,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-staking 27.0.0",
  "sp-std 14.0.0",
- "synedrion 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synedrion 0.3.0 (git+https://github.com/ameba23/synedrion)",
 ]
 
 [[package]]
@@ -14435,7 +14417,7 @@ dependencies = [
  "elliptic-curve",
  "hashing-serializer",
  "k256",
- "manul 0.2.1-dev",
+ "manul",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",
@@ -14452,8 +14434,7 @@ dependencies = [
 [[package]]
 name = "synedrion"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cc3a3e679944b21f44638c366b1b273882a918343c4e3774e3fce3f756cf028"
+source = "git+https://github.com/ameba23/synedrion#c8739165fa9f6f682ca87229bc999f5e14e130cb"
 dependencies = [
  "bip32",
  "crypto-bigint 0.6.1",
@@ -14464,7 +14445,7 @@ dependencies = [
  "elliptic-curve",
  "hashing-serializer",
  "k256",
- "manul 0.2.0",
+ "manul",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",

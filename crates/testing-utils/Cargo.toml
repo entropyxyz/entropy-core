@@ -29,11 +29,8 @@ rand_core="0.6.4"
 rand="0.8.5"
 tdx-quote={ version="0.0.3", features=["mock"] }
 k256={ version="0.13", default-features=false, features=["ecdsa"] }
-synedrion={ path="../../../synedrion", features=["k256", "dev"] }
-manul={ git="https://github.com/entropyxyz/manul.git", rev="f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0", features=[
-  "tokio",
-  "dev",
-] }
+synedrion={ version="0.3.0", features=["k256", "dev"] }
+manul={ version="0.2.1-dev", features=["tokio", "dev"] }
 
 # Logging
 tracing           ="0.1.41"
