@@ -17,7 +17,7 @@
 //! pre-defined distributed keypair for testing entropy-tss
 use entropy_protocol::{execute_protocol::PairWrapper, EntropySessionParameters, PartyId};
 use k256::ecdsa::SigningKey;
-use manul::{dev::run_sync, session::SessionId};
+use manul::dev::run_sync;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use synedrion::{
