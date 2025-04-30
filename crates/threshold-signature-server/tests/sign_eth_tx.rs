@@ -36,11 +36,11 @@ use ethers_core::{
         rlp::{Decodable, Rlp},
     },
 };
+use k256::ecdsa::VerifyingKey;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use subxt::utils::AccountId32;
-use synedrion::k256::ecdsa::VerifyingKey;
 
 const GOERLI_CHAIN_ID: u64 = 5;
 

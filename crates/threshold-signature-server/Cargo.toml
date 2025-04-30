@@ -27,6 +27,7 @@ synedrion={ path="../../../synedrion", features=["k256", "bip32"] }
 manul    ={ git="https://github.com/entropyxyz/manul.git", rev="f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0" }
 strum    ="0.27.1"
 backoff  ={ version="0.4.0", features=["tokio"] }
+k256     ={ version="0.13", features=["ecdsa"] }
 
 # Async
 futures="0.3"

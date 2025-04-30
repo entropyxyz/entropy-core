@@ -29,11 +29,11 @@ use entropy_testing_utils::{
     ChainSpecType,
 };
 use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
+use k256::ecdsa::VerifyingKey;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use subxt::utils::AccountId32;
-use synedrion::k256::ecdsa::VerifyingKey;
 
 // FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
 // it's producing false negatives on our CI runs.
