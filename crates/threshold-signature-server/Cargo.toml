@@ -32,7 +32,7 @@ tokio  ={ version="1.44", features=["macros", "fs", "rt-multi-thread", "io-util"
 
 # HTTP
 reqwest={ version="0.12.12", features=["json", "stream"] }
-axum   ={ version="0.8.3", features=["ws"] }
+axum   ={ version="0.8.4", features=["ws"] }
 
 # Substrate
 subxt             ="0.38.0"
@@ -72,7 +72,7 @@ snow             ="0.9.6"
 sha3             ="0.10.8"
 hostname         ="0.4"
 sha1             ="0.10.6"
-sha2             ="0.10.8"
+sha2             ="0.10.9"
 hkdf             ="0.12.4"
 project-root     ={ version="0.2.2", optional=true }
 tdx-quote        ={ version="0.0.3", optional=true, features=["mock"] }

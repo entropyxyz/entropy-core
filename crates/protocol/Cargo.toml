@@ -34,7 +34,7 @@ hpke-rs-rust-crypto="0.2.0"
 num                ="0.4.3"
 
 # Used only with the `server` feature to implement the WsConnection trait
-axum             ={ version="0.8.3", features=["ws"], optional=true }
+axum             ={ version="0.8.4", features=["ws"], optional=true }
 tokio-tungstenite={ version="0.26.2", optional=true }
 
 # Used only with the `wasm` feature
