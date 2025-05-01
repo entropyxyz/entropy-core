@@ -30,6 +30,7 @@ use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
 use futures::{channel::mpsc, future::join_all, StreamExt};
 use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
+use sp_core::crypto::{AccountId32, Ss58Codec};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, sr25519::Signature, Pair},
@@ -394,8 +395,12 @@ async fn handle_protocol_errors(
     if peers_to_report.is_empty() {
         return Err(error.to_string());
     }
-
-    tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report.clone(), error.to_string());
+    let peers_to_report_account_ids = peers_to_report
+        .clone()
+        .into_iter()
+        .map(|x| AccountId32::new(x.0).to_ss58check())
+        .collect::<Vec<_>>();
+    tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report_account_ids, error.to_string());
 
     let mut failed_reports = Vec::new();
     for peer in peers_to_report {
