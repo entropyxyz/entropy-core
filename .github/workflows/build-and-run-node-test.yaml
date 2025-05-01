@@ -15,7 +15,11 @@ jobs:
       - name: Check for relevant changes
         id: filter
         run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "^(node/|crates/|pallets/|runtime/)"; then
+          ## If this is the first commit on a branch, then the default behaviour of github.event.before is to show the previous ref as
+          ## repeated zeroes, as the previous ref is null
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "changes_detected=true" >> $GITHUB_ENV
+          elif git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "^(node/|crates/|pallets/|runtime/)"; then
             echo "changes_detected=true" >> $GITHUB_ENV
           else
             echo "changes_detected=false" >> $GITHUB_ENV
