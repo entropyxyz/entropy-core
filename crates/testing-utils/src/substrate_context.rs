@@ -107,6 +107,10 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
     test_node(AccountKeyring::Alice, "--dev".to_string(), false, None).await
 }
 
+pub async fn test_node_process_stationary_local() -> TestNodeProcess<EntropyConfig> {
+    test_node(AccountKeyring::Alice, "--chain=testnet".to_string(), false, None).await
+}
+
 /// Tests chain with test state in chain config
 ///
 /// Allowing `force_authoring` will produce blocks.
