@@ -171,14 +171,7 @@ impl<'de> AsTransientDeserializer<'de> for BincodeDeserializer<'de> {
 }
 
 /// Parameters used for the threshold signing scheme in production
-#[cfg(not(test))]
 pub type KeyParams = ProductionParams112;
-
-#[cfg(test)]
-use synedrion::dev::TestParams;
-/// Parameters used for the threshold signing scheme in tests (faster but less secure)
-#[cfg(test)]
-pub type KeyParams = ProductionParams112; //TestParams;
 
 pub use synedrion::KeyShare;
 
