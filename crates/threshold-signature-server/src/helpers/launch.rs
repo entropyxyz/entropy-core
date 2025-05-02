@@ -310,6 +310,7 @@ pub async fn check_node_prerequisites(
 ) -> Result<(), &'static str> {
     let url = &app_state.configuration.endpoint;
     let account_id = app_state.account_id();
+    let ss58_account = account_id.to_ss58check();
 
     let connect_to_substrate_node = || async {
         tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
@@ -337,7 +338,7 @@ pub async fn check_node_prerequisites(
     tracing::info!("Sucessfully connected to Substrate node!");
     app_state.cache.connected_to_chain_node().map_err(|_| "Poisoned mutex")?;
 
-    tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+    tracing::info!("Checking balance of threshold server AccountId `{}`", &ss58_account);
 
     let balance_query = || async {
         let has_minimum_balance = crate::validator::api::check_balance_for_fees(
@@ -348,7 +349,7 @@ pub async fn check_node_prerequisites(
         )
         .await
         .map_err(|e| {
-            tracing::warn!("Account: {} {}", &account_id, e);
+            tracing::warn!("Account: {} {}", &ss58_account, e);
             e.to_string()
         })?;
         if !has_minimum_balance {
@@ -361,7 +362,7 @@ pub async fn check_node_prerequisites(
         .await
         .map_err(|_| "Timed out waiting for account to be funded")?;
 
-    tracing::info!("The account `{}` has enough funds for submitting extrinsics.", &account_id);
+    tracing::info!("The account `{}` has enough funds for submitting extrinsics.", &ss58_account);
 
     // Now check if there exists a threshold server with our details - if there is not,
     // we need to wait until there is
@@ -381,7 +382,7 @@ pub async fn check_node_prerequisites(
         Ok(())
     };
 
-    tracing::info!("Checking if our account ID has been registered on chain `{}`", &account_id);
+    tracing::info!("Checking if our account ID has been registered on chain `{}`", &ss58_account);
     backoff::future::retry(backoff, check_for_tss_account_id)
         .await
         .map_err(|_| "Timed out waiting for TSS account to be registered on chain")?;
