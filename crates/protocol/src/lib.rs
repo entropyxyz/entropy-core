@@ -123,6 +123,7 @@ impl fmt::Display for PartyId {
     }
 }
 
+/// Session configuration used for manul sessions
 pub struct EntropySessionParameters;
 
 impl manul::session::SessionParameters for EntropySessionParameters {
@@ -133,6 +134,7 @@ impl manul::session::SessionParameters for EntropySessionParameters {
     type WireFormat = BincodeWireFormat;
 }
 
+/// Specifies the serialization used for protocol messages
 #[derive(Debug)]
 pub struct BincodeWireFormat;
 
@@ -140,7 +142,7 @@ impl manul::session::WireFormat for BincodeWireFormat {
     fn serialize<T: Serialize>(value: T) -> Result<Box<[u8]>, manul::protocol::LocalError> {
         Ok(bincode::config::DefaultOptions::new()
             .serialize(&value)
-            .map_err(|e| manul::protocol::LocalError::new(format!("{e:?}")))?
+            .map_err(|e| manul::protocol::LocalError::new(format!("Serialization error: {e:?}")))?
             .into())
     }
 
@@ -154,7 +156,7 @@ impl manul::session::WireFormat for BincodeWireFormat {
     }
 }
 
-/// A wrapper for a bincode deserializer.
+/// A wrapper for a bincode deserializer implementing the trait needed to use it as our WireFormat
 #[allow(missing_debug_implementations)]
 pub struct BincodeDeserializer<'de>(
     bincode::de::Deserializer<bincode::de::read::SliceReader<'de>, bincode::config::DefaultOptions>,
