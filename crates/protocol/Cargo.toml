@@ -37,7 +37,7 @@ serde-persistent-deserializer={ version="0.3" }
 manul                        ={ version="0.2.1-dev", features=["tokio"] }
 
 # Used only with the `server` feature to implement the WsConnection trait
-axum             ={ version="0.8.3", features=["ws"], optional=true }
+axum             ={ version="0.8.4", features=["ws"], optional=true }
 tokio-tungstenite={ version="0.26.2", optional=true }
 
 # Used only with the `wasm` feature
