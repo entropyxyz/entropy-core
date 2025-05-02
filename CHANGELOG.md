@@ -15,6 +15,7 @@ At the moment this project **does not** adhere to
 ### Changed
 - Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
 - Remove deadlines in OCW ([#1411](https://github.com/entropyxyz/entropy-core/pull/1411))
+- Bump synedrion to 0.3.0 and use manul for protocol session loop ([#1392](https://github.com/entropyxyz/entropy-core/pull/1392))
 
 ## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 
