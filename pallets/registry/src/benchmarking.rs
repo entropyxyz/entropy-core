@@ -351,59 +351,7 @@ mod benchmarks {
         let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
-        };
-        p as usize
-    ])
-    .unwrap();
-
-    Programs::<T>::insert(
-        program_hash,
-        ProgramInfo {
-            bytecode: program,
-            configuration_schema,
-            auxiliary_data_schema,
-            oracle_data_pointers,
-            deployer: program_modification_account.clone(),
-            ref_counter: 0,
-            version_number: 0,
-        },
-    );
-
-    let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
-    <pallet_staking_extension::JumpStartProgress<T>>::put(JumpStartDetails {
-        jump_start_status: JumpStartStatus::Done,
-        confirmations: vec![],
-        verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
-        parent_key_threshold: 0,
-    });
-
-
-    let balance =
-        <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
-        &signature_request_account,
-        balance,
-    );
-  }: _(
-      RawOrigin::Signed(signature_request_account.clone()),
-      program_modification_account,
-      programs_info
-  )
-  verify {
-    use core::str::FromStr;
-    use synedrion::DeriveChildKey;
-
-    let network_verifying_key =
-        k256::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
-
-    // We subtract one from the count since this gets incremented after a succesful registration,
-    // and we're interested in the account we just registered.
-    let count = <Registered<T>>::count() - 1;
-    let derivation_path =
-        bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count)).unwrap();
-
-    let expected_verifying_key = network_verifying_key
-        .derive_verifying_key_bip32(&derivation_path)
+        }])
         .unwrap();
 
         let sig_req_account: T::AccountId = whitelisted_caller();
