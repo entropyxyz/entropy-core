@@ -121,7 +121,7 @@ where
                     if let Some(protocol_message) = protocol_message_option {
                         let from = protocol_message.from;
                         if let ProtocolMessagePayload::Message(message) = protocol_message.payload {
-                            if let Err(err) = tx_in.send(MessageIn { from, message }).await {
+                            if let Err(err) = tx_in.send(MessageIn { from, message: *message }).await {
                                 tracing::error!("Cannot write incoming message to channel: {err:?}");
                                 break;
                             }

@@ -26,7 +26,7 @@ pub enum ProtocolExecutionErr {
     #[error("Broadcast error: {0}")]
     Broadcast(#[from] Box<tokio::sync::broadcast::error::SendError<ProtocolMessage>>),
     #[error("Mpsc send error: {0}")]
-    Mpsc(#[from] tokio::sync::mpsc::error::SendError<ProtocolMessage>),
+    Mpsc(String),
     #[error("Bad keyshare error {0}")]
     BadKeyShare(String),
     #[error("Cannot serialize session ID {0}")]
@@ -57,6 +57,12 @@ pub enum ProtocolExecutionErr {
 
 impl From<LocalError> for ProtocolExecutionErr {
     fn from(err: LocalError) -> Self {
+        Self::Mpsc(format!("{err:?}"))
+    }
+}
+
+impl From<tokio::sync::mpsc::error::SendError<ProtocolMessage>> for ProtocolExecutionErr {
+    fn from(err: tokio::sync::mpsc::error::SendError<ProtocolMessage>) -> Self {
         Self::Local(format!("{err:?}"))
     }
 }
