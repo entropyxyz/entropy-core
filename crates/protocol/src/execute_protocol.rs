@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! A wrapper for the threshold signing library to handle sending and receiving messages.
+//! A wrapper for the threshold signing library to handle sending and receiving messages
 
 use futures::future::try_join_all;
 use num::bigint::BigUint;
