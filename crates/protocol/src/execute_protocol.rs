@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! A wrapper for the threshold signing library to handle sending and receiving messages
+//! A wrapper for the threshold signing library to handle sending and receiving messages.
 
 use blake2::{Blake2s256, Digest};
 use k256::{ecdsa::VerifyingKey, EncodedPoint};
