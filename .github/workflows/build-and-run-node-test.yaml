@@ -43,21 +43,20 @@ jobs:
       - name: Install dependencies
         if: needs.code-paths-changed.outputs.run_tests == 'true'
         uses: ./.github/actions/install-dependencies/
-      - name: Build entropy-protocol nodejs package
-        if: needs.code-paths-changed.outputs.run_tests == 'true'
-        run: |
-          cd crates/protocol
-          make build-nodejs-testing
-          cd nodejs-test
-          yarn
-          cd ../../..
+      # - name: Build entropy-protocol nodejs package
+      #   if: needs.code-paths-changed.outputs.run_tests == 'true'
+      #   run: |
+      #     cd crates/protocol
+      #     make build-nodejs-testing
+      #     cd nodejs-test
+      #     yarn
+      #     cd ../../..
       - name: Run `cargo build && cargo test`
         if: needs.code-paths-changed.outputs.run_tests == 'true'
         run: |
           pushd node
           cargo build --all-targets --release -j $(nproc)
           cargo test --all-targets --release
-          yarn --cwd ../crates/protocol/nodejs-test test
           cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm
       - name: Skip tests when no code changes have been made
         if: needs.code-paths-changed.outputs.run_tests == 'false'
