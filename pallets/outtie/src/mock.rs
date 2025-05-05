@@ -17,7 +17,7 @@
 
 #![cfg(test)]
 use frame_support::{
-    construct_runtime, derive_impl, parameter_types, 
+    construct_runtime, derive_impl, parameter_types,
     traits::{ConstU64, Everything, OneSessionHandler},
 };
 use frame_system::EnsureRoot;
@@ -108,8 +108,8 @@ impl pallet_session::Config for Test {
 }
 
 parameter_types! {
-    pub const MaxEndpointLength: u32 = 3;
-  }
+  pub const MaxEndpointLength: u32 = 3;
+}
 
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;

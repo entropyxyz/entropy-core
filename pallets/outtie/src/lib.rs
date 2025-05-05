@@ -77,7 +77,9 @@ pub mod module {
 
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
-    pub enum Event<T: Config> {}
+    pub enum Event<T: Config> {
+        BoxAdded { box_account: T::AccountId, server_info: ServerInfo },
+    }
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -92,20 +94,23 @@ pub mod module {
             server_info: ServerInfo,
             // quote: Vec<u8>,
         ) -> DispatchResult {
-            let who = ensure_signed(origin.clone())?;
+            let box_account = ensure_signed(origin.clone())?;
 
             ensure!(
                 server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
 
-            ensure!(!ApiBoxes::<T>::contains_key(&who), Error::<T>::TssAccountAlreadyExists);
+            ensure!(
+                !ApiBoxes::<T>::contains_key(&box_account),
+                Error::<T>::TssAccountAlreadyExists
+            );
 
             // TODO assertion
 
-            ApiBoxes::<T>::insert(&who, server_info.clone());
+            ApiBoxes::<T>::insert(&box_account, server_info.clone());
 
-            //TODO add event
+            Self::deposit_event(Event::BoxAdded { box_account, server_info });
 
             Ok(())
         }
