@@ -16,10 +16,8 @@
 //! Mocks for the outtie pallet.
 
 #![cfg(test)]
-
-use entropy_shared::attestation::MEASUREMENT_VALUE_MOCK_QUOTE;
 use frame_support::{
-    construct_runtime, derive_impl, ord_parameter_types,
+    construct_runtime, derive_impl, parameter_types, 
     traits::{ConstU64, Everything, OneSessionHandler},
 };
 use frame_system::EnsureRoot;
@@ -37,7 +35,7 @@ pub type AccountId = u128;
 use crate as pallet_outtie;
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type AccountData = ();
     type AccountId = AccountId;
     type BaseCallFilter = Everything;
@@ -97,7 +95,7 @@ impl sp_runtime::BoundToRuntimeAppPublic for OtherSessionHandler {
     type Public = UintAuthorityId;
 }
 
-impl pallet_session::Config for Runtime {
+impl pallet_session::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = u128;
     type ValidatorIdOf = ConvertInto;
@@ -109,20 +107,21 @@ impl pallet_session::Config for Runtime {
     type WeightInfo = ();
 }
 
-ord_parameter_types! {
-  pub const One: AccountId = 1;
-}
+parameter_types! {
+    pub const MaxEndpointLength: u32 = 3;
+  }
 
-impl Config for Runtime {
+impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<AccountId>;
+    type MaxEndpointLength = MaxEndpointLength;
     // type WeightInfo = ();
 }
 
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-  pub enum Runtime
+  pub enum Test
   {
     System: frame_system,
     Outtie: pallet_outtie,
@@ -133,7 +132,6 @@ construct_runtime!(
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
-    pallet_outtie.assimilate_storage(&mut t).unwrap();
+    let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
     t.into()
 }

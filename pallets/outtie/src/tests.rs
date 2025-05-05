@@ -20,4 +20,40 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
-use sp_runtime::traits::BadOrigin;
+use crate::{ServerInfo};
+
+const NULL_ARR: [u8; 32] = [0; 32];
+
+#[test]
+fn add_box() {
+    new_test_ext().execute_with(|| {
+        let mut server_info = ServerInfo {
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20]
+        };
+
+        assert_ok!(
+            Outtie::add_box(
+                RuntimeOrigin::signed(1),
+                server_info.clone()
+            )
+        );
+
+        assert_noop!(
+            Outtie::add_box(
+                RuntimeOrigin::signed(1),
+                server_info.clone()
+            ),
+            Error::<Test>::TssAccountAlreadyExists
+        );
+        server_info.endpoint = [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec();
+        assert_noop!(
+            Outtie::add_box(
+                RuntimeOrigin::signed(2),
+                server_info
+            ),
+            Error::<Test>::EndpointTooLong
+        );
+
+    });
+}

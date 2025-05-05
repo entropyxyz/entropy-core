@@ -18,7 +18,6 @@
 #![allow(clippy::unused_unit)]
 
 use entropy_shared::X25519PublicKey;
-use entropy_shared::MAX_SIGNERS;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 #[cfg(feature = "std")]
@@ -101,6 +100,8 @@ pub mod module {
             );
 
             ensure!(!ApiBoxes::<T>::contains_key(&who), Error::<T>::TssAccountAlreadyExists);
+
+            // TODO assertion
 
             ApiBoxes::<T>::insert(&who, server_info.clone());
 
