@@ -62,17 +62,18 @@ pub mod module {
         //  pub provisioning_certification_key: VerifyingKey,
     }
 
+    /// API box signing account => Server Info
     #[pallet::storage]
     #[pallet::getter(fn get_api_boxes)]
     pub type ApiBoxes<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, ServerInfo, OptionQuery>;
 
-    pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;
-
     #[pallet::error]
     pub enum Error<T> {
+        /// Endpoint is too long
         EndpointTooLong,
-        TssAccountAlreadyExists,
+        /// Box account already exists
+        BoxAccountAlreadyExists,
     }
 
     #[pallet::event]
@@ -87,7 +88,7 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::call_index(5)]
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::add_box())]
         pub fn add_box(
             origin: OriginFor<T>,
@@ -103,7 +104,7 @@ pub mod module {
 
             ensure!(
                 !ApiBoxes::<T>::contains_key(&box_account),
-                Error::<T>::TssAccountAlreadyExists
+                Error::<T>::BoxAccountAlreadyExists
             );
 
             // TODO assertion
