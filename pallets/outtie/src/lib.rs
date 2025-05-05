@@ -44,6 +44,9 @@ pub mod module {
     pub trait Config: frame_system::Config + pallet_session::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
+        /// The maximum length of a threshold server's endpoint address, in bytes.
+        type MaxEndpointLength: Get<u32>;
+
         /// The origin which may set filter.
         type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
@@ -68,7 +71,10 @@ pub mod module {
     pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;
 
     #[pallet::error]
-    pub enum Error<T> {}
+    pub enum Error<T> {
+        EndpointTooLong,
+        TssAccountAlreadyExists,
+    }
 
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
@@ -82,12 +88,24 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(5)]
         #[pallet::weight(0)]
-        pub fn validate(
+        pub fn add_box(
             origin: OriginFor<T>,
             server_info: ServerInfo,
             // quote: Vec<u8>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
+
+            ensure!(
+                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                Error::<T>::EndpointTooLong
+            );
+
+            ensure!(!ApiBoxes::<T>::contains_key(&who), Error::<T>::TssAccountAlreadyExists);
+
+            ApiBoxes::<T>::insert(&who, server_info.clone());
+
+            //TODO add event
+
             Ok(())
         }
     }
