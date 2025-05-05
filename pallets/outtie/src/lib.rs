@@ -17,12 +17,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
+use entropy_shared::X25519PublicKey;
 use entropy_shared::MAX_SIGNERS;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
-
 #[cfg(test)]
 mod mock;
 
@@ -49,6 +51,20 @@ pub mod module {
         // type WeightInfo: WeightInfo;
     }
 
+    /// Information about a tdx server  
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct ServerInfo {
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: Vec<u8>,
+        //  pub provisioning_certification_key: VerifyingKey,
+    }
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_api_boxes)]
+    pub type ApiBoxes<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, ServerInfo, OptionQuery>;
+
     pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;
 
     #[pallet::error]
@@ -63,5 +79,16 @@ pub mod module {
     pub struct Pallet<T>(_);
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {}
+    impl<T: Config> Pallet<T> {
+        #[pallet::call_index(5)]
+        #[pallet::weight(0)]
+        pub fn validate(
+            origin: OriginFor<T>,
+            server_info: ServerInfo,
+            // quote: Vec<u8>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin.clone())?;
+            Ok(())
+        }
+    }
 }
