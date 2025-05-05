@@ -9984,6 +9984,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-outtie"
+version = "0.4.0-rc.1"
+dependencies = [
+ "entropy-shared",
+ "frame-benchmarking",
+ "frame-support 38.2.0",
+ "frame-system",
+ "pallet-session",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 34.0.0",
+ "sp-io 38.0.0",
+ "sp-runtime 39.0.5",
+ "sp-staking 36.0.0",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-paged-list"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
