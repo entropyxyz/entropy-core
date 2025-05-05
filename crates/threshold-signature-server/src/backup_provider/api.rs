@@ -30,7 +30,10 @@ use entropy_shared::{
 use rand::{seq::SliceRandom, RngCore};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
-use sp_core::{sr25519, Pair};
+use sp_core::{
+    crypto::{AccountId32, Ss58Codec},
+    sr25519, Pair,
+};
 use std::path::PathBuf;
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 use tdx_quote::Quote;
@@ -338,7 +341,7 @@ async fn select_backup_provider(
 
     tracing::info!(
         "Selected TSS account {} to act as a db encrpytion key backup provider",
-        server_info.tss_account
+        AccountId32::new(server_info.tss_account.0).to_ss58check()
     );
 
     Ok(BackupProviderDetails {
