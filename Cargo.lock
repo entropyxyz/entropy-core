@@ -3709,6 +3709,7 @@ dependencies = [
  "pallet-offences",
  "pallet-offences-benchmarking",
  "pallet-oracle",
+ "pallet-outtie",
  "pallet-parameters 0.4.0-rc.1",
  "pallet-preimage",
  "pallet-programs",

@@ -1516,6 +1516,12 @@ impl pallet_oracle::Config for Runtime {
     type WeightInfo = weights::pallet_oracle::WeightInfo<Runtime>;
 }
 
+impl pallet_outtie::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxEndpointLength = MaxEndpointLength;
+    type WeightInfo = weights::pallet_outtie::WeightInfo<Runtime>;
+}
+
 construct_runtime!(
   pub enum Runtime
   {
@@ -1570,6 +1576,7 @@ construct_runtime!(
     Parameters: pallet_parameters = 56,
     Oracle: pallet_oracle = 57,
     Attestation: pallet_attestation = 58,
+    Outtie: pallet_outtie = 59,
   }
 );
 
@@ -1646,6 +1653,7 @@ mod benches {
       [pallet_multisig, Multisig]
       [pallet_offences, OffencesBench::<Runtime>]
       [pallet_oracle, Oracle]
+      [pallet_outtie, Outtie]
       [pallet_preimage, Preimage]
       [pallet_parameters, Parameters]
       [pallet_propagation, Propagation]

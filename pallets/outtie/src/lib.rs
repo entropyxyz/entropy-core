@@ -33,7 +33,10 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod weights;
+
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
@@ -46,11 +49,8 @@ pub mod module {
         /// The maximum length of a threshold server's endpoint address, in bytes.
         type MaxEndpointLength: Get<u32>;
 
-        /// The origin which may set filter.
-        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-
-        // /// Weight information for the extrinsics in this module.
-        // type WeightInfo: WeightInfo;
+        /// Weight information for the extrinsics in this module.
+        type WeightInfo: WeightInfo;
     }
 
     /// Information about a tdx server  
@@ -88,7 +88,7 @@ pub mod module {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(5)]
-        #[pallet::weight(0)]
+        #[pallet::weight(<T as Config>::WeightInfo::add_box())]
         pub fn add_box(
             origin: OriginFor<T>,
             server_info: ServerInfo,

@@ -113,9 +113,8 @@ parameter_types! {
 
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type UpdateOrigin = EnsureRoot<AccountId>;
     type MaxEndpointLength = MaxEndpointLength;
-    // type WeightInfo = ();
+    type WeightInfo = ();
 }
 
 type Block = frame_system::mocking::MockBlock<Test>;
