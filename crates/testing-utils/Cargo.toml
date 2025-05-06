@@ -30,7 +30,7 @@ rand="0.8.5"
 tdx-quote={ version="0.0.3", features=["mock"] }
 k256={ version="0.13", default-features=false, features=["ecdsa"] }
 synedrion={ version="0.3.0", features=["k256", "dev"] }
-manul={ version="0.2.1-dev", features=["tokio", "dev"] }
+manul={ version="0.2.1", features=["tokio", "dev"] }
 
 # Logging
 tracing           ="0.1.41"

@@ -7865,8 +7865,9 @@ dependencies = [
 
 [[package]]
 name = "manul"
-version = "0.2.1-dev"
-source = "git+https://github.com/entropyxyz/manul.git?rev=f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0#f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e547eb94f2f4c2a62a916a9ca9aa4a9fef5b7a19a001c31f291859bad96348a7"
 dependencies = [
  "derive-where",
  "digest 0.10.7",
@@ -19037,7 +19038,8 @@ dependencies = [
 [[package]]
 name = "synedrion"
 version = "0.3.0"
-source = "git+https://github.com/ameba23/synedrion#c8739165fa9f6f682ca87229bc999f5e14e130cb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cc3a3e679944b21f44638c366b1b273882a918343c4e3774e3fce3f756cf028"
 dependencies = [
  "bip32",
  "crypto-bigint 0.6.1",

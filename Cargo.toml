@@ -1,7 +1,3 @@
 [workspace]
 resolver="2"
 members =['crates/*', 'node/*', 'pallets/*', 'runtime', 'scripts/create-test-keyshares']
-
-[patch.crates-io]
-manul    ={ git="https://github.com/entropyxyz/manul.git", rev="f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0" }
-synedrion={ git="https://github.com/ameba23/synedrion" }

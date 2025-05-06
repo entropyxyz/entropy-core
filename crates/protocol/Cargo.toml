@@ -34,7 +34,7 @@ hpke-rs-rust-crypto          ="0.2.0"
 num                          ="0.4.3"
 k256                         ={ version="0.13", default-features=false, features=["ecdsa"] }
 serde-persistent-deserializer={ version="0.3" }
-manul                        ={ version="0.2.1-dev", features=["tokio"] }
+manul                        ={ version="0.2.1", features=["tokio"] }
 
 # Used only with the `server` feature to implement the WsConnection trait
 axum             ={ version="0.8.4", features=["ws"], optional=true }

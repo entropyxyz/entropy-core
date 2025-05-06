@@ -23,7 +23,7 @@ hex                ="0.4.3"
 reqwest-eventsource="0.6"
 serde_derive       ="1.0.147"
 synedrion          ={ version="0.3.0", features=["k256", "bip32"] }
-manul              ={ version="0.2.1-dev" }
+manul              ={ version="0.2.1" }
 strum              ="0.27.1"
 backoff            ={ version="0.4.0", features=["tokio"] }
 k256               ={ version="0.13", features=["ecdsa"] }
