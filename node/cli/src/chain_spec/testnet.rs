@@ -59,10 +59,11 @@ pub struct TestnetChainSpecInputs {
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
     pub tss_details: HashMap<String, TssPublicKeys>,
-    /// The accepted TDX measurement values from the current entropy-tss VM images
+    /// The accepted TDX measurement values from the current entropy-tss VM images, given as
+    /// hex-encoded strings (32 bytes / 64 characters).
     /// If omitted, it will be assumed this is a non-production network and mock values will be
     /// accepted.
-    pub accepted_measurement_values: Option<Vec<[u8; 32]>>,
+    pub accepted_measurement_values: Option<Vec<String>>,
     // Bootnode peer IDs
     pub boot_nodes: Vec<MultiaddrWithPeerId>,
     // TODO pre-endowed accounts
@@ -242,7 +243,10 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
         .collect();
 
     let measurement_values = inputs.accepted_measurement_values.map(|values| {
-        values.into_iter().map(|value| BoundedVec::try_from(value.to_vec()).unwrap()).collect()
+        values
+            .into_iter()
+            .map(|value| BoundedVec::try_from(hex::decode(value).unwrap()).unwrap())
+            .collect()
     });
 
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
@@ -471,8 +475,12 @@ mod tests {
             "127.0.0.1:3003": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
             "127.0.0.1:3004": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}
           },
-          "accepted_measurement_values": [],
-          "boot_nodes": []
+          "accepted_measurement_values": [
+            "a3f9c04e19d3b6a71e6f7e4d9b2573ff9c2e476d381f8a5cb02eac4d6b0f7b9c"
+          ],
+          "boot_nodes": [
+            "/ip4/192.0.2.1/tcp/30333/p2p/12D3KooWE5XyZm8RhsCq7LkZQ8mCDZWQcMJ1FZWYoUk6ZUgKojpL"
+          ]
         }"#;
         let inputs = serde_json::from_str(json_inputs).unwrap();
         let _spec = testnet_config(inputs);
