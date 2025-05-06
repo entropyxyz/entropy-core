@@ -13,7 +13,7 @@ sha3          ="0.10.8"
 serde         ={ version="1.0", default-features=false, features=["derive"] }
 entropy-shared={ version="0.4.0-rc.1", path="../shared", default-features=false }
 subxt         ={ version="0.38.0", default-features=false, features=["jsonrpsee"] }
-subxt-core    ={ version="0.38.0", default-features=false }
+subxt-core    ={ version="0.41.0", default-features=false }
 num           ="0.4.3"
 thiserror     ="2.0.12"
 futures       ="0.3"
