@@ -27,7 +27,8 @@ use manul::{
 };
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
-use sp_core::{sr25519, Pair};
+use sp_core::{crypto::Ss58Codec, sr25519, Pair};
+use std::sync::Arc;
 use subxt::utils::AccountId32;
 use synedrion::{
     signature::{self},
@@ -342,7 +343,8 @@ pub async fn execute_reshare(
     ProtocolExecutionErr,
 > {
     tracing::info!("Executing reshare");
-    tracing::debug!("Signing with {:?}", &threshold_pair.public());
+
+    tracing::debug!("Signing with {:?}", &threshold_pair.public().to_ss58check());
 
     let pair = PairWrapper(threshold_pair.clone());
 

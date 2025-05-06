@@ -19,7 +19,7 @@ use crate::{
 };
 use entropy_shared::{user::ValidatorInfo, BlockNumber, HashingAlgorithm};
 use serde::{Deserialize, Serialize};
-use sp_core::{sr25519, Pair};
+use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
 
 pub use crate::errors::{AttestationRequestError, SubgroupGetError};
@@ -160,7 +160,7 @@ pub async fn request_attestation(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     attestee: &sr25519::Pair,
 ) -> Result<[u8; 32], AttestationRequestError> {
-    tracing::debug!("{:?} is requesting an attestation.", attestee.public());
+    tracing::debug!("{:?} is requesting an attestation.", attestee.public().to_ss58check());
 
     let request_attestation = entropy::tx().attestation().request_attestation();
 

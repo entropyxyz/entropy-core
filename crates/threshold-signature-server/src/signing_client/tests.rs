@@ -25,7 +25,7 @@ use entropy_shared::{
 };
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
-    substrate_context::{test_context_stationary, test_node_process_testing_state},
+    substrate_context::{test_node_process_stationary_local, test_node_process_testing_state},
     ChainSpecType,
 };
 use futures::future::join_all;
@@ -149,9 +149,9 @@ async fn test_proactive_refresh_validation_fail() {
     clean_tests();
 
     let dave = AccountKeyring::Dave;
-    let cxt = test_context_stationary().await;
-    let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
-    let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
+    let cxt = test_node_process_stationary_local().await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let app_state = setup_client().await;
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
