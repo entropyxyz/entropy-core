@@ -14,4 +14,4 @@ jobs:
         run: |
           cargo run -p entropy -- build-spec --raw --chain dev > chainspec-dev-raw.json
           cargo run -p entropy -- build-spec --raw --chain integration-tests > chainspec-integration-raw.json
-          cargo run -p entropy -- build-spec --raw --chain testnet > chainspec-testnet-raw.json
+          cargo run -p entropy -- build-spec --raw --chain ./node/cli/test-data/test-chainspec-inputs/example-testnet-inputs.json > chainspec-testnet-raw.json
