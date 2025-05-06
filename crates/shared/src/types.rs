@@ -103,3 +103,18 @@ pub type EncodedVerifyingKey = [u8; VERIFICATION_KEY_LENGTH as usize];
 #[cfg(not(feature = "wasm"))]
 pub type BoundedVecEncodedVerifyingKey =
     sp_runtime::BoundedVec<u8, sp_runtime::traits::ConstU32<VERIFICATION_KEY_LENGTH>>;
+
+/// Public signing and encryption keys associated with a TS server
+/// This is the output from the TSS `/info` HTTP route
+#[cfg(feature = "user-native")]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+pub struct TssPublicKeys {
+    /// Indicates that all prerequisite checks have passed
+    pub ready: bool,
+    /// The TSS account ID
+    pub tss_account: subxt::utils::AccountId32,
+    /// The public encryption key
+    pub x25519_public_key: X25519PublicKey,
+    /// The Provisioning Certification Key used in TDX quotes
+    pub provisioning_certification_key: BoundedVecEncodedVerifyingKey,
+}
