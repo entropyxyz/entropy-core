@@ -236,8 +236,8 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
         .tss_details
         .into_iter()
         .map(|(host, tss)| {
-            let account_id = sp_runtime::AccountId32::new(tss.tss_account.0);
-            (account_id, tss.x25519_public_key, host, tss.provisioning_certification_key)
+            // let account_id = sp_runtime::AccountId32::new(tss.tss_account.0);
+            (tss.tss_account, tss.x25519_public_key, host, tss.provisioning_certification_key)
         })
         .collect();
 
