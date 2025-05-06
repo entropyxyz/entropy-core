@@ -66,7 +66,7 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn get_api_boxes)]
     pub type ApiBoxes<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, ServerInfo, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, OuttieServerInfo, OptionQuery>;
 
     #[pallet::error]
     pub enum Error<T> {
@@ -79,7 +79,7 @@ pub mod module {
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
     pub enum Event<T: Config> {
-        BoxAdded { box_account: T::AccountId, server_info: ServerInfo },
+        BoxAdded { box_account: T::AccountId, server_info: OuttieServerInfo },
     }
 
     #[pallet::pallet]
@@ -92,7 +92,7 @@ pub mod module {
         #[pallet::weight(<T as Config>::WeightInfo::add_box())]
         pub fn add_box(
             origin: OriginFor<T>,
-            server_info: ServerInfo,
+            server_info: OuttieServerInfo,
             // TODO #1421 quote: Vec<u8>,
         ) -> DispatchResult {
             let box_account = ensure_signed(origin.clone())?;

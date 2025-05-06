@@ -40,7 +40,7 @@ mod benchmarks {
         let x25519_public_key = NULL_ARR;
         let endpoint = vec![];
 
-        let server_info = ServerInfo { x25519_public_key, endpoint };
+        let server_info = OuttieServerInfo { x25519_public_key, endpoint };
         #[extrinsic_call]
         _(RawOrigin::Signed(caller.clone()), server_info.clone());
 

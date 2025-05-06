@@ -20,7 +20,6 @@ use frame_support::{
     construct_runtime, derive_impl, parameter_types,
     traits::{ConstU64, Everything, OneSessionHandler},
 };
-use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
     testing::UintAuthorityId,

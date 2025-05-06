@@ -18,7 +18,7 @@
 #![cfg(test)]
 
 use super::*;
-use crate::ServerInfo;
+use crate::OuttieServerInfo;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 
@@ -27,7 +27,7 @@ const NULL_ARR: [u8; 32] = [0; 32];
 #[test]
 fn add_box() {
     new_test_ext().execute_with(|| {
-        let mut server_info = ServerInfo { x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let mut server_info = OuttieServerInfo { x25519_public_key: NULL_ARR, endpoint: vec![20] };
 
         assert_ok!(Outtie::add_box(RuntimeOrigin::signed(1), server_info.clone()));
 
