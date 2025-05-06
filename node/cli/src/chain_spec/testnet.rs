@@ -306,11 +306,9 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
         })
         .collect();
 
-    let measurement_values = inputs
-        .accepted_measurement_values
-        .into_iter()
-        .map(|value| BoundedVec::try_from(value.to_vec()).unwrap())
-        .collect();
+    let measurement_values = inputs.accepted_measurement_values.map(|values| {
+        values.into_iter().map(|value| BoundedVec::try_from(value.to_vec()).unwrap()).collect()
+    });
 
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Entropy Testnet")
@@ -321,7 +319,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
             vec![],
             hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
             tss_details,
-            Some(measurement_values),
+            measurement_values,
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
