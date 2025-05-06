@@ -95,7 +95,6 @@ pallet-transaction-payment-rpc={ version="41.0.0" }
 entropy-runtime={ version="0.4.0-rc.1", path="../../runtime" }
 entropy-shared={ version="0.4.0-rc.1", path="../../crates/shared", default-features=false, features=[
   "wasm-no-std",
-  "user-native",
 ] }
 pallet-registry={ version="0.4.0-rc.1", path="../../pallets/registry" }
 pallet-staking-extension={ version="0.4.0-rc.1", path="../../pallets/staking" }

@@ -17,7 +17,7 @@ use super::constants::VERIFICATION_KEY_LENGTH;
 use codec::alloc::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-#[cfg(any(feature = "std", feature = "wasm"))]
+#[cfg(any(feature = "std", feature = "wasm", feature = "user-native"))]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "std")]
 use strum_macros::EnumIter;
@@ -106,13 +106,13 @@ pub type BoundedVecEncodedVerifyingKey =
 
 /// Public signing and encryption keys associated with a TS server
 /// This is the output from the TSS `/info` HTTP route
-#[cfg(feature = "user-native")]
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[cfg(feature = "wasm-no-std")]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TssPublicKeys {
     /// Indicates that all prerequisite checks have passed
     pub ready: bool,
     /// The TSS account ID
-    pub tss_account: subxt::utils::AccountId32,
+    pub tss_account: sp_runtime::AccountId32,
     /// The public encryption key
     pub x25519_public_key: X25519PublicKey,
     /// The Provisioning Certification Key used in TDX quotes
