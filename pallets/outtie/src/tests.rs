@@ -33,7 +33,7 @@ fn add_box() {
 
         assert_noop!(
             Outtie::add_box(RuntimeOrigin::signed(1), server_info.clone()),
-            Error::<Test>::TssAccountAlreadyExists
+            Error::<Test>::BoxAccountAlreadyExists
         );
         server_info.endpoint = [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec();
         assert_noop!(

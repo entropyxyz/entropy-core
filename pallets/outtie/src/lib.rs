@@ -46,7 +46,7 @@ pub mod module {
     pub trait Config: frame_system::Config + pallet_session::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        /// The maximum length of a threshold server's endpoint address, in bytes.
+        /// The maximum length of an API box server's endpoint address, in bytes.
         type MaxEndpointLength: Get<u32>;
 
         /// Weight information for the extrinsics in this module.
@@ -56,10 +56,10 @@ pub mod module {
     /// Information about a tdx server  
     #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct ServerInfo {
+    pub struct OuttieServerInfo {
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: Vec<u8>,
-        //  pub provisioning_certification_key: VerifyingKey,
+        //  TODO #1421 pub provisioning_certification_key: VerifyingKey,
     }
 
     /// API box signing account => Server Info
@@ -93,7 +93,7 @@ pub mod module {
         pub fn add_box(
             origin: OriginFor<T>,
             server_info: ServerInfo,
-            // quote: Vec<u8>,
+            // TODO #1421 quote: Vec<u8>,
         ) -> DispatchResult {
             let box_account = ensure_signed(origin.clone())?;
 
@@ -107,7 +107,7 @@ pub mod module {
                 Error::<T>::BoxAccountAlreadyExists
             );
 
-            // TODO assertion
+            // TODO #1421 assertion
 
             ApiBoxes::<T>::insert(&box_account, server_info.clone());
 
