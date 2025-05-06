@@ -71,7 +71,7 @@ pub struct TestnetChainSpecInputs {
 impl TestnetChainSpecInputs {
     pub fn from_json_file(path: &str) -> Result<Self, String> {
         let input = std::fs::read(path).map_err(|e| format!("{e:?}"))?;
-        Ok(serde_json::from_slice(&input).map_err(|e| format!("{e:?}"))?)
+        serde_json::from_slice(&input).map_err(|e| format!("{e:?}"))
     }
 }
 
@@ -223,71 +223,6 @@ pub fn testnet_local_initial_tss_servers(
     );
 
     vec![alice, bob]
-}
-
-/// Information about the initial set of Threshold Signature Signing servers.
-///
-/// In practice it's a little annoying for us to fill this out with correct information since we
-/// need to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
-/// here.
-///
-/// However, this can be done by:
-/// - First, spinning up the machines you expect to be running at genesis
-/// - Then, running each TSS server with the `--setup-only` flag to get the `TssAccountId` and
-///   `TssX25519PublicKey`
-/// - Finally, writing all that information back here, and generating the chainspec from that.
-///
-/// Note that if the KVDB of the TSS is deleted at any point during this process you will end up
-/// with different `AccountID`s and `PublicKey`s.
-pub fn testnet_initial_tss_servers(
-) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, BoundedVecEncodedVerifyingKey)> {
-    use std::str::FromStr;
-
-    let node_1a = (
-        TssAccountId::from_str("5EjwRRgCiHd7aaPzFjNGma9FN3kvvgQT6e5VNroptUGFGxBu")
-            .expect("Address should be valid."),
-        [
-            82, 228, 47, 129, 124, 56, 118, 161, 246, 72, 156, 57, 62, 188, 129, 124, 13, 238, 54,
-            198, 84, 61, 178, 36, 191, 56, 41, 39, 173, 70, 9, 67,
-        ],
-        "100.26.207.49:3001".to_string(),
-        provisioning_certification_key::ALICE.clone(),
-    );
-
-    let node_1b = (
-        TssAccountId::from_str("5GipHsBvjCbJgg5EZMUnMix8nzEr2GezFYdGJEmqCZ23hqtb")
-            .expect("Address should be valid."),
-        [
-            121, 253, 31, 146, 191, 150, 181, 175, 110, 217, 172, 227, 186, 191, 133, 80, 95, 135,
-            10, 107, 31, 67, 10, 98, 215, 34, 26, 10, 188, 59, 71, 100,
-        ],
-        "34.200.237.166:3001".to_string(),
-        provisioning_certification_key::BOB.clone(),
-    );
-
-    let node_1c = (
-        TssAccountId::from_str("5FexGJegpjWcEGP3UQyabUsfQEs48tCFMzKjhhtaVsbinCJM")
-            .expect("Address should be valid."),
-        [
-            245, 229, 104, 210, 55, 224, 110, 176, 133, 186, 130, 253, 2, 112, 205, 166, 94, 104,
-            36, 157, 25, 170, 72, 247, 152, 130, 139, 244, 4, 67, 162, 0,
-        ],
-        "184.72.189.154:3001".to_string(),
-        provisioning_certification_key::CHARLIE.clone(),
-    );
-
-    let node_2a = (
-        TssAccountId::from_str("5FX122MC2ChptKi9setzqjtPYX5krarK9bsY8SkXddaX2Ub8")
-            .expect("Address should be valid."),
-        [
-            164, 83, 190, 36, 18, 54, 59, 116, 203, 177, 95, 170, 9, 187, 102, 128, 189, 5, 41,
-            196, 3, 154, 37, 23, 133, 28, 168, 221, 37, 204, 186, 61,
-        ],
-        "184.73.19.95:3001".to_string(),
-        provisioning_certification_key::DAVE.clone(),
-    );
-
-    vec![node_1a, node_1b, node_1c, node_2a]
 }
 
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
