@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec,
+    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
     MEASUREMENT_VALUE_MOCK_QUOTE,
 };
 use crate::endowed_accounts::endowed_testnet_accounts;
@@ -64,7 +64,7 @@ pub struct TestnetChainSpecInputs {
     /// accepted.
     pub accepted_measurement_values: Option<Vec<[u8; 32]>>,
     // Bootnode peer IDs
-    pub boot_nodes: Vec<MultiAddrWithPeerId>,
+    pub boot_nodes: Vec<MultiaddrWithPeerId>,
     // TODO pre-endowed accounts
 }
 
@@ -542,6 +542,6 @@ mod tests {
           "boot_nodes": []
         }"#;
         let inputs = serde_json::from_str(json_inputs).unwrap();
-        let spec = testnet_config(inputs);
+        let _spec = testnet_config(inputs);
     }
 }
