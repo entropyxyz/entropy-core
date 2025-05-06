@@ -50,6 +50,21 @@ type TssAccountId = sp_runtime::AccountId32;
 /// The format should be in the form of `scheme://hostname:port`.
 type TssEndpoint = String;
 
+/// Custom input data for building the chainspec for a particular test network
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TestnetChainSpecInputs {
+    /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
+    /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
+    pub tss_details: HashMap<String, TssPublicKeys>,
+    /// The accepted TDX measurement values from the current entropy-tss VM images
+    /// If omitted, it will be assumed this is a non-production network and mock values will be
+    /// accepted.
+    pub accepted_measurement_values: Option<Vec<[u8; 32]>>,
+    // Bootnode peer IDs
+    pub boot_nodes: Vec<MultiAddrWithPeerId>,
+    // TODO pre-endowed accounts
+}
+
 pub fn testnet_local_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
     vec![
@@ -167,6 +182,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             testnet_local_initial_tss_servers(),
+            None,
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
@@ -270,7 +286,22 @@ pub fn testnet_initial_tss_servers(
 /// If you want to run your own version you can either:
 ///  - Update all the accounts here using keys you control, or
 ///  - Run the `testnet-local` config, which uses well-known keys
-pub fn testnet_config() -> crate::chain_spec::ChainSpec {
+pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
+    let tss_details = inputs
+        .tss_details
+        .into_iter()
+        .map(|(host, tss_details)| {
+            let account_id = sp_runtime::AccountId32::new(tss.tss_account.0);
+            (account_id, tss.x25519_public_key, host, tss.provisioning_certification_key)
+        })
+        .collect();
+
+    let measurement_values = inputs
+        .accepted_measurement_values
+        .into_iter()
+        .map(|value| BoundedVec::try_from(value.to_vec()).unwrap())
+        .collect();
+
     ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Entropy Testnet")
         .with_id("entropy_testnet")
@@ -279,7 +310,8 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
             testnet_initial_authorities(),
             vec![],
             hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
-            testnet_initial_tss_servers(),
+            tss_details,
+            Some(measurement_values),
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
@@ -290,6 +322,7 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
             )])
             .expect("Staging telemetry url is valid; qed"),
         )
+        .with_boot_nodes(inputs.boot_nodes)
         .build()
 }
 
@@ -310,6 +343,7 @@ pub fn testnet_genesis_config(
         TssEndpoint,
         BoundedVecEncodedVerifyingKey,
     )>,
+    accepted_measurement_values: Option<MeasurementValues>,
 ) -> serde_json::Value {
     assert!(
         initial_authorities.len() == initial_tss_servers.len(),
@@ -463,9 +497,9 @@ pub fn testnet_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: vec![
+            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
                 BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
-            ],
+            ]),
             ..Default::default()
         },
         "programs": ProgramsConfig {
