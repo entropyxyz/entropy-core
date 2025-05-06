@@ -16,10 +16,10 @@
 use crate::{
     attestation::api::get_pck,
     helpers::tests::{initialize_test_logger, setup_client},
-    node_info::api::{BuildDetails, TssPublicKeys, VersionDetails},
+    node_info::api::{BuildDetails, VersionDetails},
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::types::HashingAlgorithm;
+use entropy_shared::types::{HashingAlgorithm, TssPublicKeys};
 use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
 use serial_test::serial;
 
