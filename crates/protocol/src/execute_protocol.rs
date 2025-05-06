@@ -28,7 +28,6 @@ use manul::{
 use num::bigint::BigUint;
 use rand_core::{CryptoRngCore, OsRng};
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
-use std::sync::Arc;
 use subxt::utils::AccountId32;
 use synedrion::{
     signature::{self},
