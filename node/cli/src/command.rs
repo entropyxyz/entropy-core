@@ -88,7 +88,7 @@ impl SubstrateCli for Cli {
                 Box::new(chain_spec::integration_tests::integration_tests_config(jumpstarted))
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
-            path if id.starts_with("testnet-") => {
+            path if id.ends_with("chainspec-inputs.json") => {
                 let inputs = TestnetChainSpecInputs::from_json_file(path)?;
                 Box::new(chain_spec::testnet::testnet_config(inputs))
             },
