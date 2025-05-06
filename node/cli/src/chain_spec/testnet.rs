@@ -27,20 +27,23 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE,
-    DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
+    types::TssPublicKeys, BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey,
+    DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
     INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use sc_network::config::MultiaddrWithPeerId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
+use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{BoundedVec, Perbill};
+use std::collections::HashMap;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
 type TssAccountId = sp_runtime::AccountId32;
@@ -290,7 +293,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
     let tss_details = inputs
         .tss_details
         .into_iter()
-        .map(|(host, tss_details)| {
+        .map(|(host, tss)| {
             let account_id = sp_runtime::AccountId32::new(tss.tss_account.0);
             (account_id, tss.x25519_public_key, host, tss.provisioning_certification_key)
         })
