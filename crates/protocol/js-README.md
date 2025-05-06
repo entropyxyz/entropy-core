@@ -31,7 +31,7 @@ NodeJS you must have the dependency [`ws`](https://www.npmjs.com/package/ws) as 
 Object.assign(global, { WebSocket: require('ws') })
 ```
 
-This is tested in CI with `ws` version `^8.14.2`.
+This is tested in CI with `ws` version `^8.14.2`
 
 ## `Hpke`
 
