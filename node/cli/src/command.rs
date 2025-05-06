@@ -38,7 +38,7 @@ use sp_runtime::traits::HashingFor;
 
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec,
+    chain_spec::{self, testnet::TestnetChainSpecInputs},
     cli::{Cli, Subcommand},
     service,
 };
@@ -68,13 +68,13 @@ impl SubstrateCli for Cli {
         2022
     }
 
-    // | --chain                 | Description |
-    // |-----------------------  |----------- |
-    // | dev                     | Four nodes, Four threshold servers, Alice Bob and Charlie and Dave, Development Configuration |
-    // | devnet-local            | Four nodes, four threshold servers, Alice Bob Charlie and Dave, Development Configuration, Docker Compatible |
-    // | integration-tests       | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
-    // | testnet-local           | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration, Docker Compatible |
-    // | testnet-my-config.json  | Custom Testnet Configuration with given inputs |
+    // | --chain                   | Description |
+    // |-------------------------  |----------- |
+    // | dev                       | Four nodes, Four threshold servers, Alice Bob and Charlie and Dave, Development Configuration |
+    // | devnet-local              | Four nodes, four threshold servers, Alice Bob Charlie and Dave, Development Configuration, Docker Compatible |
+    // | integration-tests         | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
+    // | testnet-local             | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration, Docker Compatible |
+    // | testnet-<my-config>.json  | Custom Testnet Configuration with given inputs from a specified JSON file |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
@@ -89,9 +89,8 @@ impl SubstrateCli for Cli {
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
             path if id.starts_with("testnet-") => {
-                let input = std::fs::read(path)?;
-                let input = serde_json::from_slice(&input)?;
-                Box::new(chain_spec::testnet::testnet_config(input))
+                let inputs = TestnetChainSpecInputs::from_json_file(path)?;
+                Box::new(chain_spec::testnet::testnet_config(inputs))
             },
             path => {
                 Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?)

@@ -68,6 +68,13 @@ pub struct TestnetChainSpecInputs {
     // TODO pre-endowed accounts
 }
 
+impl TestnetChainSpecInputs {
+    pub fn from_json_file(path: &str) -> Result<Self, String> {
+        let input = std::fs::read(path).map_err(|e| format!("{e:?}"))?;
+        Ok(serde_json::from_slice(&input).map_err(|e| format!("{e:?}"))?)
+    }
+}
+
 pub fn testnet_local_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
     vec![
