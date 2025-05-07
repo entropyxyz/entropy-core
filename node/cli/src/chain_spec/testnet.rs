@@ -264,7 +264,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
                             .map_err(|_| format!("Measurement value {value} must be 32 bytes"))?,
                     )
                 })
-                .collect()?,
+                .collect::<Vec<_>>()?,
         )
     } else {
         None
