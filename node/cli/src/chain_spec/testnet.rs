@@ -256,15 +256,14 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         values
             .into_iter()
             .map(|value| {
-                let bytes = hex::decode(value).unwrap_or_else(|_| {
-                    return Err(format!("Measurement value {value} must be valid hex"));
-                });
-                BoundedVec::try_from(bytes).unwrap_or_else(|_| {
-                    return Err(format!("Measurement value {value} must be 32 bytes"));
-                })
+                let bytes = hex::decode(value)
+                    .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
+                Ok(BoundedVec::try_from(bytes).map_err(|_| {
+                    format!("Measurement value {value} must be 32 bytes");
+                })?)
             })
             .collect()
-    });
+    })?;
 
     Ok(ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Entropy Testnet")
