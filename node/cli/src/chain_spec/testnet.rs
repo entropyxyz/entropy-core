@@ -256,10 +256,10 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         values
             .into_iter()
             .map(|value| {
-                let bytes = hex::decode(value).unwrap_or_else(|| {
+                let bytes = hex::decode(value).unwrap_or_else(|_| {
                     return Err(format!("Measurement value {value} must be valid hex"));
                 });
-                BoundedVec::try_from(bytes).unwrap_or_else(|| {
+                BoundedVec::try_from(bytes).unwrap_or_else(|_| {
                     return Err(format!("Measurement value {value} must be 32 bytes"));
                 })
             })
