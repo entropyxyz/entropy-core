@@ -366,7 +366,8 @@ pub fn testnet_genesis_config(
     serde_json::json!( {
         "balances": BalancesConfig {
             balances: endowed_accounts
-                        .into_iter()
+                        .iter()
+                        .cloned()
                         .map(|x| (x, ENDOWMENT))
                         .unique()
                         .collect(),
