@@ -71,15 +71,15 @@ pub struct TestnetChainSpecInputs {
     ///
     /// These are the libp2p 'multi-addresses' of the initial chain nodes
     pub boot_nodes: Vec<MultiaddrWithPeerId>,
-    // Pre-funded (endowed) account IDs
-    //
-    // Note that any endowed_accounts added here will be included in the `elections` and
-    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
-    // this list.
+    /// Pre-funded (endowed) account IDs, given as ss58-encoded strings
+    ///
+    /// Note that any endowed_accounts added here will be included in the `elections` and
+    /// `technical_committee` genesis configs.
     pub endowed_accounts: Vec<AccountId>,
 }
 
 impl TestnetChainSpecInputs {
+    /// Parse a JSON file at the given path into a [TestnetChainSpecInputs]
     pub fn from_json_file(path: &str) -> Result<Self, String> {
         let input = std::fs::read(path).map_err(|e| format!("{e:?}"))?;
         serde_json::from_slice(&input).map_err(|e| format!("{e:?}"))
@@ -293,6 +293,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         .build())
 }
 
+/// Build a testnet gensis configuration from custom inputs
 pub fn testnet_genesis_config(
     initial_authorities: Vec<(
         AccountId,
