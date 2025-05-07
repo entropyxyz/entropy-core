@@ -367,7 +367,8 @@ pub mod pallet {
             programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         ) -> DispatchResultWithPostInfo {
             use core::str::FromStr;
-            use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+            use k256::ecdsa::VerifyingKey as SynedrionVerifyingKey;
+            use synedrion::DeriveChildKey;
 
             let signature_request_account = ensure_signed(origin)?;
 

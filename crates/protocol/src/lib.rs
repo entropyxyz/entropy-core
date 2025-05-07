@@ -31,20 +31,19 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use bincode::Options;
 use blake2::{Blake2s256, Digest};
 use errors::{ProtocolExecutionErr, VerifyingKeyError};
+use k256::{
+    ecdsa::{RecoveryId, Signature, VerifyingKey},
+    EncodedPoint,
+};
+use manul::signature::DigestVerifier;
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde_persistent_deserializer::{AsTransientDeserializer, PersistentDeserializer};
 use sp_core::{sr25519, Pair};
 use subxt::utils::AccountId32;
-use synedrion::{
-    ecdsa::VerifyingKey,
-    k256::{
-        ecdsa::{RecoveryId, Signature},
-        EncodedPoint,
-    },
-    signature::{self, hazmat::PrehashVerifier},
-    AuxInfo, ThresholdKeyShare,
-};
+use synedrion::{k256::ProductionParams112, signature, AuxInfo, ThresholdKeyShare};
 
 /// The current version number of the protocol message format or protocols themselves
 pub const PROTOCOL_MESSAGE_VERSION: u32 = 1;
@@ -83,13 +82,13 @@ impl From<sr25519::Public> for PartyId {
     }
 }
 
-impl PrehashVerifier<sr25519::Signature> for PartyId {
-    fn verify_prehash(
+impl DigestVerifier<Blake2s256, sr25519::Signature> for PartyId {
+    fn verify_digest(
         &self,
-        prehash: &[u8],
+        digest: Blake2s256,
         signature: &sr25519::Signature,
     ) -> Result<(), signature::Error> {
-        if sr25519::Pair::verify(signature, prehash, &self.to_public()) {
+        if sr25519::Pair::verify(signature, digest.finalize(), &self.to_public()) {
             Ok(())
         } else {
             Err(signature::Error::new())
@@ -124,17 +123,57 @@ impl fmt::Display for PartyId {
     }
 }
 
-#[cfg(not(test))]
-use synedrion::ProductionParams;
-/// Parameters used for the threshold signing scheme in production
-#[cfg(not(test))]
-pub type KeyParams = ProductionParams;
+/// Session configuration used for manul sessions
+pub struct EntropySessionParameters;
 
-#[cfg(test)]
-use synedrion::TestParams;
-/// Parameters used for the threshold signing scheme in tests (faster but less secure)
-#[cfg(test)]
-pub type KeyParams = TestParams;
+impl manul::session::SessionParameters for EntropySessionParameters {
+    type Signer = execute_protocol::PairWrapper;
+    type Verifier = PartyId;
+    type Signature = sr25519::Signature;
+    type Digest = Blake2s256;
+    type WireFormat = BincodeWireFormat;
+}
+
+/// Specifies the serialization used for protocol messages
+#[derive(Debug)]
+pub struct BincodeWireFormat;
+
+impl manul::session::WireFormat for BincodeWireFormat {
+    fn serialize<T: Serialize>(value: T) -> Result<Box<[u8]>, manul::protocol::LocalError> {
+        Ok(bincode::config::DefaultOptions::new()
+            .serialize(&value)
+            .map_err(|e| manul::protocol::LocalError::new(format!("Serialization error: {e:?}")))?
+            .into())
+    }
+
+    type Deserializer<'de> = PersistentDeserializer<BincodeDeserializer<'de>>;
+
+    fn deserializer(bytes: &[u8]) -> Self::Deserializer<'_> {
+        PersistentDeserializer::new(BincodeDeserializer(bincode::de::Deserializer::from_slice(
+            bytes,
+            bincode::config::DefaultOptions::new(),
+        )))
+    }
+}
+
+/// A wrapper for a bincode deserializer implementing the trait needed to use it as our WireFormat
+#[allow(missing_debug_implementations)]
+pub struct BincodeDeserializer<'de>(
+    bincode::de::Deserializer<bincode::de::read::SliceReader<'de>, bincode::config::DefaultOptions>,
+);
+
+impl<'de> AsTransientDeserializer<'de> for BincodeDeserializer<'de> {
+    type Error = bincode::Error;
+
+    fn as_transient_deserializer<'a>(
+        &'a mut self,
+    ) -> impl serde::Deserializer<'de, Error = Self::Error> {
+        &mut self.0
+    }
+}
+
+/// Parameters used for the threshold signing scheme in production
+pub type KeyParams = ProductionParams112;
 
 pub use synedrion::KeyShare;
 

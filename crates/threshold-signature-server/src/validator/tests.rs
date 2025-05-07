@@ -50,13 +50,13 @@ use entropy_testing_utils::{
     substrate_context::{test_node_process_testing_state, testing_context},
     test_context_stationary, ChainSpecType,
 };
+use k256::ecdsa::VerifyingKey;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use std::collections::HashSet;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
-use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]

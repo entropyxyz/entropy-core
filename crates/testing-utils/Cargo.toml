@@ -24,11 +24,13 @@ entropy-tss={ version="0.4.0-rc.1", path="../threshold-signature-server", featur
   "test_helpers",
 ] }
 entropy-protocol={ version="0.4.0-rc.1", path="../protocol" }
-synedrion="0.2.0"
 hex="0.4.3"
 rand_core="0.6.4"
 rand="0.8.5"
 tdx-quote={ version="0.0.3", features=["mock"] }
+k256={ version="0.13", default-features=false, features=["ecdsa"] }
+synedrion={ version="0.3.0", features=["k256", "dev"] }
+manul={ version="0.2.1", features=["tokio", "dev"] }
 
 # Logging
 tracing           ="0.1.41"

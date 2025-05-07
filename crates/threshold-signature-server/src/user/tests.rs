@@ -48,6 +48,7 @@ use entropy_testing_utils::{
     test_node_process_testing_state, ChainSpecType,
 };
 use futures::future::try_join_all;
+use k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
 use rand::Rng;
@@ -65,8 +66,7 @@ use subxt::{
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
-use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+use synedrion::DeriveChildKey;
 use tokio_tungstenite::connect_async;
 
 use crate::{
@@ -483,8 +483,7 @@ async fn signature_request_with_derived_account_works() {
     // We expect that the signature we get back is valid
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let verifying_key =
-        SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
-            .unwrap();
+        VerifyingKey::try_from(signature_request.signature_verifying_key.as_slice()).unwrap();
 
     let all_signers_info = get_all_signers_from_chain(
         &spawn_results.chain_connection.api,
@@ -561,10 +560,9 @@ async fn signature_request_overload() {
                 .map_err(|e| anyhow!("Failed to submit transaction request: {}", e))?;
 
                 let message_hash = Hasher::keccak(&hex::decode(signature_request.message).unwrap());
-                let verifying_key = SynedrionVerifyingKey::try_from(
-                    signature_request.signature_verifying_key.as_slice(),
-                )
-                .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
+                let verifying_key =
+                    VerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
+                        .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
 
                 let all_signers_info = get_all_signers_from_chain(&api, &rpc)
                     .await
@@ -1307,8 +1305,14 @@ async fn test_jumpstart_network() {
             entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
         assert!(key_share.is_some());
 
-        verifying_key =
-            key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+        verifying_key = key_share
+            .unwrap()
+            .0
+            .verifying_key()
+            .unwrap()
+            .to_encoded_point(true)
+            .as_bytes()
+            .to_vec();
     }
 
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
@@ -2065,8 +2069,7 @@ async fn test_registration_flow() {
     );
 
     // Next, let's check that the child verifying key matches
-    let network_verifying_key =
-        SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+    let network_verifying_key = VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
 
     // We hardcode the derivation path here since we know that there's only been one registration
     // request (ours).

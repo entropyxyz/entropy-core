@@ -57,6 +57,7 @@ pub use synedrion::KeyShare;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use futures::stream::StreamExt;
+use k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use sp_core::{
     sr25519::{self, Signature},
     Pair,
@@ -66,7 +67,6 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 

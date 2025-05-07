@@ -235,7 +235,7 @@ mod benchmarks {
         use synedrion::DeriveChildKey;
 
         let network_verifying_key =
-            synedrion::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+            k256::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
 
         // We subtract one from the count since this gets incremented after a succesful registration,
         // and we're interested in the account we just registered.

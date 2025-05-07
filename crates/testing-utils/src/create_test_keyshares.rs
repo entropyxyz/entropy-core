@@ -15,28 +15,25 @@
 
 //! Simulates 3 TSS nodes running the reshare protocol in order to create keyshares with a
 //! pre-defined distributed keypair for testing entropy-tss
-use entropy_protocol::{execute_protocol::PairWrapper, PartyId};
+use entropy_protocol::{execute_protocol::PairWrapper, EntropySessionParameters, PartyId};
+use k256::ecdsa::SigningKey;
+use manul::dev::run_sync;
 use rand_core::OsRng;
 use sp_core::{sr25519, Pair};
 use synedrion::{
-    ecdsa::SigningKey, make_key_resharing_session, sessions::SessionId, AuxInfo,
-    KeyResharingInputs, KeyShare, NewHolder, OldHolder, SchemeParams, ThresholdKeyShare,
+    k256::ProductionParams112, AuxInfo, KeyResharing, KeyShare, NewHolder, OldHolder,
+    ThresholdKeyShare,
 };
-use synedrion_test_environment::run_nodes;
 
 use std::collections::BTreeSet;
 
 /// Given a secp256k1 secret key and 3 signing keypairs for the TSS parties, generate a set of
 /// threshold keyshares with auxiliary info
-pub async fn create_test_keyshares<Params>(
+pub async fn create_test_keyshares(
     distributed_secret_key_bytes: [u8; 32],
     signers: [sr25519::Pair; 3],
-) -> Vec<(ThresholdKeyShare<Params, PartyId>, AuxInfo<Params, PartyId>)>
-where
-    Params: SchemeParams,
-{
+) -> Vec<(ThresholdKeyShare<ProductionParams112, PartyId>, AuxInfo<ProductionParams112, PartyId>)> {
     let signing_key = SigningKey::from_bytes(&(distributed_secret_key_bytes).into()).unwrap();
-    let session_id = SessionId::from_seed(b"12345".as_slice());
     let all_parties =
         signers.iter().map(|pair| PartyId::from(pair.public())).collect::<BTreeSet<_>>();
 
@@ -44,246 +41,60 @@ where
     // Remove one member as we initially create 2 of 2 keyshares, then reshare to 2 of 3
     old_holders.remove(&PartyId::from(signers[2].public()));
 
-    let keyshares =
-        KeyShare::<Params, PartyId>::new_centralized(&mut OsRng, &old_holders, Some(&signing_key));
-    let aux_infos = AuxInfo::<Params, PartyId>::new_centralized(&mut OsRng, &all_parties);
+    let keyshares = KeyShare::<ProductionParams112, PartyId>::new_centralized(
+        &mut OsRng,
+        &old_holders,
+        Some(&signing_key),
+    );
+    let aux_infos =
+        AuxInfo::<ProductionParams112, PartyId>::new_centralized(&mut OsRng, &all_parties);
 
     let new_holder = NewHolder {
-        verifying_key: keyshares.values().next().unwrap().verifying_key().unwrap(),
+        verifying_key: keyshares.values().next().unwrap().verifying_key(),
         old_threshold: 2,
         old_holders,
     };
 
-    let mut sessions = signers[..2]
+    let mut signers_and_entry_points = signers[..2]
         .iter()
         .map(|pair| {
-            let inputs = KeyResharingInputs {
-                old_holder: Some(OldHolder {
+            let entry_point = KeyResharing::new(
+                Some(OldHolder {
                     key_share: ThresholdKeyShare::from_key_share(
                         &keyshares[&PartyId::from(pair.public())],
                     ),
                 }),
-                new_holder: Some(new_holder.clone()),
-                new_holders: all_parties.clone(),
-                new_threshold: 2,
-            };
-            make_key_resharing_session(
-                &mut OsRng,
-                session_id,
-                PairWrapper(pair.clone()),
-                &all_parties,
-                inputs,
-            )
-            .unwrap()
+                Some(new_holder.clone()),
+                all_parties.clone(),
+                2, // The threshold
+            );
+
+            (PairWrapper(pair.clone()), entry_point)
         })
         .collect::<Vec<_>>();
 
-    let new_holder_session = {
-        let inputs = KeyResharingInputs {
-            old_holder: None,
-            new_holder: Some(new_holder.clone()),
-            new_holders: all_parties.clone(),
-            new_threshold: 2,
-        };
-        make_key_resharing_session(
-            &mut OsRng,
-            session_id,
-            PairWrapper(signers[2].clone()),
-            &all_parties,
-            inputs,
-        )
-        .unwrap()
+    let new_holder_signer_and_entry_point = {
+        let entry_point = KeyResharing::new(
+            None,
+            Some(new_holder.clone()),
+            all_parties.clone(),
+            2, // The threshold
+        );
+
+        (PairWrapper(signers[2].clone()), entry_point)
     };
 
-    sessions.push(new_holder_session);
+    signers_and_entry_points.push(new_holder_signer_and_entry_point);
 
-    let new_t_key_shares = run_nodes(sessions).await;
+    let new_t_key_shares =
+        run_sync::<_, EntropySessionParameters>(&mut OsRng, signers_and_entry_points)
+            .unwrap()
+            .results()
+            .unwrap();
 
     let mut output = Vec::new();
-    for (i, party_id) in signers.iter().map(|pair| PartyId::from(pair.public())).enumerate() {
-        output.push((new_t_key_shares[i].clone().unwrap(), aux_infos[&party_id].clone()));
+    for party_id in signers.iter().map(|pair| PartyId::from(pair.public())) {
+        output.push((new_t_key_shares[&party_id].clone().unwrap(), aux_infos[&party_id].clone()));
     }
     output
-}
-
-/// This is used to run the synedrion protocols - it is mostly copied from the synedrion integration
-/// tests
-mod synedrion_test_environment {
-    use entropy_protocol::{execute_protocol::PairWrapper, PartyId};
-    use rand::Rng;
-    use rand_core::OsRng;
-    use sp_core::sr25519;
-    use std::collections::BTreeMap;
-    use synedrion::{FinalizeOutcome, MessageBundle, ProtocolResult, Session};
-    use tokio::{
-        sync::mpsc,
-        time::{sleep, Duration},
-    };
-    type MessageOut = (PartyId, PartyId, MessageBundle<sr25519::Signature>);
-    type MessageIn = (PartyId, MessageBundle<sr25519::Signature>);
-
-    fn key_to_str(key: &PartyId) -> String {
-        key.to_string()
-    }
-
-    /// Run a generic synedrion session
-    async fn run_session<Res: ProtocolResult>(
-        tx: mpsc::Sender<MessageOut>,
-        rx: mpsc::Receiver<MessageIn>,
-        session: Session<Res, sr25519::Signature, PairWrapper, PartyId>,
-    ) -> Res::Success {
-        let mut rx = rx;
-
-        let mut session = session;
-        let mut cached_messages = Vec::new();
-
-        let key = session.verifier();
-        let key_str = key_to_str(&key);
-
-        loop {
-            println!("{key_str}: *** starting round {:?} ***", session.current_round());
-
-            // This is kept in the main task since it's mutable,
-            // and we don't want to bother with synchronization.
-            let mut accum = session.make_accumulator();
-
-            // Note: generating/sending messages and verifying newly received messages
-            // can be done in parallel, with the results being assembled into `accum`
-            // sequentially in the host task.
-
-            let destinations = session.message_destinations();
-            for destination in destinations.iter() {
-                // In production usage, this will happen in a spawned task
-                // (since it can take some time to create a message),
-                // and the artifact will be sent back to the host task
-                // to be added to the accumulator.
-                let (message, artifact) = session.make_message(&mut OsRng, destination).unwrap();
-                println!("{key_str}: sending a message to {}", key_to_str(destination));
-                tx.send((key.clone(), destination.clone(), message)).await.unwrap();
-
-                // This will happen in a host task
-                accum.add_artifact(artifact).unwrap();
-            }
-
-            for preprocessed in cached_messages {
-                // In production usage, this will happen in a spawned task.
-                println!("{key_str}: applying a cached message");
-                let result = session.process_message(&mut OsRng, preprocessed).unwrap();
-
-                // This will happen in a host task.
-                accum.add_processed_message(result).unwrap().unwrap();
-            }
-
-            while !session.can_finalize(&accum).unwrap() {
-                // This can be checked if a timeout expired, to see which nodes have not responded yet.
-                let unresponsive_parties = session.missing_messages(&accum).unwrap();
-                assert!(!unresponsive_parties.is_empty());
-
-                println!("{key_str}: waiting for a message");
-                let (from, message) = rx.recv().await.unwrap();
-
-                // Perform quick checks before proceeding with the verification.
-                let preprocessed = session.preprocess_message(&mut accum, &from, message).unwrap();
-
-                if let Some(preprocessed) = preprocessed {
-                    // In production usage, this will happen in a spawned task.
-                    println!("{key_str}: applying a message from {}", key_to_str(&from));
-                    let result = session.process_message(&mut OsRng, preprocessed).unwrap();
-
-                    // This will happen in a host task.
-                    accum.add_processed_message(result).unwrap().unwrap();
-                }
-            }
-
-            println!("{key_str}: finalizing the round");
-
-            match session.finalize_round(&mut OsRng, accum).unwrap() {
-                FinalizeOutcome::Success(res) => break res,
-                FinalizeOutcome::AnotherRound {
-                    session: new_session,
-                    cached_messages: new_cached_messages,
-                } => {
-                    session = new_session;
-                    cached_messages = new_cached_messages;
-                },
-            }
-        }
-    }
-
-    async fn message_dispatcher(
-        txs: BTreeMap<PartyId, mpsc::Sender<MessageIn>>,
-        rx: mpsc::Receiver<MessageOut>,
-    ) {
-        let mut rx = rx;
-        let mut messages = Vec::<MessageOut>::new();
-        loop {
-            let msg = match rx.recv().await {
-                Some(msg) => msg,
-                None => break,
-            };
-            messages.push(msg);
-
-            while let Ok(msg) = rx.try_recv() {
-                messages.push(msg)
-            }
-
-            while !messages.is_empty() {
-                // Pull a random message from the list,
-                // to increase the chances that they are delivered out of order.
-                let message_idx = rand::thread_rng().gen_range(0..messages.len());
-                let (id_from, id_to, message) = messages.swap_remove(message_idx);
-
-                txs[&id_to].send((id_from, message)).await.unwrap();
-
-                // Give up execution so that the tasks could process messages.
-                sleep(Duration::from_millis(0)).await;
-
-                if let Ok(msg) = rx.try_recv() {
-                    messages.push(msg);
-                };
-            }
-        }
-    }
-
-    pub async fn run_nodes<Res>(
-        sessions: Vec<Session<Res, sr25519::Signature, PairWrapper, PartyId>>,
-    ) -> Vec<Res::Success>
-    where
-        Res: ProtocolResult + Send + 'static,
-        Res::Success: Send + 'static,
-    {
-        let num_parties = sessions.len();
-
-        let (dispatcher_tx, dispatcher_rx) = mpsc::channel::<MessageOut>(100);
-
-        let channels = (0..num_parties).map(|_| mpsc::channel::<MessageIn>(100));
-        let (txs, rxs): (Vec<mpsc::Sender<MessageIn>>, Vec<mpsc::Receiver<MessageIn>>) =
-            channels.unzip();
-        let tx_map =
-            sessions.iter().map(|session| session.verifier()).zip(txs.into_iter()).collect();
-
-        let dispatcher_task = message_dispatcher(tx_map, dispatcher_rx);
-        let dispatcher = tokio::spawn(dispatcher_task);
-
-        let handles: Vec<tokio::task::JoinHandle<Res::Success>> = rxs
-            .into_iter()
-            .zip(sessions.into_iter())
-            .map(|(rx, session)| {
-                let node_task = run_session(dispatcher_tx.clone(), rx, session);
-                tokio::spawn(node_task)
-            })
-            .collect();
-
-        // Drop the last copy of the dispatcher's incoming channel so that it could finish.
-        drop(dispatcher_tx);
-
-        let mut results = Vec::with_capacity(num_parties);
-        for handle in handles {
-            results.push(handle.await.unwrap());
-        }
-
-        dispatcher.await.unwrap();
-
-        results
-    }
 }

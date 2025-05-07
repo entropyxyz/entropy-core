@@ -15,9 +15,8 @@
 
 use std::str;
 
+use manul::session::Message;
 use serde::{Deserialize, Serialize};
-use sp_core::sr25519;
-use synedrion::sessions::MessageBundle;
 
 use crate::{protocol_transport::errors::ProtocolMessageErr, PartyId};
 
@@ -39,7 +38,7 @@ pub struct ProtocolMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProtocolMessagePayload {
     /// The signed protocol message
-    MessageBundle(Box<MessageBundle<sr25519::Signature>>),
+    Message(Box<Message<PartyId>>),
     /// A verifying key for parties who were not present in the key init session
     VerifyingKey(Vec<u8>),
 }
@@ -54,15 +53,11 @@ impl TryFrom<&[u8]> for ProtocolMessage {
 }
 
 impl ProtocolMessage {
-    pub(crate) fn new(
-        from: &PartyId,
-        to: &PartyId,
-        payload: MessageBundle<sr25519::Signature>,
-    ) -> Self {
+    pub(crate) fn new(from: &PartyId, to: &PartyId, payload: Message<PartyId>) -> Self {
         Self {
             from: from.clone(),
             to: to.clone(),
-            payload: ProtocolMessagePayload::MessageBundle(Box::new(payload)),
+            payload: ProtocolMessagePayload::Message(Box::new(payload)),
         }
     }
 }

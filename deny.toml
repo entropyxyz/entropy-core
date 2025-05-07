@@ -40,6 +40,7 @@ exceptions=[
   { allow=["AGPL-3.0"], name="entropy-programs-core" },
   { allow=["AGPL-3.0"], name="entropy-programs-runtime" },
   { allow=["AGPL-3.0"], name="synedrion" },
+  { allow=["AGPL-3.0"], name="manul" },
   { allow=["AGPL-3.0"], name="tdx-quote" },
   { allow=["AGPL-3.0"], name="configfs-tsm" },
 

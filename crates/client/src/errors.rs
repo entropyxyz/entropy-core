@@ -100,7 +100,7 @@ pub enum ClientError {
     #[error("Base64 decode: {0}")]
     Base64(#[from] base64::DecodeError),
     #[error("ECDSA: {0}")]
-    Ecdsa(#[from] synedrion::ecdsa::Error),
+    Ecdsa(#[from] k256::ecdsa::Error),
     #[error("Cannot get recovery ID from signature")]
     NoRecoveryId,
     #[error("Cannot parse recovery ID from signature")]

@@ -41,7 +41,7 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
-use synedrion::{AuxInfo, KeyResharingInputs, NewHolder, OldHolder, ThresholdKeyShare};
+use synedrion::{AuxInfo, KeyResharing, NewHolder, OldHolder, ThresholdKeyShare};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -181,16 +181,16 @@ pub async fn do_proactive_refresh(
 
     let party_ids: BTreeSet<PartyId> = tss_accounts.iter().cloned().map(PartyId::new).collect();
 
-    let inputs = KeyResharingInputs {
-        old_holder: Some(OldHolder { key_share: old_key.clone() }),
-        new_holder: Some(NewHolder {
-            verifying_key: old_key.verifying_key(),
+    let inputs = KeyResharing::new(
+        Some(OldHolder { key_share: old_key.clone() }),
+        Some(NewHolder {
+            verifying_key: old_key.verifying_key()?,
             old_threshold: party_ids.len(),
             old_holders: party_ids.clone(),
         }),
-        new_holders: party_ids.clone(),
-        new_threshold: old_key.threshold(),
-    };
+        party_ids.clone(),
+        old_key.threshold(),
+    );
 
     let channels = get_channels(
         state,

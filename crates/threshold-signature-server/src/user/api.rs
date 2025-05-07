@@ -496,7 +496,7 @@ async fn setup_dkg(
     )
     .await?;
 
-    let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verifying_key = key_share.verifying_key()?.to_encoded_point(true).as_bytes().to_vec();
 
     let serialized_key_share = key_serialize(&(key_share, aux_info))
         .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;

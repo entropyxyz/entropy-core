@@ -118,6 +118,8 @@ pub enum ProtocolErr {
     NotReady,
     #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
+    #[error("Manul local error: {0}")]
+    ManulLocal(String),
 }
 
 impl IntoResponse for ProtocolErr {
@@ -125,6 +127,12 @@ impl IntoResponse for ProtocolErr {
         tracing::error!("{:?}", format!("{self}"));
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}
+
+impl From<manul::session::LocalError> for ProtocolErr {
+    fn from(err: manul::session::LocalError) -> Self {
+        Self::ManulLocal(format!("{err:?}"))
     }
 }
 

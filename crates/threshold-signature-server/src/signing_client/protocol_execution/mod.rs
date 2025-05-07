@@ -122,9 +122,9 @@ impl<'a> ThresholdSigningService<'a> {
         let rsig = execute_signing_protocol(
             session_id,
             channels,
-            &key_share.to_key_share(&parties),
+            &key_share.to_key_share(&parties)?,
             aux_info,
-            &message_hash,
+            &message_hash.into(),
             threshold_signer,
             threshold_accounts,
         )
