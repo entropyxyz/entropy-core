@@ -257,7 +257,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
             values
                 .into_iter()
                 .map(|value| {
-                    let bytes = hex::decode(value)
+                    let bytes = hex::decode(&value)
                         .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
                     Ok::<BoundedVec<u8, ConstU32<32>>, String>(
                         BoundedVec::try_from(bytes)
