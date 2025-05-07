@@ -14,7 +14,7 @@
         "/dns4/example-bootnode-2.entropy.xyz/tcp/30333/p2p/12D3KooWJz3vL5JzA5RL7tZczhU3NcQ2x9smvMHyrPBZBhdR35A9",
         "/dns4/example-bootnode-3.entropy.xyz/tcp/30333/p2p/12D3KooWQm3X3FH5dD1FZRxkN8WzEzoA6uVpWi3mDsHDFeDdR7xz"
     ],
-    "endowed-accounts": [
+    "endowed_accounts": [
         "5CtViLgvdHoLDvdsSsfEPxczsF6D7FtQ59h6B4Gey5EXE47t",
         "5EbyKpRWK9z7Efso1QYFcfAiHHkxzxMRSFAkJtmeUmuz1CGj",
         "5E2fDSRWSVjYLP8VsvTvzHBUdC2h6xtrApqkBdAb9xqPqcNK"

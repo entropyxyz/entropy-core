@@ -243,7 +243,7 @@ pub fn testnet_local_initial_tss_servers(
 /// If you want to run your own version you can either:
 ///  - Update all the accounts here using keys you control, or
 ///  - Run the `testnet-local` config, which uses well-known keys
-pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
+pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, String> {
     let tss_details = inputs
         .tss_details
         .into_iter()
@@ -255,11 +255,18 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
     let measurement_values = inputs.accepted_measurement_values.map(|values| {
         values
             .into_iter()
-            .map(|value| BoundedVec::try_from(hex::decode(value).unwrap()).unwrap())
+            .map(|value| {
+                let bytes = hex::decode(value).unwrap_or_else(|| {
+                    return Err(format!("Measurement value {value} must be valid hex"));
+                });
+                BoundedVec::try_from(bytes).unwrap_or_else(|| {
+                    return Err(format!("Measurement value {value} must be 32 bytes"));
+                })
+            })
             .collect()
     });
 
-    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+    Ok(ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Entropy Testnet")
         .with_id("entropy_testnet")
         .with_chain_type(ChainType::Live)
@@ -281,7 +288,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
             .expect("Staging telemetry url is valid; qed"),
         )
         .with_boot_nodes(inputs.boot_nodes)
-        .build()
+        .build())
 }
 
 pub fn testnet_genesis_config(
