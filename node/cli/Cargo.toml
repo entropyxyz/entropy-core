@@ -32,6 +32,7 @@ rand            ="0.8.5"
 serde           ={ version="1.0.219", features=["derive"] }
 serde_json      ='1.0.140'
 hex             ={ version="0.4.3", optional=true }
+schemars        ={ version="0.8.22", optional=true }
 
 # Substrate Client
 
@@ -99,7 +100,6 @@ entropy-shared={ version="0.4.0-rc.1", path="../../crates/shared", default-featu
 ] }
 pallet-registry={ version="0.4.0-rc.1", path="../../pallets/registry" }
 pallet-staking-extension={ version="0.4.0-rc.1", path="../../pallets/staking" }
-project-root="0.2.2"
 
 [build-dependencies]
 clap={ version="4.5.37", optional=true }
@@ -114,7 +114,7 @@ sp-tracing={ version="17.0.1" }
 
 [features]
 default=["cli"]
-cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb", "hex"]
+cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb", "hex", "schemars"]
 runtime-benchmarks=[
   "entropy-runtime/runtime-benchmarks",
   "frame-benchmarking-cli/runtime-benchmarks",

@@ -53,7 +53,7 @@ type TssAccountId = sp_runtime::AccountId32;
 type TssEndpoint = String;
 
 /// Custom input data for building the chainspec for a particular test network
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, schemars::JsonSchema)]
 pub struct TestnetChainSpecInputs {
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
@@ -248,7 +248,6 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
         .tss_details
         .into_iter()
         .map(|(host, tss)| {
-            // let account_id = sp_runtime::AccountId32::new(tss.tss_account.0);
             (tss.tss_account, tss.x25519_public_key, host, tss.provisioning_certification_key)
         })
         .collect();
