@@ -41,7 +41,7 @@ use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::{traits::ConstU32, BoundedVec, Perbill};
 use std::collections::HashMap;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
@@ -259,9 +259,11 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
                 .map(|value| {
                     let bytes = hex::decode(value)
                         .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
-                    Ok(BoundedVec::try_from(bytes).map_err(|_| {
-                        format!("Measurement value {value} must be 32 bytes");
-                    })?)
+                    Ok::<BoundedVec<u8, ConstU32<32>>, String>(
+                        BoundedVec::try_from(bytes).map_err(|_| {
+                            format!("Measurement value {value} must be 32 bytes");
+                        })?,
+                    )
                 })
                 .collect()?,
         )
