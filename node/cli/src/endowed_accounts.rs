@@ -27,32 +27,6 @@ pub struct AddressStruct {
     name: String,
 }
 
-/// These are accounts which are populated from an external source, with the intention of them
-/// being funded an ready to use in a `testnet` configuration.
-pub fn endowed_testnet_accounts() -> Vec<AccountId> {
-    // handle user submitted file for tokens
-    let mut externally_endowed_accounts: Vec<AddressStruct> = Vec::new();
-    let project_root = get_project_root();
-    if let Ok(project_root) = project_root {
-        let mut file = File::open(project_root.join("data/testnet/testnet-accounts.json"))
-            .expect("unable to open testnet-accounts.json");
-        let mut data = String::new();
-        file.read_to_string(&mut data).expect("Unable to read file");
-        let mut incoming_accounts: Vec<AddressStruct> =
-            serde_json::from_str(&data).expect("JSON parse error");
-        externally_endowed_accounts.append(&mut incoming_accounts)
-    };
-
-    let mut funded_accounts = vec![];
-    for address in externally_endowed_accounts {
-        funded_accounts.push(AccountId::from_string(&address.address).unwrap_or_else(|_| {
-            panic!("failed to convert a testnet_address address: {:?}", address)
-        }))
-    }
-
-    funded_accounts
-}
-
 /// Development accounts which correspond to our usual cast of characters (e.g `//Alice`, `//Bob`).
 pub fn endowed_accounts_dev() -> Vec<AccountId> {
     vec![

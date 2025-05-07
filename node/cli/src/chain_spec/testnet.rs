@@ -17,7 +17,6 @@ use crate::chain_spec::{
     get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
     MEASUREMENT_VALUE_MOCK_QUOTE,
 };
-use crate::endowed_accounts::endowed_testnet_accounts;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -61,12 +60,23 @@ pub struct TestnetChainSpecInputs {
     pub tss_details: HashMap<String, TssPublicKeys>,
     /// The accepted TDX measurement values from the current entropy-tss VM images, given as
     /// hex-encoded strings (32 bytes / 64 characters).
+    ///
+    /// The measurement value for a currently running version of the entropy-tss CVM can be
+    /// obtained from the `/version` HTTP route.
+    ///
     /// If omitted, it will be assumed this is a non-production network and mock values will be
     /// accepted.
     pub accepted_measurement_values: Option<Vec<String>>,
-    // Bootnode peer IDs
+    /// Bootnode peer IDs
+    ///
+    /// These are the libp2p 'multi-addresses' of the initial chain nodes
     pub boot_nodes: Vec<MultiaddrWithPeerId>,
-    // TODO pre-endowed accounts
+    // Pre-funded (endowed) account IDs
+    //
+    // Note that any endowed_accounts added here will be included in the `elections` and
+    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
+    // this list.
+    pub endowed_accounts: Vec<AccountId>,
 }
 
 impl TestnetChainSpecInputs {
@@ -291,16 +301,12 @@ pub fn testnet_genesis_config(
         BoundedVecEncodedVerifyingKey,
     )>,
     accepted_measurement_values: Option<MeasurementValues>,
+    mut endowed_accounts: Vec<AccountId>,
 ) -> serde_json::Value {
     assert!(
         initial_authorities.len() == initial_tss_servers.len(),
         "Each validator node needs to have an accompanying threshold server."
     );
-
-    // Note that any endowed_accounts added here will be included in the `elections` and
-    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
-    // this list.
-    let mut endowed_accounts = vec![];
 
     // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
     // both a validator and root.
@@ -359,8 +365,6 @@ pub fn testnet_genesis_config(
         "balances": BalancesConfig {
             balances: endowed_accounts
                         .iter()
-                        .chain(endowed_testnet_accounts().iter())
-                        .cloned()
                         .map(|x| (x, ENDOWMENT))
                         .unique()
                         .collect(),
@@ -460,29 +464,4 @@ pub fn testnet_genesis_config(
             )],
         },
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::testnet_config;
-
-    #[test]
-    fn test_read_json_chainspec_inputs() {
-        let json_inputs = r#"{
-          "tss_details": {
-            "127.0.0.1:3001": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
-            "127.0.0.1:3002": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
-            "127.0.0.1:3003": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
-            "127.0.0.1:3004": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}
-          },
-          "accepted_measurement_values": [
-            "a3f9c04e19d3b6a71e6f7e4d9b2573ff9c2e476d381f8a5cb02eac4d6b0f7b9c"
-          ],
-          "boot_nodes": [
-            "/ip4/192.0.2.1/tcp/30333/p2p/12D3KooWE5XyZm8RhsCq7LkZQ8mCDZWQcMJ1FZWYoUk6ZUgKojpL"
-          ]
-        }"#;
-        let inputs = serde_json::from_str(json_inputs).unwrap();
-        let _spec = testnet_config(inputs);
-    }
 }
