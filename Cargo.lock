@@ -3512,7 +3512,6 @@ dependencies = [
  "sc-telemetry 25.0.0",
  "sc-transaction-pool 37.0.0",
  "sc-transaction-pool-api 37.0.0",
- "schemars",
  "serde",
  "serde_json",
  "sp-api 34.0.0",
