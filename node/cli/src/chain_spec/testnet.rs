@@ -204,6 +204,7 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             testnet_local_initial_tss_servers(),
             None,
+            vec![],
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
@@ -269,6 +270,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> ChainSpec {
             hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
             tss_details,
             measurement_values,
+            inputs.endowed_accounts,
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
@@ -364,7 +366,7 @@ pub fn testnet_genesis_config(
     serde_json::json!( {
         "balances": BalancesConfig {
             balances: endowed_accounts
-                        .iter()
+                        .into_iter()
                         .map(|x| (x, ENDOWMENT))
                         .unique()
                         .collect(),

@@ -16,10 +16,8 @@
 //! Pre-endowed accounts used for the development network
 use crate::chain_spec::get_account_id_from_seed;
 use entropy_runtime::AccountId;
-use project_root::get_project_root;
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::Ss58Codec, sr25519};
-use std::{fs::File, io::Read};
+use sp_core::sr25519;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddressStruct {
