@@ -12,6 +12,9 @@ At the moment this project **does not** adhere to
 ### Breaking
 - In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
 
+### Added
+- Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
+
 ### Changed
 - Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
 - Remove deadlines in OCW ([#1411](https://github.com/entropyxyz/entropy-core/pull/1411))
