@@ -57,7 +57,7 @@ entropy-programs-runtime="0.11.0"
 tracing                 ="0.1.41"
 tracing-subscriber      ={ version="0.3.19", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
-tower-http              ={ version="0.6.2", features=["trace", "cors"] }
+tower-http              ={ version="0.6.3", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.10"
 uuid                    ={ version="1.16.0", features=["v4"] }
 
