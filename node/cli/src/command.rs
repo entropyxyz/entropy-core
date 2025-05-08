@@ -68,13 +68,13 @@ impl SubstrateCli for Cli {
         2022
     }
 
-    // | --chain                   | Description |
-    // |-------------------------  |----------- |
-    // | dev                       | Four nodes, Four threshold servers, Alice Bob and Charlie and Dave, Development Configuration |
-    // | devnet-local              | Four nodes, four threshold servers, Alice Bob Charlie and Dave, Development Configuration, Docker Compatible |
-    // | integration-tests         | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
-    // | testnet-local             | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration, Docker Compatible |
-    // | testnet-<my-config>.json  | Custom Testnet Configuration with given inputs from a specified JSON file |
+    // | --chain                            | Description |
+    // |----------------------------------  |----------- |
+    // | dev                                | Four nodes, Four threshold servers, Alice Bob and Charlie and Dave, Development Configuration |
+    // | devnet-local                       | Four nodes, four threshold servers, Alice Bob Charlie and Dave, Development Configuration, Docker Compatible |
+    // | integration-tests                  | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
+    // | testnet-local                      | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration, Docker Compatible |
+    // | <my-testnet>chainspec-inputs.json  | Custom Testnet Configuration with given inputs from a specified JSON file |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
