@@ -58,13 +58,26 @@ tagged as the final release.
     - Make sure nothing has gone into `master` in the meantime or you may have you repeat the
       previous steps!
 
+## Build CVM image for `entropy-tss`
+
+If this is a release intended for running a test network on TDX using Google Cloud Platform, do the
+following:
+
+- Make a PR to [`meta-entropy-tss`](https://github.com/entropyxyz/meta-entropy-tss) updating the
+  revision of `entropy-tss` to the release branch: [here](https://github.com/entropyxyz/meta-entropy-tss/blob/b621096b36ab13703f72954dab37fd47c2f642e9/recipes-core/entropy-tss/entropy-tss.bb#L42-L43).
+- Merge that PR.
+- Make a release in the [`yocto-build`](https://github.com/entropyxyz/yocto-build) repo by cloning
+  the repo and doing `git tag -s release/vX.Y.Z-rc.1 && git push origin release/vX.Y.Z-rc.1`
+- The CVM image will be built in CI.
+
 ## Publish Artifacts
 - [ ] Ensure **all** CI checks on `master` pass
 - [ ] Create a Git tag From the squashed release PR commit on `master`
     - Make sure to follow [release tag naming conventions](https://github.com/entropyxyz/meta/wiki/Release-management)
     - If this release is intended to be used in test network which does not involve TDX hardware,
-      the release tag must specify `non-TDX`, eg 'test/release/vX.Y.Z-rc.1+non-TDX'. This will
-      ensure that the TSS node generates mock TDX quotes and the chain node will consider them valid.
+      and you skipped the section above, the release tag must specify `non-TDX`, eg 'test/release/vX.Y.Z-rc.1+non-TDX'.
+      This will ensure that the TSS node generates mock TDX quotes and the chain node will consider
+      them valid.
     - `git tag release/vX.Y.Z-rc.1` - meaning release candidate number 1. If all goes well this can
       later by tagged as `release/vX.Y.Z`
     - Nice to have: sign the tag with an offline GPG key (`git tag -s ...`)
@@ -87,6 +100,7 @@ tagged as the final release.
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
+    - If you made a TDX CVM image release, copy a link to it into into the release notes
 - [ ] Inform relevant parties (e.g, by posting on Slack)
 
 ## Promote Release Candidate
