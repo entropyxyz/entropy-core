@@ -33,7 +33,6 @@
 
 pub mod dev;
 pub mod integration_tests;
-pub mod tdx_testnet;
 pub mod testnet;
 
 pub use entropy_runtime::{AccountId, Signature};

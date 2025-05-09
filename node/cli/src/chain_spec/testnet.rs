@@ -14,10 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec,
+    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
     MEASUREMENT_VALUE_MOCK_QUOTE,
 };
-use crate::endowed_accounts::endowed_testnet_accounts;
 
 use entropy_runtime::{
     constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -27,20 +26,23 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE,
-    DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
+    types::TssPublicKeys, BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey,
+    DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
     INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use sc_network::config::MultiaddrWithPeerId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
+use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{BoundedVec, Perbill};
+use std::collections::HashMap;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
 type TssAccountId = sp_runtime::AccountId32;
@@ -49,6 +51,40 @@ type TssAccountId = sp_runtime::AccountId32;
 ///
 /// The format should be in the form of `scheme://hostname:port`.
 type TssEndpoint = String;
+
+/// Custom input data for building the chainspec for a particular test network
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TestnetChainSpecInputs {
+    /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
+    /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
+    pub tss_details: HashMap<String, TssPublicKeys>,
+    /// The accepted TDX measurement values from the current entropy-tss VM images, given as
+    /// hex-encoded strings (32 bytes / 64 characters).
+    ///
+    /// The measurement value for a currently running version of the entropy-tss CVM can be
+    /// obtained from the `/version` HTTP route.
+    ///
+    /// If omitted, it will be assumed this is a non-production network and mock values will be
+    /// accepted.
+    pub accepted_measurement_values: Option<Vec<String>>,
+    /// Bootnode peer IDs
+    ///
+    /// These are the libp2p 'multi-addresses' of the initial chain nodes
+    pub boot_nodes: Vec<MultiaddrWithPeerId>,
+    /// Pre-funded (endowed) account IDs, given as ss58-encoded strings
+    ///
+    /// Note that any endowed_accounts added here will be included in the `elections` and
+    /// `technical_committee` genesis configs.
+    pub endowed_accounts: Vec<AccountId>,
+}
+
+impl TestnetChainSpecInputs {
+    /// Parse a JSON file at the given path into a [TestnetChainSpecInputs]
+    pub fn from_json_file(path: &str) -> Result<Self, String> {
+        let input = std::fs::read(path).map_err(|e| format!("{e:?}"))?;
+        serde_json::from_slice(&input).map_err(|e| format!("{e:?}"))
+    }
+}
 
 pub fn testnet_local_initial_authorities(
 ) -> Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> {
@@ -167,6 +203,8 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             testnet_local_initial_tss_servers(),
+            None,
+            vec![],
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
@@ -199,79 +237,38 @@ pub fn testnet_local_initial_tss_servers(
     vec![alice, bob]
 }
 
-/// Information about the initial set of Threshold Signature Signing servers.
-///
-/// In practice it's a little annoying for us to fill this out with correct information since we
-/// need to spin up all the TSS servers we want at genesis and grab the keys and IPs to then put in
-/// here.
-///
-/// However, this can be done by:
-/// - First, spinning up the machines you expect to be running at genesis
-/// - Then, running each TSS server with the `--setup-only` flag to get the `TssAccountId` and
-///   `TssX25519PublicKey`
-/// - Finally, writing all that information back here, and generating the chainspec from that.
-///
-/// Note that if the KVDB of the TSS is deleted at any point during this process you will end up
-/// with different `AccountID`s and `PublicKey`s.
-pub fn testnet_initial_tss_servers(
-) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, BoundedVecEncodedVerifyingKey)> {
-    use std::str::FromStr;
-
-    let node_1a = (
-        TssAccountId::from_str("5EjwRRgCiHd7aaPzFjNGma9FN3kvvgQT6e5VNroptUGFGxBu")
-            .expect("Address should be valid."),
-        [
-            82, 228, 47, 129, 124, 56, 118, 161, 246, 72, 156, 57, 62, 188, 129, 124, 13, 238, 54,
-            198, 84, 61, 178, 36, 191, 56, 41, 39, 173, 70, 9, 67,
-        ],
-        "100.26.207.49:3001".to_string(),
-        provisioning_certification_key::ALICE.clone(),
-    );
-
-    let node_1b = (
-        TssAccountId::from_str("5GipHsBvjCbJgg5EZMUnMix8nzEr2GezFYdGJEmqCZ23hqtb")
-            .expect("Address should be valid."),
-        [
-            121, 253, 31, 146, 191, 150, 181, 175, 110, 217, 172, 227, 186, 191, 133, 80, 95, 135,
-            10, 107, 31, 67, 10, 98, 215, 34, 26, 10, 188, 59, 71, 100,
-        ],
-        "34.200.237.166:3001".to_string(),
-        provisioning_certification_key::BOB.clone(),
-    );
-
-    let node_1c = (
-        TssAccountId::from_str("5FexGJegpjWcEGP3UQyabUsfQEs48tCFMzKjhhtaVsbinCJM")
-            .expect("Address should be valid."),
-        [
-            245, 229, 104, 210, 55, 224, 110, 176, 133, 186, 130, 253, 2, 112, 205, 166, 94, 104,
-            36, 157, 25, 170, 72, 247, 152, 130, 139, 244, 4, 67, 162, 0,
-        ],
-        "184.72.189.154:3001".to_string(),
-        provisioning_certification_key::CHARLIE.clone(),
-    );
-
-    let node_2a = (
-        TssAccountId::from_str("5FX122MC2ChptKi9setzqjtPYX5krarK9bsY8SkXddaX2Ub8")
-            .expect("Address should be valid."),
-        [
-            164, 83, 190, 36, 18, 54, 59, 116, 203, 177, 95, 170, 9, 187, 102, 128, 189, 5, 41,
-            196, 3, 154, 37, 23, 133, 28, 168, 221, 37, 204, 186, 61,
-        ],
-        "184.73.19.95:3001".to_string(),
-        provisioning_certification_key::DAVE.clone(),
-    );
-
-    vec![node_1a, node_1b, node_1c, node_2a]
-}
-
 /// The testnet configuration uses four validator nodes with private keys controlled by the deployer
 /// of the network (so Entropy in this case).
 ///
 /// If you want to run your own version you can either:
 ///  - Update all the accounts here using keys you control, or
 ///  - Run the `testnet-local` config, which uses well-known keys
-pub fn testnet_config() -> crate::chain_spec::ChainSpec {
-    ChainSpec::builder(wasm_binary_unwrap(), Default::default())
+pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, String> {
+    let tss_details = inputs
+        .tss_details
+        .into_iter()
+        .map(|(host, tss)| {
+            (tss.tss_account, tss.x25519_public_key, host, tss.provisioning_certification_key)
+        })
+        .collect();
+
+    let measurement_values = if let Some(values) = inputs.accepted_measurement_values {
+        Some(
+            values
+                .into_iter()
+                .map(|value| {
+                    let bytes = hex::decode(&value)
+                        .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
+                    BoundedVec::try_from(bytes)
+                        .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
+                })
+                .collect::<Result<Vec<_>, String>>()?,
+        )
+    } else {
+        None
+    };
+
+    Ok(ChainSpec::builder(wasm_binary_unwrap(), Default::default())
         .with_name("Entropy Testnet")
         .with_id("entropy_testnet")
         .with_chain_type(ChainType::Live)
@@ -279,7 +276,9 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
             testnet_initial_authorities(),
             vec![],
             hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
-            testnet_initial_tss_servers(),
+            tss_details,
+            measurement_values,
+            inputs.endowed_accounts,
         ))
         .with_protocol_id(crate::chain_spec::DEFAULT_PROTOCOL_ID)
         .with_properties(crate::chain_spec::entropy_properties())
@@ -290,9 +289,11 @@ pub fn testnet_config() -> crate::chain_spec::ChainSpec {
             )])
             .expect("Staging telemetry url is valid; qed"),
         )
-        .build()
+        .with_boot_nodes(inputs.boot_nodes)
+        .build())
 }
 
+/// Build a testnet gensis configuration from custom inputs
 pub fn testnet_genesis_config(
     initial_authorities: Vec<(
         AccountId,
@@ -310,16 +311,13 @@ pub fn testnet_genesis_config(
         TssEndpoint,
         BoundedVecEncodedVerifyingKey,
     )>,
+    accepted_measurement_values: Option<MeasurementValues>,
+    mut endowed_accounts: Vec<AccountId>,
 ) -> serde_json::Value {
     assert!(
         initial_authorities.len() == initial_tss_servers.len(),
         "Each validator node needs to have an accompanying threshold server."
     );
-
-    // Note that any endowed_accounts added here will be included in the `elections` and
-    // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
-    // this list.
-    let mut endowed_accounts = vec![];
 
     // Ensure that the `testnet-local` config doesn't have a duplicate balance since `Alice` is
     // both a validator and root.
@@ -378,7 +376,6 @@ pub fn testnet_genesis_config(
         "balances": BalancesConfig {
             balances: endowed_accounts
                         .iter()
-                        .chain(endowed_testnet_accounts().iter())
                         .cloned()
                         .map(|x| (x, ENDOWMENT))
                         .unique()
@@ -463,9 +460,9 @@ pub fn testnet_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: vec![
+            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
                 BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
-            ],
+            ]),
             ..Default::default()
         },
         "programs": ProgramsConfig {
