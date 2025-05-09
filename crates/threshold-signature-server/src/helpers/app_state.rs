@@ -19,9 +19,9 @@ use crate::{
     launch::Configuration,
     signing_client::ListenerState,
 };
-use entropy_kvdb::kv_manager::KvManager;
+use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 use entropy_protocol::KeyShareWithAuxInfo;
-use entropy_shared::X25519PublicKey;
+use entropy_shared::{X25519PublicKey, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
@@ -98,9 +98,9 @@ pub struct Cache {
     /// Collection of block numbers to store
     pub block_numbers: Arc<BlockNumbers>,
     /// The network keyshare, if we have one
-    pub network_keyshare: Arc<RwLock<Option<KeyShareWithAuxInfo>>>,
+    network_key_share: Arc<RwLock<Option<KeyShareWithAuxInfo>>>,
     /// The next network keyshare, stored during reshare confirmation
-    pub next_network_keyshare: Arc<RwLock<Option<KeyShareWithAuxInfo>>>,
+    next_network_key_share: Arc<RwLock<Option<KeyShareWithAuxInfo>>>,
 }
 
 impl Default for Cache {
@@ -119,8 +119,8 @@ impl Cache {
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
             block_numbers: Default::default(),
-            network_keyshare: Default::default(),
-            next_network_keyshare: Default::default(),
+            network_key_share: Default::default(),
+            next_network_key_share: Default::default(),
         }
     }
     /// Returns true if all prerequisite checks have passed.
@@ -268,6 +268,7 @@ impl Cache {
             BlockNumberFields::ProactiveRefresh => self.block_numbers.proactive_refresh.clone(),
         }
     }
+
     /// Gets the list of peers who haven't yet subscribed to us for this particular session.
     pub fn unsubscribed_peers(
         &self,
@@ -279,6 +280,44 @@ impl Cache {
                 session_id,
             ))
         })
+    }
+
+    fn read_network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+        let key_share =
+            self.network_key_share.read().map_err(|e| AppStateError::PosionError(e.to_string()))?;
+        Ok(key_share.clone())
+    }
+
+    fn write_network_key_share(
+        &self,
+        updated_key_share: Option<KeyShareWithAuxInfo>,
+    ) -> Result<(), AppStateError> {
+        let mut key_share = self
+            .network_key_share
+            .write()
+            .map_err(|e| AppStateError::PosionError(e.to_string()))?;
+        *key_share = updated_key_share;
+        Ok(())
+    }
+
+    fn read_next_network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+        let key_share = self
+            .next_network_key_share
+            .read()
+            .map_err(|e| AppStateError::PosionError(e.to_string()))?;
+        Ok(key_share.clone())
+    }
+
+    fn write_next_network_key_share(
+        &self,
+        updated_key_share: Option<KeyShareWithAuxInfo>,
+    ) -> Result<(), AppStateError> {
+        let mut key_share = self
+            .next_network_key_share
+            .write()
+            .map_err(|e| AppStateError::PosionError(e.to_string()))?;
+        *key_share = updated_key_share;
+        Ok(())
     }
 }
 
@@ -335,6 +374,48 @@ impl AppState {
     /// Get the x25519 public key
     pub fn x25519_public_key(&self) -> [u8; 32] {
         x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
+    }
+
+    pub fn network_keyshare(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+        self.cache.read_network_key_share()
+    }
+
+    pub fn next_network_keyshare(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+        self.cache.read_next_network_key_share()
+    }
+
+    pub async fn update_network_keyshare(
+        &self,
+        updated_key_share: Option<KeyShareWithAuxInfo>,
+    ) -> Result<(), AppStateError> {
+        self.cache.write_network_key_share(updated_key_share.clone())?;
+        if let Some(key_share_with_aux_info) = updated_key_share {
+            let serialized_key_share = key_serialize(&key_share_with_aux_info).unwrap();
+
+            let reservation =
+                self.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+            self.kv_store.kv().put(reservation, serialized_key_share.clone()).await.unwrap();
+        } else {
+            self.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+        }
+        Ok(())
+    }
+
+    pub async fn update_next_network_keyshare(
+        &self,
+        updated_key_share: Option<KeyShareWithAuxInfo>,
+    ) -> Result<(), AppStateError> {
+        self.cache.write_next_network_key_share(updated_key_share.clone())?;
+        if let Some(key_share_with_aux_info) = updated_key_share {
+            let serialized_key_share = key_serialize(&key_share_with_aux_info).unwrap();
+
+            let reservation =
+                self.kv_store.kv().reserve_key(hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
+            self.kv_store.kv().put(reservation, serialized_key_share.clone()).await.unwrap();
+        } else {
+            self.kv_store.kv().delete(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
+        }
+        Ok(())
     }
 }
 
