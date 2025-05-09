@@ -20,6 +20,7 @@ use crate::{
     signing_client::ListenerState,
 };
 use entropy_kvdb::kv_manager::KvManager;
+use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::X25519PublicKey;
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
@@ -96,6 +97,10 @@ pub struct Cache {
     pub attestation_nonces: Arc<RwLock<HashMap<X25519PublicKey, [u8; 32]>>>,
     /// Collection of block numbers to store
     pub block_numbers: Arc<BlockNumbers>,
+    /// The network keyshare, if we have one
+    pub network_keyshare: Arc<RwLock<Option<KeyShareWithAuxInfo>>>,
+    /// The next network keyshare, stored during reshare confirmation
+    pub next_network_keyshare: Arc<RwLock<Option<KeyShareWithAuxInfo>>>,
 }
 
 impl Default for Cache {
@@ -114,6 +119,8 @@ impl Cache {
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
             block_numbers: Default::default(),
+            network_keyshare: Default::default(),
+            next_network_keyshare: Default::default(),
         }
     }
     /// Returns true if all prerequisite checks have passed.
