@@ -85,12 +85,6 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            assert!(self.threshold > 0, "Threhsold too low");
-            assert!(self.total_signers >= self.threshold, "Threshold is larger then signer");
-            assert!(
-                !self.accepted_measurement_values.is_empty(),
-                "At least one accepted measurement value is required"
-            );
             RequestLimit::<T>::put(self.request_limit);
             MaxInstructionsPerPrograms::<T>::put(self.max_instructions_per_programs);
             let signer_info = SignersSize {
@@ -178,7 +172,7 @@ pub mod module {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight( <T as Config>::WeightInfo::max_instructions_per_programs())]
+        #[pallet::weight( <T as Config>::WeightInfo::change_max_instructions_per_programs())]
         pub fn change_max_instructions_per_programs(
             origin: OriginFor<T>,
             max_instructions_per_programs: u64,

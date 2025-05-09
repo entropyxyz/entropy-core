@@ -40,7 +40,7 @@ pub mod pallet {
     use frame_support::{pallet_prelude::*, sp_runtime::traits::Saturating};
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
-        offchain::{http, Duration},
+        offchain::http,
         sp_std::vec,
         sp_std::{str, vec::Vec},
     };
@@ -65,8 +65,8 @@ pub mod pallet {
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             let _ = Self::post_dkg(block_number);
             let _ = Self::post_reshare(block_number);
-            let _ = Self::post_proactive_refresh(block_number);
             let _ = Self::post_rotate_network_key(block_number);
+            let _ = Self::post_proactive_refresh(block_number);
         }
 
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
@@ -110,9 +110,9 @@ pub mod pallet {
             }
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"propagation")
-                .unwrap_or_else(|| b"http://localhost:3001/generate_network_key".to_vec());
-            let url =
-                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/generate_network_key");
+                .unwrap_or_else(|| b"http://localhost:3001/v1/generate_network_key".to_vec());
+            let url = str::from_utf8(&from_local)
+                .unwrap_or("http://localhost:3001/v1/generate_network_key");
 
             log::warn!("propagation::post::validators_info: {:?}", &validators_info);
             let converted_block_number: u32 =
@@ -133,7 +133,7 @@ pub mod pallet {
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response = pending.wait().map_err(|_| http::Error::DeadlineReached)?;
+            let response = pending.wait()?;
 
             // check response code
             if response.code != 200 {
@@ -160,9 +160,9 @@ pub mod pallet {
 
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"reshare_validators")
-                .unwrap_or_else(|| b"http://localhost:3001/validator/reshare".to_vec());
+                .unwrap_or_else(|| b"http://localhost:3001/v1/validator/reshare".to_vec());
             let url =
-                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/validator/reshare");
+                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/v1/validator/reshare");
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
 
@@ -207,12 +207,11 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"refresh")
-                .unwrap_or_else(|| b"http://localhost:3001/signer/proactive_refresh".to_vec());
+                .unwrap_or_else(|| b"http://localhost:3001/v1/signer/proactive_refresh".to_vec());
             let url = str::from_utf8(&from_local)
-                .unwrap_or("http://localhost:3001/signer/proactive_refresh");
+                .unwrap_or("http://localhost:3001/v1/signer/proactive_refresh");
 
             let converted_block_number: u32 =
                 BlockNumberFor::<T>::try_into(block_number).unwrap_or_default();
@@ -229,13 +228,11 @@ pub mod pallet {
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
             let pending = http::Request::post(url, vec![req_body.encode()])
-                .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response =
-                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            let response = pending.wait()?;
 
             // check response code
             if response.code != 200 {
@@ -256,12 +253,11 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(20_000));
             let kind = sp_core::offchain::StorageKind::PERSISTENT;
             let from_local = sp_io::offchain::local_storage_get(kind, b"rotate_network_key")
-                .unwrap_or_else(|| b"http://localhost:3001/rotate_network_key".to_vec());
-            let url =
-                str::from_utf8(&from_local).unwrap_or("http://localhost:3001/rotate_network_key");
+                .unwrap_or_else(|| b"http://localhost:3001/v1/rotate_network_key".to_vec());
+            let url = str::from_utf8(&from_local)
+                .unwrap_or("http://localhost:3001/v1/rotate_network_key");
 
             log::warn!("propagation::post rotate network key");
 
@@ -272,13 +268,11 @@ pub mod pallet {
             // important: the header->Content-Type must be added and match that of the receiving
             // party!!
             let pending = http::Request::post(url, vec![converted_block_number.encode()])
-                .deadline(deadline)
                 .send()
                 .map_err(|_| http::Error::IoError)?;
 
             // We await response, same as in fn get()
-            let response =
-                pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            let response = pending.wait()?;
 
             // check response code
             if response.code != 200 {

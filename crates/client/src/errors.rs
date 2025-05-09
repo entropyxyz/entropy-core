@@ -28,6 +28,8 @@ pub enum SubstrateError {
     BadEvent(String),
     #[error("User is not registered on-chain")]
     NotRegistered,
+    #[error("subxt_core error: {0}")]
+    SubxtCoreError(#[from] subxt_core::Error),
 }
 
 /// An error on getting the current subgroup signers
@@ -98,7 +100,7 @@ pub enum ClientError {
     #[error("Base64 decode: {0}")]
     Base64(#[from] base64::DecodeError),
     #[error("ECDSA: {0}")]
-    Ecdsa(#[from] synedrion::ecdsa::Error),
+    Ecdsa(#[from] k256::ecdsa::Error),
     #[error("Cannot get recovery ID from signature")]
     NoRecoveryId,
     #[error("Cannot parse recovery ID from signature")]
@@ -119,6 +121,8 @@ pub enum ClientError {
     BadVerifyingKeyLength,
     #[error("There are no validators which can act as a relay node for signature requests")]
     NoNonSigningValidators,
+    #[error("subxt_core error: {0}")]
+    SubxtCoreError(#[from] subxt_core::Error),
     #[error("Scale decode: {0}")]
     Codec(#[from] parity_scale_codec::Error),
     #[error("Attestation request: {0}")]

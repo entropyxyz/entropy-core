@@ -16,7 +16,7 @@
 //! Benchmarking setup for pallet-propgation
 use codec::Encode;
 use entropy_shared::{ValidatorInfo, MAX_SIGNERS};
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::v2::*;
 use frame_support::{
     traits::{Currency, Get},
     BoundedVec,
@@ -63,261 +63,334 @@ pub fn add_validators<T: Config>(
     validators
 }
 
-benchmarks! {
-  jump_start_network {
+#[benchmarks]
+mod benchmarks {
+    use super::*;
 
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
+    #[benchmark]
+    fn jump_start_network() {
+        let sig_req_account: T::AccountId = whitelisted_caller();
+        let balance =
+            <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+        let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+            &sig_req_account,
+            balance,
+        );
 
-  }: _(RawOrigin::Signed(sig_req_account.clone()))
-  verify {
-    assert_last_event::<T>(Event::StartedNetworkJumpStart().into());
-  }
+        #[extrinsic_call]
+        _(RawOrigin::Signed(sig_req_account.clone()));
 
-  confirm_jump_start_done {
-    let c in 0 .. MAX_SIGNERS as u32;
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let expected_verifying_key = BoundedVec::default();
-
-    let mut accounts = vec![];
-    for i in 0..MAX_SIGNERS {
-        accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
+        assert_last_event::<T>(Event::StartedNetworkJumpStart().into());
     }
 
-    let validators = add_validators::<T>(MAX_SIGNERS as u32);
-    <Validators<T>>::set(validators.clone());
+    #[benchmark]
+    fn confirm_jump_start_done(c: Linear<0, { MAX_SIGNERS as u32 }>) {
+        let expected_verifying_key = BoundedVec::default();
 
-    for i in 0..MAX_SIGNERS {
-        <ThresholdToStash<T>>::insert(accounts[i as usize].clone(), &validators[i as usize]);
-    }
+        let mut accounts = vec![];
+        for i in 0..MAX_SIGNERS {
+            accounts.push(account::<T::AccountId>("ts_account", i as u32, SEED));
+        }
 
-    <JumpStartProgress<T>>::put(JumpStartDetails {
-      jump_start_status: JumpStartStatus::InProgress(0),
-      confirmations: vec![validators[0].clone(), validators[0].clone()],
-      verifying_key: None,
-      parent_key_threshold: 2
-      });
-
-    // Add the jump start record
-    let block_number = <frame_system::Pallet<T>>::block_number();
-    let initial_signers = accounts.iter().map(|account_id| ValidatorInfo {
-        x25519_public_key: [0; 32],
-        ip_address: vec![20],
-        tss_account: account_id.encode(),
-    }).collect();
-    <JumpstartDkg<T>>::set(block_number, initial_signers);
-
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&accounts[1], balance);
-  }: confirm_jump_start(RawOrigin::Signed(accounts[1].clone()), expected_verifying_key)
-  verify {
-    assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
-  }
-
-  confirm_jump_start_confirm {
-    let c in 0 .. MAX_SIGNERS as u32;
-    let sig_req_account: T::AccountId = whitelisted_caller();
-    let validator_account: T::AccountId = whitelisted_caller();
-    let threshold_account: T::AccountId = whitelisted_caller();
-    let expected_verifying_key = BoundedVec::default();
-
-    // add validators
-    for i in 0..MAX_SIGNERS {
         let validators = add_validators::<T>(MAX_SIGNERS as u32);
         <Validators<T>>::set(validators.clone());
-        <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
+
+        for i in 0..MAX_SIGNERS {
+            <ThresholdToStash<T>>::insert(accounts[i as usize].clone(), &validators[i as usize]);
+        }
+
+        <JumpStartProgress<T>>::put(JumpStartDetails {
+            jump_start_status: JumpStartStatus::InProgress(0),
+            confirmations: vec![validators[0].clone(), validators[0].clone()],
+            verifying_key: None,
+            parent_key_threshold: 2,
+        });
+
+        // Add the jump start record
+        let block_number = <frame_system::Pallet<T>>::block_number();
+        let initial_signers = accounts
+            .iter()
+            .map(|account_id| ValidatorInfo {
+                x25519_public_key: [0; 32],
+                ip_address: vec![20],
+                tss_account: account_id.encode(),
+            })
+            .collect();
+        <JumpstartDkg<T>>::set(block_number, initial_signers);
+
+        let balance =
+            <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+        let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+            &accounts[1],
+            balance,
+        );
+
+        #[extrinsic_call]
+        confirm_jump_start(RawOrigin::Signed(accounts[1].clone()), expected_verifying_key);
+
+        assert_last_event::<T>(Event::<T>::FinishedNetworkJumpStart().into());
     }
 
-    // Add the jump start record
-    let block_number = <frame_system::Pallet<T>>::block_number();
-    let initial_signers = (0..MAX_SIGNERS).map(|i| ValidatorInfo {
-        x25519_public_key: [0; 32],
-        ip_address: vec![20],
-        tss_account: threshold_account.encode(),
-    }).collect();
-    <JumpstartDkg<T>>::set(block_number, initial_signers);
+    #[benchmark]
+    fn confirm_jump_start_confirm(c: Linear<0, { MAX_SIGNERS as u32 }>) {
+        let threshold_account: T::AccountId = whitelisted_caller();
+        let expected_verifying_key = BoundedVec::default();
 
-    <JumpStartProgress<T>>::put(JumpStartDetails {
-      jump_start_status: JumpStartStatus::InProgress(0),
-      confirmations: vec![],
-      verifying_key: None,
-      parent_key_threshold: 2
-  });
+        // add validators
+        for i in 0..MAX_SIGNERS {
+            let validators = add_validators::<T>(MAX_SIGNERS as u32);
+            <Validators<T>>::set(validators.clone());
+            <ThresholdToStash<T>>::insert(&threshold_account, &validators[i as usize]);
+        }
 
+        // Add the jump start record
+        let block_number = <frame_system::Pallet<T>>::block_number();
+        let initial_signers = (0..MAX_SIGNERS)
+            .map(|_| ValidatorInfo {
+                x25519_public_key: [0; 32],
+                ip_address: vec![20],
+                tss_account: threshold_account.encode(),
+            })
+            .collect();
+        <JumpstartDkg<T>>::set(block_number, initial_signers);
 
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&threshold_account, balance);
-  }: confirm_jump_start(RawOrigin::Signed(threshold_account.clone()), expected_verifying_key)
-  verify {
-    let validator_stash =
-        pallet_staking_extension::Pallet::<T>::threshold_to_stash(&threshold_account).unwrap();
-    assert_last_event::<T>(Event::<T>::JumpStartConfirmation(validator_stash, 1).into());
-  }
+        <JumpStartProgress<T>>::put(JumpStartDetails {
+            jump_start_status: JumpStartStatus::InProgress(0),
+            confirmations: vec![],
+            verifying_key: None,
+            parent_key_threshold: 2,
+        });
 
-  register {
-    let p in 1 .. T::MaxProgramHashes::get();
+        let balance =
+            <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+        let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+            &threshold_account,
+            balance,
+        );
 
-    let program_modification_account: T::AccountId = whitelisted_caller();
-    let signature_request_account: T::AccountId = whitelisted_caller();
+        #[extrinsic_call]
+        confirm_jump_start(RawOrigin::Signed(threshold_account.clone()), expected_verifying_key);
 
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointers: OraclePointers<T> = BoundedVec::try_from([vec![3u8]].to_vec()).unwrap();
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![
-        ProgramInstance {
+        let validator_stash =
+            pallet_staking_extension::Pallet::<T>::threshold_to_stash(&threshold_account).unwrap();
+        assert_last_event::<T>(Event::<T>::JumpStartConfirmation(validator_stash, 1).into());
+    }
+
+    #[benchmark]
+    fn register(p: Linear<1, { T::MaxProgramHashes::get() }>) {
+        let program_modification_account: T::AccountId = whitelisted_caller();
+        let signature_request_account: T::AccountId = whitelisted_caller();
+
+        let program = vec![0u8];
+        let configuration_schema = vec![1u8];
+        let auxiliary_data_schema = vec![2u8];
+        let oracle_data_pointers: OraclePointers<T> =
+            BoundedVec::try_from([vec![3u8]].to_vec()).unwrap();
+        let program_hash = T::Hashing::hash(&program);
+        let programs_info = BoundedVec::try_from(vec![
+            ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            };
+            p as usize
+        ])
+        .unwrap();
+
+        Programs::<T>::insert(
+            program_hash,
+            ProgramInfo {
+                bytecode: program,
+                configuration_schema,
+                auxiliary_data_schema,
+                oracle_data_pointers,
+                deployer: program_modification_account.clone(),
+                ref_counter: 0,
+                version_number: 0,
+            },
+        );
+
+        let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
+        <pallet_staking_extension::JumpStartProgress<T>>::put(JumpStartDetails {
+            jump_start_status: JumpStartStatus::Done,
+            confirmations: vec![],
+            verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
+            parent_key_threshold: 0,
+        });
+
+        let balance =
+            <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+        let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+            &signature_request_account,
+            balance,
+        );
+
+        #[extrinsic_call]
+        _(
+            RawOrigin::Signed(signature_request_account.clone()),
+            program_modification_account,
+            programs_info,
+        );
+
+        use core::str::FromStr;
+        use synedrion::DeriveChildKey;
+
+        let network_verifying_key =
+            k256::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+
+        // We subtract one from the count since this gets incremented after a succesful registration,
+        // and we're interested in the account we just registered.
+        let count = <Registered<T>>::count() - 1;
+        let derivation_path =
+            bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count))
+                .unwrap();
+
+        let expected_verifying_key =
+            network_verifying_key.derive_verifying_key_bip32(&derivation_path).unwrap();
+        let expected_verifying_key =
+            BoundedVec::try_from(expected_verifying_key.to_encoded_point(true).as_bytes().to_vec())
+                .unwrap();
+
+        assert_last_event::<T>(
+            Event::<T>::AccountRegistered(
+                signature_request_account,
+                expected_verifying_key.clone(),
+            )
+            .into(),
+        );
+
+        assert!(Registered::<T>::contains_key(expected_verifying_key));
+    }
+
+    #[benchmark]
+    fn change_program_instance(
+        n: Linear<1, { T::MaxProgramHashes::get() }>,
+        o: Linear<1, { T::MaxProgramHashes::get() }>,
+    ) {
+        let program_modification_account: T::AccountId = whitelisted_caller();
+        let program = vec![0u8];
+        let configuration_schema = vec![1u8];
+        let auxiliary_data_schema = vec![2u8];
+        let oracle_data_pointers: OraclePointers<T> =
+            BoundedVec::try_from([vec![3u8]].to_vec()).unwrap();
+        let program_hash = T::Hashing::hash(&program);
+        let programs_info = BoundedVec::try_from(vec![
+            ProgramInstance {
+                program_pointer: program_hash,
+                program_config: vec![],
+            };
+            o as usize
+        ])
+        .unwrap();
+        let new_program = vec![1u8];
+        let new_program_hash = T::Hashing::hash(&new_program);
+        let new_programs_info = BoundedVec::try_from(vec![
+            ProgramInstance {
+                program_pointer: new_program_hash,
+                program_config: vec![],
+            };
+            n as usize
+        ])
+        .unwrap();
+        let sig_req_account: T::AccountId = whitelisted_caller();
+        Programs::<T>::insert(
+            program_hash,
+            ProgramInfo {
+                bytecode: program,
+                configuration_schema: configuration_schema.clone(),
+                auxiliary_data_schema: auxiliary_data_schema.clone(),
+                oracle_data_pointers: oracle_data_pointers.clone(),
+                deployer: program_modification_account.clone(),
+                ref_counter: 0,
+                version_number: 0,
+            },
+        );
+        Programs::<T>::insert(
+            new_program_hash,
+            ProgramInfo {
+                bytecode: new_program,
+                configuration_schema,
+                auxiliary_data_schema,
+                oracle_data_pointers,
+                deployer: program_modification_account.clone(),
+                ref_counter: o as u128,
+                version_number: 0,
+            },
+        );
+        let balance =
+            <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+        let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+            &sig_req_account,
+            balance,
+        );
+        <Registered<T>>::insert(
+            &BoundedVec::default(),
+            RegisteredInfo {
+                program_modification_account: sig_req_account.clone(),
+                programs_data: programs_info,
+                derivation_path: None,
+                version_number: T::KeyVersionNumber::get(),
+            },
+        );
+
+        #[extrinsic_call]
+        _(
+            RawOrigin::Signed(sig_req_account.clone()),
+            BoundedVec::default(),
+            new_programs_info.clone(),
+        );
+
+        assert_last_event::<T>(
+            Event::ProgramInfoChanged(sig_req_account.clone(), new_programs_info).into(),
+        );
+    }
+
+    #[benchmark]
+    fn change_program_modification_account(n: Linear<1, { MAX_MODIFIABLE_KEYS }>) {
+        let program = vec![0u8];
+        let program_hash = T::Hashing::hash(&program);
+        let programs_info = BoundedVec::try_from(vec![ProgramInstance {
             program_pointer: program_hash,
             program_config: vec![],
-        };
-        p as usize
-    ])
-    .unwrap();
-
-    Programs::<T>::insert(
-        program_hash,
-        ProgramInfo {
-            bytecode: program,
-            configuration_schema,
-            auxiliary_data_schema,
-            oracle_data_pointers,
-            deployer: program_modification_account.clone(),
-            ref_counter: 0,
-            version_number: 0,
-        },
-    );
-
-    let network_verifying_key = entropy_shared::DAVE_VERIFYING_KEY;
-    <pallet_staking_extension::JumpStartProgress<T>>::put(JumpStartDetails {
-        jump_start_status: JumpStartStatus::Done,
-        confirmations: vec![],
-        verifying_key: Some(BoundedVec::try_from(network_verifying_key.to_vec()).unwrap()),
-        parent_key_threshold: 0,
-    });
-
-
-    let balance =
-        <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
-        &signature_request_account,
-        balance,
-    );
-  }: _(
-      RawOrigin::Signed(signature_request_account.clone()),
-      program_modification_account,
-      programs_info
-  )
-  verify {
-    use core::str::FromStr;
-    use synedrion::DeriveChildKey;
-
-    let network_verifying_key =
-        synedrion::ecdsa::VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
-
-    // We subtract one from the count since this gets incremented after a succesful registration,
-    // and we're interested in the account we just registered.
-    let count = <Registered<T>>::count() - 1;
-    let derivation_path =
-        bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count)).unwrap();
-
-    let expected_verifying_key = network_verifying_key
-        .derive_verifying_key_bip32(&derivation_path)
+        }])
         .unwrap();
-    let expected_verifying_key = BoundedVec::try_from(
-        expected_verifying_key
-            .to_encoded_point(true)
-            .as_bytes()
-            .to_vec(),
-    )
-    .unwrap();
 
-    assert_last_event::<T>(
-        Event::<T>::AccountRegistered(
-            signature_request_account,
-            expected_verifying_key.clone()
-        ).into(),
-    );
+        let sig_req_account: T::AccountId = whitelisted_caller();
+        let balance =
+            <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
+        let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(
+            &sig_req_account,
+            balance,
+        );
+        <ModifiableKeys<T>>::insert(
+            sig_req_account.clone(),
+            BoundedVec::try_from(vec![BoundedVec::default(); n as usize]).unwrap(),
+        );
+        <Registered<T>>::insert(
+            &BoundedVec::default(),
+            RegisteredInfo {
+                program_modification_account: sig_req_account.clone(),
+                programs_data: programs_info,
+                derivation_path: None,
+                version_number: T::KeyVersionNumber::get(),
+            },
+        );
 
-    assert!(Registered::<T>::contains_key(expected_verifying_key));
-  }
+        #[extrinsic_call]
+        _(
+            RawOrigin::Signed(sig_req_account.clone()),
+            BoundedVec::default(),
+            sig_req_account.clone(),
+        );
 
-  change_program_instance {
-    let n in 1 .. T::MaxProgramHashes::get();
-    let o in 1 .. T::MaxProgramHashes::get();
+        assert_last_event::<T>(
+            Event::ProgramModificationAccountChanged(
+                sig_req_account.clone(),
+                sig_req_account.clone(),
+                BoundedVec::default(),
+            )
+            .into(),
+        );
+    }
 
-    let program_modification_account: T::AccountId = whitelisted_caller();
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointers: OraclePointers<T> = BoundedVec::try_from([vec![3u8]].to_vec()).unwrap();
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  };  o as usize])
-  .unwrap();
-    let new_program = vec![1u8];
-    let new_program_hash = T::Hashing::hash(&new_program);
-    let new_programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: new_program_hash,
-      program_config: vec![],
-  };  n as usize])
-  .unwrap();
-  let sig_req_account: T::AccountId = whitelisted_caller();
-    Programs::<T>::insert(program_hash, ProgramInfo {bytecode: program, configuration_schema: configuration_schema.clone(), auxiliary_data_schema: auxiliary_data_schema.clone(), oracle_data_pointers: oracle_data_pointers.clone(), deployer: program_modification_account.clone(), ref_counter: 0, version_number: 0});
-    Programs::<T>::insert(new_program_hash, ProgramInfo {bytecode: new_program, configuration_schema, auxiliary_data_schema, oracle_data_pointers, deployer: program_modification_account.clone(), ref_counter: o as u128, version_number: 0});
-    let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-    let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-    <Registered<T>>::insert(
-        &BoundedVec::default(),
-        RegisteredInfo {
-            program_modification_account: sig_req_account.clone(),
-            programs_data: programs_info,
-            derivation_path: None,
-            version_number: T::KeyVersionNumber::get()
-        },
-    );
-  }: _(RawOrigin::Signed(sig_req_account.clone()), BoundedVec::default(), new_programs_info.clone())
-  verify {
-    assert_last_event::<T>(Event::ProgramInfoChanged(sig_req_account.clone(), new_programs_info).into());
-  }
-
-  change_program_modification_account {
-    let n in 1 .. MAX_MODIFIABLE_KEYS;
-
-    let program_modification_account: T::AccountId = whitelisted_caller();
-    let program = vec![0u8];
-    let configuration_schema = vec![1u8];
-    let auxiliary_data_schema = vec![2u8];
-    let oracle_data_pointers: OraclePointers<T> = BoundedVec::try_from([vec![3u8]].to_vec()).unwrap();
-    let program_hash = T::Hashing::hash(&program);
-    let programs_info = BoundedVec::try_from(vec![ProgramInstance {
-      program_pointer: program_hash,
-      program_config: vec![],
-  }]).unwrap();
-
-  let sig_req_account: T::AccountId = whitelisted_caller();
-  let balance = <T as pallet_staking_extension::Config>::Currency::minimum_balance() * 100u32.into();
-  let _ = <T as pallet_staking_extension::Config>::Currency::make_free_balance_be(&sig_req_account, balance);
-  <ModifiableKeys<T>>::insert(
-      sig_req_account.clone(),
-      BoundedVec::try_from(vec![BoundedVec::default(); n as usize]).unwrap()
-  );
-  <Registered<T>>::insert(
-        &BoundedVec::default(),
-        RegisteredInfo {
-            program_modification_account: sig_req_account.clone(),
-            programs_data: programs_info,
-            derivation_path: None,
-            version_number: T::KeyVersionNumber::get()
-        },
-    );
-  }: _(RawOrigin::Signed(sig_req_account.clone()), BoundedVec::default(), sig_req_account.clone())
-  verify {
-    assert_last_event::<T>(Event::ProgramModificationAccountChanged(sig_req_account.clone(), sig_req_account.clone(), BoundedVec::default()).into());
-  }
+    impl_benchmark_test_suite!(Registry, crate::mock::new_test_ext(), crate::mock::Test);
 }
-
-impl_benchmark_test_suite!(Registry, crate::mock::new_test_ext(), crate::mock::Test);

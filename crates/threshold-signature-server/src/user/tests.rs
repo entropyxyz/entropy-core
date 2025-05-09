@@ -48,6 +48,7 @@ use entropy_testing_utils::{
     test_node_process_testing_state, ChainSpecType,
 };
 use futures::future::try_join_all;
+use k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use more_asserts as ma;
 use parity_scale_codec::Encode;
 use rand::Rng;
@@ -59,14 +60,13 @@ use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    config::PolkadotExtrinsicParamsBuilder as Params,
+    config::DefaultExtrinsicParamsBuilder as Params,
     ext::sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
-use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+use synedrion::DeriveChildKey;
 use tokio_tungstenite::connect_async;
 
 use crate::{
@@ -110,24 +110,37 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     // Register the user with a test program
-    let (verifying_key, program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+    let (verifying_key, program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &one.pair(),
+        &two.pair(),
+    )
+    .await;
 
     // Test: We check that an account with a program succeeds in submiting a signature request
-    let (_validators_info, mut signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (_validators_info, mut signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     // The account we registered does have a program pointer, so this should succeed
     let test_user_res =
@@ -138,10 +151,16 @@ async fn test_signature_requests_fail_on_different_conditions() {
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
 
-    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    let all_signers_info = get_all_signers_from_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await
+    .unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
     let mock_client = reqwest::Client::new();
 
@@ -152,7 +171,7 @@ async fn test_signature_requests_fail_on_different_conditions() {
         &[],
     )
     .unwrap();
-    let url = format!("http://{}/user/sign_tx", validator_ips[0]);
+    let url = format!("http://{}/v1/user/sign_tx", spawn_results.validator_ips[0]);
     let signature_request_responses_fail_not_relayer = mock_client
         .post(url)
         .header("Content-Type", "application/json")
@@ -166,7 +185,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: A user that is not registered is not able to send a signature request
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = DEFAULT_VERIFYING_KEY_NOT_REGISTERED.to_vec();
     let test_user_res_not_registered =
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), two)
@@ -178,8 +198,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     );
 
     let test_user_res_not_registered_sign_tx = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -195,7 +215,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // Test: Signature requests fail if no auxiliary data is set
 
     // The test program is written to fail when `auxilary_data` is `None`
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = verifying_key.to_vec();
     signature_request.auxilary_data = None;
 
@@ -209,8 +230,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
         );
 
     let test_user_failed_programs_res_sign_tx = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -226,19 +247,26 @@ async fn test_signature_requests_fail_on_different_conditions() {
     // The test program is written to fail when `auxilary_data` is `None` but only on the second
     // program
     update_programs(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
-            OtherProgramInstance { program_pointer: program_hash, program_config: vec![] },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: vec![],
+            },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: vec![],
+            },
         ]),
     )
     .await
     .unwrap();
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = verifying_key.to_vec();
     signature_request.auxilary_data = Some(vec![Some(hex::encode(AUXILARY_DATA_SHOULD_SUCCEED))]);
 
@@ -252,8 +280,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     );
 
     let test_user_failed_aux_data_sign_tx = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -268,7 +296,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: Signature requests fails if a user provides an invalid hashing algorithm option
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = verifying_key.to_vec();
     signature_request.hash = HashingAlgorithm::Custom(3);
 
@@ -282,8 +311,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     );
 
     let test_user_custom_hash_out_of_bounds_sign_tx = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -298,7 +327,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
 
     // Test: Signature requests fails if a the network parent key is used
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
     signature_request.signature_verifying_key = NETWORK_PARENT_KEY.as_bytes().to_vec();
 
     let test_user_sign_with_parent_key =
@@ -311,8 +341,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     );
 
     let test_user_sign_with_parent_key_sign_tx = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -337,31 +367,44 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, tss_account) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, tss_account) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     // Register the user with a test program
-    let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &one.pair(), &two.pair()).await;
+    let (verifying_key, _program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &one.pair(),
+        &two.pair(),
+    )
+    .await;
 
     // Test: We check that a relayed signature request with less than t validators selected fails
-    let (mut validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (mut validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     // Pops off a validator to trigger the too few validator check
     validators_info.pop();
 
     let test_user_res_not_registered_sign_tx = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -381,8 +424,8 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     });
 
     let test_user_res_wrong_validator = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -408,29 +451,46 @@ async fn signature_request_with_derived_account_works() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(ValidatorName::Dave, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        ValidatorName::Dave,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     // Register the user with a test program
-    let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair()).await;
+    let (verifying_key, _program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &charlie.pair(),
+        &bob.pair(),
+    )
+    .await;
 
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
     let signature_request_responses =
         submit_transaction_request(relayer_ip_and_key, signature_request.clone(), alice).await;
 
     // We expect that the signature we get back is valid
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let verifying_key =
-        SynedrionVerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
-            .unwrap();
+        VerifyingKey::try_from(signature_request.signature_verifying_key.as_slice()).unwrap();
 
-    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    let all_signers_info = get_all_signers_from_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await
+    .unwrap();
     verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
 
@@ -447,15 +507,24 @@ async fn signature_request_overload() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(ValidatorName::Dave, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        ValidatorName::Dave,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     // Register the user with a test program
-    let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &charlie.pair(), &bob.pair()).await;
+    let (verifying_key, _program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &charlie.pair(),
+        &bob.pair(),
+    )
+    .await;
 
     let sends = 15;
     let mut calls = Vec::with_capacity(sends);
@@ -463,9 +532,13 @@ async fn signature_request_overload() {
 
     for _ in 0..sends {
         let randomness: u128 = rng.gen();
-        let (_validators_info, signature_request, _validator_ips_and_keys) =
-            get_sign_tx_data(&entropy_api, &rpc, hex::encode(randomness.encode()), verifying_key)
-                .await;
+        let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+            &spawn_results.chain_connection.api,
+            &spawn_results.chain_connection.rpc,
+            hex::encode(randomness.encode()),
+            verifying_key,
+        )
+        .await;
         calls.push(signature_request);
     }
 
@@ -473,8 +546,8 @@ async fn signature_request_overload() {
     let tasks: Vec<_> = calls
         .into_iter()
         .map(|signature_request| {
-            let entropy_api = entropy_api.clone();
-            let rpc = rpc.clone();
+            let api = spawn_results.chain_connection.api.clone();
+            let rpc = spawn_results.chain_connection.rpc.clone();
             let relayer_ip_and_key = relayer_ip_and_key.clone();
 
             tokio::spawn(async move {
@@ -487,12 +560,11 @@ async fn signature_request_overload() {
                 .map_err(|e| anyhow!("Failed to submit transaction request: {}", e))?;
 
                 let message_hash = Hasher::keccak(&hex::decode(signature_request.message).unwrap());
-                let verifying_key = SynedrionVerifyingKey::try_from(
-                    signature_request.signature_verifying_key.as_slice(),
-                )
-                .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
+                let verifying_key =
+                    VerifyingKey::try_from(signature_request.signature_verifying_key.as_slice())
+                        .map_err(|e| anyhow!("Failed to parse verifying key: {}", e))?;
 
-                let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc)
+                let all_signers_info = get_all_signers_from_chain(&api, &rpc)
                     .await
                     .map_err(|e| anyhow!("Failed to fetch signers from chain: {}", e))?;
 
@@ -523,19 +595,23 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
 
     let one = AccountKeyring::Dave;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
-    let relayer_url = format!("http://{}/user/relay_tx", relayer_ip_and_key.0.clone());
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
+    let relayer_url = format!("http://{}/v1/user/relay_tx", relayer_ip_and_key.0.clone());
 
     let mock_client = reqwest::Client::new();
 
     let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         hex::encode(PREIMAGE_SHOULD_SUCCEED),
         DAVE_VERIFYING_KEY,
     )
@@ -551,7 +627,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     )
     .unwrap();
     let failed_res = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
+        .post("http://127.0.0.1:3001/v1/user/sign_tx")
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&failed_signed_message).unwrap())
         .send()
@@ -587,7 +663,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     .unwrap();
 
     let failed_sign = mock_client
-        .post("http://127.0.0.1:3001/user/sign_tx")
+        .post("http://127.0.0.1:3001/v1/user/sign_tx")
         .header("Content-Type", "application/json")
         .body(serde_json::to_string(&user_input_bad).unwrap())
         .send()
@@ -750,16 +826,25 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let user = AccountKeyring::One;
     let deployer = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Register the user with a test program
-    let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
+    let (verifying_key, _program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &user.pair(),
+        &deployer.pair(),
+    )
+    .await;
 
-    let (_validators_info, signature_request, validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (_validators_info, signature_request, validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
 
@@ -783,7 +868,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     let connection_attempt_handle = tokio::spawn(async move {
         // Wait for the "user" to submit the signing request
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let ws_endpoint = format!("ws://{}/ws", &validator_ip_and_key.0.clone());
+        let ws_endpoint = format!("ws://{}/v1/ws", &validator_ip_and_key.0.clone());
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
         let ferdie_pair = AccountKeyring::Ferdie.pair();
@@ -818,8 +903,8 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         (validator_ips_and_keys[0].clone().0, validator_ips_and_keys[0].clone().1);
 
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         validator_ip_and_key,
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -844,16 +929,25 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     let user = AccountKeyring::One;
     let deployer = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Register the user with a test program
-    let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
+    let (verifying_key, _program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &user.pair(),
+        &deployer.pair(),
+    )
+    .await;
 
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     // TSS Setup: We want Alice to be the TSS server which starts the signing protocol, so let's
     // get her set up
@@ -864,7 +958,7 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let validator_ip_and_key: (String, [u8; 32]) =
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
+        (spawn_results.validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
 
     // The other signer can rotate between Bob and Charlie, but we want to always test with Bob
     // since we know that:
@@ -872,13 +966,13 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     // - He won't respond to our request (never got his `/sign_tx` endpoint triggered)
     let signers = {
         let alice = ValidatorInfo {
-            ip_address: validator_ips[0].clone(),
+            ip_address: spawn_results.validator_ips[0].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         };
 
         let bob = ValidatorInfo {
-            ip_address: validator_ips[1].clone(),
+            ip_address: spawn_results.validator_ips[1].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[1],
             tss_account: TSS_ACCOUNTS[1].clone(),
         };
@@ -889,14 +983,21 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     // Before starting the test, we want to ensure that Bob has no outstanding reports against him.
     let bob_report_query =
         entropy::storage().slashing().failed_registrations(BOB_STASH_ADDRESS.clone());
-    let reports = query_chain(&entropy_api, &rpc, bob_report_query.clone(), None).await.unwrap();
+    let reports = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        bob_report_query.clone(),
+        None,
+    )
+    .await
+    .unwrap();
     assert!(reports.is_none());
 
     // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
     // skip that step using this helper.
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         validator_ip_and_key,
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -916,7 +1017,7 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     // We expect that a `NoteReport` event want found
     let report_event_found = tokio::time::timeout(
         std::time::Duration::from_secs(30),
-        subscribe_to_report_event(&entropy_api),
+        subscribe_to_report_event(&spawn_results.chain_connection.api),
     )
     .await
     .expect("Timed out while waiting for `NoteReport` event.");
@@ -924,7 +1025,14 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     assert!(report_event_found);
 
     // We expect that the offence count for Bob has gone up
-    let reports = query_chain(&entropy_api, &rpc, bob_report_query, None).await.unwrap();
+    let reports = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        bob_report_query,
+        None,
+    )
+    .await
+    .unwrap();
     assert!(matches!(reports, Some(1)));
 
     clean_tests();
@@ -940,16 +1048,25 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
     let user = AccountKeyring::One;
     let deployer = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     // Register the user with a test program
-    let (verifying_key, _program_hash) =
-        store_program_and_register(&entropy_api, &rpc, &user.pair(), &deployer.pair()).await;
+    let (verifying_key, _program_hash) = store_program_and_register(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        &user.pair(),
+        &deployer.pair(),
+    )
+    .await;
 
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     // TSS Setup: We want Alice to be the TSS server which starts the signing protocol, so let's
     // get her set up
@@ -960,7 +1077,7 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let validator_ip_and_key: (String, [u8; 32]) =
-        (validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
+        (spawn_results.validator_ips[0].clone(), X25519_PUBLIC_KEYS[0]);
 
     // The other signer can rotate between Bob and Charlie, but we want to always test with Charlie
     // since we know that:
@@ -968,13 +1085,13 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
     // - He won't initate a request (never got his `/sign_tx` endpoint triggered)
     let signers = {
         let alice = ValidatorInfo {
-            ip_address: validator_ips[0].clone(),
+            ip_address: spawn_results.validator_ips[0].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             tss_account: TSS_ACCOUNTS[0].clone(),
         };
 
         let charlie = ValidatorInfo {
-            ip_address: validator_ips[2].clone(),
+            ip_address: spawn_results.validator_ips[2].clone(),
             x25519_public_key: X25519_PUBLIC_KEYS[2],
             tss_account: TSS_ACCOUNTS[2].clone(),
         };
@@ -985,15 +1102,21 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
     // Before starting the test, we want to ensure that Charlie has no outstanding reports against him.
     let charlie_report_query =
         entropy::storage().slashing().failed_registrations(CHARLIE_STASH_ADDRESS.clone());
-    let reports =
-        query_chain(&entropy_api, &rpc, charlie_report_query.clone(), None).await.unwrap();
+    let reports = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        charlie_report_query.clone(),
+        None,
+    )
+    .await
+    .unwrap();
     assert!(reports.is_none());
 
     // Test: Now, we want to initiate a signing session _without_ going through the relayer. So we
     // skip that step using this helper.
     let test_user_bad_connection_res = submit_transaction_sign_tx_requests(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         validator_ip_and_key,
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -1008,7 +1131,7 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
     // We expect that a `NoteReport` event want found
     let report_event_found = tokio::time::timeout(
         std::time::Duration::from_secs(30),
-        subscribe_to_report_event(&entropy_api),
+        subscribe_to_report_event(&spawn_results.chain_connection.api),
     )
     .await
     .expect("Timed out while waiting for `NoteReport` event.");
@@ -1016,7 +1139,14 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
     assert!(report_event_found);
 
     // We expect that the offence count for Charlie has gone up
-    let reports = query_chain(&entropy_api, &rpc, charlie_report_query, None).await.unwrap();
+    let reports = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        charlie_report_query,
+        None,
+    )
+    .await
+    .unwrap();
     assert!(matches!(reports, Some(1)));
 
     clean_tests();
@@ -1047,16 +1177,20 @@ async fn test_program_with_config() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &two.pair(),
         TEST_BASIC_TRANSACTION.to_owned(),
         vec![],
@@ -1068,8 +1202,8 @@ async fn test_program_with_config() {
     .unwrap();
 
     let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
@@ -1090,21 +1224,32 @@ async fn test_program_with_config() {
 
     // We update the program to use the new config
     update_programs(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![
-            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
-            OtherProgramInstance { program_pointer: program_hash, program_config: config.to_vec() },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: config.to_vec(),
+            },
+            OtherProgramInstance {
+                program_pointer: subxt::utils::H256(program_hash.into()),
+                program_config: config.to_vec(),
+            },
         ]),
     )
     .await
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(message), verifying_key).await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(message),
+        verifying_key,
+    )
+    .await;
 
     // Here we check that the signature request was indeed completed successfully
     let signature_request_responses =
@@ -1114,7 +1259,12 @@ async fn test_program_with_config() {
     let message_hash = Hasher::keccak(message.as_bytes());
     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
 
-    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    let all_signers_info = get_all_signers_from_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await
+    .unwrap();
     verify_signature(signature_request_responses, message_hash, &verifying_key, &all_signers_info)
         .await;
 
@@ -1155,8 +1305,14 @@ async fn test_jumpstart_network() {
             entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
         assert!(key_share.is_some());
 
-        verifying_key =
-            key_share.unwrap().0.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+        verifying_key = key_share
+            .unwrap()
+            .0
+            .verifying_key()
+            .unwrap()
+            .to_encoded_point(true)
+            .as_bytes()
+            .to_vec();
     }
 
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
@@ -1304,7 +1460,7 @@ pub async fn verify_signature(
             let sig_recovery = <sr25519::Pair as Pair>::verify(
                 &signing_result.clone().unwrap().1,
                 BASE64_STANDARD.decode(signing_result.clone().unwrap().0).unwrap(),
-                &sr25519::Public(validator_info.tss_account.0),
+                &sr25519::Public::from(validator_info.tss_account.0),
             );
             sig_recovery_results.push(sig_recovery)
         }
@@ -1321,18 +1477,23 @@ async fn test_fail_infinite_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     let program_hash = test_client::store_program(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &two.pair(),
         TEST_INFINITE_LOOP_BYTECODE.to_owned(),
         vec![],
@@ -1344,8 +1505,8 @@ async fn test_fail_infinite_program() {
     .unwrap();
 
     let (verifying_key, _registered_info) = test_client::register(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
@@ -1354,8 +1515,13 @@ async fn test_fail_infinite_program() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key).await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     let test_infinite_loop =
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
@@ -1364,8 +1530,8 @@ async fn test_fail_infinite_program() {
     assert_eq!(test_infinite_loop.unwrap().text().await.unwrap(), "Runtime error: OutOfFuel");
 
     let test_infinite_loop_sign_tx = submit_transaction_sign_tx_requests(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         relayer_ip_and_key.clone(),
         signature_request.clone(),
         tss_signer.signer().clone(),
@@ -1388,7 +1554,7 @@ async fn test_oracle_program() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let mnemonic = development_mnemonic(&Some(ValidatorName::Alice));
@@ -1396,11 +1562,16 @@ async fn test_oracle_program() {
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(non_signer, &api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     let program_hash = test_client::store_program(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &two.pair(),
         TEST_ORACLE_BYTECODE.to_owned(),
         vec![],
@@ -1412,8 +1583,8 @@ async fn test_oracle_program() {
     .unwrap();
 
     let (verifying_key, _registered_info) = test_client::register(
-        &api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
@@ -1422,8 +1593,13 @@ async fn test_oracle_program() {
     .unwrap();
 
     // Now we'll send off a signature request using the new program
-    let (_validators_info, signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key).await;
+    let (_validators_info, signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     let test_user_res =
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
@@ -1432,7 +1608,12 @@ async fn test_oracle_program() {
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let decoded_verifying_key =
         decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    let all_signers_info = get_all_signers_from_chain(&api, &rpc).await.unwrap();
+    let all_signers_info = get_all_signers_from_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await
+    .unwrap();
     verify_signature(test_user_res, message_hash, &decoded_verifying_key, &all_signers_info).await;
 }
 
@@ -1469,17 +1650,21 @@ async fn test_device_key_proxy() {
     let one = AccountKeyring::One;
     let two = AccountKeyring::Two;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     // We need to store a program in order to be able to register succesfully
     let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &two.pair(), // This is our program deployer
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -1491,8 +1676,8 @@ async fn test_device_key_proxy() {
     .unwrap();
 
     let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
@@ -1510,8 +1695,17 @@ async fn test_device_key_proxy() {
     };
 
     // check to make sure config data stored properly
-    let program_query = entropy::storage().programs().programs(*DEVICE_KEY_HASH);
-    let program_data = query_chain(&entropy_api, &rpc, program_query, None).await.unwrap().unwrap();
+    let program_query =
+        entropy::storage().programs().programs(subxt::utils::H256(DEVICE_KEY_HASH.0));
+    let program_data = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        program_query,
+        None,
+    )
+    .await
+    .unwrap()
+    .unwrap();
     let schema_config_device_key_proxy = schema_for!(UserConfig);
     let schema_aux_data_device_key_proxy = schema_for!(AuxData);
 
@@ -1527,12 +1721,12 @@ async fn test_device_key_proxy() {
     );
 
     update_programs(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         verifying_key.as_slice().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
-            program_pointer: *DEVICE_KEY_HASH,
+            program_pointer: subxt::utils::H256(DEVICE_KEY_HASH.0),
             program_config: serde_json::to_vec(&device_key_user_config).unwrap(),
         }]),
     )
@@ -1555,9 +1749,13 @@ async fn test_device_key_proxy() {
     ))]);
 
     // Now we'll send off a signature request using the new program with auxilary data
-    let (_validators_info, mut signature_request, _validator_ips_and_keys) =
-        get_sign_tx_data(&entropy_api, &rpc, hex::encode(PREIMAGE_SHOULD_SUCCEED), verifying_key)
-            .await;
+    let (_validators_info, mut signature_request, _validator_ips_and_keys) = get_sign_tx_data(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        hex::encode(PREIMAGE_SHOULD_SUCCEED),
+        verifying_key,
+    )
+    .await;
 
     signature_request.auxilary_data = auxilary_data;
 
@@ -1567,7 +1765,12 @@ async fn test_device_key_proxy() {
 
     let message_hash = Hasher::keccak(PREIMAGE_SHOULD_SUCCEED);
     let verifying_key = decode_verifying_key(verifying_key.as_slice().try_into().unwrap()).unwrap();
-    let all_signers_info = get_all_signers_from_chain(&entropy_api, &rpc).await.unwrap();
+    let all_signers_info = get_all_signers_from_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await
+    .unwrap();
     verify_signature(test_user_res, message_hash, &verifying_key, &all_signers_info).await;
 }
 
@@ -1598,16 +1801,20 @@ async fn test_faucet() {
     let two = AccountKeyring::Eve;
     let alice = AccountKeyring::Alice;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let non_signer = ValidatorName::Dave;
-    let (relayer_ip_and_key, _) =
-        validator_name_to_relayer_info(non_signer, &entropy_api, &rpc).await;
+    let (relayer_ip_and_key, _) = validator_name_to_relayer_info(
+        non_signer,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+    )
+    .await;
 
     let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &two.pair(),
         FAUCET_PROGRAM.to_owned(),
         vec![],
@@ -1619,7 +1826,7 @@ async fn test_faucet() {
     .unwrap();
 
     let amount_to_send = 200000001;
-    let genesis_hash = &entropy_api.genesis_hash();
+    let genesis_hash = &spawn_results.chain_connection.api.genesis_hash();
 
     let faucet_user_config = UserConfig {
         max_transfer_amount: amount_to_send,
@@ -1627,8 +1834,8 @@ async fn test_faucet() {
     };
 
     let (verifying_key, _registered_info) = test_client::register(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         one.clone().into(), // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
@@ -1650,7 +1857,9 @@ async fn test_faucet() {
         PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
 
     let tx_params_balance = Params::new().build();
-    entropy_api
+    spawn_results
+        .chain_connection
+        .api
         .tx()
         .create_signed(&add_balance_tx, &signature_request_pair_signer, tx_params_balance)
         .await
@@ -1660,8 +1869,8 @@ async fn test_faucet() {
         .unwrap();
 
     update_programs(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         verifying_key.clone().try_into().unwrap(),
         &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
@@ -1673,8 +1882,9 @@ async fn test_faucet() {
     .unwrap();
 
     // get tx data for aux data
-    let spec_version = entropy_api.runtime_version().spec_version;
-    let transaction_version = entropy_api.runtime_version().transaction_version;
+    let spec_version = spawn_results.chain_connection.api.runtime_version().spec_version;
+    let transaction_version =
+        spawn_results.chain_connection.api.runtime_version().transaction_version;
 
     let aux_data = AuxData {
         spec_version,
@@ -1686,20 +1896,32 @@ async fn test_faucet() {
     let tx_params = Params::new().build();
     let balance_transfer_tx =
         entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
-    let partial =
-        entropy_api.tx().create_partial_signed_offline(&balance_transfer_tx, tx_params).unwrap();
+    let partial = spawn_results
+        .chain_connection
+        .api
+        .tx()
+        .create_partial_signed_offline(&balance_transfer_tx, tx_params)
+        .unwrap();
 
     let mut signature_request = UserSignatureRequest {
         message: hex::encode(partial.signer_payload()),
         auxilary_data: Some(vec![Some(hex::encode(
             &serde_json::to_string(&aux_data.clone()).unwrap(),
         ))]),
-        block_number: rpc.chain_get_header(None).await.unwrap().unwrap().number,
+        block_number: spawn_results
+            .chain_connection
+            .rpc
+            .chain_get_header(None)
+            .await
+            .unwrap()
+            .unwrap()
+            .number,
         hash: HashingAlgorithm::Blake2_256,
         signature_verifying_key: verifying_key.clone().to_vec(),
     };
 
-    signature_request.block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    signature_request.block_number =
+        spawn_results.chain_connection.rpc.chain_get_header(None).await.unwrap().unwrap().number;
     let test_user_res =
         submit_transaction_request(relayer_ip_and_key.clone(), signature_request.clone(), one)
             .await;
@@ -1716,7 +1938,15 @@ async fn test_faucet() {
     let account = subxtAccountId32::from_str(&aux_data.string_account_id).unwrap();
     // get balance before for checking if succeful
     let balance_query = entropy::storage().system().account(account.clone());
-    let account_info = query_chain(&entropy_api, &rpc, balance_query, None).await.unwrap().unwrap();
+    let account_info = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        balance_query,
+        None,
+    )
+    .await
+    .unwrap()
+    .unwrap();
     let balance_before = account_info.data.free;
     // submit then wait for tx
     let mut tx = submittable_extrinsic.submit_and_watch().await.unwrap();
@@ -1743,8 +1973,15 @@ async fn test_faucet() {
 
     // balance after
     let balance_after_query = entropy::storage().system().account(account);
-    let account_info =
-        query_chain(&entropy_api, &rpc, balance_after_query, None).await.unwrap().unwrap();
+    let account_info = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        balance_after_query,
+        None,
+    )
+    .await
+    .unwrap()
+    .unwrap();
     let balance_after = account_info.data.free;
     // make sure funds were transfered
     ma::assert_gt!(balance_after, balance_before);
@@ -1761,19 +1998,26 @@ async fn test_registration_flow() {
     let bob = AccountKeyring::Bob;
     let charlie = AccountKeyring::Charlie;
 
-    let (_ctx, entropy_api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let jump_start_progress_query = entropy::storage().staking_extension().jump_start_progress();
-    let jump_start_progress =
-        query_chain(&entropy_api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
+    let jump_start_progress = query_chain(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        jump_start_progress_query,
+        None,
+    )
+    .await
+    .unwrap()
+    .unwrap();
 
     let network_verifying_key = jump_start_progress.verifying_key.unwrap().0;
 
     // We need to store a program in order to be able to register succesfully
     let program_hash = test_client::store_program(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &bob.pair(), // This is our program deployer
         TEST_PROGRAM_WASM_BYTECODE.to_owned(),
         vec![],
@@ -1785,8 +2029,8 @@ async fn test_registration_flow() {
     .unwrap();
 
     let registration_request = put_register_request_on_chain(
-        &entropy_api,
-        &rpc,
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
         &alice,                         // This is our signature request account
         charlie.to_account_id().into(), // This is our program modification account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
@@ -1807,8 +2051,12 @@ async fn test_registration_flow() {
     let actual_verifying_key = actual_verifying_key.0;
 
     // Next we want to check that the info that's on-chain is what we actually expect
-    let registered_info =
-        get_registered_details(&entropy_api, &rpc, actual_verifying_key.to_vec()).await;
+    let registered_info = get_registered_details(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        actual_verifying_key.to_vec(),
+    )
+    .await;
 
     assert!(
         matches!(registered_info, Ok(_)),
@@ -1821,8 +2069,7 @@ async fn test_registration_flow() {
     );
 
     // Next, let's check that the child verifying key matches
-    let network_verifying_key =
-        SynedrionVerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
+    let network_verifying_key = VerifyingKey::try_from(network_verifying_key.as_slice()).unwrap();
 
     // We hardcode the derivation path here since we know that there's only been one registration
     // request (ours).
@@ -1997,7 +2244,7 @@ pub async fn submit_transaction_request(
     )
     .unwrap();
 
-    let url = format!("http://{}/user/relay_tx", validator_urls_and_keys.0.clone());
+    let url = format!("http://{}/v1/user/relay_tx", validator_urls_and_keys.0.clone());
     mock_client
         .post(url)
         .header("Content-Type", "application/json")
@@ -2031,7 +2278,7 @@ pub async fn submit_transaction_sign_tx_requests(
     )
     .unwrap();
 
-    let url = format!("http://{}/user/sign_tx", validator_urls_and_keys.0.clone());
+    let url = format!("http://{}/v1/user/sign_tx", validator_urls_and_keys.0.clone());
     mock_client
         .post(url)
         .header("Content-Type", "application/json")

@@ -7,7 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...master)
+
+### Breaking
+- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
+
+### Added
+- Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
+
+### Changed
+- Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
+- Remove deadlines in OCW ([#1411](https://github.com/entropyxyz/entropy-core/pull/1411))
+- Bump synedrion to 0.3.0 and use manul for protocol session loop ([#1392](https://github.com/entropyxyz/entropy-core/pull/1392))
+
+## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 
 ### Breaking Changes
 - In [#1104](https://github.com/entropyxyz/entropy-core/pull/1104) the `/validator/rotate_network_key` endpoint was renamed to `rotate_network_key`
@@ -34,7 +47,7 @@ runtime
   for testing. If this is not desired it should be set to `None`.
 - In [#1216](https://github.com/entropyxyz/entropy-core/pull/1216) the `--setup-only` option for `entropy-tss`
   was removed. `entropy-tss` should be started only once, and the public keys retrieved using the `/info`
-  http route.
+  http route. When `entropy`
 - In [#1209](https://github.com/entropyxyz/entropy-core/pull/1209) the `validate` and `change_threshold_accounts`
   extrinsics no longer take a PCK certificate chain. Rather, the certificate chain is extracted from the
   provided quote. The test CLI `change-threshold-accounts` command also no longer takes a PCK
@@ -46,6 +59,13 @@ runtime
   hardware for testing, you must specify `non-TDX` in the release tag.
 - In [#1357](https://github.com/entropyxyz/entropy-core/pull/1357) the output of the entropy-tss
   `/info` HTTP route was changed to include the provisioning certification key.
+- [#1249](https://github.com/entropyxyz/entropy-core/pull/1249) together with [#1216](https://github.com/entropyxyz/entropy-core/pull/1216)
+  means that `entropy-tss` no longer has persistent storage of the key used to encrypt its data. If
+  the process is restarted, it will attempt to retrieve a backup of this encryption key from another
+  running TSS node. If all TSS nodes are simultaneously stopped, it will be impossible to recover
+  and the network key will be lost.
+- In [#1377](https://github.com/entropyxyz/entropy-core/pull/1377) all endpoints except for the
+  healthz in the TSS had a /v1 added to them.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -76,6 +96,8 @@ runtime
 - Attestation quote verification should check both run-time and build-time measurement values ([#1303](https://github.com/entropyxyz/entropy-core/pull/1303))
 - `/version` HTTP route gives measurement value on production builds ([#1305](https://github.com/entropyxyz/entropy-core/pull/1305))
 - Include Provisioning Certification Key (PCK) in the entropy-tss `/info` HTTP route output ([#1357](https://github.com/entropyxyz/entropy-core/pull/1357))
+- Change entropy-tss storage location for TDX production builds ([#1361](https://github.com/entropyxyz/entropy-core/pull/1361))
+- Add v1 to all endpoints ([#1377](https://github.com/entropyxyz/entropy-core/pull/1377))
 
 ### Fixed
 

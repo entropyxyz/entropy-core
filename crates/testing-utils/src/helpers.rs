@@ -24,20 +24,32 @@ use rand::{rngs::StdRng, SeedableRng};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 pub use tdx_quote::encode_verifying_key;
 
+/// A type used to encapsulate Substrate chain connections
+pub struct ChainConnection {
+    /// API connection to Substrate blockchain
+    pub api: OnlineClient<EntropyConfig>,
+    /// RPC connection to Substrate blockchain
+    pub rpc: LegacyRpcMethods<EntropyConfig>,
+}
+
+/// A type used to encapsulate the TSS and Substrate connections required during testing.
+pub struct TssTestingResult {
+    /// Context for the running substrate nodes
+    pub substrate_context: Vec<TestNodeProcess<EntropyConfig>>,
+    /// An api and rpc connection to the chain
+    pub chain_connection: ChainConnection,
+    /// TSS validator IP addresses
+    pub validator_ips: Vec<String>,
+    /// TSS validator account IDs
+    pub validator_ids: Vec<PartyId>,
+}
+
 /// A helper for setting up tests which starts both a set of TS servers and a chain node and returns
 /// the chain API as well as IP addresses and PartyId of the started validators
 ///
 /// Note that since this function does not reside in entropy-tss, cfg(test) will be false when the
 /// TSS nodes are set up, meaning the unsafe API will not be enabled
-pub async fn spawn_tss_nodes_and_start_chain(
-    chain_spec_type: ChainSpecType,
-) -> (
-    Vec<TestNodeProcess<EntropyConfig>>,
-    OnlineClient<EntropyConfig>,
-    LegacyRpcMethods<EntropyConfig>,
-    Vec<String>,
-    Vec<PartyId>,
-) {
+pub async fn spawn_tss_nodes_and_start_chain(chain_spec_type: ChainSpecType) -> TssTestingResult {
     let (validator_ips, validator_ids) = spawn_testing_validators(chain_spec_type).await;
 
     // Here we need to force authoring otherwise we won't be able to get our chain in the right
@@ -47,7 +59,12 @@ pub async fn spawn_tss_nodes_and_start_chain(
     let api = get_api(&substrate_context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context[0].ws_url).await.unwrap();
 
-    (substrate_context, api, rpc, validator_ips, validator_ids)
+    TssTestingResult {
+        substrate_context,
+        chain_connection: ChainConnection { api, rpc },
+        validator_ips,
+        validator_ids,
+    }
 }
 
 /// Get the mock PCK that will be used for a given TSS account ID

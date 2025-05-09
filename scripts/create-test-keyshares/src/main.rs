@@ -27,7 +27,6 @@ use entropy_tss::helpers::{
 };
 use sp_core::sr25519;
 use std::{env::args, iter::zip, path::PathBuf};
-use synedrion::{ProductionParams, TestParams};
 
 #[tokio::main]
 async fn main() {
@@ -53,16 +52,8 @@ async fn main() {
     let keypairs: [sr25519::Pair; 3] =
         keypairs.try_into().map_err(|_| "Cannot convert keypair vector to array").unwrap();
 
-    // Create and write test keyshares
-    let test_keyshares = create_test_keyshares::<TestParams>(secret_key, keypairs.clone()).await;
-    let test_keyshares_serialized: Vec<_> =
-        test_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
-    let keyshares_and_names = zip(test_keyshares_serialized, names.clone()).collect();
-    write_keyshares(base_path.join("test"), keyshares_and_names).await;
-
     // Create and write production keyshares
-    let production_keyshares =
-        create_test_keyshares::<ProductionParams>(secret_key, keypairs.clone()).await;
+    let production_keyshares = create_test_keyshares(secret_key, keypairs.clone()).await;
     let production_keyshres_serialized: Vec<_> =
         production_keyshares.iter().map(|k| serialize(k).unwrap()).collect();
     let keyshares_and_names = zip(production_keyshres_serialized, names).collect();

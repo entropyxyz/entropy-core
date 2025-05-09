@@ -40,8 +40,8 @@ pub enum BackupProviderError {
     Attestation(#[from] crate::attestation::errors::AttestationErr),
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
-    #[error("Bad response from backup provider: {0} {1}")]
-    BadProviderResponse(reqwest::StatusCode, String),
+    #[error("Backup provider was unreachable or failed to make backup: {0}")]
+    FailedToMakeBackup(String),
     #[error("Provider responded with a key which is not 32 bytes")]
     BadKeyLength,
     #[error("Substrate: {0}")]
@@ -70,6 +70,10 @@ pub enum BackupProviderError {
     NotConnectedToChain,
     #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
+    #[error("Failed to retrieve nonce from backup provider during recovery: {0}")]
+    FailedToRetrieveNonce(String),
+    #[error("Failed to retrieve encryption key from backup provider during recovery: {0}")]
+    FailedToRetrieveKey(String),
 }
 
 impl IntoResponse for BackupProviderError {

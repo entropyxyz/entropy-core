@@ -15,7 +15,11 @@
 
 //! Utilities for starting and running the server.
 
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::{
     backup_provider::api::{
@@ -30,7 +34,7 @@ use crate::{
 };
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
-use entropy_kvdb::kv_manager::KvManager;
+use entropy_kvdb::{get_db_path, kv_manager::KvManager, BuildType};
 use rand::RngCore;
 use rand_core::OsRng;
 use serde::Deserialize;
@@ -101,70 +105,76 @@ pub async fn setup_kv_store(
     storage_path: Option<PathBuf>,
 ) -> anyhow::Result<(KvManager, sr25519::Pair, StaticSecret, Option<[u8; 32]>)> {
     let storage_path = storage_path.unwrap_or_else(|| build_db_path(validator_name));
+    fs::create_dir_all(&storage_path)?;
 
-    // Check for existing database with backup details
-    if let Ok(key_provider_details) = get_key_provider_details(storage_path.clone()) {
-        // Retrieve encryption key from another TSS node
-        let key = request_recover_encryption_key(key_provider_details).await?;
-
-        // Open existing db with recovered key
-        let kv_manager = KvManager::new(storage_path, key)?;
-
-        // Get keypairs from existing db
-        let x25519_secret: [u8; 32] = kv_manager
-            .kv()
-            .get(X25519_SECRET)
-            .await?
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("X25519 secret from db is not 32 bytes"))?;
-        let sr25519_seed: [u8; 32] = kv_manager
-            .kv()
-            .get(SR25519_SEED)
-            .await?
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("sr25519 seed from db is not 32 bytes"))?;
-        let pair = sr25519::Pair::from_seed(&sr25519_seed);
-        Ok((kv_manager, pair, x25519_secret.into(), None))
+    // Check if the storage path is empty
+    if storage_path.read_dir()?.next().is_none() {
+        tracing::info!("No existing database found - generating fresh keys...");
     } else {
-        // Generate TSS account (or use ValidatorName to get a test account)
-        let (pair, seed, x25519_secret, encryption_key) = if cfg!(test) || validator_name.is_some()
-        {
-            let (pair, seed, x25519_secret) =
-                get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string())?;
-            // For testing, the db encryption key is just the TSS account id
-            let encryption_key = pair.public().0;
-            (pair, seed, x25519_secret, encryption_key)
+        // Check for existing database with backup details
+        if let Ok(kv_and_keys) = recover_db(storage_path.clone()).await {
+            return Ok(kv_and_keys);
         } else {
-            // Generate new keys
-            let (pair, seed) = sr25519::Pair::generate();
-            let x25519_secret = StaticSecret::random_from_rng(OsRng);
-            let mut encryption_key = [0; 32];
-            OsRng.fill_bytes(&mut encryption_key);
-            (pair, seed, x25519_secret, encryption_key)
-        };
-
-        // Open store with generated key
-        let kv_manager = KvManager::new(storage_path, encryption_key)?;
-
-        // Store TSS secret keys in kv store
-        let reservation = kv_manager.kv().reserve_key(X25519_SECRET.to_string()).await?;
-        kv_manager.kv().put(reservation, x25519_secret.to_bytes().to_vec()).await?;
-        let reservation = kv_manager.kv().reserve_key(SR25519_SEED.to_string()).await?;
-        kv_manager.kv().put(reservation, seed.to_vec()).await?;
-
-        // Return the encryption key so that it can be backed up as part of the pre-requisite checks
-        Ok((kv_manager, pair, x25519_secret, Some(encryption_key)))
+            tracing::info!("Failed to recover db backup - coping db and starting fresh");
+            let mut backup_path = storage_path.clone();
+            let timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_secs();
+            backup_path.set_file_name(format!(
+                "{}-backup-{}",
+                backup_path.file_name().unwrap_or_default().to_str().unwrap_or_default(),
+                timestamp
+            ));
+            // Copy the broken db somewhere else and start fresh
+            fs::rename(&storage_path, backup_path)?;
+            fs::create_dir_all(&storage_path)?;
+        }
     }
+
+    // Generate TSS account (or use ValidatorName to get a test account)
+    let (pair, seed, x25519_secret, encryption_key) = if cfg!(test) || validator_name.is_some() {
+        let (pair, seed, x25519_secret) =
+            get_signer_and_x25519_secret(&development_mnemonic(validator_name).to_string())?;
+        // For testing, the db encryption key is just the TSS account id
+        let encryption_key = pair.public().0;
+        (pair, seed, x25519_secret, encryption_key)
+    } else {
+        // Generate new keys
+        let (pair, seed) = sr25519::Pair::generate();
+        let x25519_secret = StaticSecret::random_from_rng(OsRng);
+        let mut encryption_key = [0; 32];
+        OsRng.fill_bytes(&mut encryption_key);
+        (pair, seed, x25519_secret, encryption_key)
+    };
+
+    // Open store with generated key
+    let kv_manager = KvManager::new(storage_path, encryption_key)?;
+
+    // Store TSS secret keys in kv store
+    let reservation = kv_manager.kv().reserve_key(X25519_SECRET.to_string()).await?;
+    kv_manager.kv().put(reservation, x25519_secret.to_bytes().to_vec()).await?;
+    let reservation = kv_manager.kv().reserve_key(SR25519_SEED.to_string()).await?;
+    kv_manager.kv().put(reservation, seed.to_vec()).await?;
+
+    // Return the encryption key so that it can be backed up as part of the pre-requisite checks
+    Ok((kv_manager, pair, x25519_secret, Some(encryption_key)))
 }
 
 /// Build the storage path for the key-value store, providing separate subdirectories for the
 /// different test accounts when testing
 pub fn build_db_path(validator_name: &Option<ValidatorName>) -> PathBuf {
     if cfg!(test) {
-        return PathBuf::from(entropy_kvdb::get_db_path(true));
+        return PathBuf::from(get_db_path(BuildType::Test));
     }
 
-    let mut root: PathBuf = PathBuf::from(entropy_kvdb::get_db_path(false));
+    let build_type = if cfg!(feature = "production") {
+        BuildType::ProductionTdx
+    } else {
+        BuildType::ProductionNoTdx
+    };
+
+    let mut root: PathBuf = PathBuf::from(get_db_path(build_type));
     // Alice has no extra subdirectory
     if validator_name == &Some(ValidatorName::Bob) {
         root.push("bob");
@@ -300,6 +310,7 @@ pub async fn check_node_prerequisites(
 ) -> Result<(), &'static str> {
     let url = &app_state.configuration.endpoint;
     let account_id = app_state.account_id();
+    let ss58_account = account_id.to_ss58check();
 
     let connect_to_substrate_node = || async {
         tracing::info!("Attempting to establish connection to Substrate node at `{}`", url);
@@ -327,7 +338,7 @@ pub async fn check_node_prerequisites(
     tracing::info!("Sucessfully connected to Substrate node!");
     app_state.cache.connected_to_chain_node().map_err(|_| "Poisoned mutex")?;
 
-    tracing::info!("Checking balance of threshold server AccountId `{}`", &account_id);
+    tracing::info!("Checking balance of threshold server AccountId `{}`", &ss58_account);
 
     let balance_query = || async {
         let has_minimum_balance = crate::validator::api::check_balance_for_fees(
@@ -338,7 +349,7 @@ pub async fn check_node_prerequisites(
         )
         .await
         .map_err(|e| {
-            tracing::warn!("Account: {} {}", &account_id, e);
+            tracing::warn!("Account: {} {}", &ss58_account, e);
             e.to_string()
         })?;
         if !has_minimum_balance {
@@ -351,7 +362,7 @@ pub async fn check_node_prerequisites(
         .await
         .map_err(|_| "Timed out waiting for account to be funded")?;
 
-    tracing::info!("The account `{}` has enough funds for submitting extrinsics.", &account_id);
+    tracing::info!("The account `{}` has enough funds for submitting extrinsics.", &ss58_account);
 
     // Now check if there exists a threshold server with our details - if there is not,
     // we need to wait until there is
@@ -371,7 +382,7 @@ pub async fn check_node_prerequisites(
         Ok(())
     };
 
-    tracing::info!("Checking if our account ID has been registered on chain `{}`", &account_id);
+    tracing::info!("Checking if our account ID has been registered on chain `{}`", &ss58_account);
     backoff::future::retry(backoff, check_for_tss_account_id)
         .await
         .map_err(|_| "Timed out waiting for TSS account to be registered on chain")?;
@@ -396,4 +407,34 @@ pub async fn check_node_prerequisites(
     tracing::info!("TSS node passed all prerequisite checks and is ready");
     app_state.cache.make_ready().map_err(|_| "Poisoned mutex")?;
     Ok(())
+}
+
+/// Attempt to retrieve encryption key from another TSS node
+async fn recover_db(
+    storage_path: PathBuf,
+) -> anyhow::Result<(KvManager, sr25519::Pair, StaticSecret, Option<[u8; 32]>)> {
+    let key_provider_details = get_key_provider_details(storage_path.clone())?;
+    tracing::info!("Existing database found - recovering encryption key...");
+
+    let key = request_recover_encryption_key(key_provider_details).await?;
+    tracing::info!("Database encrytion key recovered successfully");
+
+    // Open existing db with recovered key
+    let kv_manager = KvManager::new(storage_path, key)?;
+
+    // Get keypairs from existing db
+    let x25519_secret: [u8; 32] = kv_manager
+        .kv()
+        .get(X25519_SECRET)
+        .await?
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("X25519 secret from db is not 32 bytes"))?;
+    let sr25519_seed: [u8; 32] = kv_manager
+        .kv()
+        .get(SR25519_SEED)
+        .await?
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("sr25519 seed from db is not 32 bytes"))?;
+    let pair = sr25519::Pair::from_seed(&sr25519_seed);
+    Ok((kv_manager, pair, x25519_secret.into(), None))
 }

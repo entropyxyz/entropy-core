@@ -4,7 +4,7 @@ This is instructions for creating a release candidate, which on finding it works
 tagged as the final release.
 
 ## Pre-Prep
-- [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Discord)
+- [ ] Inform relevant parties that you're preparing a release (e.g, by posting on Slack)
 - [ ] Create a release branch, e.g., for release candidate `1`: `release/vX.Y.Z-rc.1`.
 
 ## Prep the Runtime and Node
@@ -15,9 +15,7 @@ tagged as the final release.
   etc.), bump `transaction_version` and bump `spec_version`
 - [ ] If you're confused about what to bump, read [this](https://paritytech.github.io/polkadot-sdk/master/sp_version/struct.RuntimeVersion.html)
 - [ ] If the programs runtime has been updated increment `PROGRAM_VERSION_NUMBER` in `shared` crate
-- [ ] Update runtime benchmarks
-    - `cargo build -p entropy --release --features runtime-benchmarks && ./scripts/benchmarks.sh`
-    - Note: These should ideally be run on [reference hardware](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware) (i.e `c6i.4xlarge` on AWS)
+- [ ] Update runtime benchmarks by following the [`core-benchmark-reference-machine` instructions](https://github.com/entropyxyz/devops-infrastructure/tree/dev/projects/core-benchmark-reference-machine). This assumes you have cloned the [`devops-infrastructure` repo](https://github.com/entropyxyz/devops-infrastructure/) and have the aws command line interface and terragrunt installed and configured as per the [`entropy-workstation-setup` playbook](https://github.com/entropyxyz/entropy-workstation-setup).
 - [ ] Bump `version` in TOML manifests
     - If there are breaking changes, bump the `MINOR` version, otherwise bump the `PATCH` version
 - [ ] Update runtime metadata
@@ -45,7 +43,7 @@ tagged as the final release.
       `entropyxyz/entropy:local-vX.Y.Z-rc.1`
     - Build the images and spin up the network using `docker compose up`
     - Jumpstart the network using:
-        - `cargo run -p entropy-test-cli -- jumpstart-network`
+        - `cargo run -p entropy-test-cli -- jumpstart-network -m //One`
     - Register an account using:
         - `cargo run -p entropy-test-cli -- register ./crates/testing-utils/template_barebones.wasm -m //One`
     - Request a signature using:
@@ -102,8 +100,8 @@ following:
 - [ ] Publish a release on GitHub
     - When a release tag was pushed, a draft release was also created by the CI, use this
     - For the release body, copy the changes from the `CHANGELOG`
-    - If you made a TDX CVM image release, copy a link to into into the release notes
-- [ ] Inform relevant parties (e.g, by posting on Discord)
+    - If you made a TDX CVM image release, copy a link to it into into the release notes
+- [ ] Inform relevant parties (e.g, by posting on Slack)
 
 ## Promote Release Candidate
 - [ ] If something turns out to not work correctly when using the release, follow this checklist

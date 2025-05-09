@@ -30,7 +30,7 @@ fn knows_how_to_mock_several_http_calls() {
     let mut t = offchain_worker_env(|state| {
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/generate_network_key".into(),
+            uri: "http://localhost:3001/v1/generate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [
@@ -43,7 +43,7 @@ fn knows_how_to_mock_several_http_calls() {
 
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/signer/proactive_refresh".into(),
+            uri: "http://localhost:3001/v1/signer/proactive_refresh".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [
@@ -56,7 +56,7 @@ fn knows_how_to_mock_several_http_calls() {
         });
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/validator/reshare".into(),
+            uri: "http://localhost:3001/v1/validator/reshare".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [4, 32, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0].to_vec(),
@@ -64,7 +64,7 @@ fn knows_how_to_mock_several_http_calls() {
         });
         state.expect_request(testing::PendingRequest {
             method: "POST".into(),
-            uri: "http://localhost:3001/rotate_network_key".into(),
+            uri: "http://localhost:3001/v1/rotate_network_key".into(),
             sent: true,
             response: Some([].to_vec()),
             body: [10, 0, 0, 0].to_vec(),

@@ -50,13 +50,13 @@ use entropy_testing_utils::{
     substrate_context::{test_node_process_testing_state, testing_context},
     test_context_stationary, ChainSpecType,
 };
+use k256::ecdsa::VerifyingKey;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
 use sp_keyring::AccountKeyring;
 use std::collections::HashSet;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
-use synedrion::k256::ecdsa::VerifyingKey;
 
 #[tokio::test]
 #[serial]
@@ -352,7 +352,7 @@ async fn test_reshare_none_called() {
 
     for i in 0..validator_ports.len() {
         let response = client
-            .post(format!("http://127.0.0.1:{}/rotate_network_key", validator_ports[i]))
+            .post(format!("http://127.0.0.1:{}/v1/rotate_network_key", validator_ports[i]))
             .send()
             .await
             .unwrap();

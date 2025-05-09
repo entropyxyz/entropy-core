@@ -22,15 +22,13 @@ use crate::{
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec,
                 entropy_runtime::SessionKeys,
-                pallet_im_online,
+                pallet_im_online::sr25519::app_sr25519::Public as IMONPublic,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
                 pallet_staking_extension::pallet::JoiningServerInfo,
                 sp_arithmetic::per_things::Perbill,
                 sp_authority_discovery, sp_consensus_babe, sp_consensus_grandpa,
-                sp_core::ed25519::Public as EDPublic,
-                sp_core::sr25519::Public as SRPublic,
             },
         },
         EntropyConfig,
@@ -59,6 +57,7 @@ pub use synedrion::KeyShare;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::RecoverableSignature;
 use futures::stream::StreamExt;
+use k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 use sp_core::{
     sr25519::{self, Signature},
     Pair,
@@ -68,7 +67,6 @@ use subxt::{
     utils::{AccountId32 as SubxtAccountId32, H256},
     Config, OnlineClient,
 };
-use synedrion::k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey};
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
 
@@ -160,7 +158,7 @@ pub async fn sign(
     )?;
     let message_json = serde_json::to_string(&encrypted_message)?;
 
-    let url = format!("http://{}/user/relay_tx", validator_info.ip_address);
+    let url = format!("http://{}/v1/user/relay_tx", validator_info.ip_address);
 
     let result = client
         .post(url)
@@ -187,7 +185,7 @@ pub async fn sign(
         let sig_recovery = <sr25519::Pair as Pair>::verify(
             &signature_of_signature,
             decoded_sig.clone(),
-            &sr25519::Public(signer_info.tss_account.0),
+            &sr25519::Public::from(signer_info.tss_account.0),
         );
         sig_recovery_results.push(sig_recovery)
     }
@@ -530,7 +528,8 @@ pub async fn get_tdx_quote(
     quote_context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
     let response =
-        reqwest::get(format!("http://{}/attest?context={}", tss_endpoint, quote_context)).await?;
+        reqwest::get(format!("http://{}/v1/attest?context={}", tss_endpoint, quote_context))
+            .await?;
     if response.status() != reqwest::StatusCode::OK {
         return Err(ClientError::QuoteGet(response.text().await?));
     }
@@ -645,9 +644,9 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
     let authority_discovery: [u8; 32] = session_keys[96..128].try_into()?;
 
     Ok(SessionKeys {
-        babe: sp_consensus_babe::app::Public(SRPublic(babe)),
-        grandpa: sp_consensus_grandpa::app::Public(EDPublic(grandpa)),
-        im_online: pallet_im_online::sr25519::app_sr25519::Public(SRPublic(im_online)),
-        authority_discovery: sp_authority_discovery::app::Public(SRPublic(authority_discovery)),
+        babe: sp_consensus_babe::app::Public(babe),
+        grandpa: sp_consensus_grandpa::app::Public(grandpa),
+        im_online: IMONPublic(im_online),
+        authority_discovery: sp_authority_discovery::app::Public(authority_discovery),
     })
 }

@@ -21,7 +21,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use entropy_protocol::{errors::ProtocolExecutionErr, sign_and_encrypt::EncryptedSignedMessageErr};
-use synedrion::sessions;
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -75,8 +74,6 @@ pub enum ValidatorErr {
     Timeout(#[from] tokio::time::error::Elapsed),
     #[error("Oneshot timeout error: {0}")]
     OneshotTimeout(#[from] RecvError),
-    #[error("Synedrion session creation error: {0}")]
-    SessionCreation(sessions::LocalError),
     #[error("No output from reshare protocol")]
     NoOutputFromReshareProtocol,
     #[error("Protocol Error: {0}")]

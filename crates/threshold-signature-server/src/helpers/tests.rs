@@ -42,7 +42,7 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_client::substrate::query_chain;
-use entropy_kvdb::{get_db_path, kv_manager::KvManager};
+use entropy_kvdb::{get_db_path, kv_manager::KvManager, BuildType};
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
@@ -72,7 +72,7 @@ pub async fn initialize_test_logger() {
 pub async fn setup_client() -> AppState {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
-    let storage_path: PathBuf = get_db_path(true).into();
+    let storage_path: PathBuf = get_db_path(BuildType::Test).into();
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
         setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
@@ -305,7 +305,7 @@ pub async fn store_program_and_register(
     .await
     .unwrap();
 
-    (verifying_key, program_hash)
+    (verifying_key, sp_core::H256(program_hash.into()))
 }
 
 /// Do a network jumpstart DKG

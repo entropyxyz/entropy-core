@@ -30,6 +30,7 @@ use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
 use futures::{channel::mpsc, future::join_all, StreamExt};
 use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
+use sp_core::crypto::{AccountId32, Ss58Codec};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     ext::sp_core::{sr25519, sr25519::Signature, Pair},
@@ -154,7 +155,8 @@ pub async fn relay_tx(
                             &[],
                         )?;
 
-                        let url = format!("http://{}/user/sign_tx", signer_info.ip_address.clone());
+                        let url =
+                            format!("http://{}/v1/user/sign_tx", signer_info.ip_address.clone());
 
                         let response = client
                             .post(url)
@@ -223,7 +225,7 @@ pub async fn sign_tx(
     let signed_message = encrypted_msg.decrypt(&app_state.x25519_secret, &[])?;
 
     let request_author = SubxtAccountId32(*signed_message.account_id().as_ref());
-    tracing::Span::current().record("request_author", signed_message.account_id().to_string());
+    tracing::Span::current().record("request_author", signed_message.account_id().to_ss58check());
     let validators_query = entropy::storage().session().validators();
 
     let validators = query_chain(&api, &rpc, validators_query, None)
@@ -393,8 +395,12 @@ async fn handle_protocol_errors(
     if peers_to_report.is_empty() {
         return Err(error.to_string());
     }
-
-    tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report.clone(), error.to_string());
+    let peers_to_report_ss58 = peers_to_report
+        .clone()
+        .into_iter()
+        .map(|x| AccountId32::new(x.0).to_ss58check())
+        .collect::<Vec<_>>();
+    tracing::debug!("Reporting `{:?}` for `{}`", peers_to_report_ss58, error.to_string());
 
     let mut failed_reports = Vec::new();
     for peer in peers_to_report {
@@ -451,7 +457,7 @@ pub async fn generate_network_key(
     if in_registration_group.is_err() {
         tracing::warn!(
             "The account {:?} is not in the registration group for block_number {:?}",
-            app_state.subxt_account_id(),
+            app_state.account_id().to_ss58check(),
             data.block_number
         );
 
@@ -490,7 +496,7 @@ async fn setup_dkg(
     )
     .await?;
 
-    let verifying_key = key_share.verifying_key().to_encoded_point(true).as_bytes().to_vec();
+    let verifying_key = key_share.verifying_key()?.to_encoded_point(true).as_bytes().to_vec();
 
     let serialized_key_share = key_serialize(&(key_share, aux_info))
         .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;

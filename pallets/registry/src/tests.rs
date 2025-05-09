@@ -84,7 +84,8 @@ fn it_tests_get_validators_info() {
 #[test]
 fn it_registers_a_user() {
     new_test_ext().execute_with(|| {
-        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+        use k256::ecdsa::VerifyingKey as SynedrionVerifyingKey;
+        use synedrion::DeriveChildKey;
 
         let (alice, bob, _charlie) = (1u64, 2, 3);
 
@@ -152,7 +153,8 @@ fn it_increases_program_reference_count_on_register() {
 #[test]
 fn it_registers_different_users_with_the_same_sig_req_account() {
     new_test_ext().execute_with(|| {
-        use synedrion::{ecdsa::VerifyingKey as SynedrionVerifyingKey, DeriveChildKey};
+        use k256::ecdsa::VerifyingKey as SynedrionVerifyingKey;
+        use synedrion::DeriveChildKey;
 
         let (alice, bob, _charlie) = (1u64, 2, 3);
 

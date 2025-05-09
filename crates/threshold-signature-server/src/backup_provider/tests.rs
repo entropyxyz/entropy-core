@@ -41,7 +41,7 @@ async fn backup_provider_test() {
     clean_tests();
     initialize_test_logger().await;
 
-    let (_ctx, api, rpc, _validator_ips, _validator_ids) =
+    let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let storage_path: PathBuf = ".entropy/testing/test_db_validator1".into();
@@ -52,7 +52,15 @@ async fn backup_provider_test() {
     let (tss_signer, _static_secret) =
         get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
 
-    make_key_backup(&api, &rpc, key, tss_signer.signer(), storage_path.clone()).await.unwrap();
+    make_key_backup(
+        &spawn_results.chain_connection.api,
+        &spawn_results.chain_connection.rpc,
+        key,
+        tss_signer.signer(),
+        storage_path.clone(),
+    )
+    .await
+    .unwrap();
 
     let key_provider_details = get_key_provider_details(storage_path).unwrap();
     let recovered_key = request_recover_encryption_key(key_provider_details).await.unwrap();
@@ -66,7 +74,7 @@ async fn backup_provider_unit_test() {
     clean_tests();
     initialize_test_logger().await;
 
-    let (_ctx, _api, _rpc, _validator_ips, _validator_ids) =
+    let _spawn_result =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
 
     let key_provider_details = BackupProviderDetails {
@@ -87,6 +95,39 @@ async fn backup_provider_unit_test() {
     request_backup_encryption_key(key, key_provider_details.clone(), tss_signer.signer())
         .await
         .unwrap();
+
     let recovered_key = request_recover_encryption_key(key_provider_details).await.unwrap();
     assert_eq!(key, recovered_key);
+}
+
+#[tokio::test]
+#[serial]
+async fn backup_provider_request_works_when_provider_not_immediately_available() {
+    let key_provider_details = BackupProviderDetails {
+        provider: ValidatorInfo {
+            tss_account: TSS_ACCOUNTS[0].clone(),
+            x25519_public_key: X25519_PUBLIC_KEYS[0],
+            ip_address: "127.0.0.1:3001".to_string(),
+        },
+        tss_account: TSS_ACCOUNTS[1].clone(),
+    };
+    // For testing we use TSS account ID as the db encryption key
+    let key = TSS_ACCOUNTS[1].0;
+
+    let mnemonic = development_mnemonic(&Some(ValidatorName::Bob));
+    let (tss_signer, _static_secret) =
+        get_signer_and_x25519_secret_from_mnemonic(&mnemonic.to_string()).unwrap();
+
+    // We make the request before the backup provider has come online
+    let request_handle = tokio::spawn(async move {
+        request_backup_encryption_key(key, key_provider_details.clone(), tss_signer.signer()).await
+    });
+
+    // Wait a second before starting the TSS nodes
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    let _spawn_result =
+        spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
+
+    // Check that the request was successful even though it took multiple attempts
+    request_handle.await.unwrap().unwrap();
 }
