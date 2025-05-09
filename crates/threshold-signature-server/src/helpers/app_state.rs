@@ -26,6 +26,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 use std::{
     collections::HashMap,
+    path::PathBuf,
     sync::{Arc, RwLock},
 };
 use subxt::{
@@ -331,7 +332,7 @@ pub struct AppState {
     /// Configuation containing the chain endpoint
     pub configuration: Configuration,
     /// Key-value store
-    pub kv_store: KvManager,
+    kv_store: KvManager,
     /// Global cache for TSS server
     pub cache: Cache,
 }
@@ -416,6 +417,20 @@ impl AppState {
             self.kv_store.kv().delete(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
         }
         Ok(())
+    }
+
+    pub async fn rotate_keyshare(&self) -> Result<(), AppStateError> {
+        let next_key_share = self.cache.read_next_network_key_share()?;
+        if next_key_share.is_none() {
+            panic!("No next keyshare to rotate");
+        }
+        self.update_network_keyshare(next_key_share).await?;
+        self.update_next_network_keyshare(None).await?;
+        Ok(())
+    }
+
+    pub fn storage_path(&self) -> PathBuf {
+        self.kv_store.storage_path().to_path_buf()
     }
 }
 

@@ -49,10 +49,10 @@ pub async fn do_signing(
     tracing::debug!("Preparing to perform signing");
 
     let state = &app_state.cache.listener_state;
-    let kv_manager = &app_state.kv_store;
 
     let info = SignInit::new(relayer_signature_request.clone(), signing_session_info.clone());
-    let signing_service = ThresholdSigningService::new(state, kv_manager);
+    let network_key_share = app_state.network_keyshare()?.unwrap();
+    let signing_service = ThresholdSigningService::new(state, network_key_share);
     let x25519_secret_key = &app_state.x25519_secret;
     let signer = &app_state.pair;
 

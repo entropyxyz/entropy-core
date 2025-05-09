@@ -389,18 +389,12 @@ pub async fn check_node_prerequisites(
 
     if let Some(key_to_backup) = key_to_backup {
         tracing::info!("Backing up keyshare...");
-        make_key_backup(
-            &api,
-            &rpc,
-            key_to_backup,
-            &app_state.pair,
-            app_state.kv_store.storage_path().to_path_buf(),
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Could not make key backup: {}", e);
-            "Could not make key backup"
-        })?;
+        make_key_backup(&api, &rpc, key_to_backup, &app_state.pair, app_state.storage_path())
+            .await
+            .map_err(|e| {
+                tracing::error!("Could not make key backup: {}", e);
+                "Could not make key backup"
+            })?;
         tracing::info!("Successfully backed up keyshare");
     }
 
