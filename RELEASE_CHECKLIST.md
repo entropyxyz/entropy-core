@@ -64,7 +64,7 @@ If this is a release intended for running a test network on TDX using Google Clo
 following:
 
 - Make a PR to [`meta-entropy-tss`](https://github.com/entropyxyz/meta-entropy-tss) updating the
-  revision of entropy-tss to the release branch: [here](https://github.com/entropyxyz/meta-entropy-tss/blob/b621096b36ab13703f72954dab37fd47c2f642e9/recipes-core/entropy-tss/entropy-tss.bb#L42-L43).
+  revision of `entropy-tss` to the release branch: [here](https://github.com/entropyxyz/meta-entropy-tss/blob/b621096b36ab13703f72954dab37fd47c2f642e9/recipes-core/entropy-tss/entropy-tss.bb#L42-L43).
 - Merge that PR.
 - Make a release in the [`yocto-build`](https://github.com/entropyxyz/yocto-build) repo by cloning
   the repo and doing `git tag -s release/vX.Y.Z-rc.1 && git push origin release/vX.Y.Z-rc.1`
