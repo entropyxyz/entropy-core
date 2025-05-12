@@ -498,7 +498,7 @@ async fn setup_dkg(
 
     let verifying_key = key_share.verifying_key()?.to_encoded_point(true).as_bytes().to_vec();
 
-    app_state.update_network_keyshare(Some((key_share, aux_info))).await?;
+    app_state.update_network_key_share(Some((key_share, aux_info))).await?;
 
     let block_hash = rpc
         .chain_get_block_hash(None)

@@ -106,13 +106,16 @@ pub struct Cache {
 
 impl Default for Cache {
     fn default() -> Self {
-        Self::new()
+        Self::new(None, None)
     }
 }
 
 impl Cache {
     /// Setup new Cache
-    pub fn new() -> Self {
+    pub fn new(
+        network_key_share: Option<KeyShareWithAuxInfo>,
+        next_network_key_share: Option<KeyShareWithAuxInfo>,
+    ) -> Self {
         Self {
             listener_state: ListenerState::default(),
             tss_state: Arc::new(RwLock::new(TssState::new())),
@@ -120,8 +123,8 @@ impl Cache {
             encryption_key_backup_provider: Default::default(),
             attestation_nonces: Default::default(),
             block_numbers: Default::default(),
-            network_key_share: Default::default(),
-            next_network_key_share: Default::default(),
+            network_key_share: Arc::new(RwLock::new(network_key_share)),
+            next_network_key_share: Arc::new(RwLock::new(next_network_key_share)),
         }
     }
     /// Returns true if all prerequisite checks have passed.
@@ -339,14 +342,35 @@ pub struct AppState {
 
 impl AppState {
     /// Setup AppState with given secret keys
-    pub fn new(
+    pub async fn new(
         configuration: Configuration,
         kv_store: KvManager,
         pair: sr25519::Pair,
         x25519_secret: StaticSecret,
     ) -> Self {
-        Self { pair, x25519_secret, configuration, kv_store, cache: Cache::default() }
+        // Read the network keyshare from the kv_store on startup - this is the only point at which
+        // we use it as a source of truth, as it is vulnerable to rollback attacks
+        let network_key_share: Option<KeyShareWithAuxInfo> = if let Ok(key_share_bytes) =
+            kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await
+        {
+            entropy_kvdb::kv_manager::helpers::deserialize(&key_share_bytes)
+        } else {
+            None
+        };
+
+        let next_network_key_share: Option<KeyShareWithAuxInfo> = if let Ok(next_key_share_bytes) =
+            kv_store.kv().get(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await
+        {
+            entropy_kvdb::kv_manager::helpers::deserialize(&next_key_share_bytes)
+        } else {
+            None
+        };
+
+        let cache = Cache::new(network_key_share, next_network_key_share);
+
+        Self { pair, x25519_secret, configuration, kv_store, cache }
     }
+
     /// Convenience function to get chain api and rpc
     pub async fn get_api_rpc(
         &self,
@@ -377,15 +401,15 @@ impl AppState {
         x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
     }
 
-    pub fn network_keyshare(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+    pub fn network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
         self.cache.read_network_key_share()
     }
 
-    pub fn next_network_keyshare(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+    pub fn next_network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
         self.cache.read_next_network_key_share()
     }
 
-    pub async fn update_network_keyshare(
+    pub async fn update_network_key_share(
         &self,
         updated_key_share: Option<KeyShareWithAuxInfo>,
     ) -> Result<(), AppStateError> {
@@ -402,7 +426,7 @@ impl AppState {
         Ok(())
     }
 
-    pub async fn update_next_network_keyshare(
+    pub async fn update_next_network_key_share(
         &self,
         updated_key_share: Option<KeyShareWithAuxInfo>,
     ) -> Result<(), AppStateError> {
@@ -419,13 +443,13 @@ impl AppState {
         Ok(())
     }
 
-    pub async fn rotate_keyshare(&self) -> Result<(), AppStateError> {
+    pub async fn rotate_key_share(&self) -> Result<(), AppStateError> {
         let next_key_share = self.cache.read_next_network_key_share()?;
         if next_key_share.is_none() {
             panic!("No next keyshare to rotate");
         }
-        self.update_network_keyshare(next_key_share).await?;
-        self.update_next_network_keyshare(None).await?;
+        self.update_network_key_share(next_key_share).await?;
+        self.update_next_network_key_share(None).await?;
         Ok(())
     }
 

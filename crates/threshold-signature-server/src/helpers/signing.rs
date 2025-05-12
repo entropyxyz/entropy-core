@@ -51,7 +51,7 @@ pub async fn do_signing(
     let state = &app_state.cache.listener_state;
 
     let info = SignInit::new(relayer_signature_request.clone(), signing_session_info.clone());
-    let network_key_share = app_state.network_keyshare()?.unwrap();
+    let network_key_share = app_state.network_key_share()?.unwrap();
     let signing_service = ThresholdSigningService::new(state, network_key_share);
     let x25519_secret_key = &app_state.x25519_secret;
     let signer = &app_state.pair;

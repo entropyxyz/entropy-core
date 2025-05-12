@@ -87,7 +87,7 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_data).await?;
 
-    if let Some(old_key_share) = app_state.network_keyshare()? {
+    if let Some(old_key_share) = app_state.network_key_share()? {
         let new_key_share = do_proactive_refresh(
             &ocw_data.validators_info,
             &app_state.signer(),
@@ -99,7 +99,7 @@ pub async fn proactive_refresh(
         )
         .await?;
 
-        app_state.update_network_keyshare(Some(new_key_share)).await?;
+        app_state.update_network_key_share(Some(new_key_share)).await?;
     }
     // TODO: Tell chain refresh is done?
     Ok(StatusCode::OK)

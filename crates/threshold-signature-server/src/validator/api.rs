@@ -121,7 +121,7 @@ async fn do_reshare(
         if data.new_signers.contains(&my_stash_address.encode()) {
             None
         } else {
-            let key_share = app_state.network_keyshare()?.unwrap();
+            let key_share = app_state.network_key_share()?.unwrap();
             Some(OldHolder { key_share: key_share.0 })
         };
 
@@ -177,7 +177,7 @@ async fn do_reshare(
         execute_reshare(session_id.clone(), channels, &app_state.pair, inputs, &new_holders, None)
             .await?;
 
-    app_state.update_next_network_keyshare(Some((new_key_share, aux_info))).await?;
+    app_state.update_next_network_key_share(Some((new_key_share, aux_info))).await?;
 
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(api, rpc, &app_state.signer()).await?;
@@ -221,7 +221,7 @@ pub async fn rotate_network_key(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
     tracing::info!("Rotating network key");
-    app_state.rotate_keyshare().await?;
+    app_state.rotate_key_share().await?;
 
     Ok(StatusCode::OK)
 }
@@ -371,7 +371,7 @@ pub async fn is_signer_or_delete_parent_key(
     if is_proper_signer {
         Ok(true)
     } else {
-        app_state.update_network_keyshare(None).await?;
+        app_state.update_network_key_share(None).await?;
         Ok(false)
     }
 }
