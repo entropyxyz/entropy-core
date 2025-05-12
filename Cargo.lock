@@ -10048,6 +10048,7 @@ dependencies = [
  "frame-system",
  "pallet-session",
  "parity-scale-codec",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "sp-core 34.0.0",
@@ -10055,6 +10056,7 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-staking 36.0.0",
  "sp-std",
+ "tdx-quote",
 ]
 
 [[package]]
