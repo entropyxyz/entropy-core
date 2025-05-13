@@ -174,7 +174,7 @@ pub fn development_genesis_config(
         String,
         BoundedVecEncodedVerifyingKey,
     )>,
-    accepted_measurement_values: Option<MeasurementValues>,
+    accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -289,7 +289,7 @@ pub fn development_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: mock_measurement_values(),
+            accepted_measurement_values: accepted_measurement_values.unwrap_or_else(mock_measurement_values),
             ..Default::default()
         },
         "programs": ProgramsConfig {

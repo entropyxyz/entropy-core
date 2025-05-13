@@ -17,6 +17,7 @@ use crate::chain_spec::{dev::development_genesis_config, get_account_id_from_see
 
 use entropy_runtime::wasm_binary_unwrap;
 use entropy_shared::{BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey};
+use pallet_parameters::SupportedCvmServices;
 use sc_service::ChainType;
 use sp_core::sr25519;
 use sp_runtime::BoundedVec;
@@ -88,7 +89,10 @@ pub fn tdx_testnet_config() -> ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             tdx_devnet_four_node_initial_tss_servers(),
-            Some(vec![BoundedVec::try_from(ACCEPTED_MEASUREMENT.to_vec()).unwrap()]),
+            Some((
+                SupportedCvmServices::EntropyTss,
+                vec![BoundedVec::try_from(ACCEPTED_MEASUREMENT.to_vec()).unwrap()],
+            )),
         ))
         .build()
 }
