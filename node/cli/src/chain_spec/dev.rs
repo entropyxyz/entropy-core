@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
-    MEASUREMENT_VALUE_MOCK_QUOTE,
+    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
+    MeasurementValues, MEASUREMENT_VALUE_MOCK_QUOTE,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -289,9 +289,7 @@ pub fn development_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
-                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
-            ]),
+            accepted_measurement_values: mock_measurement_values(),
             ..Default::default()
         },
         "programs": ProgramsConfig {

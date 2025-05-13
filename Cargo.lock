@@ -3489,6 +3489,7 @@ dependencies = [
  "log",
  "pallet-balances",
  "pallet-im-online",
+ "pallet-parameters 0.4.0-rc.1",
  "pallet-registry",
  "pallet-staking-extension",
  "pallet-transaction-payment",
