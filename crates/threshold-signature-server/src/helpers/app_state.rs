@@ -448,7 +448,7 @@ impl AppState {
     pub async fn rotate_key_share(&self) -> Result<(), AppStateError> {
         let next_key_share = self.cache.read_next_network_key_share()?;
         if next_key_share.is_none() {
-            panic!("No next keyshare to rotate");
+            return Err(AppStateError::CannotRotateKeyShare);
         }
         self.update_network_key_share(next_key_share).await?;
         self.update_next_network_key_share(None).await?;
@@ -469,4 +469,6 @@ pub enum AppStateError {
     SessionError(String),
     #[error("Subxt: {0}")]
     Subxt(#[from] subxt::Error),
+    #[error("No next keyshare to rotate")]
+    CannotRotateKeyShare,
 }

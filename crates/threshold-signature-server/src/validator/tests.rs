@@ -142,7 +142,7 @@ async fn test_reshare_basic() {
     }
     .unwrap();
 
-    // wait for roatate keyshare
+    // wait for rotate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     let signers = get_current_signers(&api, &rpc).await;
     let key_shares_after = get_all_keys(signers).await;
@@ -239,13 +239,22 @@ async fn test_reshare_basic() {
     });
     call_set_storage(&api, &rpc, call).await;
 
-    // wait for roatate keyshare
-    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+    let mut i = 0;
+    // Wait up to 2min for reshare and rotation to complete: check once every two seconds if we have a new set of signers.
+    loop {
+        let signers = get_current_signers(&api, &rpc).await;
+        let key_share_after_2 = get_all_keys(signers).await;
 
-    let signers = get_current_signers(&api, &rpc).await;
-    let key_share_after_2 = get_all_keys(signers).await;
-
-    assert_ne!(key_share_before_2, key_share_after_2);
+        if key_share_before_2 != key_share_after_2 {
+            break Ok(());
+        }
+        if i > 240 {
+            break Err("Timed out waiting for reshare");
+        }
+        i += 2;
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
+    .unwrap();
 
     clean_tests();
 }
