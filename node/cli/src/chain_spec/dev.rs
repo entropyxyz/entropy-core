@@ -15,7 +15,7 @@
 
 use crate::chain_spec::{
     get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
-    MeasurementValues, MEASUREMENT_VALUE_MOCK_QUOTE,
+    MeasurementValues,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -34,11 +34,12 @@ use entropy_shared::{
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_parameters::SupportedCvmServices;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, ByteArray};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::Perbill;
 
 pub fn devnet_four_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, BoundedVecEncodedVerifyingKey)> {

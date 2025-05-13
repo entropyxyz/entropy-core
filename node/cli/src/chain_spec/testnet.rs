@@ -15,7 +15,6 @@
 
 use crate::chain_spec::{
     get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
-    MEASUREMENT_VALUE_MOCK_QUOTE,
 };
 use crate::endowed_accounts::endowed_testnet_accounts;
 
@@ -40,7 +39,7 @@ use sc_telemetry::TelemetryEndpoints;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::Perbill;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
 type TssAccountId = sp_runtime::AccountId32;
