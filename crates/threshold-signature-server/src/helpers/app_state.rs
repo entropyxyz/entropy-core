@@ -414,14 +414,15 @@ impl AppState {
         updated_key_share: Option<KeyShareWithAuxInfo>,
     ) -> Result<(), AppStateError> {
         self.cache.write_network_key_share(updated_key_share.clone())?;
+
+        // Write to on-disk store for backup
+        self.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
         if let Some(key_share_with_aux_info) = updated_key_share {
             let serialized_key_share = key_serialize(&key_share_with_aux_info).unwrap();
 
             let reservation =
                 self.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
             self.kv_store.kv().put(reservation, serialized_key_share.clone()).await.unwrap();
-        } else {
-            self.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
         }
         Ok(())
     }
@@ -431,14 +432,15 @@ impl AppState {
         updated_key_share: Option<KeyShareWithAuxInfo>,
     ) -> Result<(), AppStateError> {
         self.cache.write_next_network_key_share(updated_key_share.clone())?;
+
+        // Write to on-disk store for backup
+        self.kv_store.kv().delete(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
         if let Some(key_share_with_aux_info) = updated_key_share {
             let serialized_key_share = key_serialize(&key_share_with_aux_info).unwrap();
 
             let reservation =
                 self.kv_store.kv().reserve_key(hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
             self.kv_store.kv().put(reservation, serialized_key_share.clone()).await.unwrap();
-        } else {
-            self.kv_store.kv().delete(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
         }
         Ok(())
     }
