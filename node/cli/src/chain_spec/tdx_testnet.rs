@@ -89,10 +89,10 @@ pub fn tdx_testnet_config() -> ChainSpec {
             vec![],
             get_account_id_from_seed::<sr25519::Public>("Alice"),
             tdx_devnet_four_node_initial_tss_servers(),
-            Some((
+            Some(vec![(
                 SupportedCvmServices::EntropyTss,
                 vec![BoundedVec::try_from(ACCEPTED_MEASUREMENT.to_vec()).unwrap()],
-            )),
+            )]),
         ))
         .build()
 }
