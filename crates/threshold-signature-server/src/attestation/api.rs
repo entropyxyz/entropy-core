@@ -15,7 +15,10 @@
 
 use crate::{
     attestation::errors::{AttestationErr, QuoteMeasurementErr},
-    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_parameters::SupportedCvmServices},
+        get_api, get_rpc, EntropyConfig,
+    },
     helpers::substrate::query_chain,
     AppState, SubxtAccountId32,
 };
@@ -181,7 +184,9 @@ pub async fn check_quote_measurement(
     quote: &Quote,
 ) -> Result<(), QuoteMeasurementErr> {
     let measurement_value = compute_quote_measurement(quote).to_vec();
-    let query = entropy::storage().parameters().accepted_measurement_values();
+    let query = entropy::storage()
+        .parameters()
+        .accepted_measurement_values(SupportedCvmServices::EntropyTss);
     let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
         .await?
         .ok_or(QuoteMeasurementErr::NoMeasurementValues)?

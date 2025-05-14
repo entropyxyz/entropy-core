@@ -19,7 +19,7 @@
 
 use super::*;
 use crate::SignersInfo;
-use entropy_shared::MAX_SIGNERS;
+use entropy_shared::{attestation::MEASUREMENT_VALUE_MOCK_QUOTE, MAX_SIGNERS};
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use sp_runtime::traits::BadOrigin;
@@ -126,6 +126,58 @@ fn signer_info_changed() {
                 signer_info.threshold
             ),
             Error::<Runtime>::OneChangePerSession,
+        );
+    });
+}
+
+#[test]
+fn accepted_measurement_values_changed() {
+    new_test_ext().execute_with(|| {
+        let initial_values =
+            vec![BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap()];
+
+        let new_value_tss = vec![BoundedVec::try_from([42; 32].to_vec()).unwrap()];
+        let new_value_api_service = vec![BoundedVec::try_from([23; 32].to_vec()).unwrap()];
+
+        assert_eq!(
+            Parameters::accepted_measurement_values(SupportedCvmServices::EntropyTss),
+            Some(initial_values.clone()),
+            "Inital measurement values set"
+        );
+
+        assert_eq!(
+            Parameters::accepted_measurement_values(SupportedCvmServices::ApiKeyService),
+            Some(initial_values),
+            "Inital measurement values set"
+        );
+
+        assert_ok!(Parameters::change_accepted_measurement_values(
+            RuntimeOrigin::root(),
+            vec![
+                (SupportedCvmServices::EntropyTss, new_value_tss.clone()),
+                (SupportedCvmServices::ApiKeyService, new_value_api_service.clone())
+            ]
+        ));
+
+        assert_eq!(
+            Parameters::accepted_measurement_values(SupportedCvmServices::EntropyTss),
+            Some(new_value_tss),
+            "Measurement values changed"
+        );
+
+        assert_eq!(
+            Parameters::accepted_measurement_values(SupportedCvmServices::ApiKeyService),
+            Some(new_value_api_service),
+            "Measurement values changed"
+        );
+
+        // Fails not root
+        assert_noop!(
+            Parameters::change_accepted_measurement_values(
+                RuntimeOrigin::signed(2),
+                vec![(SupportedCvmServices::EntropyTss, vec![])]
+            ),
+            BadOrigin,
         );
     });
 }

@@ -81,7 +81,16 @@ mod benchmarks {
     #[benchmark]
     fn change_accepted_measurement_values() {
         let origin = T::UpdateOrigin::try_successful_origin().unwrap();
-        let accepted_measurement_values = vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()];
+        let accepted_measurement_values = vec![
+            (
+                SupportedCvmServices::EntropyTss,
+                vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()],
+            ),
+            (
+                SupportedCvmServices::ApiKeyService,
+                vec![BoundedVec::try_from([1; 32].to_vec()).unwrap()],
+            ),
+        ];
 
         #[extrinsic_call]
         _(origin as T::RuntimeOrigin, accepted_measurement_values.clone());

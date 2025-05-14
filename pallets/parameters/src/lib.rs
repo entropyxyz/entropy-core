@@ -53,6 +53,19 @@ pub mod weights;
 pub use module::*;
 pub use weights::WeightInfo;
 
+/// Describes which service a given quote or accepted measurement relates to
+#[derive(
+    Clone, Encode, Decode, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize, TypeInfo,
+)]
+#[repr(u32)]
+#[non_exhaustive]
+pub enum SupportedCvmServices {
+    /// Entropy Threshold Signature Server
+    EntropyTss,
+    /// API key deployment service
+    ApiKeyService,
+}
+
 #[frame_support::pallet]
 pub mod module {
     use super::*;
@@ -77,7 +90,7 @@ pub mod module {
         pub max_instructions_per_programs: u64,
         pub threshold: u8,
         pub total_signers: u8,
-        pub accepted_measurement_values: MeasurementValues,
+        pub accepted_measurement_values: Vec<(SupportedCvmServices, MeasurementValues)>,
         #[serde(skip)]
         pub _config: sp_std::marker::PhantomData<T>,
     }
@@ -93,7 +106,12 @@ pub mod module {
                 last_session_change: 0,
             };
             SignersInfo::<T>::put(signer_info);
-            AcceptedMeasurementValues::<T>::put(self.accepted_measurement_values.clone());
+
+            for (supported_cvm_service, measurement_values) in
+                self.accepted_measurement_values.clone()
+            {
+                AcceptedMeasurementValues::<T>::insert(supported_cvm_service, measurement_values);
+            }
         }
     }
 
@@ -132,7 +150,9 @@ pub mod module {
         /// Signer Info changed
         SignerInfoChanged { signer_info: SignersSize },
         /// Accepted measurement values changed
-        AcceptedMeasurementValuesChanged { accepted_measurement_values: MeasurementValues },
+        AcceptedMeasurementValuesChanged {
+            accepted_measurement_values: Vec<(SupportedCvmServices, MeasurementValues)>,
+        },
     }
 
     /// The request limit a user can ask to a specific set of TSS in a block
@@ -150,11 +170,11 @@ pub mod module {
     #[pallet::getter(fn signers_info)]
     pub type SignersInfo<T: Config> = StorageValue<_, SignersSize, ValueQuery>;
 
-    /// Accepted values of the TDX build-time measurement register - from the currently-supported
-    /// releases of entropy-tss
+    /// Accepted TDX measurement values - from the currently-supported releases of the supported services
     #[pallet::storage]
     #[pallet::getter(fn accepted_measurement_values)]
-    pub type AcceptedMeasurementValues<T: Config> = StorageValue<_, MeasurementValues, ValueQuery>;
+    pub type AcceptedMeasurementValues<T: Config> =
+        StorageMap<_, Blake2_128Concat, SupportedCvmServices, MeasurementValues, OptionQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -221,10 +241,16 @@ pub mod module {
         #[pallet::weight( <T as Config>::WeightInfo::change_accepted_measurement_values())]
         pub fn change_accepted_measurement_values(
             origin: OriginFor<T>,
-            accepted_measurement_values: MeasurementValues,
+            accepted_measurement_values: Vec<(SupportedCvmServices, MeasurementValues)>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            AcceptedMeasurementValues::<T>::put(&accepted_measurement_values);
+
+            AcceptedMeasurementValues::<T>::remove(SupportedCvmServices::EntropyTss);
+            AcceptedMeasurementValues::<T>::remove(SupportedCvmServices::ApiKeyService);
+            for (supported_cvm_service, measurement_values) in accepted_measurement_values.clone() {
+                AcceptedMeasurementValues::<T>::insert(supported_cvm_service, measurement_values);
+            }
+
             Self::deposit_event(Event::AcceptedMeasurementValuesChanged {
                 accepted_measurement_values,
             });

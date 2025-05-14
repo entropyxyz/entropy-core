@@ -54,6 +54,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_system::pallet_prelude::*;
+    use pallet_parameters::SupportedCvmServices;
     use sp_runtime::traits::TrailingZeroInput;
     use sp_std::vec::Vec;
 
@@ -221,23 +222,35 @@ pub mod pallet {
             // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| VerifyQuoteError::BadQuote)?;
 
-            // Check report input data matches the nonce, TSS details and block number
+            // Check report input data matches the nonce, account details and block number
             let expected_input_data =
-                QuoteInputData::new(attestee, x25519_public_key, nonce, context);
+                QuoteInputData::new(attestee, x25519_public_key, nonce, context.clone());
             ensure!(
                 quote.report_input_data() == expected_input_data.0,
                 VerifyQuoteError::IncorrectInputData
             );
 
-            // Check measurement matches a current-supported release of entropy-tss
+            // Check measurement matches a current-supported release of the relevant CVM service
             let measurement = BoundedVec::try_from(compute_quote_measurement(&quote).to_vec())
                 .map_err(|_| VerifyQuoteError::BadMeasurementValue)?;
-            let accepted_measurement_values =
-                pallet_parameters::Pallet::<T>::accepted_measurement_values();
-            ensure!(
-                accepted_measurement_values.contains(&measurement),
-                VerifyQuoteError::BadMeasurementValue
-            );
+
+            // Select the service depending on the quote context
+            let cvm_service = match context {
+                QuoteContext::OuttieAddBox => SupportedCvmServices::ApiKeyService,
+                _ => SupportedCvmServices::EntropyTss,
+            };
+
+            if let Some(accepted_measurement_values) =
+                pallet_parameters::Pallet::<T>::accepted_measurement_values(cvm_service)
+            {
+                ensure!(
+                    accepted_measurement_values.contains(&measurement),
+                    VerifyQuoteError::BadMeasurementValue
+                );
+            } else {
+                // This means there are no supported values for the relevant service
+                return Err(VerifyQuoteError::BadMeasurementValue);
+            }
 
             let pck = verify_pck_certificate_chain(&quote)?;
 
