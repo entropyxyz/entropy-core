@@ -172,6 +172,10 @@ To speed up running tests, some tests use pre-generated keyshares rather than ru
 
 from the project root.  For an explanation of how the test keyshare sets are structured, see [`create-test-keyshares`](./scripts/create-test-keyshares).
 
+## Chain specification (chainspec)
+
+For documentation of the chainspec for a deployment of the Entropy network see [./node/cli/Chainspec-README.md](./node/cli/Chainspec-README.md).
+
 ## Support
 
 Need help with something not necessarily related to `entropy-core`?
