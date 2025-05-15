@@ -17,8 +17,8 @@ desirable for two reasons:
 So for deploying test networks we have a smaller set of options which are the things we want to
 customize for a particular deployment.
 
-If you give a JSON filename ending in `-chainspec-inputs.JSON` it will be parsed as the
-`TestnetChainspacInputs` struct defined here:
+If you give a JSON filename ending in `-chainspec-inputs.json`, for example `entropy --chain
+my-testnet-chainspec-inputs.json` it will be parsed as the `TestnetChainspecInputs` struct defined here:
 
 https://github.com/entropyxyz/entropy-core/blob/19f34eaaadb48ad504e264c9ec91581237583be8/node/cli/src/chain_spec/testnet.rs#L57-L79
 
@@ -28,7 +28,7 @@ https://github.com/entropyxyz/entropy-core/blob/master/node/cli/test-chainspec-i
 
 This object includes the following fields:
 
-### Threshold signature server details - `tss_details`
+## Threshold signature server details - `tss_details`
 
 This should be given as an object mapping HTTP endpoint (hostname / IP address and port, which no
 scheme - meaning without the 'http://' part), given as a string, to a `TssPublicKeys` object. This
@@ -50,7 +50,7 @@ Example:
     },
 ```
 
-### Accepted TDX measurement values - `accepted_measurement_values` (optional)
+## Accepted TDX measurement values - `accepted_measurement_values` (optional)
 This is an array of strings. These should be hex-encoded strings (32 bytes / 64 characters).
 
 The measurement value for a currently running version of the entropy-tss CVM can be
@@ -65,11 +65,6 @@ accepted.
 ],
 ```
 
-    "endowed_accounts": [
-        "5CtViLgvdHoLDvdsSsfEPxczsF6D7FtQ59h6B4Gey5EXE47t",
-        "5EbyKpRWK9z7Efso1QYFcfAiHHkxzxMRSFAkJtmeUmuz1CGj",
-        "5E2fDSRWSVjYLP8VsvTvzHBUdC2h6xtrApqkBdAb9xqPqcNK"
-    ]
 ## Bootnode peer IDs - `boot_nodes`
 
 This is an array of strings. These are the libp2p 'multi-addresses' of the initial chain nodes. For details
