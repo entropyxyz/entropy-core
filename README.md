@@ -174,7 +174,7 @@ from the project root.  For an explanation of how the test keyshare sets are str
 
 ## Chain specification (chainspec)
 
-For documentation of the chainspec for a deployment of the Entropy network see [./node/cli/Chainspec-README.md](./node/cli/Chainspec-README.md).
+For documentation of the chainspec for a deployment of the Entropy network see: [./node/cli/Chainspec-README.md](./node/cli/Chainspec-README.md).
 
 ## Support
 
