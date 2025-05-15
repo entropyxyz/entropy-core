@@ -55,6 +55,10 @@ runtime
   and the network key will be lost.
 - In [#1377](https://github.com/entropyxyz/entropy-core/pull/1377) all endpoints except for the
   healthz in the TSS had a /v1 added to them.
+- In [#1424](https://github.com/entropyxyz/entropy-core/pull/1424) the `testnet` chainspec (given by
+  `--chain testnet` when starting `entropy`) was removed and replaced with a custom build function.
+  If `--chain some-filename-ending-with-chainspec-inputs.json` is passed, the testnet chainspec will
+  be built from special parameters given in that json file.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
