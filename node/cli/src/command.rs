@@ -74,7 +74,7 @@ impl SubstrateCli for Cli {
     // | devnet-local                       | Four nodes, four threshold servers, Alice Bob Charlie and Dave, Development Configuration, Docker Compatible |
     // | integration-tests                  | Two nodes, Four threshold servers, Alice and Bob, Development Configuration |
     // | testnet-local                      | Two Nodes, Two threshold servers, Alice and Bob, Testnet Configuration, Docker Compatible |
-    // | <my-testnet>chainspec-inputs.json  | Custom Testnet Configuration with given inputs from a specified JSON file |
+    // | <my-testnet>-chainspec-inputs.json | Custom Testnet Configuration with given inputs from a specified JSON file |
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "" | "dev" => Box::new(chain_spec::dev::development_config()),
@@ -88,7 +88,7 @@ impl SubstrateCli for Cli {
                 Box::new(chain_spec::integration_tests::integration_tests_config(jumpstarted))
             },
             "testnet-local" => Box::new(chain_spec::testnet::testnet_local_config()),
-            path if id.ends_with("chainspec-inputs.json") => {
+            path if id.ends_with("-chainspec-inputs.json") => {
                 let inputs = TestnetChainSpecInputs::from_json_file(path)?;
                 Box::new(chain_spec::testnet::testnet_config(inputs)?)
             },
