@@ -16,13 +16,12 @@
 use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
-    helpers::tests::{initialize_test_logger, setup_client, spawn_testing_validators, unsafe_get},
+    helpers::tests::{
+        initialize_test_logger, setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
+    },
 };
-use entropy_kvdb::clean_tests;
-use entropy_shared::{
-    constants::{DAVE_VERIFYING_KEY, PREGENERATED_NETWORK_VERIFYING_KEY},
-    OcwMessageProactiveRefresh,
-};
+use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
+use entropy_shared::{constants::PREGENERATED_NETWORK_VERIFYING_KEY, OcwMessageProactiveRefresh};
 use entropy_testing_utils::{
     constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     substrate_context::{test_node_process_stationary_local, test_node_process_testing_state},
@@ -51,8 +50,7 @@ async fn test_proactive_refresh() {
 
     // check get key before proactive refresh
     let key_before_network =
-        unsafe_get(&client, hex::encode(PREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
-    let key_before_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
+        serialize(&unsafe_get_network_keyshare(&client, 3001).await.unwrap()).unwrap();
 
     let validators_info = vec![
         entropy_shared::ValidatorInfo {
@@ -74,10 +72,7 @@ async fn test_proactive_refresh() {
 
     let mut ocw_message = OcwMessageProactiveRefresh {
         validators_info,
-        proactive_refresh_keys: vec![
-            PREGENERATED_NETWORK_VERIFYING_KEY.to_vec(),
-            DAVE_VERIFYING_KEY.to_vec(),
-        ],
+        proactive_refresh_keys: vec![PREGENERATED_NETWORK_VERIFYING_KEY.to_vec()],
         block_number: 0,
     };
 
@@ -96,12 +91,10 @@ async fn test_proactive_refresh() {
     }
 
     let key_after_network =
-        unsafe_get(&client, hex::encode(PREGENERATED_NETWORK_VERIFYING_KEY), 3001).await;
-    let key_after_dave = unsafe_get(&client, hex::encode(DAVE_VERIFYING_KEY), 3001).await;
+        serialize(&unsafe_get_network_keyshare(&client, 3001).await.unwrap()).unwrap();
 
     // make sure private keyshares are changed
     assert_ne!(key_before_network, key_after_network);
-    assert_ne!(key_before_dave, key_after_dave);
 
     let alice = AccountKeyring::Alice;
     ocw_message.validators_info[0].tss_account = alice.public().encode();

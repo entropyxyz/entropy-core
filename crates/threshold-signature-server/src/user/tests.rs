@@ -26,7 +26,7 @@ use entropy_kvdb::clean_tests;
 use entropy_protocol::{
     decode_verifying_key,
     protocol_transport::{noise::noise_handshake_initiator, SubscribeMessage},
-    KeyShareWithAuxInfo, SessionId, SigningSessionInfo, ValidatorInfo,
+    SessionId, SigningSessionInfo, ValidatorInfo,
 };
 use entropy_shared::{
     HashingAlgorithm, OcwMessageDkg, DAVE_VERIFYING_KEY, DEFAULT_VERIFYING_KEY_NOT_REGISTERED,
@@ -87,7 +87,7 @@ use crate::{
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
             do_jump_start, get_port, initialize_test_logger, run_to_block, setup_client,
-            spawn_testing_validators, store_program_and_register, unsafe_get,
+            spawn_testing_validators, store_program_and_register, unsafe_get_network_keyshare,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,
@@ -1297,12 +1297,9 @@ async fn test_jumpstart_network() {
     for signer in signer_stash_accounts.iter() {
         let query = entropy::storage().staking_extension().threshold_servers(signer);
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
-        let response_key =
-            unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), get_port(&server_info)).await;
+        let key_share = unsafe_get_network_keyshare(&client, get_port(&server_info)).await;
 
         // check to make sure keyshare is correct
-        let key_share: Option<KeyShareWithAuxInfo> =
-            entropy_kvdb::kv_manager::helpers::deserialize(&response_key);
         assert!(key_share.is_some());
 
         verifying_key = key_share
@@ -2100,7 +2097,7 @@ async fn test_increment_or_wipe_request_limit() {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret).await;
 
     let request_limit_query = entropy::storage().parameters().request_limit();
     let request_limit = query_chain(&api, &rpc, request_limit_query, None).await.unwrap().unwrap();
@@ -2195,7 +2192,7 @@ async fn test_validate_jump_start_fail_repeated() {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
+        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret).await;
 
     let jump_start_request = entropy::tx().registry().jump_start_network();
     let block_number = 2;

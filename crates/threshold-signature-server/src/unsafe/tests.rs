@@ -13,46 +13,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
 use serial_test::serial;
 
-use super::api::UnsafeQuery;
-use crate::helpers::tests::{initialize_test_logger, setup_client};
+use crate::{
+    helpers::tests::{
+        initialize_test_logger, put_keyshares_in_state, setup_client, unsafe_get_network_keyshare,
+    },
+    launch::ValidatorName,
+};
 
 #[tokio::test]
 #[serial]
-async fn test_unsafe_get_endpoint() {
+async fn test_unsafe_get_network_key() {
     clean_tests();
     initialize_test_logger().await;
-    setup_client().await;
+    let app_state = setup_client().await;
     let client = reqwest::Client::new();
 
-    let get_query = UnsafeQuery::new("test".to_string(), vec![10]).to_json();
-
-    // Update the heading, testing the put endpoint works
-    let put_response = client
-        .post("http://localhost:3001/unsafe/put")
-        .header("Content-Type", "application/json")
-        .body(get_query.clone())
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(put_response.status(), StatusCode::OK);
-
-    // Check the updated heading is the new value
-    let get_response = client
-        .post("http://localhost:3001/unsafe/get")
-        .header("Content-Type", "application/json")
-        .body(get_query)
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(get_response.status(), StatusCode::OK);
-    let updated_response_mnemonic = get_response.text().await.unwrap();
-    assert_eq!(updated_response_mnemonic.as_bytes().to_vec(), vec![10]);
+    assert!(unsafe_get_network_keyshare(&client, 3001).await.is_none());
+    put_keyshares_in_state(ValidatorName::Alice, &app_state).await;
+    assert!(unsafe_get_network_keyshare(&client, 3001).await.is_some());
 
     clean_tests();
 }
