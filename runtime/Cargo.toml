@@ -282,3 +282,6 @@ try-runtime=[
 production=["pallet-attestation/production"]
 # Sets a shorter session duration for the entropy-tss test_reshare_e2e
 reshare-test=[]
+
+[profile.release]
+panic = "abort"
