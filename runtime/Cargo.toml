@@ -284,4 +284,4 @@ production=["pallet-attestation/production"]
 reshare-test=[]
 
 [profile.release]
-panic = "abort"
+panic="abort"
