@@ -15,7 +15,7 @@
 
 //! # Server
 //!
-//! The Threshold Server which stores key shares and participates in the signing protocol.
+//! The Threshold Signature Server which stores key shares and participates in the signing protocol.
 //!
 //! ## Overview
 //!
