@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! # Server
+//! # Treshold Server
 //!
-//! The Threshold Server which stores key shares and participates in the signing protocol.
+//! The Threshold Signature Server which stores key shares and participates in the signing protocol.
 //!
 //! ## Overview
 //!
