@@ -40,8 +40,8 @@ pub enum BackupProviderError {
     Attestation(#[from] crate::attestation::errors::AttestationErr),
     #[error("Generic Substrate error: {0}")]
     GenericSubstrate(#[from] subxt::error::Error),
-    #[error("Bad response from backup provider: {0} {1}")]
-    BadProviderResponse(reqwest::StatusCode, String),
+    #[error("Backup provider was unreachable or failed to make backup: {0}")]
+    FailedToMakeBackup(String),
     #[error("Provider responded with a key which is not 32 bytes")]
     BadKeyLength,
     #[error("Substrate: {0}")]

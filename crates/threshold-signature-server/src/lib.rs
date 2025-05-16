@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! # Server
+//! # Threshold Signature Server
 //!
-//! The Threshold Server which stores key shares and participates in the signing protocol.
+//! The Threshold Signature Server which stores key shares and participates in the signing protocol.
 //!
 //! ## Overview
 //!
@@ -123,10 +123,10 @@
 //!   in a [crate::validation::SignedMessage].
 //!
 //! - [`/ws`](crate::signing_client::api::ws_handler()) - Websocket server for signing and DKG protocol
-//!     messages. This is opened by other threshold servers when the signing procotol is initiated.
+//!   messages. This is opened by other threshold servers when the signing procotol is initiated.
 //!
 //! - [`/validator/sync_kvdb`](crate::validator::api::sync_kvdb()) - POST - Called by another
-//!     threshold server when joining to get the key-shares from a member of their sub-group.
+//!   threshold server when joining to get the key-shares from a member of their sub-group.
 //!
 //!   Takes a list of users account IDs for which shares are requested, wrapped in a
 //!   [crate::validation::SignedMessage].
@@ -156,7 +156,7 @@
 //!
 //! - Axum server - Includes global state and mutex locked IPs
 //! - [kvdb](entropy_kvdb) - Encrypted key-value database for storing key-shares and other data, build using
-//!     [sled](https://docs.rs/sled)
+//!   [sled](https://docs.rs/sled)
 #![doc(html_logo_url = "https://entropy.xyz/assets/logo_02.png")]
 pub use entropy_client::chain_api;
 pub(crate) mod attestation;

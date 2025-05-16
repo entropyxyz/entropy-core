@@ -12,6 +12,8 @@ runs:
       shell: bash
     - name: Add Rust components
       run: |
+        rustup install 1.86.0
+        rustup default 1.86.0
         rustup target add wasm32-unknown-unknown
         rustup component add rust-src
       shell: bash
