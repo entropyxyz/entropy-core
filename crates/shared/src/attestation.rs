@@ -139,7 +139,7 @@ pub enum VerifyQuoteError {
     PckCertificateNoCertificate,
 }
 
-#[cfg(any(feature = "std", feature = "wasm"))]
+#[cfg(feature = "std")]
 impl std::fmt::Display for VerifyQuoteError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -173,7 +173,7 @@ impl std::fmt::Display for VerifyQuoteError {
     }
 }
 
-#[cfg(any(feature = "std", feature = "wasm"))]
+#[cfg(feature = "std")]
 impl std::error::Error for VerifyQuoteError {}
 
 /// Verify a PCK certificate chain from a quote in production
