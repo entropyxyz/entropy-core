@@ -60,7 +60,7 @@ pub enum QuoteContext {
     EncryptionKeyRecoveryRequest,
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "wasm"))]
 impl std::fmt::Display for QuoteContext {
     /// Custom display implementation so that it can be used to build a query string
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -139,7 +139,7 @@ pub enum VerifyQuoteError {
     PckCertificateNoCertificate,
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "wasm"))]
 impl std::fmt::Display for VerifyQuoteError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -173,7 +173,7 @@ impl std::fmt::Display for VerifyQuoteError {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "wasm"))]
 impl std::error::Error for VerifyQuoteError {}
 
 /// Verify a PCK certificate chain from a quote in production
