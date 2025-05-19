@@ -1,4 +1,4 @@
 [toolchain]
 # FIXME 1435 - 1.86 is only needed until we next update substrate - otherwise we use stable
-channel = "1.86.0"
+channel="1.86.0"
 targets=["wasm32-unknown-unknown"]
