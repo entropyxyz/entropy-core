@@ -13,6 +13,8 @@ jobs:
       - name: Format and lint
         run: |
           curl -LsSf https://github.com/tamasfe/taplo/releases/download/0.8.0/taplo-full-linux-x86_64.gz | gunzip -N -d - > ${CARGO_HOME:-~/.cargo}/bin/taplo && chmod +x ${CARGO_HOME:-~/.cargo}/bin/taplo
+          rustup component add rustfmt
+          rustup component add clippy
           cargo fmt --check
           taplo fmt --check
           cargo clippy -- -D warnings
