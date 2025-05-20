@@ -60,7 +60,7 @@ pub enum QuoteContext {
     EncryptionKeyRecoveryRequest,
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "wasm"))]
 impl std::fmt::Display for QuoteContext {
     /// Custom display implementation so that it can be used to build a query string
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
