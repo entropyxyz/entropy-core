@@ -263,7 +263,6 @@ impl pallet_staking::Config for Test {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
-    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy<3>;
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;

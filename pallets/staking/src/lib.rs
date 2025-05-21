@@ -112,10 +112,8 @@ pub mod pallet {
     /// Endpoint where a threshold server can be reached at
     pub type TssServerURL = Vec<u8>;
 
-    /// The balance type of this pallet.
-    pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
-        <T as frame_system::Config>::AccountId,
-    >>::Balance;
+    // The balance type of this pallet.
+    pub type BalanceOf<T> = <T as pallet_staking::Config>::CurrencyBalance;
 
     /// Information about a threshold server
     #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
