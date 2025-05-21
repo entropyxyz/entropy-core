@@ -61,6 +61,7 @@ pub mod pallet_sudo;
 pub mod pallet_timestamp;
 pub mod pallet_tips;
 pub mod pallet_transaction_pause;
+pub mod pallet_transaction_payment;
 pub mod pallet_transaction_storage;
 pub mod pallet_treasury;
 pub mod pallet_utility;

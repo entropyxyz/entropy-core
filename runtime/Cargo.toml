@@ -234,6 +234,7 @@ runtime-benchmarks=[
   "pallet-tips/runtime-benchmarks",
   "pallet-transaction-pause/runtime-benchmarks",
   "pallet-transaction-storage/runtime-benchmarks",
+  "pallet-transaction-payment/runtime-benchmarks",
   "pallet-treasury/runtime-benchmarks",
   "pallet-utility/runtime-benchmarks",
   "pallet-vesting/runtime-benchmarks",

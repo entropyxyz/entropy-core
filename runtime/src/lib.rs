@@ -48,7 +48,7 @@ use frame_support::{
     sp_runtime::RuntimeDebug,
     traits::{
         fungible::{self, HoldConsideration},
-        tokens::{Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion},
+        tokens::{Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion, imbalance::ResolveTo},
         ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
         WithdrawReasons,
@@ -545,6 +545,7 @@ impl pallet_balances::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeFreezeReason;
+    type DoneSlashHandler = ();
     type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 }
 
@@ -573,6 +574,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type RuntimeEvent = RuntimeEvent;
     type WeightToFee = IdentityFee<Balance>;
+    type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -616,6 +618,7 @@ impl pallet_session::Config for Runtime {
     type ShouldEndSession = Babe;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
+	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
     type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 }
 
@@ -709,12 +712,12 @@ impl pallet_staking::Config for Runtime {
     type NextNewSession = Session;
     // send the slashed funds to the treasury.
     type Reward = ();
-    type RewardRemainder = Treasury;
+	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
     type RuntimeEvent = RuntimeEvent;
     type SessionInterface = Self;
     // rewards are minted from the void
     type SessionsPerEra = SessionsPerEra;
-    type Slash = Treasury;
+    type Slash = ResolveTo<TreasuryAccount, Balances>;
     type SlashDeferDuration = SlashDeferDuration;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = Timestamp;
@@ -1692,6 +1695,7 @@ mod benches {
       [pallet_timestamp, Timestamp]
       [pallet_tips, Tips]
       [pallet_transaction_pause, TransactionPause]
+      [pallet_transaction_payment, TransactionPayment]
       [pallet_transaction_storage, TransactionStorage]
       [pallet_treasury, Treasury]
       [pallet_utility, Utility]
