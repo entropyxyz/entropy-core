@@ -112,7 +112,7 @@ pub mod module {
     }
 
     /// Signer info for the next reshare
-    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default, DecodeWithMemTracking)]
     pub struct SignersSize {
         /// Next threshold amount
         pub threshold: u8,

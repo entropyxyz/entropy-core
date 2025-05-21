@@ -15,7 +15,7 @@
 use super::constants::VERIFICATION_KEY_LENGTH;
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, DecodeWithMemTracking};
 use scale_info::TypeInfo;
 #[cfg(any(feature = "std", feature = "wasm", feature = "user-native"))]
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,7 @@ pub type BlockNumber = u32;
 
 /// Information from the validators in signing party
 #[cfg_attr(not(feature = "wasm"), derive(sp_runtime::Serialize, sp_runtime::Deserialize))]
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo, DecodeWithMemTracking)]
 pub struct ValidatorInfo {
     pub x25519_public_key: X25519PublicKey,
     pub ip_address: Vec<u8>,
@@ -42,7 +42,7 @@ pub struct ValidatorInfo {
 /// Offchain worker message for initiating the initial jumpstart DKG
 #[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo, DecodeWithMemTracking)]
 pub struct OcwMessageDkg {
     pub block_number: BlockNumber,
     pub validators_info: Vec<ValidatorInfo>,
@@ -51,7 +51,7 @@ pub struct OcwMessageDkg {
 /// Offchain worker message for initiating a refresh
 #[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo)]
+#[derive(Clone, Encode, Decode, Debug, Eq, PartialEq, TypeInfo, DecodeWithMemTracking)]
 pub struct OcwMessageReshare {
     // Stash addresses of new signers
     pub new_signers: Vec<Vec<u8>>,
@@ -70,6 +70,7 @@ pub struct OcwMessageReshare {
     TypeInfo,
     sp_runtime::Serialize,
     sp_runtime::Deserialize,
+    DecodeWithMemTracking
 )]
 pub struct OcwMessageProactiveRefresh {
     pub block_number: BlockNumber,
