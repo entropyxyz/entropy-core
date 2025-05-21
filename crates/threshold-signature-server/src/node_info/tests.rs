@@ -16,10 +16,10 @@
 use crate::{
     attestation::api::get_pck,
     helpers::tests::{initialize_test_logger, setup_client},
-    node_info::api::{BuildDetails, TssPublicKeys, VersionDetails},
+    node_info::api::{BuildDetails, VersionDetails},
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::types::HashingAlgorithm;
+use entropy_shared::types::{HashingAlgorithm, TssPublicKeys};
 use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
 use serial_test::serial;
 
@@ -80,7 +80,7 @@ async fn info_test() {
     assert_eq!(
         public_keys,
         TssPublicKeys {
-            tss_account: TSS_ACCOUNTS[0].clone(),
+            tss_account: TSS_ACCOUNTS[0].0.into(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             ready: true,
             provisioning_certification_key: get_pck(TSS_ACCOUNTS[0].clone()).unwrap(),
