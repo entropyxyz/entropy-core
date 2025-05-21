@@ -15,7 +15,7 @@
 
 use crate::chain_spec::{
     get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
-    MeasurementValues, MEASUREMENT_VALUE_MOCK_QUOTE,
+    MeasurementValues,
 };
 
 use entropy_runtime::{
@@ -311,7 +311,7 @@ pub fn testnet_genesis_config(
         TssEndpoint,
         BoundedVecEncodedVerifyingKey,
     )>,
-    accepted_measurement_values: Option<MeasurementValues>,
+    accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
     mut endowed_accounts: Vec<AccountId>,
 ) -> serde_json::Value {
     assert!(
