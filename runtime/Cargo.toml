@@ -53,6 +53,7 @@ frame-system                   = { version = "40.1.0", default-features = false 
 frame-system-benchmarking      = { version = "40.0.0", default-features = false, optional = true }
 frame-system-rpc-runtime-api   = { version = "36.0.0", default-features = false }
 frame-try-runtime              = { version = "0.46.0", default-features = false, optional = true }
+frame-metadata-hash-extension            = { version = "0.8.0", default-features = false, optional = true }
 
 # Substrate Pallets
 pallet-authority-discovery                   = { version = "40.0.0", default-features = false }
@@ -124,6 +125,7 @@ std=[
   "frame-system-rpc-runtime-api/std",
   "frame-system/std",
   "frame-try-runtime/std",
+  "frame-metadata-hash-extension/std",
   "log/std",
   "pallet-attestation/std",
   "pallet-authority-discovery/std",

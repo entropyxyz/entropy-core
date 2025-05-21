@@ -15,7 +15,7 @@
 use super::constants::VERIFICATION_KEY_LENGTH;
 #[cfg(not(feature = "wasm"))]
 use codec::alloc::vec::Vec;
-use codec::{Decode, Encode, DecodeWithMemTracking};
+use codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 #[cfg(any(feature = "std", feature = "wasm", feature = "user-native"))]
 use serde::{Deserialize, Serialize};
@@ -70,7 +70,7 @@ pub struct OcwMessageReshare {
     TypeInfo,
     sp_runtime::Serialize,
     sp_runtime::Deserialize,
-    DecodeWithMemTracking
+    DecodeWithMemTracking,
 )]
 pub struct OcwMessageProactiveRefresh {
     pub block_number: BlockNumber,

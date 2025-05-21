@@ -34,13 +34,13 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 512.
 #![recursion_limit = "512"]
 #![allow(non_local_definitions)]
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_election_provider_support::{
     bounds::ElectionBoundsBuilder, onchain, BalancingConfig, ElectionDataProvider,
     SequentialPhragmen, VoteWeight,
 };
 use frame_support::{
-    construct_runtime,
+    construct_runtime, derive_impl,
     dispatch::DispatchClass,
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::Get,
@@ -325,6 +325,7 @@ impl Contains<RuntimeCall> for BaseCallFilter {
     }
 }
 
+#[derive_impl(frame_system::config_preludes::SolochainDefaultConfig)]
 impl frame_system::Config for Runtime {
     type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = AccountId;
@@ -381,6 +382,7 @@ impl pallet_multisig::Config for Runtime {
     type MaxSignatories = MaxSignatories;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 }
 
@@ -405,6 +407,7 @@ parameter_types! {
     PartialOrd,
     Encode,
     Decode,
+    DecodeWithMemTracking,
     RuntimeDebug,
     MaxEncodedLen,
     scale_info::TypeInfo,
@@ -427,6 +430,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ProxyType::NonTransfer => !matches!(
                 c,
                 RuntimeCall::Balances(..)
+                    | RuntimeCall::Assets(..)
+                    | RuntimeCall::Uniques(..)
+                    | RuntimeCall::Nfts(..)
                     | RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. })
                     | RuntimeCall::Indices(pallet_indices::Call::transfer { .. })
             ),
@@ -434,14 +440,16 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                 c,
                 RuntimeCall::Democracy(..)
                     | RuntimeCall::Council(..)
+                    | RuntimeCall::Society(..)
                     | RuntimeCall::TechnicalCommittee(..)
                     | RuntimeCall::Elections(..)
                     | RuntimeCall::Treasury(..)
             ),
-            ProxyType::Staking => matches!(c, RuntimeCall::Staking(..)),
+            ProxyType::Staking => {
+                matches!(c, RuntimeCall::Staking(..) | RuntimeCall::FastUnstake(..))
+            },
         }
     }
-
     fn is_superset(&self, o: &Self) -> bool {
         match (self, o) {
             (x, y) if x == y => true,
@@ -465,6 +473,7 @@ impl pallet_proxy::Config for Runtime {
     type ProxyType = ProxyType;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = weights::pallet_proxy::WeightInfo<Runtime>;
 }
 
@@ -710,7 +719,6 @@ impl pallet_staking::Config for Runtime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = Timestamp;
     type VoterList = BagsList;
-    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
     type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
 
@@ -1213,12 +1221,14 @@ impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for R
 where
     RuntimeCall: From<LocalCall>,
 {
-    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+    fn create_signed_transaction<
+        C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>,
+    >(
         call: RuntimeCall,
         public: <Signature as traits::Verify>::Signer,
         account: AccountId,
         nonce: <Runtime as frame_system::Config>::Nonce,
-    ) -> Option<(RuntimeCall, <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload)> {
+    ) -> Option<UncheckedExtrinsic> {
         let tip = 0;
         // take the biggest period possible.
         let period =
@@ -1230,6 +1240,7 @@ where
 			.saturating_sub(1);
         let era = Era::mortal(period, current_block);
         let extra = (
+            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -1237,6 +1248,8 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            frame_metadata_hash_extension::CheckMetadataHash::new(false),
+            frame_system::WeightReclaim::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, extra)
             .map_err(|e| {
@@ -1245,8 +1258,19 @@ where
             .ok()?;
         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
         let address = Indices::unlookup(account);
-        let (call, extra, _) = raw_payload.deconstruct();
-        Some((call, (address, signature, extra)))
+        let (call, tx_ext, _) = raw_payload.deconstruct();
+        let transaction =
+            generic::UncheckedExtrinsic::new_signed(call, address, signature, tx_ext).into();
+        Some(transaction)
+    }
+}
+
+impl<LocalCall> frame_system::offchain::CreateInherent<LocalCall> for Runtime
+where
+    RuntimeCall: From<LocalCall>,
+{
+    fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
+        generic::UncheckedExtrinsic::new_bare(call).into()
     }
 }
 
@@ -1255,12 +1279,12 @@ impl frame_system::offchain::SigningTypes for Runtime {
     type Signature = Signature;
 }
 
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
 where
     RuntimeCall: From<C>,
 {
     type Extrinsic = UncheckedExtrinsic;
-    type OverarchingCall = RuntimeCall;
+    type RuntimeCall = RuntimeCall;
 }
 
 impl pallet_im_online::Config for Runtime {

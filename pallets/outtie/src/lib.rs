@@ -54,7 +54,9 @@ pub mod module {
     }
 
     /// Information about a tdx server  
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo, DecodeWithMemTracking)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo, DecodeWithMemTracking,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct OuttieServerInfo {
         pub x25519_public_key: X25519PublicKey,
