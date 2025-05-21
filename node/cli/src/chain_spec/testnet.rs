@@ -34,6 +34,7 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_parameters::SupportedCvmServices;
 use sc_network::config::MultiaddrWithPeerId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -253,17 +254,16 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         .collect();
 
     let measurement_values = if let Some(values) = inputs.accepted_measurement_values {
-        Some(
-            values
-                .into_iter()
-                .map(|value| {
-                    let bytes = hex::decode(&value)
-                        .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
-                    BoundedVec::try_from(bytes)
-                        .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
-                })
-                .collect::<Result<Vec<_>, String>>()?,
-        )
+        let tss_values = values
+            .into_iter()
+            .map(|value| {
+                let bytes = hex::decode(&value)
+                    .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
+                BoundedVec::try_from(bytes)
+                    .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        Some(vec![(SupportedCvmServices::EntropyTss, tss_values)])
     } else {
         None
     };
