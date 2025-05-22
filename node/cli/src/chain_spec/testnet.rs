@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
-    MEASUREMENT_VALUE_MOCK_QUOTE,
+    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
+    MeasurementValues,
 };
 
 use entropy_runtime::{
@@ -34,6 +34,7 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_parameters::SupportedCvmServices;
 use sc_network::config::MultiaddrWithPeerId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -253,17 +254,16 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         .collect();
 
     let measurement_values = if let Some(values) = inputs.accepted_measurement_values {
-        Some(
-            values
-                .into_iter()
-                .map(|value| {
-                    let bytes = hex::decode(&value)
-                        .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
-                    BoundedVec::try_from(bytes)
-                        .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
-                })
-                .collect::<Result<Vec<_>, String>>()?,
-        )
+        let tss_values = values
+            .into_iter()
+            .map(|value| {
+                let bytes = hex::decode(&value)
+                    .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
+                BoundedVec::try_from(bytes)
+                    .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        Some(vec![(SupportedCvmServices::EntropyTss, tss_values)])
     } else {
         None
     };
@@ -311,7 +311,7 @@ pub fn testnet_genesis_config(
         TssEndpoint,
         BoundedVecEncodedVerifyingKey,
     )>,
-    accepted_measurement_values: Option<MeasurementValues>,
+    accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
     mut endowed_accounts: Vec<AccountId>,
 ) -> serde_json::Value {
     assert!(
@@ -460,9 +460,7 @@ pub fn testnet_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
-                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
-            ]),
+            accepted_measurement_values: accepted_measurement_values.unwrap_or_else(mock_measurement_values),
             ..Default::default()
         },
         "programs": ProgramsConfig {
