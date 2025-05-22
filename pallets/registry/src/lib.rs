@@ -95,7 +95,16 @@ pub mod pallet {
     }
     pub type ProgramPointers<Hash, MaxProgramHashes> = BoundedVec<Hash, MaxProgramHashes>;
 
-    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebugNoBound, DecodeWithMemTracking, TypeInfo)]
+    #[derive(
+        Clone,
+        Encode,
+        Decode,
+        Eq,
+        PartialEqNoBound,
+        RuntimeDebugNoBound,
+        DecodeWithMemTracking,
+        TypeInfo,
+    )]
     #[scale_info(skip_type_params(T))]
     pub struct ProgramInstance<T: Config> {
         pub program_pointer: T::Hash,

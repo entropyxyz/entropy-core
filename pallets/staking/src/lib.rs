@@ -116,7 +116,9 @@ pub mod pallet {
     pub type BalanceOf<T> = <T as pallet_staking::Config>::CurrencyBalance;
 
     /// Information about a threshold server
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct ServerInfo<AccountId> {
         pub tss_account: AccountId,
@@ -127,7 +129,9 @@ pub mod pallet {
 
     /// Information about a threshold server in the process of joining
     /// This becomes a [ServerInfo] when an attestation has been verified
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct JoiningServerInfo<AccountId> {
         pub tss_account: AccountId,

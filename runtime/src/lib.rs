@@ -48,10 +48,12 @@ use frame_support::{
     sp_runtime::RuntimeDebug,
     traits::{
         fungible::{self, HoldConsideration},
-        tokens::{Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion, imbalance::ResolveTo},
+        tokens::{
+            imbalance::ResolveTo, Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion,
+        },
         ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
-        InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
-        WithdrawReasons, Nothing,
+        InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, Nothing,
+        OnUnbalanced, WithdrawReasons,
     },
     weights::{
         constants::{
@@ -614,7 +616,7 @@ impl pallet_session::Config for Runtime {
     type ShouldEndSession = Babe;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
-	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
+    type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
     type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 }
 
@@ -709,7 +711,7 @@ impl pallet_staking::Config for Runtime {
     type NextNewSession = Session;
     // send the slashed funds to the treasury.
     type Reward = ();
-	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
+    type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
     type RuntimeEvent = RuntimeEvent;
     type SessionInterface = Self;
     // rewards are minted from the void
@@ -934,7 +936,7 @@ parameter_types! {
   pub const CouncilMaxMembers: u32 = 100;
   pub const ProposalDepositOffset: Balance = ExistentialDeposit::get() + ExistentialDeposit::get();
   pub const ProposalHoldReason: RuntimeHoldReason =
-		RuntimeHoldReason::Council(pallet_collective::HoldReason::ProposalSubmission);
+        RuntimeHoldReason::Council(pallet_collective::HoldReason::ProposalSubmission);
 }
 
 type CouncilCollective = pallet_collective::Instance1;
@@ -949,17 +951,17 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type RuntimeOrigin = RuntimeOrigin;
     type SetMembersOrigin = EnsureRoot<Self::AccountId>;
     type DisapproveOrigin = EnsureRoot<Self::AccountId>;
-	type KillOrigin = EnsureRoot<Self::AccountId>;
+    type KillOrigin = EnsureRoot<Self::AccountId>;
     type Consideration = HoldConsideration<
-		AccountId,
-		Balances,
-		ProposalHoldReason,
-		pallet_collective::deposit::Delayed<
-			ConstU32<2>,
-			pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
-		>,
-		u32,
-	>;
+        AccountId,
+        Balances,
+        ProposalHoldReason,
+        pallet_collective::deposit::Delayed<
+            ConstU32<2>,
+            pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
+        >,
+        u32,
+    >;
     type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
 }
 
@@ -1022,17 +1024,17 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
     type RuntimeOrigin = RuntimeOrigin;
     type SetMembersOrigin = EnsureRoot<Self::AccountId>;
     type DisapproveOrigin = EnsureRoot<Self::AccountId>;
-	type KillOrigin = EnsureRoot<Self::AccountId>;
+    type KillOrigin = EnsureRoot<Self::AccountId>;
     type Consideration = HoldConsideration<
-		AccountId,
-		Balances,
-		ProposalHoldReason,
-		pallet_collective::deposit::Delayed<
-			ConstU32<2>,
-			pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
-		>,
-		u32,
-	>;
+        AccountId,
+        Balances,
+        ProposalHoldReason,
+        pallet_collective::deposit::Delayed<
+            ConstU32<2>,
+            pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
+        >,
+        u32,
+    >;
     type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
 }
 

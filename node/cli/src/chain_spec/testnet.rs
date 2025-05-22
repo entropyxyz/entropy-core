@@ -380,6 +380,7 @@ pub fn testnet_genesis_config(
                         .map(|x| (x, ENDOWMENT))
                         .unique()
                         .collect(),
+                        ..Default::default()
         },
         "indices": IndicesConfig { indices: vec![] },
         "session": SessionConfig {
