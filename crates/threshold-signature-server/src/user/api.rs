@@ -23,7 +23,7 @@ use axum::{
 };
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_client::substrate::get_registered_details;
-use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
+use entropy_kvdb::kv_manager::KvManager;
 use entropy_programs_runtime::SignatureRequest;
 use entropy_protocol::SigningSessionInfo;
 use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
@@ -498,11 +498,7 @@ async fn setup_dkg(
 
     let verifying_key = key_share.verifying_key()?.to_encoded_point(true).as_bytes().to_vec();
 
-    let serialized_key_share = key_serialize(&(key_share, aux_info))
-        .map_err(|_| UserErr::KvSerialize("Kv Serialize Error".to_string()))?;
-
-    let reservation = app_state.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await?;
-    app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
+    app_state.update_network_key_share(Some((key_share, aux_info))).await?;
 
     let block_hash = rpc
         .chain_get_block_hash(None)
