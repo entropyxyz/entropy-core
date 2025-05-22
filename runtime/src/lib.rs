@@ -51,7 +51,7 @@ use frame_support::{
         tokens::{Pay, PaymentStatus, Preservation, UnityAssetBalanceConversion, imbalance::ResolveTo},
         ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Imbalance,
         InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, LockIdentifier, OnUnbalanced,
-        WithdrawReasons,
+        WithdrawReasons, Nothing,
     },
     weights::{
         constants::{
@@ -698,6 +698,7 @@ impl pallet_staking::Config for Runtime {
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type BondingDuration = BondingDuration;
     type Currency = Balances;
+    type OldCurrency = Balances;
     type CurrencyBalance = Balance;
     type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
     type ElectionProvider = ElectionProviderMultiPhase;
@@ -722,6 +723,8 @@ impl pallet_staking::Config for Runtime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type UnixTime = Timestamp;
     type VoterList = BagsList;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type Filter = Nothing;
     type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
 
@@ -933,6 +936,9 @@ parameter_types! {
   pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
   pub const CouncilMaxProposals: u32 = 100;
   pub const CouncilMaxMembers: u32 = 100;
+  pub const ProposalDepositOffset: Balance = ExistentialDeposit::get() + ExistentialDeposit::get();
+  pub const ProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Council(pallet_collective::HoldReason::ProposalSubmission);
 }
 
 type CouncilCollective = pallet_collective::Instance1;
@@ -946,6 +952,18 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeOrigin = RuntimeOrigin;
     type SetMembersOrigin = EnsureRoot<Self::AccountId>;
+    type DisapproveOrigin = EnsureRoot<Self::AccountId>;
+	type KillOrigin = EnsureRoot<Self::AccountId>;
+    type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		ProposalHoldReason,
+		pallet_collective::deposit::Delayed<
+			ConstU32<2>,
+			pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
+		>,
+		u32,
+	>;
     type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
 }
 
@@ -1007,6 +1025,18 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeOrigin = RuntimeOrigin;
     type SetMembersOrigin = EnsureRoot<Self::AccountId>;
+    type DisapproveOrigin = EnsureRoot<Self::AccountId>;
+	type KillOrigin = EnsureRoot<Self::AccountId>;
+    type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		ProposalHoldReason,
+		pallet_collective::deposit::Delayed<
+			ConstU32<2>,
+			pallet_collective::deposit::Linear<ConstU32<2>, ProposalDepositOffset>,
+		>,
+		u32,
+	>;
     type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
 }
 
@@ -1055,6 +1085,7 @@ parameter_types! {
 }
 
 impl pallet_treasury::Config for Runtime {
+    type BlockNumberProvider = System;
     type Burn = Burn;
     type BurnDestination = ();
     type Currency = Balances;
@@ -1172,6 +1203,7 @@ parameter_types! {
 }
 
 impl pallet_scheduler::Config for Runtime {
+    type BlockNumberProvider = System;
     type MaxScheduledPerBlock = ConstU32<512>;
     type MaximumWeight = MaximumSchedulerWeight;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
@@ -1331,6 +1363,7 @@ parameter_types! {
   pub const BasicDeposit: Balance = 10 * DOLLARS;       // 258 bytes on-chain
   pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
   pub const SubAccountDeposit: Balance = 2 * DOLLARS;   // 53 bytes on-chain
+  pub const UsernameDeposit: Balance = deposit(0, 32);
   pub const MaxSubAccounts: u32 = 100;
   pub const MaxAdditionalFields: u32 = 100;
   pub const MaxRegistrars: u32 = 20;
@@ -1355,6 +1388,8 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
     type MaxSuffixLength = ConstU32<7>;
     type MaxUsernameLength = ConstU32<32>;
+    type UsernameGracePeriod = ConstU32<{ 3 * DAYS }>;
+    type UsernameDeposit = UsernameDeposit;
     type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
@@ -1366,6 +1401,7 @@ parameter_types! {
 }
 
 impl pallet_recovery::Config for Runtime {
+    type BlockNumberProvider = System;
     type ConfigDepositBase = ConfigDepositBase;
     type Currency = Balances;
     type FriendDepositFactor = FriendDepositFactor;
@@ -1444,6 +1480,7 @@ impl Convert<sp_core::U256, Balance> for U256ToBalance {
 }
 
 impl pallet_nomination_pools::Config for Runtime {
+    type BlockNumberProvider = System;
     type BalanceToU256 = BalanceToU256;
     type Currency = Balances;
     type MaxMetadataLen = ConstU32<256>;
@@ -1457,6 +1494,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type U256ToBalance = U256ToBalance;
     type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
     type AdminOrigin = EnsureRoot<AccountId>;
+    type Filter = Nothing;
     type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Runtime>;
 }
 
