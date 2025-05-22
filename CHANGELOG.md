@@ -11,6 +11,9 @@ At the moment this project **does not** adhere to
 
 ### Breaking
 - In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
+- In [1436](https://github.com/entropyxyz/entropy-core/pull/1436) rust is downgraded to version 1.86
+  as a temporary measure until we upgrade sp-io. This changelog entry can be deleted when we revert
+  to using stable.
 
 ### Added
 - Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
@@ -67,6 +70,10 @@ runtime
   and the network key will be lost.
 - In [#1377](https://github.com/entropyxyz/entropy-core/pull/1377) all endpoints except for the
   healthz in the TSS had a /v1 added to them.
+- In [#1424](https://github.com/entropyxyz/entropy-core/pull/1424) the `testnet` chainspec (given by
+  `--chain testnet` when starting `entropy`) was removed and replaced with a custom build function.
+  If `--chain some-filename-ending-with-chainspec-inputs.json` is passed, the testnet chainspec will
+  be built from special parameters given in that json file.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
