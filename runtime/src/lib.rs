@@ -220,11 +220,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // The `spec_version` also needs to be bumped in this case.
     transaction_version: 9,
 
-    // Version of the state implementation to use.
+    // Version of the system implementation to use.
     //
     // Shouldn't ever really be changing this. If it does change it's probably consensus breaking,
     // so make sure you know what you're doing.
-    state_version: 1,
+    system_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
@@ -430,9 +430,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ProxyType::NonTransfer => !matches!(
                 c,
                 RuntimeCall::Balances(..)
-                    | RuntimeCall::Assets(..)
-                    | RuntimeCall::Uniques(..)
-                    | RuntimeCall::Nfts(..)
                     | RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. })
                     | RuntimeCall::Indices(pallet_indices::Call::transfer { .. })
             ),
@@ -440,13 +437,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                 c,
                 RuntimeCall::Democracy(..)
                     | RuntimeCall::Council(..)
-                    | RuntimeCall::Society(..)
                     | RuntimeCall::TechnicalCommittee(..)
                     | RuntimeCall::Elections(..)
                     | RuntimeCall::Treasury(..)
             ),
             ProxyType::Staking => {
-                matches!(c, RuntimeCall::Staking(..) | RuntimeCall::FastUnstake(..))
+                matches!(c, RuntimeCall::Staking(..))
             },
         }
     }
@@ -1275,7 +1271,6 @@ where
 			.saturating_sub(1);
         let era = Era::mortal(period, current_block);
         let extra = (
-            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -1283,8 +1278,6 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-            frame_metadata_hash_extension::CheckMetadataHash::new(false),
-            frame_system::WeightReclaim::<Runtime>::new(),
         );
         let raw_payload = SignedPayload::new(call, extra)
             .map_err(|e| {
