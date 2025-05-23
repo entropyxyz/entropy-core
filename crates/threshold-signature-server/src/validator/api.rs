@@ -27,6 +27,7 @@ use crate::{
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
+use entropy_client::substrate::PairSigner;
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 pub use entropy_protocol::{
     decode_verifying_key,
@@ -38,8 +39,7 @@ use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_
 use parity_scale_codec::{Decode, Encode};
 use std::{collections::BTreeSet, str::FromStr};
 use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, tx::PairSigner, utils::AccountId32,
-    OnlineClient,
+    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, utils::AccountId32, OnlineClient,
 };
 use synedrion::{KeyResharing, NewHolder, OldHolder};
 
@@ -317,7 +317,7 @@ pub async fn validate_rotate_network_key(
 pub async fn confirm_key_reshare(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner,
 ) -> Result<(), ValidatorErr> {
     // TODO error handling + return error
     // TODO fire and forget, or wait for in block maybe Ddos error

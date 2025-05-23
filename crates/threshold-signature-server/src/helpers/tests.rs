@@ -41,7 +41,7 @@ use crate::{
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
-use entropy_client::substrate::query_chain;
+use entropy_client::substrate::{query_chain, PairSigner};
 use entropy_kvdb::{get_db_path, kv_manager::KvManager, BuildType};
 use entropy_protocol::PartyId;
 #[cfg(test)]
@@ -51,7 +51,7 @@ use sp_keyring::AccountKeyring;
 use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, config::substrate::H256, ext::sp_core::sr25519,
-    tx::PairSigner, utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
+    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
 
@@ -350,7 +350,7 @@ async fn put_jumpstart_request_on_chain(
     rpc: &LegacyRpcMethods<EntropyConfig>,
     pair: sr25519::Pair,
 ) {
-    let account = PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(pair);
+    let account = PairSigner::new(pair);
 
     let registering_tx = entropy::tx().registry().jump_start_network();
     submit_transaction(api, rpc, &account, &registering_tx, None).await.unwrap();
@@ -372,8 +372,7 @@ pub async fn call_set_storage(
     let set_storage = entropy::tx().sudo().sudo(call);
     let alice = AccountKeyring::Alice;
 
-    let signature_request_pair_signer =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+    let signature_request_pair_signer = PairSigner::new(alice.into());
 
     submit_transaction(api, rpc, &signature_request_pair_signer, &set_storage, None).await.unwrap();
 }

@@ -1332,8 +1332,7 @@ pub async fn put_register_request_on_chain(
     program_instances: BoundedVec<ProgramInstance>,
 ) -> Result<entropy::registry::events::AccountRegistered, entropy_client::substrate::SubstrateError>
 {
-    let signature_request_account =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(signature_request_account.pair());
+    let signature_request_account = PairSigner::new(signature_request_account.pair());
 
     let registering_tx =
         entropy::tx().registry().register(program_modification_account, program_instances);
@@ -1853,8 +1852,7 @@ async fn test_faucet() {
     });
     let add_balance_tx = entropy::tx().sudo().sudo(call);
 
-    let signature_request_pair_signer =
-        PairSigner::<EntropyConfig, sp_core::sr25519::Pair>::new(alice.into());
+    let signature_request_pair_signer = PairSigner::new(alice.into());
 
     let tx_params_balance = Params::new().build();
     spawn_results

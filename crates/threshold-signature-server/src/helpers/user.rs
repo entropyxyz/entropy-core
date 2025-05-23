@@ -23,11 +23,12 @@ use entropy_protocol::{
 };
 use entropy_shared::{HashingAlgorithm, SETUP_TIMEOUT_SECONDS};
 
+use entropy_client::substrate::PairSigner;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
 use sp_core::{hashing::blake2_256, sr25519, Pair};
-use subxt::{backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32, OnlineClient};
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;
 
@@ -45,7 +46,7 @@ use crate::{
 /// complete the dkg process for a new user
 pub async fn do_dkg(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner,
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     block_number: u32,

@@ -82,7 +82,7 @@ pub async fn submit_transaction_with_pair<Call: Payload>(
     call: &Call,
     nonce_option: Option<u32>,
 ) -> Result<ExtrinsicEvents<EntropyConfig>, SubstrateError> {
-    let signer = Sr25519Signer::new(pair.clone());
+    let signer = PairSigner::new(pair.clone());
     submit_transaction(api, rpc, &signer, call, nonce_option).await
 }
 
@@ -130,19 +130,28 @@ pub async fn get_registered_details(
 /// A wrapper around [sr25519::Pair] which implements [Signer]
 /// This is needed because on wasm we cannot use the generic `subxt::tx::PairSigner`
 #[derive(Clone)]
-struct Sr25519Signer {
+pub struct PairSigner {
     account_id: <EntropyConfig as Config>::AccountId,
     pair: sr25519::Pair,
 }
 
-impl Sr25519Signer {
-    /// Creates a new [`Sr25519Signer`] from an [`sr25519::Pair`].
+impl PairSigner {
+    /// Creates a new [`PairSigner`] from an [`sr25519::Pair`].
     pub fn new(pair: sr25519::Pair) -> Self {
         Self { account_id: AccountId32(pair.public().0), pair }
     }
+    /// Returns the [`sp_core::sr25519::Pair`] implementation used to construct this.
+    pub fn signer(&self) -> &sr25519::Pair {
+        &self.pair
+    }
+
+    /// Return the account ID.
+    pub fn account_id(&self) -> &AccountId32 {
+        &self.account_id
+    }
 }
 
-impl Signer<EntropyConfig> for Sr25519Signer {
+impl Signer<EntropyConfig> for PairSigner {
     fn account_id(&self) -> <EntropyConfig as Config>::AccountId {
         self.account_id.clone()
     }
