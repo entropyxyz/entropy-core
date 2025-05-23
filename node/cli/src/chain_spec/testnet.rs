@@ -54,7 +54,7 @@ type TssAccountId = sp_runtime::AccountId32;
 type TssEndpoint = String;
 
 /// Custom input data for building the chainspec for a particular test network
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TestnetChainSpecInputs {
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
@@ -291,6 +291,14 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         )
         .with_boot_nodes(inputs.boot_nodes)
         .build())
+}
+
+/// Returns a testnet chainspec with default (empty) input values.
+///
+/// This will not give a working configuration but can be used as a template chainspec where the
+/// custom values can be added in later by modifying the JSON object.
+pub fn testnet_blank_config() -> Result<ChainSpec, String> {
+    testnet_config(Default::default())
 }
 
 /// Build a testnet gensis configuration from custom inputs
