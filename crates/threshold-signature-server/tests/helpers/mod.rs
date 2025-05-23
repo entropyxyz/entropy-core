@@ -17,7 +17,7 @@
 use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_protocol::KeyParams;
 use entropy_testing_utils::constants::TSS_ACCOUNTS;
-use subxt::ext::sp_core::{sr25519, sr25519::Signature, Pair};
+use sp_core::{sr25519, sr25519::Signature, Pair};
 use synedrion::{
     k256::ecdsa::{RecoveryId, Signature as k256Signature, VerifyingKey},
     KeyShare,

@@ -19,7 +19,7 @@ pub use entropy_protocol::sign_and_encrypt::{
 };
 use entropy_shared::BlockNumber;
 use rand_core::{OsRng, RngCore};
-use subxt::ext::sp_core::{sr25519, Pair};
+use sp_core::{sr25519, Pair};
 pub mod errors;
 use errors::ValidationErr;
 

@@ -47,10 +47,11 @@ use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
+use sp_core::sr25519;
 use sp_keyring::AccountKeyring;
 use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
-    backend::legacy::LegacyRpcMethods, config::substrate::H256, ext::sp_core::sr25519,
+    backend::legacy::LegacyRpcMethods, config::substrate::H256,
     utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
 };
 use tokio::sync::OnceCell;
@@ -240,7 +241,7 @@ pub async fn remove_program(
 ) {
     // update/set their programs
     let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
-    let deployer = PairSigner::<EntropyConfig, sr25519::Pair>::new(deployer.clone());
+    let deployer = PairSigner::new(deployer.clone());
 
     submit_transaction(entropy_api, rpc, &deployer, &remove_program_tx, None).await.unwrap();
 }

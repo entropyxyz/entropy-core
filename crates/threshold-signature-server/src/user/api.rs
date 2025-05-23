@@ -30,12 +30,14 @@ use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
 use futures::{channel::mpsc, future::join_all, StreamExt};
 use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::{AccountId32, Ss58Codec};
+use sp_core::{
+    crypto::{AccountId32, Ss58Codec},
+    sr25519,
+    sr25519::Signature,
+    Pair,
+};
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519, sr25519::Signature, Pair},
-    utils::AccountId32 as SubxtAccountId32,
-    OnlineClient,
+    backend::legacy::LegacyRpcMethods, utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
 
 use super::UserErr;

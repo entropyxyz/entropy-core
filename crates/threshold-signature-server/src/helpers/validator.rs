@@ -18,7 +18,7 @@ use bip39::{Language, Mnemonic};
 use entropy_client::substrate::PairSigner;
 use hkdf::Hkdf;
 use sha2::Sha256;
-use subxt::ext::sp_core::{sr25519, Pair};
+use sp_core::{sr25519, Pair};
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
 

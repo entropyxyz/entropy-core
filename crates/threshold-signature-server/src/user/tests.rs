@@ -56,12 +56,12 @@ use schemars::{schema_for, JsonSchema};
 use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr25519Signature};
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
+use sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair};
 use sp_keyring::{AccountKeyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::DefaultExtrinsicParamsBuilder as Params,
-    ext::sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair},
     tx::{PairSigner, TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,

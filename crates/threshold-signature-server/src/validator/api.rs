@@ -37,10 +37,9 @@ pub use entropy_protocol::{
 };
 use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
+use sp_core::sr25519;
 use std::{collections::BTreeSet, str::FromStr};
-use subxt::{
-    backend::legacy::LegacyRpcMethods, ext::sp_core::sr25519, utils::AccountId32, OnlineClient,
-};
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use synedrion::{KeyResharing, NewHolder, OldHolder};
 
 /// HTTP POST endpoint called by the off-chain worker (propagation pallet) during network reshare.
