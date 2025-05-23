@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use entropy_tss::helpers::tests::ChainSpecType;
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use subxt::{config::substrate::SubstrateExtrinsicParams, OnlineClient};
 
 use super::node_proc::TestNodeProcess;
@@ -59,7 +59,7 @@ fn get_path() -> Box<std::path::Path> {
 pub type NodeRuntimeSignedExtra = SubstrateExtrinsicParams<EntropyConfig>;
 
 pub async fn test_node_process_with(
-    key: AccountKeyring,
+    key: Keyring,
     chain_type: String,
     force_authoring: bool,
     bootnode: Option<String>,
@@ -83,7 +83,7 @@ pub async fn test_node_process_with(
 }
 
 pub async fn test_node(
-    key: AccountKeyring,
+    key: Keyring,
     chain_type: String,
     force_authoring: bool,
     bootnode: Option<String>,
@@ -100,15 +100,15 @@ pub async fn test_node(
 }
 
 pub async fn test_node_process() -> TestNodeProcess<EntropyConfig> {
-    test_node_process_with(AccountKeyring::Alice, "--dev".to_string(), false, None, None).await
+    test_node_process_with(Keyring::Alice, "--dev".to_string(), false, None, None).await
 }
 
 pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
-    test_node(AccountKeyring::Alice, "--dev".to_string(), false, None).await
+    test_node(Keyring::Alice, "--dev".to_string(), false, None).await
 }
 
 pub async fn test_node_process_stationary_local() -> TestNodeProcess<EntropyConfig> {
-    test_node(AccountKeyring::Alice, "--chain=testnet".to_string(), false, None).await
+    test_node(Keyring::Alice, "--chain=testnet".to_string(), false, None).await
 }
 
 /// Tests chain with test state in chain config.
@@ -122,15 +122,11 @@ pub async fn test_node_process_testing_state(
         "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38"
             .to_string(),
     );
-    let result = test_node(
-        AccountKeyring::Alice,
-        format!("--chain={}", chain_spec_type),
-        force_authoring,
-        None,
-    )
-    .await;
+    let result =
+        test_node(Keyring::Alice, format!("--chain={}", chain_spec_type), force_authoring, None)
+            .await;
     let result_bob = test_node_process_with(
-        AccountKeyring::Bob,
+        Keyring::Bob,
         format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
@@ -138,7 +134,7 @@ pub async fn test_node_process_testing_state(
     )
     .await;
     let result_charlie = test_node_process_with(
-        AccountKeyring::Charlie,
+        Keyring::Charlie,
         format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),
@@ -146,7 +142,7 @@ pub async fn test_node_process_testing_state(
     )
     .await;
     let result_dave = test_node_process_with(
-        AccountKeyring::Dave,
+        Keyring::Dave,
         format!("--chain={}", chain_spec_type),
         force_authoring,
         alice_bootnode.clone(),

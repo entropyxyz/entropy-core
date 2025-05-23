@@ -21,7 +21,7 @@ use std::{
     thread, time,
 };
 
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use subxt::{Config, OnlineClient};
 
 /// Spawn a local substrate node for testing subxt.
@@ -78,7 +78,7 @@ where
 /// Construct a test node process.
 pub struct TestNodeProcessBuilder {
     node_path: OsString,
-    authority: Option<AccountKeyring>,
+    authority: Option<Keyring>,
     scan_port_range: bool,
     chain_type: String,
     force_authoring: bool,
@@ -109,7 +109,7 @@ impl TestNodeProcessBuilder {
     }
 
     /// Set the authority dev account for a node in validator mode e.g. --alice.
-    pub fn with_authority(&mut self, account: AccountKeyring) -> &mut Self {
+    pub fn with_authority(&mut self, account: Keyring) -> &mut Self {
         self.authority = Some(account);
         self
     }

@@ -189,6 +189,8 @@ pub enum UserErr {
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
     #[error("Manul local error: {0}")]
     ManulLocal(String),
+    #[error("subxt rpc error: {0}")]
+    SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
 }
 
 impl From<hkdf::InvalidLength> for UserErr {

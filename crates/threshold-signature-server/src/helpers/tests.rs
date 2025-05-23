@@ -48,7 +48,7 @@ use entropy_protocol::PartyId;
 use entropy_shared::EncodedVerifyingKey;
 use entropy_shared::NETWORK_PARENT_KEY;
 use sp_core::sr25519;
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, config::substrate::H256,
@@ -371,7 +371,7 @@ pub async fn call_set_storage(
     call: RuntimeCall,
 ) {
     let set_storage = entropy::tx().sudo().sudo(call);
-    let alice = AccountKeyring::Alice;
+    let alice = Keyring::Alice;
 
     let signature_request_pair_signer = PairSigner::new(alice.into());
 

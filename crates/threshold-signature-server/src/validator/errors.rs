@@ -96,6 +96,8 @@ pub enum ValidatorErr {
     NotReady,
     #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
+    #[error("subxt rpc error: {0}")]
+    SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
 }
 
 impl IntoResponse for ValidatorErr {
