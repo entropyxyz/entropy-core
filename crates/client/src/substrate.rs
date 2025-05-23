@@ -53,8 +53,7 @@ pub async fn submit_transaction<Call: Payload, S: Signer<EntropyConfig>>(
     };
 
     let latest_block = api.blocks().at_latest().await?;
-    let tx_params =
-        Params::new().mortal(latest_block.header(), MORTALITY_BLOCKS).nonce(nonce.into()).build();
+    let tx_params = Params::new().mortal(MORTALITY_BLOCKS).nonce(nonce.into()).build();
     let mut tx = api.tx().create_signed(call, signer, tx_params).await?.submit_and_watch().await?;
 
     while let Some(status) = tx.next().await {
@@ -146,10 +145,6 @@ impl Sr25519Signer {
 impl Signer<EntropyConfig> for Sr25519Signer {
     fn account_id(&self) -> <EntropyConfig as Config>::AccountId {
         self.account_id.clone()
-    }
-
-    fn address(&self) -> <EntropyConfig as Config>::Address {
-        self.account_id.clone().into()
     }
 
     fn sign(&self, signer_payload: &[u8]) -> <EntropyConfig as Config>::Signature {

@@ -29,7 +29,10 @@ use crate::{
 pub use entropy_client::substrate::{query_chain, submit_transaction};
 use entropy_shared::user::ValidatorInfo;
 use rand::prelude::SliceRandom;
-use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, Config, OnlineClient};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, config::substrate::H256, utils::AccountId32, Config,
+    OnlineClient,
+};
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.
 pub async fn get_stash_address(
@@ -51,7 +54,7 @@ pub async fn get_stash_address(
 pub async fn get_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    program_pointer: &<EntropyConfig as Config>::Hash,
+    program_pointer: &H256,
 ) -> Result<ProgramInfo, UserErr> {
     let bytecode_address = entropy::storage().programs().programs(program_pointer);
     let program_info = query_chain(api, rpc, bytecode_address, None)
