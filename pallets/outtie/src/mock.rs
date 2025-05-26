@@ -103,6 +103,7 @@ impl pallet_session::Config for Test {
     type SessionManager = MockSessionManager;
     type SessionHandler = (OtherSessionHandler,);
     type Keys = UintAuthorityId;
+    type DisablingStrategy = ();
     type WeightInfo = ();
 }
 

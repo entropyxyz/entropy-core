@@ -106,6 +106,7 @@ impl pallet_session::Config for Runtime {
     type SessionManager = MockSessionManager;
     type SessionHandler = (OtherSessionHandler,);
     type Keys = UintAuthorityId;
+    type DisablingStrategy = ();
     type WeightInfo = ();
 }
 
