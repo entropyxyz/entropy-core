@@ -147,7 +147,7 @@ async fn test_change_threshold_accounts() {
         &api,
         &rpc,
         one.into(),
-        tss_public_key.into(),
+        AccountId32(tss_public_key.0),
         *x25519_public_key.as_bytes(),
         quote,
     )

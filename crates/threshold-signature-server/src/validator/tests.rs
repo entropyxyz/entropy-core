@@ -98,7 +98,7 @@ async fn test_reshare_basic() {
         assert!(!key_share.is_empty());
     }
     next_signers.remove(0);
-    let binding = dave_stash.to_account_id().into();
+    let binding =  AccountId32(dave_stash.public().0);
     next_signers.push(&binding);
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
@@ -218,7 +218,7 @@ async fn test_reshare_basic() {
     let key_share_before_2 = get_all_keys(signers).await;
 
     next_signers.remove(0);
-    let binding = alice_stash.to_account_id().into();
+    let binding =  AccountId32(alice_stash.public().0);
     next_signers.push(&binding);
 
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
@@ -505,7 +505,7 @@ async fn test_deletes_key() {
     kv.kv().put(reservation, vec![10]).await.unwrap();
 
     let is_proper_signer_result =
-        is_signer_or_delete_parent_key(&dave.to_account_id().into(), vec![], &kv).await.unwrap();
+        is_signer_or_delete_parent_key(&AccountId32(dave.public().0), vec![], &kv).await.unwrap();
     assert!(!is_proper_signer_result);
 
     let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();

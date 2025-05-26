@@ -2030,8 +2030,8 @@ async fn test_registration_flow() {
     let registration_request = put_register_request_on_chain(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        &alice,                         // This is our signature request account
-        charlie.to_account_id().into(), // This is our program modification account
+        &alice,                               // This is our signature request account
+        subxtAccountId32(charlie.public().0), // This is our program modification account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
     .await;
@@ -2064,7 +2064,7 @@ async fn test_registration_flow() {
 
     assert_eq!(
         registered_info.unwrap().program_modification_account,
-        charlie.to_account_id().into()
+        subxtAccountId32(charlie.public().0),
     );
 
     // Next, let's check that the child verifying key matches
