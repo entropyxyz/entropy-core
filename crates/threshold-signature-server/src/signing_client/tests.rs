@@ -31,7 +31,7 @@ use entropy_testing_utils::{
 use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 
 #[ignore]
 #[tokio::test]
@@ -103,7 +103,7 @@ async fn test_proactive_refresh() {
     assert_ne!(key_before_network, key_after_network);
     assert_ne!(key_before_dave, key_after_dave);
 
-    let alice = AccountKeyring::Alice;
+    let alice = Keyring::Alice;
     ocw_message.validators_info[0].tss_account = alice.public().encode();
     ocw_message.validators_info[1].tss_account = alice.public().encode();
     ocw_message.validators_info[2].tss_account = alice.public().encode();
@@ -148,7 +148,7 @@ async fn test_proactive_refresh_validation_fail() {
     initialize_test_logger().await;
     clean_tests();
 
-    let dave = AccountKeyring::Dave;
+    let dave = Keyring::Dave;
     let cxt = test_node_process_stationary_local().await;
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();

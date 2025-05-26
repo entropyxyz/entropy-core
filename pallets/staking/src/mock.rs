@@ -263,14 +263,6 @@ parameter_types! {
   pub const MaxPeerDataEncodingSize: u32 = 1_000;
 }
 
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where
-    RuntimeCall: From<C>,
-{
-    type Extrinsic = TestXt<RuntimeCall, ()>;
-    type OverarchingCall = RuntimeCall;
-}
-
 const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
     [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
 

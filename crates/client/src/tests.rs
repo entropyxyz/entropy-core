@@ -32,13 +32,13 @@ use rand::{
 };
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
 #[tokio::test]
 #[serial]
 async fn test_change_endpoint() {
-    let one = AccountKeyring::AliceStash;
+    let one = Keyring::AliceStash;
     let substrate_context = test_context_stationary().await;
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -86,7 +86,7 @@ async fn test_change_endpoint() {
 #[tokio::test]
 #[serial]
 async fn test_change_threshold_accounts() {
-    let one = AccountKeyring::AliceStash;
+    let one = Keyring::AliceStash;
     let substrate_context = test_context_stationary().await;
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -174,7 +174,7 @@ async fn test_change_threshold_accounts() {
 #[tokio::test]
 #[serial]
 async fn test_store_and_remove_program() {
-    let program_owner = AccountKeyring::Ferdie.pair();
+    let program_owner = Keyring::Ferdie.pair();
     let substrate_context = test_context_stationary().await;
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -213,7 +213,7 @@ async fn test_store_and_remove_program() {
 #[tokio::test]
 #[serial]
 async fn test_remove_program_reference_counter() {
-    let program_owner = AccountKeyring::Ferdie.pair();
+    let program_owner = Keyring::Ferdie.pair();
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -301,7 +301,7 @@ async fn test_get_oracle_headings() {
 #[tokio::test]
 #[serial]
 async fn test_bond_accounts() {
-    let one = AccountKeyring::Ferdie;
+    let one = Keyring::Ferdie;
     let substrate_context = test_context_stationary().await;
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -321,7 +321,7 @@ async fn test_bond_accounts() {
 #[tokio::test]
 #[serial]
 async fn test_set_session_key_and_declare_validate() {
-    let one = AccountKeyring::Ferdie;
+    let one = Keyring::Ferdie;
     let substrate_context = test_context_stationary().await;
 
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
