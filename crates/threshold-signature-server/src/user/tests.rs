@@ -62,7 +62,7 @@ use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::DefaultExtrinsicParamsBuilder as Params,
-    tx::{TxStatus},
+    tx::TxStatus,
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,
 };
@@ -1892,13 +1892,14 @@ async fn test_faucet() {
     };
     // create a partial tx to sign
     let tx_params = Params::new().build();
-    let balance_transfer_tx =
-        entropy::tx().balances().transfer_allow_death(MultiAddress::Id(subxtAccountId32(one.public().0)), aux_data.amount);
-    let partial = spawn_results
+    let balance_transfer_tx = entropy::tx()
+        .balances()
+        .transfer_allow_death(MultiAddress::Id(subxtAccountId32(one.public().0)), aux_data.amount);
+    let mut partial = spawn_results
         .chain_connection
         .api
         .tx()
-        .create_partial_signed_offline(&balance_transfer_tx, tx_params)
+        .create_partial_offline(&balance_transfer_tx, tx_params)
         .unwrap();
 
     let mut signature_request = UserSignatureRequest {
@@ -1929,8 +1930,8 @@ async fn test_faucet() {
     let decoded_sig = BASE64_STANDARD.decode(signing_result.clone()[0].clone().unwrap().0).unwrap();
 
     // take signed tx and repack it into a submitable tx
-    let submittable_extrinsic = partial.sign_with_address_and_signature(
-        &MultiAddress::Id(verfiying_key_account.clone().into()),
+    let submittable_extrinsic = partial.sign_with_account_and_signature(
+        &verfiying_key_account.clone().into(),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
     );
     let account = subxtAccountId32::from_str(&aux_data.string_account_id).unwrap();
