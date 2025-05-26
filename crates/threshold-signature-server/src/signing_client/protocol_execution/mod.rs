@@ -73,8 +73,8 @@ impl<'a> ThresholdSigningService<'a> {
         let key_share = if let Some(path) = derivation_path {
             key_share.derive_bip32(&path)?
         } else {
+            // TODO #1444 - this should never happen
             key_share
-            // This should never happen
         };
 
         Ok(SignContext::new(sign_init, key_share, aux_info))

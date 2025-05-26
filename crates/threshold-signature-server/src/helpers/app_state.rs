@@ -401,14 +401,19 @@ impl AppState {
         x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
     }
 
+    /// Get the network key-share if we have one
     pub fn network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
         self.cache.read_network_key_share()
     }
 
+    /// Get the 'next' network key-share if we have one - this only exists for the time between
+    /// making a reshare and getting confirmation that the reshare was successful
     pub fn next_network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
         self.cache.read_next_network_key_share()
     }
 
+    /// Update the network key-share - this includes removing it when leaving the signer set
+    /// which is done by setting it to `None`
     pub async fn update_network_key_share(
         &self,
         updated_key_share: Option<KeyShareWithAuxInfo>,
@@ -427,6 +432,8 @@ impl AppState {
         Ok(())
     }
 
+    /// Update the 'next' network key-share - this includes removing it which is done by setting it
+    /// to `None`
     pub async fn update_next_network_key_share(
         &self,
         updated_key_share: Option<KeyShareWithAuxInfo>,
@@ -445,6 +452,10 @@ impl AppState {
         Ok(())
     }
 
+    /// Rotate the network key-share on getting confirmation that the reshare was successful.
+    ///
+    /// This means replacing the old key-share with the 'next' key-share and deleting the 'next'
+    /// keyshare.
     pub async fn rotate_key_share(&self) -> Result<(), AppStateError> {
         let next_key_share = self.cache.read_next_network_key_share()?;
         if next_key_share.is_none() {
@@ -455,6 +466,7 @@ impl AppState {
         Ok(())
     }
 
+    /// Get the path where the key-value store is stored on disk
     pub fn storage_path(&self) -> PathBuf {
         self.kv_store.storage_path().to_path_buf()
     }

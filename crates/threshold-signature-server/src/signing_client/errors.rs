@@ -120,6 +120,8 @@ pub enum ProtocolErr {
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
     #[error("Manul local error: {0}")]
     ManulLocal(String),
+    #[error("Cannot run protocol as we do not have a key-share")]
+    NoKeyShare,
 }
 
 impl IntoResponse for ProtocolErr {
