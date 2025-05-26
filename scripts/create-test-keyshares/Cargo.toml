@@ -11,7 +11,7 @@ publish    =false
 
 [dependencies]
 entropy-testing-utils={ version="0.4.0-rc.1", path="../../crates/testing-utils" }
-tokio={ version="1.44", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+tokio={ version="1.45", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 entropy-shared={ version="0.4.0-rc.1", path="../../crates/shared" }
 entropy-kvdb={ version="0.4.0-rc.1", path="../../crates/kvdb", default-features=false }
 sp-core="34.0.0"

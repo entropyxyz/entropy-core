@@ -37,7 +37,7 @@ k256              ={ version="0.13", default-features=false, features=["ecdsa"],
 
 # Only for the browser
 js-sys={ version="0.3.74", optional=true }
-tokio ={ version="1.44", features=["time"] }
+tokio ={ version="1.45", features=["time"] }
 
 [dev-dependencies]
 serial_test          ="3.2.0"

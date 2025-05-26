@@ -16,7 +16,7 @@ sp-core={ version="34.0.0", default-features=false }
 parity-scale-codec="3.7.2"
 lazy_static="1.5.0"
 hex-literal="1.0.0"
-tokio={ version="1.44", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
+tokio={ version="1.45", features=["macros", "fs", "rt-multi-thread", "io-util", "process"] }
 axum={ version="0.8.4" }
 entropy-shared={ version="0.4.0-rc.1", path="../shared" }
 entropy-kvdb={ version="0.4.0-rc.1", path="../kvdb", default-features=false }
