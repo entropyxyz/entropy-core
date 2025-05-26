@@ -19,7 +19,7 @@ use entropy_client::substrate::get_registered_details;
 use entropy_client::{
     client as test_client,
     client::update_programs,
-    substrate::submit_transaction_with_pair,
+    substrate::{submit_transaction_with_pair, PairSigner},
     user::{get_all_signers_from_chain, UserSignatureRequest},
 };
 use entropy_kvdb::clean_tests;
@@ -57,12 +57,12 @@ use schnorrkel::{signing_context, Keypair as Sr25519Keypair, Signature as Sr2551
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
 use sp_core::{hashing::blake2_256, sr25519, sr25519::Signature, Pair};
-use sp_keyring::{AccountKeyring, Sr25519Keyring};
+use sp_keyring::{sr25519::Keyring, Sr25519Keyring};
 use std::{str, str::FromStr, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     config::DefaultExtrinsicParamsBuilder as Params,
-    tx::{PairSigner, TxStatus},
+    tx::{TxStatus},
     utils::{AccountId32 as subxtAccountId32, MultiAddress, MultiSignature},
     OnlineClient,
 };
@@ -107,8 +107,8 @@ async fn test_signature_requests_fail_on_different_conditions() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -364,8 +364,8 @@ async fn test_signature_requests_fail_validator_info_wrong() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -447,9 +447,9 @@ async fn signature_request_with_derived_account_works() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
-    let bob = AccountKeyring::Bob;
-    let charlie = AccountKeyring::Charlie;
+    let alice = Keyring::Alice;
+    let bob = Keyring::Bob;
+    let charlie = Keyring::Charlie;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -503,9 +503,9 @@ async fn signature_request_overload() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
-    let bob = AccountKeyring::Bob;
-    let charlie = AccountKeyring::Charlie;
+    let alice = Keyring::Alice;
+    let bob = Keyring::Bob;
+    let charlie = Keyring::Charlie;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -593,7 +593,7 @@ async fn test_signing_fails_if_wrong_participants_are_used() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::Dave;
+    let one = Keyring::Dave;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -708,8 +708,8 @@ async fn test_request_limit_are_updated_during_signing() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(crate::helpers::tests::ChainSpecType::IntegrationJumpStarted)
@@ -823,8 +823,8 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
     initialize_test_logger().await;
     clean_tests();
 
-    let user = AccountKeyring::One;
-    let deployer = AccountKeyring::Two;
+    let user = Keyring::One;
+    let deployer = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -871,7 +871,7 @@ async fn test_fails_to_sign_if_non_signing_group_participants_are_used() {
         let ws_endpoint = format!("ws://{}/v1/ws", &validator_ip_and_key.0.clone());
         let (ws_stream, _response) = connect_async(ws_endpoint).await.unwrap();
 
-        let ferdie_pair = AccountKeyring::Ferdie.pair();
+        let ferdie_pair = Keyring::Ferdie.pair();
 
         // create a SubscribeMessage from a party who is not in the signing commitee
         let subscribe_message_vec =
@@ -926,8 +926,8 @@ async fn test_reports_peer_if_they_reject_our_signing_protocol_connection() {
     clean_tests();
 
     // Setup: We first spin up the chain nodes, TSS servers, and register an account
-    let user = AccountKeyring::One;
-    let deployer = AccountKeyring::Two;
+    let user = Keyring::One;
+    let deployer = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1045,8 +1045,8 @@ async fn test_reports_peer_if_they_dont_initiate_a_signing_session() {
     clean_tests();
 
     // Setup: We first spin up the chain nodes, TSS servers, and register an account
-    let user = AccountKeyring::One;
-    let deployer = AccountKeyring::Two;
+    let user = Keyring::One;
+    let deployer = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1174,8 +1174,8 @@ async fn test_program_with_config() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1288,7 +1288,7 @@ async fn test_jumpstart_network() {
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
 
-    do_jump_start(&api, &rpc, AccountKeyring::Alice.pair()).await;
+    do_jump_start(&api, &rpc, Keyring::Alice.pair()).await;
 
     let signer_query = entropy::storage().staking_extension().signers();
     let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
@@ -1352,7 +1352,7 @@ pub async fn put_register_request_on_chain(
 async fn test_compute_hash() {
     initialize_test_logger().await;
     clean_tests();
-    let one = AccountKeyring::Dave;
+    let one = Keyring::Dave;
     let substrate_context = testing_context().await;
     let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
@@ -1473,8 +1473,8 @@ async fn test_fail_infinite_program() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1550,8 +1550,8 @@ async fn test_oracle_program() {
     initialize_test_logger().await;
     clean_tests();
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1646,8 +1646,8 @@ async fn test_device_key_proxy() {
         pub context: String,
     }
 
-    let one = AccountKeyring::One;
-    let two = AccountKeyring::Two;
+    let one = Keyring::One;
+    let two = Keyring::Two;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1796,9 +1796,9 @@ async fn test_faucet() {
         genesis_hash: String,
     }
 
-    let one = AccountKeyring::Dave;
-    let two = AccountKeyring::Eve;
-    let alice = AccountKeyring::Alice;
+    let one = Keyring::Dave;
+    let two = Keyring::Eve;
+    let alice = Keyring::Alice;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -1893,7 +1893,7 @@ async fn test_faucet() {
     // create a partial tx to sign
     let tx_params = Params::new().build();
     let balance_transfer_tx =
-        entropy::tx().balances().transfer_allow_death(one.to_account_id().into(), aux_data.amount);
+        entropy::tx().balances().transfer_allow_death(MultiAddress::Id(subxtAccountId32(one.public().0)), aux_data.amount);
     let partial = spawn_results
         .chain_connection
         .api
@@ -1992,9 +1992,9 @@ async fn test_registration_flow() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
-    let bob = AccountKeyring::Bob;
-    let charlie = AccountKeyring::Charlie;
+    let alice = Keyring::Alice;
+    let bob = Keyring::Bob;
+    let charlie = Keyring::Charlie;
 
     let spawn_results =
         spawn_tss_nodes_and_start_chain(ChainSpecType::IntegrationJumpStarted).await;
@@ -2182,7 +2182,7 @@ async fn test_validate_jump_start_fail_repeated() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
+    let alice = Keyring::Alice;
 
     let cxt = &test_node_process_testing_state(ChainSpecType::Integration, false).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
@@ -2316,11 +2316,11 @@ pub async fn validator_name_to_relayer_info(
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> ((String, entropy_shared::X25519PublicKey), subxtAccountId32) {
     let stash_address = match validator_name {
-        ValidatorName::Alice => AccountKeyring::AliceStash,
-        ValidatorName::Bob => AccountKeyring::BobStash,
-        ValidatorName::Charlie => AccountKeyring::CharlieStash,
-        ValidatorName::Dave => AccountKeyring::DaveStash,
-        ValidatorName::Eve => AccountKeyring::EveStash,
+        ValidatorName::Alice => Keyring::AliceStash,
+        ValidatorName::Bob => Keyring::BobStash,
+        ValidatorName::Charlie => Keyring::CharlieStash,
+        ValidatorName::Dave => Keyring::DaveStash,
+        ValidatorName::Eve => Keyring::EveStash,
     };
     let block_hash = rpc.chain_get_block_hash(None).await.unwrap();
     let threshold_address_query = entropy::storage()

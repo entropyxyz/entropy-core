@@ -467,7 +467,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_balances = pallet_balances::GenesisConfig::<Test> {
         balances: (1..=9).map(|i| if i == 9 { (i, 200) } else { (i, 100) }).collect::<Vec<_>>(),
-        dev_accounts: Default::default()
+        dev_accounts: Default::default(),
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL, VerifyingKey))
