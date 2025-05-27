@@ -73,6 +73,7 @@ runtime
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
 - Database encryption key backup / recovery feature for entropy-tss [(#1249)](https://github.com/entropyxyz/entropy-core/pull/1249)
 - Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
+- Template testnet chainspec artifact ([#1442](https://github.com/entropyxyz/entropy-core/pull/1442))
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
