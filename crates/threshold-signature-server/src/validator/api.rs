@@ -121,7 +121,7 @@ async fn do_reshare(
         if data.new_signers.contains(&my_stash_address.encode()) {
             None
         } else {
-            let key_share = app_state.network_key_share()?.unwrap();
+            let key_share = app_state.network_key_share()?.ok_or(ValidatorErr::NoKeyShare)?;
             Some(OldHolder { key_share: key_share.0 })
         };
 

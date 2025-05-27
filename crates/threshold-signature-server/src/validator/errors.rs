@@ -96,6 +96,8 @@ pub enum ValidatorErr {
     NotReady,
     #[error("Application State Error: {0}")]
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
+    #[error("We are expected to be an old holder but we don't have a key-share")]
+    NoKeyShare,
 }
 
 impl IntoResponse for ValidatorErr {

@@ -437,13 +437,13 @@ impl AppState {
         self.cache.write_network_key_share(updated_key_share.clone())?;
 
         // Write to on-disk store for backup
-        self.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
+        self.kv_store.kv().delete(&hex::encode(NETWORK_PARENT_KEY)).await?;
         if let Some(key_share_with_aux_info) = updated_key_share {
-            let serialized_key_share = key_serialize(&key_share_with_aux_info).unwrap();
+            let serialized_key_share = key_serialize(&key_share_with_aux_info)?;
 
             let reservation =
-                self.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
-            self.kv_store.kv().put(reservation, serialized_key_share.clone()).await.unwrap();
+                self.kv_store.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await?;
+            self.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
         }
         Ok(())
     }
@@ -457,13 +457,13 @@ impl AppState {
         self.cache.write_next_network_key_share(updated_key_share.clone())?;
 
         // Write to on-disk store for backup
-        self.kv_store.kv().delete(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
+        self.kv_store.kv().delete(&hex::encode(NEXT_NETWORK_PARENT_KEY)).await?;
         if let Some(key_share_with_aux_info) = updated_key_share {
-            let serialized_key_share = key_serialize(&key_share_with_aux_info).unwrap();
+            let serialized_key_share = key_serialize(&key_share_with_aux_info)?;
 
             let reservation =
-                self.kv_store.kv().reserve_key(hex::encode(NEXT_NETWORK_PARENT_KEY)).await.unwrap();
-            self.kv_store.kv().put(reservation, serialized_key_share.clone()).await.unwrap();
+                self.kv_store.kv().reserve_key(hex::encode(NEXT_NETWORK_PARENT_KEY)).await?;
+            self.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
         }
         Ok(())
     }
@@ -499,4 +499,14 @@ pub enum AppStateError {
     Subxt(#[from] subxt::Error),
     #[error("No next keyshare to rotate")]
     CannotRotateKeyShare,
+    #[error("Key-value store: {0}")]
+    Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
+    #[error("Key-value store - serialization: {0}")]
+    KvFatal(String),
+}
+
+impl From<entropy_kvdb::kv_manager::helpers::KVDBFatal> for AppStateError {
+    fn from(err: entropy_kvdb::kv_manager::helpers::KVDBFatal) -> Self {
+        Self::KvFatal(format!("{err:?}"))
+    }
 }
