@@ -42,7 +42,7 @@ use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::{AccountId32, BoundedVec, Perbill};
 use std::collections::HashMap;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
@@ -54,7 +54,7 @@ type TssAccountId = sp_runtime::AccountId32;
 type TssEndpoint = String;
 
 /// Custom input data for building the chainspec for a particular test network
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TestnetChainSpecInputs {
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
@@ -291,6 +291,27 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         )
         .with_boot_nodes(inputs.boot_nodes)
         .build())
+}
+
+/// Returns a testnet chainspec with default (empty) input values.
+///
+/// This will not give a working configuration but can be used as a template chainspec where the
+/// custom values can be added in later by modifying the JSON object.
+pub fn testnet_blank_config() -> Result<ChainSpec, String> {
+    let mut inputs: TestnetChainSpecInputs = Default::default();
+    let tss_node = TssPublicKeys {
+        ready: false,
+        tss_account: AccountId32::new([0; 32]),
+        x25519_public_key: [0; 32],
+        provisioning_certification_key: BoundedVec::try_from([0; 32].to_vec())
+            .expect("[0; 32] is 32 bytes"),
+    };
+    inputs.tss_details.insert("127.0.0.1:3001".to_string(), tss_node.clone());
+    inputs.tss_details.insert("127.0.0.1:3002".to_string(), tss_node.clone());
+    inputs.tss_details.insert("127.0.0.1:3003".to_string(), tss_node.clone());
+    inputs.tss_details.insert("127.0.0.1:3004".to_string(), tss_node);
+
+    testnet_config(inputs)
 }
 
 /// Build a testnet gensis configuration from custom inputs

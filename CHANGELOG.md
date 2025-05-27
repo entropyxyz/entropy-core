@@ -17,6 +17,7 @@ At the moment this project **does not** adhere to
 
 ### Added
 - Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
+- Template testnet chainspec artifact ([#1442](https://github.com/entropyxyz/entropy-core/pull/1442))
 
 ### Changed
 - Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
