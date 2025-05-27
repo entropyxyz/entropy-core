@@ -287,6 +287,10 @@ impl Cache {
     }
 
     fn read_network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+        if self.network_key_share.is_poisoned() {
+            self.network_key_share.clear_poison();
+        }
+
         let key_share =
             self.network_key_share.read().map_err(|e| AppStateError::PosionError(e.to_string()))?;
         Ok(key_share.clone())
@@ -296,6 +300,10 @@ impl Cache {
         &self,
         updated_key_share: Option<KeyShareWithAuxInfo>,
     ) -> Result<(), AppStateError> {
+        if self.network_key_share.is_poisoned() {
+            self.network_key_share.clear_poison();
+        }
+
         let mut key_share = self
             .network_key_share
             .write()
@@ -305,6 +313,10 @@ impl Cache {
     }
 
     fn read_next_network_key_share(&self) -> Result<Option<KeyShareWithAuxInfo>, AppStateError> {
+        if self.next_network_key_share.is_poisoned() {
+            self.next_network_key_share.clear_poison();
+        }
+
         let key_share = self
             .next_network_key_share
             .read()
@@ -316,6 +328,10 @@ impl Cache {
         &self,
         updated_key_share: Option<KeyShareWithAuxInfo>,
     ) -> Result<(), AppStateError> {
+        if self.next_network_key_share.is_poisoned() {
+            self.next_network_key_share.clear_poison();
+        }
+
         let mut key_share = self
             .next_network_key_share
             .write()
