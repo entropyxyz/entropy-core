@@ -42,6 +42,7 @@ use entropy_runtime::{Block, SessionKeys};
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_parameters::SupportedCvmServices;
 use sc_chain_spec::{ChainSpecExtension, Properties};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -222,3 +223,16 @@ pub fn authority_keys_from_seed(
 
 /// Accepted measurement values for TDX attestation
 pub type MeasurementValues = Vec<BoundedVec<u8, ConstU32<32>>>;
+
+pub fn mock_measurement_values() -> Vec<(SupportedCvmServices, MeasurementValues)> {
+    vec![
+        (
+            SupportedCvmServices::EntropyTss,
+            vec![BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap()],
+        ),
+        (
+            SupportedCvmServices::ApiKeyService,
+            vec![BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap()],
+        ),
+    ]
+}

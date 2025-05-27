@@ -18,6 +18,7 @@ frame-system      = { version = "40.1.0", default-features = false }
 sp-runtime        = { version = "41.1.0", default-features = false }
 sp-std            = { version = "14.0.0", default-features = false }
 pallet-session    = { version = "40.0.0", default-features = false }
+serde             ={ version="1.0.219", default-features=false }
 
 entropy-shared={ version="0.4.0-rc.1", path="../../crates/shared", features=[
   "wasm-no-std",

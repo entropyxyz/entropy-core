@@ -17,7 +17,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use entropy_shared::X25519PublicKey;
+use entropy_shared::{
+    attestation::{AttestationHandler, QuoteContext, VerifyQuoteError},
+    X25519PublicKey, VERIFICATION_KEY_LENGTH,
+};
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 #[cfg(feature = "std")]
@@ -42,6 +45,9 @@ pub use weights::WeightInfo;
 pub mod module {
     use super::*;
 
+    // TODO put this somewhere common to here and the staking pallet
+    pub type VerifyingKey = BoundedVec<u8, ConstU32<VERIFICATION_KEY_LENGTH>>;
+
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_session::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -51,17 +57,26 @@ pub mod module {
 
         /// Weight information for the extrinsics in this module.
         type WeightInfo: WeightInfo;
+
+        /// The handler to use when issuing and verifying attestations.
+        type AttestationHandler: AttestationHandler<Self::AccountId>;
     }
 
-    /// Information about a tdx server  
-    #[derive(
-        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo, DecodeWithMemTracking,
-    )]
+    /// Information about a joining Outtie server
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct JoiningOuttieServerInfo {
+        pub x25519_public_key: X25519PublicKey,
+        pub endpoint: Vec<u8>,
+    }
+
+    /// Information about an Outtie server
+    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct OuttieServerInfo {
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: Vec<u8>,
-        //  TODO #1421 pub provisioning_certification_key: VerifyingKey,
+        pub provisioning_certification_key: VerifyingKey,
     }
 
     /// API box signing account => Server Info
@@ -76,6 +91,50 @@ pub mod module {
         EndpointTooLong,
         /// Box account already exists
         BoxAccountAlreadyExists,
+        /// Quote could not be parsed or verified
+        BadQuote,
+        /// Attestation extrinsic submitted when not requested
+        UnexpectedAttestation,
+        /// Hashed input data does not match what was expected
+        IncorrectInputData,
+        /// Unacceptable VM image running
+        BadMeasurementValue,
+        /// Cannot encode verifying key (PCK)
+        CannotEncodeVerifyingKey,
+        /// Cannot decode verifying key (PCK)
+        CannotDecodeVerifyingKey,
+        /// PCK certificate chain cannot be parsed
+        PckCertificateParse,
+        /// PCK certificate chain cannot be verified
+        PckCertificateVerify,
+        /// PCK certificate chain public key is not well formed
+        PckCertificateBadPublicKey,
+        /// Pck certificate could not be extracted from quote
+        PckCertificateNoCertificate,
+    }
+
+    impl<T> From<VerifyQuoteError> for Error<T> {
+        /// As there are many reasons why quote verification can fail we want these error types to
+        /// be reflected in the dispatch errors from extrinsics in this pallet which do quote
+        /// verification
+        fn from(error: VerifyQuoteError) -> Self {
+            match error {
+                VerifyQuoteError::BadQuote => Error::<T>::BadQuote,
+                VerifyQuoteError::UnexpectedAttestation => Error::<T>::UnexpectedAttestation,
+                VerifyQuoteError::IncorrectInputData => Error::<T>::IncorrectInputData,
+                VerifyQuoteError::BadMeasurementValue => Error::<T>::BadMeasurementValue,
+                VerifyQuoteError::CannotEncodeVerifyingKey => Error::<T>::CannotEncodeVerifyingKey,
+                VerifyQuoteError::PckCertificateParse => Error::<T>::PckCertificateParse,
+                VerifyQuoteError::PckCertificateVerify => Error::<T>::PckCertificateVerify,
+                VerifyQuoteError::PckCertificateBadPublicKey => {
+                    Error::<T>::PckCertificateBadPublicKey
+                },
+                VerifyQuoteError::PckCertificateNoCertificate => {
+                    Error::<T>::PckCertificateNoCertificate
+                },
+                VerifyQuoteError::CannotDecodeVerifyingKey => Error::<T>::CannotDecodeVerifyingKey,
+            }
+        }
     }
 
     #[pallet::event]
@@ -94,13 +153,13 @@ pub mod module {
         #[pallet::weight(<T as Config>::WeightInfo::add_box())]
         pub fn add_box(
             origin: OriginFor<T>,
-            server_info: OuttieServerInfo,
-            // TODO #1421 quote: Vec<u8>,
+            joining_server_info: JoiningOuttieServerInfo,
+            quote: Vec<u8>,
         ) -> DispatchResult {
             let box_account = ensure_signed(origin.clone())?;
 
             ensure!(
-                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                joining_server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
 
@@ -109,7 +168,20 @@ pub mod module {
                 Error::<T>::BoxAccountAlreadyExists
             );
 
-            // TODO #1421 assertion
+            let provisioning_certification_key =
+                <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
+                    &box_account,
+                    joining_server_info.x25519_public_key,
+                    quote,
+                    QuoteContext::OuttieAddBox,
+                )
+                .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
+
+            let server_info = OuttieServerInfo {
+                x25519_public_key: joining_server_info.x25519_public_key,
+                endpoint: joining_server_info.endpoint,
+                provisioning_certification_key,
+            };
 
             ApiBoxes::<T>::insert(&box_account, server_info.clone());
 

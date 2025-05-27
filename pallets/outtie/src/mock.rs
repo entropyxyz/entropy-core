@@ -16,6 +16,7 @@
 //! Mocks for the outtie pallet.
 
 #![cfg(test)]
+use entropy_shared::attestation::QuoteContext;
 use frame_support::{
     construct_runtime, derive_impl, parameter_types,
     traits::{ConstU64, Everything, OneSessionHandler},
@@ -111,10 +112,44 @@ parameter_types! {
   pub const MaxEndpointLength: u32 = 3;
 }
 
+pub(crate) const VALID_QUOTE: [u8; 32] = [0; 32];
+pub(crate) const INVALID_QUOTE: [u8; 32] = [1; 32];
+
+// TODO deduplicate this from staking extension pallet mock
+pub struct MockAttestationHandler;
+
+impl entropy_shared::attestation::AttestationHandler<AccountId> for MockAttestationHandler {
+    fn verify_quote(
+        _attestee: &AccountId,
+        _x25519_public_key: entropy_shared::X25519PublicKey,
+        quote: Vec<u8>,
+        _context: QuoteContext,
+    ) -> Result<
+        entropy_shared::BoundedVecEncodedVerifyingKey,
+        entropy_shared::attestation::VerifyQuoteError,
+    > {
+        let quote: Result<[u8; 32], _> = quote.try_into();
+        match quote {
+            Ok(q) if q == VALID_QUOTE => Ok([0; 33].to_vec().try_into().unwrap()),
+            Ok(q) if q == INVALID_QUOTE => {
+                Err(entropy_shared::attestation::VerifyQuoteError::BadQuote)
+            },
+            _ => {
+                // We don't really want to verify quotes for tests in this pallet, so if we get
+                // something else we'll just accept it.
+                Ok(BoundedVec::new())
+            },
+        }
+    }
+
+    fn request_quote(_attestee: &AccountId, _nonce: [u8; 32]) {}
+}
+
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxEndpointLength = MaxEndpointLength;
     type WeightInfo = ();
+    type AttestationHandler = MockAttestationHandler;
 }
 
 type Block = frame_system::mocking::MockBlock<Test>;

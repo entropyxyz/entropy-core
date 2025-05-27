@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
-    MEASUREMENT_VALUE_MOCK_QUOTE,
+    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
+    MeasurementValues,
 };
 
 use entropy_runtime::{
@@ -34,6 +34,7 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_parameters::SupportedCvmServices;
 use sc_network::config::MultiaddrWithPeerId;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -41,7 +42,7 @@ use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::{AccountId32, BoundedVec, Perbill};
 use std::collections::HashMap;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
@@ -53,7 +54,7 @@ type TssAccountId = sp_runtime::AccountId32;
 type TssEndpoint = String;
 
 /// Custom input data for building the chainspec for a particular test network
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TestnetChainSpecInputs {
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
@@ -253,17 +254,16 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         .collect();
 
     let measurement_values = if let Some(values) = inputs.accepted_measurement_values {
-        Some(
-            values
-                .into_iter()
-                .map(|value| {
-                    let bytes = hex::decode(&value)
-                        .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
-                    BoundedVec::try_from(bytes)
-                        .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
-                })
-                .collect::<Result<Vec<_>, String>>()?,
-        )
+        let tss_values = values
+            .into_iter()
+            .map(|value| {
+                let bytes = hex::decode(&value)
+                    .map_err(|_| format!("Measurement value {value} must be valid hex"))?;
+                BoundedVec::try_from(bytes)
+                    .map_err(|_| format!("Measurement value {value} must be 32 bytes"))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        Some(vec![(SupportedCvmServices::EntropyTss, tss_values)])
     } else {
         None
     };
@@ -293,6 +293,27 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         .build())
 }
 
+/// Returns a testnet chainspec with default (empty) input values.
+///
+/// This will not give a working configuration but can be used as a template chainspec where the
+/// custom values can be added in later by modifying the JSON object.
+pub fn testnet_blank_config() -> Result<ChainSpec, String> {
+    let mut inputs: TestnetChainSpecInputs = Default::default();
+    let tss_node = TssPublicKeys {
+        ready: false,
+        tss_account: AccountId32::new([0; 32]),
+        x25519_public_key: [0; 32],
+        provisioning_certification_key: BoundedVec::try_from([0; 32].to_vec())
+            .expect("[0; 32] is 32 bytes"),
+    };
+    inputs.tss_details.insert("127.0.0.1:3001".to_string(), tss_node.clone());
+    inputs.tss_details.insert("127.0.0.1:3002".to_string(), tss_node.clone());
+    inputs.tss_details.insert("127.0.0.1:3003".to_string(), tss_node.clone());
+    inputs.tss_details.insert("127.0.0.1:3004".to_string(), tss_node);
+
+    testnet_config(inputs)
+}
+
 /// Build a testnet gensis configuration from custom inputs
 pub fn testnet_genesis_config(
     initial_authorities: Vec<(
@@ -311,7 +332,7 @@ pub fn testnet_genesis_config(
         TssEndpoint,
         BoundedVecEncodedVerifyingKey,
     )>,
-    accepted_measurement_values: Option<MeasurementValues>,
+    accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
     mut endowed_accounts: Vec<AccountId>,
 ) -> serde_json::Value {
     assert!(
@@ -461,9 +482,7 @@ pub fn testnet_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
-                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
-            ]),
+            accepted_measurement_values: accepted_measurement_values.unwrap_or_else(mock_measurement_values),
             ..Default::default()
         },
         "programs": ProgramsConfig {

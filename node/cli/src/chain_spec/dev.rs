@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
-    MEASUREMENT_VALUE_MOCK_QUOTE,
+    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
+    MeasurementValues,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -34,11 +34,12 @@ use entropy_shared::{
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use pallet_parameters::SupportedCvmServices;
 use sc_service::ChainType;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, ByteArray};
-use sp_runtime::{BoundedVec, Perbill};
+use sp_runtime::Perbill;
 
 pub fn devnet_four_node_initial_tss_servers(
 ) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, BoundedVecEncodedVerifyingKey)> {
@@ -174,7 +175,7 @@ pub fn development_genesis_config(
         String,
         BoundedVecEncodedVerifyingKey,
     )>,
-    accepted_measurement_values: Option<MeasurementValues>,
+    accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
     // `technical_committee` genesis configs. If you don't want that, don't push those accounts to
@@ -290,9 +291,7 @@ pub fn development_genesis_config(
             max_instructions_per_programs: INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM,
             total_signers: TOTAL_SIGNERS,
             threshold: SIGNER_THRESHOLD,
-            accepted_measurement_values: accepted_measurement_values.unwrap_or(vec![
-                BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap(),
-            ]),
+            accepted_measurement_values: accepted_measurement_values.unwrap_or_else(mock_measurement_values),
             ..Default::default()
         },
         "programs": ProgramsConfig {

@@ -1580,6 +1580,7 @@ impl pallet_outtie::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MaxEndpointLength = MaxEndpointLength;
     type WeightInfo = weights::pallet_outtie::WeightInfo<Runtime>;
+    type AttestationHandler = Attestation;
 }
 
 construct_runtime!(
