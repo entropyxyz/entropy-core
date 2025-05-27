@@ -52,7 +52,6 @@ pub async fn submit_transaction<Call: Payload, S: Signer<EntropyConfig>>(
         api.runtime_api().at(block_hash).call(nonce_call).await?
     };
 
-    let latest_block = api.blocks().at_latest().await?;
     let tx_params = Params::new().mortal(MORTALITY_BLOCKS).nonce(nonce.into()).build();
     let mut tx = api.tx().create_signed(call, signer, tx_params).await?.submit_and_watch().await?;
 
