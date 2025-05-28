@@ -10,6 +10,8 @@ allow=[
   "BSD-2-Clause",
   "BSD-3-Clause",
   "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "GPL-3.0-only",
   "GPL-3.0 WITH Classpath-exception-2.0", # For Substrate crates
   "ISC",
   "MIT",
