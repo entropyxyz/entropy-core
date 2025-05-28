@@ -278,10 +278,10 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
                 initial_authorities.push((
                     initial_authority.stash,
                     initial_authority.controller,
-                    initial_authority.grandpa.unchecked_into(),
-                    initial_authority.babe.unchecked_into(),
-                    initial_authority.im_online.unchecked_into(),
-                    initial_authority.authoriy_discovery.unchecked_into(),
+                    initial_authority.grandpa,
+                    initial_authority.babe,
+                    initial_authority.im_online,
+                    initial_authority.authoriy_discovery,
                 ))
             }
             initial_authorities
