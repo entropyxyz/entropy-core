@@ -56,6 +56,8 @@ type TssEndpoint = String;
 /// Custom input data for building the chainspec for a particular test network
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TestnetChainSpecInputs {
+    /// Initial authorities - account IDs for the initial validators
+    pub initial_authorities: Option<Vec<InitialAuthority>>,
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
     pub tss_details: HashMap<String, TssPublicKeys>,
@@ -85,6 +87,23 @@ impl TestnetChainSpecInputs {
         let input = std::fs::read(path).map_err(|e| format!("{e:?}"))?;
         serde_json::from_slice(&input).map_err(|e| format!("{e:?}"))
     }
+}
+
+///
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct InitialAuthority {
+    /// Stash account
+    pub stash: AccountId,
+    /// controller account
+    pub contoller: AccountId,
+    /// grandpa account
+    pub grandpa: AccountId,
+    /// babde account
+    pub babe: AccountId,
+    /// im online account
+    pub im_online: AccountId,
+    /// authority discovery account
+    pub authoriy_discovery: AccountId,
 }
 
 pub fn testnet_local_initial_authorities(
@@ -245,6 +264,31 @@ pub fn testnet_local_initial_tss_servers(
 ///  - Update all the accounts here using keys you control, or
 ///  - Run the `testnet-local` config, which uses well-known keys
 pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, String> {
+    let initial_authorities = match inputs.initial_authorities {
+        Some(authorities) => {
+            let mut initial_authorities: Vec<(
+                AccountId,
+                AccountId,
+                GrandpaId,
+                BabeId,
+                ImOnlineId,
+                AuthorityDiscoveryId,
+            )> = vec![];
+            for initial_authority in authorities {
+                initial_authorities.push((
+                    initial_authority.stash,
+                    initial_authority.controller,
+                    initial_authority.grandpa.unchecked_into(),
+                    initial_authority.babe.unchecked_into(),
+                    initial_authority.im_online.unchecked_into(),
+                    initial_authority.authoriy_discovery.unchecked_into(),
+                ))
+            }
+            initial_authorities
+        },
+        None => testnet_initial_authorities(),
+    };
+
     let tss_details = inputs
         .tss_details
         .into_iter()
