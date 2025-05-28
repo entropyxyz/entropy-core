@@ -17,7 +17,7 @@ subxt-core    ={ version="0.42.0", default-features=false }
 num           ="0.4.3"
 thiserror     ="2.0.12"
 futures       ="0.3"
-sp-core       = { version = "36.1.0", default-features = false, features = ["full_crypto", "serde"] }
+sp-core       ={ version="36.1.0", default-features=false, features=["full_crypto", "serde"] }
 tracing       ="0.1.41"
 rand          ={ version="0.8", default-features=false }
 anyhow        ="1.0.98"
@@ -41,18 +41,14 @@ tokio ={ version="1.44", features=["time"] }
 
 [dev-dependencies]
 serial_test          ="3.2.0"
-sp-keyring           = "41.0.0"
+sp-keyring           ="41.0.0"
 entropy-testing-utils={ path="../testing-utils" }
 tdx-quote            ={ version="0.0.3", features=["mock"] }
 
 [features]
 default=["native", "full-client-native"]
-native=[
-  "entropy-shared/std",
-  "entropy-shared/user-native",
-  "subxt/native",
-]
-wasm=["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web"]
+native =["entropy-shared/std", "entropy-shared/user-native", "subxt/native"]
+wasm   =["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web"]
 
 # This adds full client functionality. It is behind a feature flag because it is not needed by
 # entropy-tss

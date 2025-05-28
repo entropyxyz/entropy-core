@@ -55,7 +55,16 @@ pub use weights::WeightInfo;
 
 /// Describes which service a given quote or accepted measurement relates to
 #[derive(
-    Clone, Encode, Decode, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize, TypeInfo, DecodeWithMemTracking
+    Clone,
+    Encode,
+    Decode,
+    Debug,
+    Eq,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    TypeInfo,
+    DecodeWithMemTracking,
 )]
 #[repr(u32)]
 #[non_exhaustive]

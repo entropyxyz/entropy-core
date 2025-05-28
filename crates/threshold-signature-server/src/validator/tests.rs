@@ -98,7 +98,7 @@ async fn test_reshare_basic() {
         assert!(!key_share.is_empty());
     }
     next_signers.remove(0);
-    let binding =  AccountId32(dave_stash.public().0);
+    let binding = AccountId32(dave_stash.public().0);
     next_signers.push(&binding);
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
@@ -218,7 +218,7 @@ async fn test_reshare_basic() {
     let key_share_before_2 = get_all_keys(signers).await;
 
     next_signers.remove(0);
-    let binding =  AccountId32(alice_stash.public().0);
+    let binding = AccountId32(alice_stash.public().0);
     next_signers.push(&binding);
 
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();

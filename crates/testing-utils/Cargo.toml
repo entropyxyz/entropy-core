@@ -10,9 +10,9 @@ edition    ='2021'
 
 [dependencies]
 subxt="0.42.0"
-sp-keyring= "41.0.0"
+sp-keyring="41.0.0"
 project-root="0.2.2"
-sp-core= { version = "36.1.0", default-features = false }
+sp-core={ version="36.1.0", default-features=false }
 parity-scale-codec="3.7.2"
 lazy_static="1.5.0"
 hex-literal="1.0.0"

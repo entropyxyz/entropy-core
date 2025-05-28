@@ -63,7 +63,9 @@ pub mod module {
     }
 
     /// Information about a joining Outtie server
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct JoiningOuttieServerInfo {
         pub x25519_public_key: X25519PublicKey,
@@ -71,7 +73,9 @@ pub mod module {
     }
 
     /// Information about an Outtie server
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct OuttieServerInfo {
         pub x25519_public_key: X25519PublicKey,
