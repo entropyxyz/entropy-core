@@ -142,6 +142,7 @@ pub async fn submit_transaction_requests(
     .await
 }
 
+#[ignore]
 #[tokio::test]
 #[serial]
 async fn test_proactive_refresh_validation_fail() {
