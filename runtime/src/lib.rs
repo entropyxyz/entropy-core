@@ -1486,7 +1486,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type RewardCounter = FixedU128;
     type RuntimeEvent = RuntimeEvent;
     type U256ToBalance = U256ToBalance;
-    // TODO: move to delegate stake
+    // TODO: https://github.com/entropyxyz/entropy-core/issues/1453
     #[allow(deprecated)]
     type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
     type AdminOrigin = EnsureRoot<AccountId>;
