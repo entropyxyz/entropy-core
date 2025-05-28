@@ -26,7 +26,7 @@ use frame_benchmarking::v2::*;
 use frame_support::{
     assert_ok, ensure,
     sp_runtime::traits::StaticLookup,
-    traits::{Currency, Defensive, Get, fungible::Inspect},
+    traits::{fungible::Inspect, Currency, Defensive, Get},
     BoundedVec,
 };
 use frame_system::{EventRecord, RawOrigin};
