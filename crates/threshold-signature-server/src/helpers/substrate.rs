@@ -29,13 +29,8 @@ use crate::{
 pub use entropy_client::substrate::{query_chain, submit_transaction};
 use entropy_shared::user::ValidatorInfo;
 use rand::prelude::SliceRandom;
-use sp_core::{sr25519, Pair};
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    config::substrate::{MultiSignature, H256},
-    tx::Signer,
-    utils::AccountId32,
-    Config, OnlineClient,
+    backend::legacy::LegacyRpcMethods, config::substrate::H256, utils::AccountId32, OnlineClient,
 };
 
 /// Given a threshold server's account ID, return its corresponding stash (validator) address.

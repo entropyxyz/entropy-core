@@ -32,7 +32,6 @@ use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
 use sp_core::{
     crypto::{AccountId32, Ss58Codec},
-    sr25519,
     sr25519::Signature,
     Pair,
 };

@@ -120,3 +120,6 @@ bob         =[]
 wasm_test=[]
 # Sets a shorter session duration for the entropy-tss test_reshare_e2e
 reshare-test=[]
+
+[lints]
+workspace=true

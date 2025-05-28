@@ -27,7 +27,7 @@ use entropy_client::substrate::PairSigner;
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha256Digest, Sha256};
 use sha3::{Digest as Sha3Digest, Keccak256, Sha3_256};
-use sp_core::{hashing::blake2_256, sr25519, Pair};
+use sp_core::{hashing::blake2_256, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use tokio::time::timeout;
 use x25519_dalek::StaticSecret;

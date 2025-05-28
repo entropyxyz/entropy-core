@@ -34,7 +34,7 @@ use entropy_client::substrate::PairSigner;
 use entropy_kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
 use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
-use sp_core::{sr25519, Pair};
+use sp_core::Pair;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, Static},

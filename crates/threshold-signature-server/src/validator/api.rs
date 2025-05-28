@@ -37,7 +37,6 @@ pub use entropy_protocol::{
 };
 use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
 use parity_scale_codec::{Decode, Encode};
-use sp_core::sr25519;
 use std::{collections::BTreeSet, str::FromStr};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 use synedrion::{KeyResharing, NewHolder, OldHolder};

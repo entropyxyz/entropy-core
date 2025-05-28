@@ -52,7 +52,7 @@ use sp_keyring::sr25519::Keyring;
 use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
     backend::legacy::LegacyRpcMethods, config::substrate::H256,
-    utils::AccountId32 as SubxtAccountId32, Config, OnlineClient,
+    utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
 use tokio::sync::OnceCell;
 
