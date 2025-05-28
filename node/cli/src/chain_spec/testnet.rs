@@ -89,21 +89,21 @@ impl TestnetChainSpecInputs {
     }
 }
 
-///
+/// Public account IDs for an initial validator
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct InitialAuthority {
     /// Stash account
     pub stash: AccountId,
     /// controller account
     pub contoller: AccountId,
-    /// grandpa account
-    pub grandpa: AccountId,
-    /// babde account
-    pub babe: AccountId,
+    /// grandpa account (Ed25519)
+    pub grandpa: GrandpaId,
+    /// babe account
+    pub babe: BabeId,
     /// im online account
-    pub im_online: AccountId,
+    pub im_online: ImOnlineId,
     /// authority discovery account
-    pub authoriy_discovery: AccountId,
+    pub authoriy_discovery: AuthorityDiscoveryId,
 }
 
 pub fn testnet_local_initial_authorities(
