@@ -95,7 +95,7 @@ pub struct InitialAuthority {
     /// Stash account
     pub stash: AccountId,
     /// controller account
-    pub contoller: AccountId,
+    pub controller: AccountId,
     /// grandpa account (Ed25519)
     pub grandpa: GrandpaId,
     /// babe account
