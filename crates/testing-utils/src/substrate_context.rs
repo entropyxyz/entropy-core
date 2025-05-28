@@ -108,7 +108,7 @@ pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
 }
 
 pub async fn test_node_process_stationary_local() -> TestNodeProcess<EntropyConfig> {
-    test_node(Keyring::Alice, "--chain=testnet".to_string(), false, None).await
+    test_node(Keyring::Alice, "--chain=testnet-local".to_string(), false, None).await
 }
 
 /// Tests chain with test state in chain config.
