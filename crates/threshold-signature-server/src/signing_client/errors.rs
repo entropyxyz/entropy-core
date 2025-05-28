@@ -122,6 +122,8 @@ pub enum ProtocolErr {
     ManulLocal(String),
     #[error("subxt rpc error: {0}")]
     SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
+    #[error("Cannot run protocol as we do not have a key-share")]
+    NoKeyShare,
 }
 
 impl IntoResponse for ProtocolErr {

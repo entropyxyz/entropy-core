@@ -22,20 +22,19 @@ use crate::{
         app_state::{BlockNumberFields, Cache},
         substrate::{get_stash_address, get_validators_info, query_chain, submit_transaction},
     },
-    signing_client::{api::get_channels, ProtocolErr},
+    signing_client::api::get_channels,
     validator::errors::ValidatorErr,
     AppState,
 };
 use axum::{body::Bytes, extract::State, http::StatusCode};
 use entropy_client::substrate::PairSigner;
-use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 pub use entropy_protocol::{
     decode_verifying_key,
     errors::ProtocolExecutionErr,
     execute_protocol::{execute_protocol_generic, execute_reshare, Channels, PairWrapper},
     KeyParams, KeyShareWithAuxInfo, Listener, PartyId, SessionId, ValidatorInfo,
 };
-use entropy_shared::{OcwMessageReshare, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
+use entropy_shared::OcwMessageReshare;
 use parity_scale_codec::{Decode, Encode};
 use std::{collections::BTreeSet, str::FromStr};
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
@@ -120,10 +119,7 @@ async fn do_reshare(
         if data.new_signers.contains(&my_stash_address.encode()) {
             None
         } else {
-            let kvdb_result = app_state.kv_store.kv().get(&hex::encode(NETWORK_PARENT_KEY)).await?;
-            let key_share: KeyShareWithAuxInfo =
-                entropy_kvdb::kv_manager::helpers::deserialize(&kvdb_result)
-                    .ok_or_else(|| ValidatorErr::KvDeserialize("Failed to load KeyShare".into()))?;
+            let key_share = app_state.network_key_share()?.ok_or(ValidatorErr::NoKeyShare)?;
             Some(OldHolder { key_share: key_share.0 })
         };
 
@@ -179,16 +175,7 @@ async fn do_reshare(
         execute_reshare(session_id.clone(), channels, &app_state.pair, inputs, &new_holders, None)
             .await?;
 
-    let serialized_key_share = key_serialize(&(new_key_share, aux_info))
-        .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-    let next_network_parent_key = hex::encode(NEXT_NETWORK_PARENT_KEY);
-
-    if app_state.kv_store.kv().exists(&next_network_parent_key).await? {
-        app_state.kv_store.kv().delete(&next_network_parent_key).await?
-    };
-
-    let reservation = app_state.kv_store.kv().reserve_key(next_network_parent_key).await?;
-    app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
+    app_state.update_next_network_key_share(Some((new_key_share, aux_info))).await?;
 
     // TODO: Error handling really complex needs to be thought about.
     confirm_key_reshare(api, rpc, &app_state.signer()).await?;
@@ -224,7 +211,7 @@ pub async fn rotate_network_key(
     let is_proper_signer = is_signer_or_delete_parent_key(
         &app_state.subxt_account_id(),
         validators_info.clone(),
-        &app_state.kv_store,
+        &app_state,
     )
     .await?;
 
@@ -232,19 +219,8 @@ pub async fn rotate_network_key(
         return Ok(StatusCode::MISDIRECTED_REQUEST);
     }
     tracing::info!("Rotating network key");
-    let network_parent_key_heading = hex::encode(NETWORK_PARENT_KEY);
-    let next_network_parent_key_heading = hex::encode(NEXT_NETWORK_PARENT_KEY);
+    app_state.rotate_key_share().await?;
 
-    let new_parent_key = app_state.kv_store.kv().get(&next_network_parent_key_heading).await?;
-
-    if app_state.kv_store.kv().exists(&network_parent_key_heading).await? {
-        app_state.kv_store.kv().delete(&network_parent_key_heading).await?;
-    };
-
-    app_state.kv_store.kv().delete(&next_network_parent_key_heading).await?;
-
-    let reservation = app_state.kv_store.kv().reserve_key(network_parent_key_heading).await?;
-    app_state.kv_store.kv().put(reservation, new_parent_key).await?;
     Ok(StatusCode::OK)
 }
 
@@ -386,18 +362,14 @@ pub async fn prune_old_holders(
 pub async fn is_signer_or_delete_parent_key(
     account_id: &AccountId32,
     validators_info: Vec<ValidatorInfo>,
-    kv_manager: &KvManager,
+    app_state: &AppState,
 ) -> Result<bool, ValidatorErr> {
     let is_proper_signer =
         validators_info.iter().any(|validator_info| validator_info.tss_account == *account_id);
     if is_proper_signer {
         Ok(true)
     } else {
-        // delete old keyshare if has it and not next_signer
-        let network_key = hex::encode(NETWORK_PARENT_KEY);
-        if kv_manager.kv().exists(&network_key).await? {
-            kv_manager.kv().delete(&network_key).await?
-        }
+        app_state.update_network_key_share(None).await?;
         Ok(false)
     }
 }

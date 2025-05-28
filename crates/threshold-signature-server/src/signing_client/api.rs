@@ -31,7 +31,6 @@ use parity_scale_codec::Encode;
 use std::{collections::BTreeSet, time::Duration};
 
 use entropy_client::substrate::PairSigner;
-use entropy_kvdb::kv_manager::helpers::{deserialize, serialize as key_serialize};
 use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
@@ -87,38 +86,19 @@ pub async fn proactive_refresh(
         .map_err(|e| ProtocolErr::UserError(e.to_string()))?;
     validate_proactive_refresh(&api, &rpc, &app_state.cache, &ocw_data).await?;
 
-    for encoded_key in ocw_data.proactive_refresh_keys {
-        let key = hex::encode(&encoded_key);
-        // key should always exist, figure out how to handle
-        let exists_result = app_state.kv_store.kv().exists(&key).await?;
-        if exists_result {
-            let old_key_share = app_state.kv_store.kv().get(&key).await?;
-            let (deserialized_old_key, aux_info): (
-                ThresholdKeyShare<KeyParams, PartyId>,
-                AuxInfo<KeyParams, PartyId>,
-            ) = deserialize(&old_key_share)
-                .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+    if let Some(old_key_share) = app_state.network_key_share()? {
+        let new_key_share = do_proactive_refresh(
+            &ocw_data.validators_info,
+            &app_state.signer(),
+            &app_state.x25519_secret,
+            &app_state.cache.listener_state,
+            old_key_share.0,
+            ocw_data.block_number,
+            old_key_share.1,
+        )
+        .await?;
 
-            let (new_key_share, aux_info) = do_proactive_refresh(
-                &ocw_data.validators_info,
-                &app_state.signer(),
-                &app_state.x25519_secret,
-                &app_state.cache.listener_state,
-                encoded_key,
-                deserialized_old_key,
-                ocw_data.block_number,
-                aux_info,
-            )
-            .await?;
-
-            // Since this is a refresh with the parties not changing, store the old aux_info
-            let serialized_key_share = key_serialize(&(new_key_share, aux_info))
-                .map_err(|_| ProtocolErr::KvSerialize("Kv Serialize Error".to_string()))?;
-
-            app_state.kv_store.kv().delete(&key).await?;
-            let reservation = app_state.kv_store.kv().reserve_key(key.clone()).await?;
-            app_state.kv_store.kv().put(reservation, serialized_key_share.clone()).await?;
-        }
+        app_state.update_network_key_share(Some(new_key_share)).await?;
     }
     // TODO: Tell chain refresh is done?
     Ok(StatusCode::OK)
@@ -150,15 +130,16 @@ pub async fn do_proactive_refresh(
     signer: &PairSigner,
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
-    verifying_key: Vec<u8>,
     old_key: ThresholdKeyShare<KeyParams, PartyId>,
     block_number: u32,
     aux_info: AuxInfo<KeyParams, PartyId>,
 ) -> Result<(ThresholdKeyShare<KeyParams, PartyId>, AuxInfo<KeyParams, PartyId>), ProtocolErr> {
     tracing::debug!("Preparing to perform proactive refresh");
     tracing::debug!("Signing with {:?}", &signer.signer().public());
+    let verifying_key = old_key.verifying_key()?;
+    let verifying_key_vec = verifying_key.to_encoded_point(true).as_bytes().to_vec();
 
-    let session_id = SessionId::Reshare { verifying_key, block_number };
+    let session_id = SessionId::Reshare { verifying_key: verifying_key_vec, block_number };
     let account_id = SubxtAccountId32(signer.signer().public().0);
     let mut converted_validator_info = vec![];
     let mut tss_accounts = vec![];
@@ -183,7 +164,7 @@ pub async fn do_proactive_refresh(
     let inputs = KeyResharing::new(
         Some(OldHolder { key_share: old_key.clone() }),
         Some(NewHolder {
-            verifying_key: old_key.verifying_key()?,
+            verifying_key,
             old_threshold: party_ids.len(),
             old_holders: party_ids.clone(),
         }),

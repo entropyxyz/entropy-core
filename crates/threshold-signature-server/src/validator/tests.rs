@@ -17,10 +17,11 @@ use crate::{
     helpers::{
         app_state::BlockNumberFields,
         tests::{
-            call_set_storage, get_port, initialize_test_logger, run_to_block, setup_client,
-            spawn_testing_validators, unsafe_get,
+            call_set_storage, get_port, initialize_test_logger, put_keyshares_in_state,
+            run_to_block, setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
         },
     },
+    launch::ValidatorName,
     validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
     EntropyConfig,
 };
@@ -40,8 +41,8 @@ use entropy_client::{
     substrate::query_chain,
     Hasher,
 };
-use entropy_kvdb::clean_tests;
-use entropy_shared::{OcwMessageReshare, MIN_BALANCE, NETWORK_PARENT_KEY};
+use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
+use entropy_shared::{OcwMessageReshare, MIN_BALANCE};
 use entropy_testing_utils::{
     constants::{
         ALICE_STASH_ADDRESS, AUXILARY_DATA_SHOULD_SUCCEED, PREIMAGE_SHOULD_SUCCEED, RANDOM_ACCOUNT,
@@ -94,8 +95,8 @@ async fn test_reshare_basic() {
 
     for signer in signers.iter() {
         let port = get_port(signer);
-        let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-        assert!(!key_share.is_empty());
+        let key_share = unsafe_get_network_keyshare(&client, port).await;
+        assert!(key_share.is_some());
     }
     next_signers.remove(0);
     let binding = AccountId32(dave_stash.public().0);
@@ -141,7 +142,7 @@ async fn test_reshare_basic() {
     }
     .unwrap();
 
-    // wait for roatate keyshare
+    // wait for rotate keyshare
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     let signers = get_current_signers(&api, &rpc).await;
     let key_shares_after = get_all_keys(signers).await;
@@ -209,8 +210,8 @@ async fn test_reshare_basic() {
         let query = entropy::storage().staking_extension().threshold_servers(AccountId32(signer));
         let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
         let port = get_port(&server_info);
-        let key_share = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-        assert!(!key_share.is_empty());
+        let key_share = unsafe_get_network_keyshare(&client, port).await;
+        assert!(key_share.is_some());
     }
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
@@ -238,13 +239,22 @@ async fn test_reshare_basic() {
     });
     call_set_storage(&api, &rpc, call).await;
 
-    // wait for roatate keyshare
-    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+    let mut i = 0;
+    // Wait up to 2min for reshare and rotation to complete: check once every two seconds if we have a new set of signers.
+    loop {
+        let signers = get_current_signers(&api, &rpc).await;
+        let key_share_after_2 = get_all_keys(signers).await;
 
-    let signers = get_current_signers(&api, &rpc).await;
-    let key_share_after_2 = get_all_keys(signers).await;
-
-    assert_ne!(key_share_before_2, key_share_after_2);
+        if key_share_before_2 != key_share_after_2 {
+            break Ok(());
+        }
+        if i > 240 {
+            break Err("Timed out waiting for reshare");
+        }
+        i += 2;
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
+    .unwrap();
 
     clean_tests();
 }
@@ -500,16 +510,17 @@ async fn test_deletes_key() {
     clean_tests();
 
     let dave = Keyring::Dave;
-    let kv = setup_client().await.kv_store;
-    let reservation = kv.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
-    kv.kv().put(reservation, vec![10]).await.unwrap();
+    let app_state = setup_client().await;
+
+    put_keyshares_in_state(ValidatorName::Alice, &app_state).await;
 
     let is_proper_signer_result =
-        is_signer_or_delete_parent_key(&AccountId32(dave.public().0), vec![], &kv).await.unwrap();
+        is_signer_or_delete_parent_key(&AccountId32(dave.public().0), vec![], &app_state)
+            .await
+            .unwrap();
     assert!(!is_proper_signer_result);
 
-    let has_key = kv.kv().exists(&hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
-    assert!(!has_key);
+    assert!(app_state.network_key_share().unwrap().is_none());
     clean_tests();
 }
 
@@ -519,9 +530,9 @@ pub async fn get_all_keys(servers_info: Vec<ServerInfo<AccountId32>>) -> HashSet
     let mut key_shares = vec![];
     for server_info in servers_info {
         let port = get_port(&server_info);
-        let result = unsafe_get(&client, hex::encode(NETWORK_PARENT_KEY), port).await;
-        if !result.is_empty() {
-            key_shares.push(result);
+        let key_share = unsafe_get_network_keyshare(&client, port).await;
+        if let Some(key_share) = key_share {
+            key_shares.push(serialize(&key_share).unwrap());
         }
     }
     HashSet::from_iter(key_shares)

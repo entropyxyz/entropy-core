@@ -63,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
         setup_kv_store(&validator_name, None).await?;
 
     let app_state =
-        AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret);
+        AppState::new(configuration.clone(), kv_store, sr25519_pair, x25519_secret).await;
 
     {
         let app_state = app_state.clone();

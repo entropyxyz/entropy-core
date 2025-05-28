@@ -98,6 +98,8 @@ pub enum ValidatorErr {
     AppStateError(#[from] crate::helpers::app_state::AppStateError),
     #[error("subxt rpc error: {0}")]
     SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
+    #[error("We are expected to be an old holder but we don't have a key-share")]
+    NoKeyShare,
 }
 
 impl IntoResponse for ValidatorErr {
