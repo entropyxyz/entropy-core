@@ -15,6 +15,7 @@
 
 //! Simple client for Entropy.
 //! Used in integration tests and for the test-cli
+#![allow(clippy::result_large_err)]
 use crate::{
     chain_api::{
         entropy::{
@@ -65,7 +66,7 @@ use sp_core::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
-    Config, OnlineClient,
+    OnlineClient,
 };
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;

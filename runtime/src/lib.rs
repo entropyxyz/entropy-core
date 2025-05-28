@@ -69,7 +69,6 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureRoot, EnsureSigned, EnsureWithSuccess,
 };
-
 #[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
 use pallet_election_provider_multi_phase::{GeometricDepositBase, SolutionAccuracyOf};
@@ -93,7 +92,6 @@ use sp_inherents::{CheckInherentsResult, InherentData};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
-    create_runtime_str,
     curve::PiecewiseLinear,
     generic, impl_opaque_keys,
     traits::{
@@ -104,7 +102,7 @@ use sp_runtime::{
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
     Perquintill,
 };
-use sp_std::prelude::*;
+use sp_std::{borrow::Cow, prelude::*};
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -189,9 +187,9 @@ pub mod opaque {
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("node"),
+    spec_name: Cow::Borrowed("node"),
 
-    impl_name: create_runtime_str!("entropy-node"),
+    impl_name: Cow::Borrowed("entropy-node"),
 
     // This shouldn't ever really need to be updated unless block production changes in some serious
     // way.
