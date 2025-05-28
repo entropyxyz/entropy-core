@@ -103,7 +103,7 @@ pub struct InitialAuthority {
     /// im online account
     pub im_online: ImOnlineId,
     /// authority discovery account
-    pub authoriy_discovery: AuthorityDiscoveryId,
+    pub authority_discovery: AuthorityDiscoveryId,
 }
 
 pub fn testnet_local_initial_authorities(
@@ -281,7 +281,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
                     initial_authority.grandpa,
                     initial_authority.babe,
                     initial_authority.im_online,
-                    initial_authority.authoriy_discovery,
+                    initial_authority.authority_discovery,
                 ))
             }
             initial_authorities
