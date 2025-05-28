@@ -83,7 +83,7 @@ pub use pallet_staking::StakerStatus;
 #[allow(deprecated)]
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
-use scale_info::TypeInfo;
+use scale_info::{TypeInfo, prelude::string};
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 pub use sp_consensus_babe::AuthorityId as BabeId;
@@ -1944,9 +1944,9 @@ impl_runtime_apis! {
 
   #[cfg(feature = "try-runtime")]
   impl frame_try_runtime::TryRuntime<Block> for Runtime {
-    fn on_runtime_upgrade() -> Result<(Weight, Weight), sp_runtime::RuntimeString> {
-      let weight = Executive::try_runtime_upgrade()?;
-      Ok((weight, RuntimeBlockWeights::get().max_block))
+    fn on_runtime_upgrade() -> (Weight, Weight) {
+      let weight = Executive::try_runtime_upgrade().unwrap();
+      (weight, RuntimeBlockWeights::get().max_block)
     }
   }
 
@@ -1956,7 +1956,7 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{baseline, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
 
             // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
@@ -1979,8 +1979,8 @@ impl_runtime_apis! {
 
         fn dispatch_benchmark(
           config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-          use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, string::String> {
+          use frame_benchmarking::{baseline, BenchmarkBatch};
           use sp_storage::TrackedStorageKey;
 
           // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
