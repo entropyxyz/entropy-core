@@ -466,8 +466,12 @@ pub async fn generate_network_key(
 
     validate_jump_start(&data, &api, &rpc, &app_state.cache).await?;
 
-    let app_state = app_state.clone();
-    setup_dkg(api, &rpc, data, app_state).await?;
+    // Run DKG in a separate task so it is not effected by the TCP connection for this request
+    tokio::spawn(async move {
+        if let Err(err) = setup_dkg(api, &rpc, data, app_state).await {
+            tracing::error!("Error during jumpstart: {err:?}");
+        };
+    });
 
     Ok(StatusCode::OK)
 }
