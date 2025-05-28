@@ -317,7 +317,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
         .with_id("entropy_testnet")
         .with_chain_type(ChainType::Live)
         .with_genesis_config_patch(testnet_genesis_config(
-            testnet_initial_authorities(),
+            initial_authorities,
             vec![],
             hex!["b848e84ef81dfeabef80caed10d7d34cc10e98e71fd00c5777b81177a510d871"].into(),
             tss_details,
