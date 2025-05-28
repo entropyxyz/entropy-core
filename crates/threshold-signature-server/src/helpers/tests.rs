@@ -42,11 +42,10 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_client::substrate::query_chain;
-use entropy_kvdb::{get_db_path, kv_manager::KvManager, BuildType};
+use entropy_kvdb::{get_db_path, BuildType};
 use entropy_protocol::PartyId;
 #[cfg(test)]
 use entropy_shared::EncodedVerifyingKey;
-use entropy_shared::NETWORK_PARENT_KEY;
 use sp_keyring::AccountKeyring;
 use std::{fmt, net::SocketAddr, path::PathBuf, str, time::Duration};
 use subxt::{
@@ -76,7 +75,8 @@ pub async fn setup_client() -> AppState {
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
         setup_kv_store(&Some(ValidatorName::Alice), Some(storage_path.clone())).await.unwrap();
 
-    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
+    let app_state =
+        AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret).await;
 
     // Mock making the pre-requisite checks by setting the application state to ready
     app_state.cache.make_ready().unwrap();
@@ -99,7 +99,7 @@ pub async fn create_clients(
     values: Vec<Vec<u8>>,
     keys: Vec<String>,
     validator_name: &Option<ValidatorName>,
-) -> (IntoMakeService<Router>, KvManager, SubxtAccountId32) {
+) -> (IntoMakeService<Router>, AppState, SubxtAccountId32) {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());
 
     let path = format!(".entropy/testing/test_db_{key_number}");
@@ -108,7 +108,8 @@ pub async fn create_clients(
     let (kv_store, sr25519_pair, x25519_secret, _should_backup) =
         setup_kv_store(validator_name, Some(path.into())).await.unwrap();
 
-    let app_state = AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret);
+    let app_state =
+        AppState::new(configuration, kv_store.clone(), sr25519_pair, x25519_secret).await;
 
     for (i, value) in values.into_iter().enumerate() {
         let reservation = kv_store.clone().kv().reserve_key(keys[i].to_string()).await.unwrap();
@@ -121,9 +122,9 @@ pub async fn create_clients(
 
     let account_id = app_state.subxt_account_id();
 
-    let app = app(app_state).into_make_service();
+    let app = app(app_state.clone()).into_make_service();
 
-    (app, kv_store, account_id)
+    (app, app_state, account_id)
 }
 
 /// A way to specify which chainspec to use in testing
@@ -157,15 +158,15 @@ pub async fn spawn_testing_validators(
 ) -> (Vec<String>, Vec<PartyId>) {
     let ports = [3001i64, 3002, 3003, 3004];
 
-    let (alice_axum, alice_kv, alice_id) =
+    let (alice_axum, alice_app_state, alice_id) =
         create_clients("validator1".to_string(), vec![], vec![], &Some(ValidatorName::Alice)).await;
     let alice_id = PartyId::new(alice_id);
 
-    let (bob_axum, bob_kv, bob_id) =
+    let (bob_axum, bob_app_state, bob_id) =
         create_clients("validator2".to_string(), vec![], vec![], &Some(ValidatorName::Bob)).await;
     let bob_id = PartyId::new(bob_id);
 
-    let (charlie_axum, charlie_kv, charlie_id) =
+    let (charlie_axum, charlie_app_state, charlie_id) =
         create_clients("validator3".to_string(), vec![], vec![], &Some(ValidatorName::Charlie))
             .await;
     let charlie_id = PartyId::new(charlie_id);
@@ -191,7 +192,7 @@ pub async fn spawn_testing_validators(
         axum::serve(listener_charlie, charlie_axum).await.unwrap();
     });
 
-    let (dave_axum, _dave_kv, dave_id) =
+    let (dave_axum, _dave_app_state, dave_id) =
         create_clients("validator4".to_string(), vec![], vec![], &Some(ValidatorName::Dave)).await;
 
     let listener_dave = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", ports[3]))
@@ -204,9 +205,9 @@ pub async fn spawn_testing_validators(
     let ids = vec![alice_id, bob_id, charlie_id, dave_id];
 
     if chain_spec_type == ChainSpecType::IntegrationJumpStarted {
-        put_keyshares_in_db(ValidatorName::Alice, alice_kv).await;
-        put_keyshares_in_db(ValidatorName::Bob, bob_kv).await;
-        put_keyshares_in_db(ValidatorName::Charlie, charlie_kv).await;
+        put_keyshares_in_state(ValidatorName::Alice, &alice_app_state).await;
+        put_keyshares_in_state(ValidatorName::Bob, &bob_app_state).await;
+        put_keyshares_in_state(ValidatorName::Charlie, &charlie_app_state).await;
         // Dave does not get a keyshare as there are only 3 parties in the signing group
     }
 
@@ -216,19 +217,19 @@ pub async fn spawn_testing_validators(
     (ips, ids)
 }
 
-/// Add the pre-generated test keyshares to a kvdb
-pub async fn put_keyshares_in_db(validator_name: ValidatorName, kvdb: KvManager) {
-    let keyshare_bytes = {
+/// Add the pre-generated test keyshares to application state
+pub async fn put_keyshares_in_state(validator_name: ValidatorName, app_state: &AppState) {
+    let key_share = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
             "crates/testing-utils/keyshares/production/keyshare-held-by-{}.keyshare",
             validator_name
         ));
-        std::fs::read(file_path).unwrap()
+        let key_share_bytes = std::fs::read(file_path).unwrap();
+        entropy_kvdb::kv_manager::helpers::deserialize(&key_share_bytes).unwrap()
     };
 
-    let reservation = kvdb.kv().reserve_key(hex::encode(NETWORK_PARENT_KEY)).await.unwrap();
-    kvdb.kv().put(reservation, keyshare_bytes).await.unwrap();
+    app_state.update_network_key_share(Some(key_share)).await.unwrap();
 }
 
 /// Removes the program at the program hash
@@ -254,17 +255,17 @@ pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32)
 
 /// Get a value from a kvdb using unsafe get
 #[cfg(test)]
-pub async fn unsafe_get(client: &reqwest::Client, query_key: String, port: u32) -> Vec<u8> {
-    let get_query = crate::r#unsafe::api::UnsafeQuery::new(query_key, vec![]).to_json();
+pub async fn unsafe_get_network_keyshare(
+    client: &reqwest::Client,
+    port: u32,
+) -> Option<entropy_protocol::KeyShareWithAuxInfo> {
     let get_result = client
-        .post(format!("http://127.0.0.1:{}/unsafe/get", port))
-        .header("Content-Type", "application/json")
-        .body(get_query)
+        .get(format!("http://127.0.0.1:{}/unsafe/get_network_keyshare", port))
         .send()
         .await
         .unwrap();
 
-    get_result.bytes().await.unwrap().into()
+    serde_json::from_slice(&get_result.bytes().await.unwrap()).unwrap()
 }
 
 /// Helper to store a program and register a user. Returns the verify key and program hash.

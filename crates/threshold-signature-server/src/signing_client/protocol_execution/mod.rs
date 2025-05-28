@@ -16,12 +16,11 @@
 //! Handle execution of the signing and DKG protocols
 mod context;
 
-use entropy_kvdb::kv_manager::KvManager;
-use entropy_protocol::PartyId;
 pub use entropy_protocol::{
     execute_protocol::{execute_signing_protocol, Channels},
     KeyParams, ProtocolMessage, RecoverableSignature, SessionId,
 };
+use entropy_protocol::{KeyShareWithAuxInfo, PartyId};
 use sp_core::sr25519;
 use subxt::utils::AccountId32;
 use synedrion::{AuxInfo, ThresholdKeyShare};
@@ -38,7 +37,7 @@ use std::collections::BTreeSet;
 #[derive(Clone)]
 pub struct ThresholdSigningService<'a> {
     pub state: &'a ListenerState,
-    pub kv_manager: &'a KvManager,
+    network_key_share: KeyShareWithAuxInfo,
 }
 
 impl std::fmt::Debug for ThresholdSigningService<'_> {
@@ -49,9 +48,9 @@ impl std::fmt::Debug for ThresholdSigningService<'_> {
 }
 
 impl<'a> ThresholdSigningService<'a> {
-    pub fn new(state: &'a ListenerState, kv_manager: &'a KvManager) -> Self {
+    pub fn new(state: &'a ListenerState, network_key_share: KeyShareWithAuxInfo) -> Self {
         {
-            Self { state, kv_manager }
+            Self { state, network_key_share }
         }
     }
 
@@ -69,24 +68,12 @@ impl<'a> ThresholdSigningService<'a> {
     ) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
 
-        let verifying_key = if derivation_path.is_some() {
-            entropy_shared::NETWORK_PARENT_KEY.as_bytes().to_vec()
-        } else {
-            sign_init.signing_session_info.signature_verifying_key.clone()
-        };
-
-        let key_share_and_aux_info_vec =
-            self.kv_manager.kv().get(&hex::encode(verifying_key)).await?;
-
-        let (key_share, aux_info): (
-            ThresholdKeyShare<KeyParams, PartyId>,
-            AuxInfo<KeyParams, PartyId>,
-        ) = entropy_kvdb::kv_manager::helpers::deserialize(&key_share_and_aux_info_vec)
-            .ok_or_else(|| ProtocolErr::Deserialization("Failed to load KeyShare".into()))?;
+        let (key_share, aux_info) = self.network_key_share.clone();
 
         let key_share = if let Some(path) = derivation_path {
             key_share.derive_bip32(&path)?
         } else {
+            // TODO #1444 - this should never happen
             key_share
         };
 

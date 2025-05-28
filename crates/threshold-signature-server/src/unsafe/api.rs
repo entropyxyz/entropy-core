@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use axum::{extract::State, http::StatusCode, Json};
+use entropy_protocol::KeyShareWithAuxInfo;
 use parity_scale_codec::Encode;
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
@@ -56,65 +57,13 @@ pub struct UnsafeBlockNumberQuery {
     pub value: u32,
 }
 
-/// Read a value from the encrypted KVDB.
-///
-/// # Note
-///
-/// This should only be used for development purposes.
-#[tracing::instrument(name = "Reading key from KVDB", skip(app_state))]
-pub async fn unsafe_get(
+/// Read the network key share from application state
+#[tracing::instrument(name = "Reading network keyshare", skip(app_state))]
+pub async fn unsafe_get_network_key_share(
     State(app_state): State<AppState>,
-    Json(key): Json<UnsafeQuery>,
-) -> Vec<u8> {
-    let value = app_state.kv_store.kv().get(&key.key.to_owned()).await;
-    match value {
-        Ok(v) => {
-            tracing::trace!("Read value: {:?} from KVDB", &v);
-            v
-        },
-        Err(_) => {
-            tracing::error!("Failed to get value from KVDB");
-            panic!("Failed to get value from KVDB")
-        },
-    }
-}
-
-/// Updates a value in the encrypted KVDB.
-///
-/// # Note
-///
-/// This should only be used for development purposes.
-#[tracing::instrument(
-    name = "Updating key from KVDB",
-    skip_all,
-    fields(key = key.key),
-)]
-pub async fn put(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>) -> StatusCode {
-    tracing::trace!("Attempting to write value {:?} to database", &key.value);
-    match app_state.kv_store.kv().exists(&key.key.to_owned()).await {
-        Ok(v) => {
-            if v {
-                tracing::debug!("Deleting existing key from KVDB");
-                app_state.kv_store.kv().delete(&key.key.to_owned()).await.unwrap();
-            }
-
-            match app_state.kv_store.kv().reserve_key(key.key.clone()).await {
-                Ok(v) => {
-                    app_state.kv_store.kv().put(v, key.value).await.unwrap();
-                    tracing::debug!("Succesfully wrote key to KVDB");
-                    StatusCode::OK
-                },
-                Err(v) => {
-                    tracing::warn!("Unable to reserve key {v:?} from KVDB");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                },
-            }
-        },
-        Err(_) => {
-            tracing::warn!("The provided key does not exist in the KVDB");
-            StatusCode::INTERNAL_SERVER_ERROR
-        },
-    }
+) -> Json<Option<KeyShareWithAuxInfo>> {
+    let network_key_share = app_state.network_key_share().unwrap();
+    Json(network_key_share)
 }
 
 /// Updates a value in the block_numbers.
@@ -167,32 +116,4 @@ pub async fn read_from_request_limit(
 ) -> Vec<u8> {
     tracing::trace!("Attempting to read value {:?} to cache", &key.key);
     app_state.cache.read_from_request_limit(&key.key).unwrap().unwrap().encode()
-}
-
-/// Deletes any key from the KVDB.
-///
-/// # Note
-///
-/// This should only be used for development purposes.
-#[tracing::instrument(name = "Deleting key from KVDB", skip(app_state))]
-pub async fn delete(State(app_state): State<AppState>, Json(key): Json<UnsafeQuery>) -> StatusCode {
-    app_state.kv_store.kv().delete(&key.key.to_owned()).await.unwrap();
-
-    tracing::debug!("Succesfully removed key from KVDB");
-    StatusCode::OK
-}
-
-/// Removes all keys from the KVDB.
-///
-/// # Note
-///
-/// This should only be used for development purposes.
-#[tracing::instrument(name = "Removing all keys from KVDB", skip(app_state))]
-pub async fn remove_keys(State(app_state): State<AppState>) -> StatusCode {
-    app_state.kv_store.kv().delete("DH_PUBLIC").await.unwrap();
-    app_state.kv_store.kv().delete("MNEMONIC").await.unwrap();
-    app_state.kv_store.kv().delete("SHARED_SECRET").await.unwrap();
-
-    tracing::debug!("Succesfully removed all keys from KVDB");
-    StatusCode::OK
 }

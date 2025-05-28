@@ -171,7 +171,7 @@ To speed up running tests, some tests use pre-generated keyshares rather than ru
 ./scripts/create-test-keyshares.sh`
 ```
 
-from the project root.  For an explanation of how the test keyshare sets are structured, see [`create-test-keyshares`](./scripts/create-test-keyshares).
+from the project root. For an explanation of how the test keyshare sets are structured, see [`create-test-keyshares`](./scripts/create-test-keyshares).
 
 ## Chain specification (chainspec)
 

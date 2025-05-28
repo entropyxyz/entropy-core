@@ -143,14 +143,10 @@
 //! purposes only and will not be used in production. These routes are only available if this crate
 //! is compiled with the `unsafe` feature enabled.
 //!
-//! - [`unsafe/get`](crate::unsafe::api::unsafe_get()) - POST - get a value from the key-value
-//!   store, given its key.
-//! - [`unsafe/put`](crate::unsafe::api::put()) - POST - update an existing value in the key-value
-//!   store.
-//! - [`unsafe/delete`](crate::unsafe::api::delete()) - POST - remove a value from the key-value
-//!   store, given its key.
-//! - [`unsafe/remove_keys`](crate::unsafe::api::remove_keys()) - GET - remove everything from the
-//!   key-value store.
+//! - [`/unsafe/get_network_keyshare`](crate::unsafe::api::unsafe_get_network_key_share()) - GET - Read the network keyshare
+//! - [`/unsafe/write_to_request_limit`](crate::unsafe::api::write_to_request_limit()) - POST - Write the request limit
+//! - [`/unsafe/read_from_request_limit`](crate::unsafe::api::read_from_request_limit()) - POST - Read the request limit
+//! - [`/unsafe/write_to_block_number`](crate::unsafe::api::write_to_block_numbers()) - POST - Write to the block numbers
 //!
 //! ## Pieces Launched
 //!
@@ -179,7 +175,7 @@ use crate::{
     health::api::healthz,
     node_info::api::{hashes, info, version as get_version},
     r#unsafe::api::{
-        delete, put, read_from_request_limit, remove_keys, unsafe_get, write_to_block_numbers,
+        read_from_request_limit, unsafe_get_network_key_share, write_to_block_numbers,
         write_to_request_limit,
     },
     signing_client::{api::*, ListenerState},
@@ -224,13 +220,10 @@ pub fn app(app_state: AppState) -> Router {
     if cfg!(feature = "unsafe") || cfg!(test) {
         tracing::warn!("Server started in unsafe mode - do not use in production!");
         routes = routes
-            .route("/unsafe/put", post(put))
             .route("/unsafe/write_to_request_limit", post(write_to_request_limit))
             .route("/unsafe/read_from_request_limit", post(read_from_request_limit))
             .route("/unsafe/write_to_block_numbers", post(write_to_block_numbers))
-            .route("/unsafe/get", post(unsafe_get))
-            .route("/unsafe/delete", post(delete))
-            .route("/unsafe/remove_keys", get(remove_keys));
+            .route("/unsafe/get_network_keyshare", get(unsafe_get_network_key_share))
     }
 
     routes
