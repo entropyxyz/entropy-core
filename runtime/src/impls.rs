@@ -47,7 +47,7 @@ impl OnUnbalanced<NegativeImbalance> for Author {
 mod multiplier_tests {
     use frame_support::{
         dispatch::DispatchClass,
-        weights::{Weight, WeightToFee, WeightToFeePolynomial},
+        weights::{Weight, WeightToFee},
     };
     use pallet_transaction_payment::{Multiplier, TargetedFeeAdjustment};
     use sp_runtime::{

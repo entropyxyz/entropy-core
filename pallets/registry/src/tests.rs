@@ -517,7 +517,7 @@ fn it_changes_a_program_instance() {
         let mut registered_info = RegisteredInfo {
             programs_data: programs_info,
             program_modification_account: 2,
-            derivation_path: None,
+            derivation_path: vec![0],
             version_number: 1,
         };
 
@@ -582,7 +582,7 @@ fn it_changes_a_program_mod_account() {
         let mut registered_info = RegisteredInfo {
             programs_data: programs_info,
             program_modification_account: 2,
-            derivation_path: None,
+            derivation_path: vec![0],
             version_number: 1,
         };
 
