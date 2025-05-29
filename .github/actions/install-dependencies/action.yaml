@@ -12,9 +12,6 @@ runs:
       shell: bash
     - name: Add Rust components
       run: |
-        # FIXME 1435 - 1.86 is only needed until we next update substrate - otherwise we use stable
-        rustup install 1.86.0
-        rustup default 1.86.0
         rustup target add wasm32-unknown-unknown
         rustup component add rust-src
       shell: bash

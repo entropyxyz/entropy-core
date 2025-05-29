@@ -11,9 +11,6 @@ At the moment this project **does not** adhere to
 
 ### Breaking
 - In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
-- In [1436](https://github.com/entropyxyz/entropy-core/pull/1436) rust is downgraded to version 1.86
-  as a temporary measure until we upgrade sp-io. This changelog entry can be deleted when we revert
-  to using stable.
 
 ### Added
 - Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
