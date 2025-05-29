@@ -92,17 +92,18 @@ impl TestnetChainSpecInputs {
 /// Public account IDs for an initial validator
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct InitialAuthority {
-    /// Stash account
+    /// The stash account ID. This holds staked funds
     pub stash: AccountId,
-    /// controller account
+    /// The controller account ID. This is used for sending staking-related extrinsics, allowing the
+    /// stash account can be kept 'cold'
     pub controller: AccountId,
-    /// grandpa account (Ed25519)
+    /// GRANDPA account ID (Ed25519) - Session key for finality
     pub grandpa: GrandpaId,
-    /// babe account
+    /// BABE account ID - Session key for the block production mechanism
     pub babe: BabeId,
-    /// im online account
+    /// Im online account ID - Session key for tracking responsiveness
     pub im_online: ImOnlineId,
-    /// authority discovery account
+    /// Authority discovery account - Session key for finding other validators
     pub authority_discovery: AuthorityDiscoveryId,
 }
 
