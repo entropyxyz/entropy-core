@@ -10,7 +10,7 @@ edition    ='2021'
 
 [dependencies]
 entropy-client    ={ version="0.4.0-rc.1", path="../client" }
-clap              ={ version="4.5.38", features=["derive"] }
+clap              ={ version="4.5.39", features=["derive"] }
 colored           ="3.0.0"
 subxt             ="0.38.0"
 sp-core           ="34.0.0"
