@@ -30,6 +30,8 @@ pub enum SubstrateError {
     NotRegistered,
     #[error("subxt_core error: {0}")]
     SubxtCoreError(#[from] subxt_core::Error),
+    #[error("subxt rpc error: {0}")]
+    SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
 }
 
 /// An error on getting the current subgroup signers
@@ -49,6 +51,8 @@ pub enum SubgroupGetError {
     SubstrateClient(#[from] crate::substrate::SubstrateError),
     #[error("Error Joining threads: {0}")]
     JoinError(#[from] tokio::task::JoinError),
+    #[error("subxt rpc error: {0}")]
+    SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
 }
 
 /// An error when making an attestation request
@@ -141,4 +145,6 @@ pub enum ClientError {
     SessionKeyLength,
     #[error("Strip prefix error")]
     StripPrefix,
+    #[error("subxt rpc error: {0}")]
+    SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
 }

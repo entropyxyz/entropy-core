@@ -72,13 +72,13 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ConstU128<10>;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeFreezeReason;
+    type DoneSlashHandler = ();
     type WeightInfo = ();
 }
 

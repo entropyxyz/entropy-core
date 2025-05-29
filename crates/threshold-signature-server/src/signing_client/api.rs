@@ -30,13 +30,12 @@ use entropy_protocol::{
 use parity_scale_codec::Encode;
 use std::{collections::BTreeSet, time::Duration};
 
+use entropy_client::substrate::PairSigner;
 use entropy_shared::{OcwMessageProactiveRefresh, SETUP_TIMEOUT_SECONDS};
 use parity_scale_codec::Decode;
 use sp_core::Pair;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
-    ext::sp_core::sr25519,
-    tx::PairSigner,
     utils::{AccountId32 as SubxtAccountId32, Static},
     OnlineClient,
 };
@@ -128,7 +127,7 @@ async fn handle_socket_result(socket: WebSocket, app_state: AppState) {
 )]
 pub async fn do_proactive_refresh(
     validators_info: &Vec<entropy_shared::ValidatorInfo>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner,
     x25519_secret_key: &StaticSecret,
     state: &ListenerState,
     old_key: ThresholdKeyShare<KeyParams, PartyId>,
@@ -241,7 +240,7 @@ pub async fn get_channels(
     converted_validator_info: Vec<ValidatorInfo>,
     account_id: SubxtAccountId32,
     session_id: &SessionId,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner,
     x25519_secret_key: &StaticSecret,
 ) -> Result<Channels, ProtocolErr> {
     // subscribe to all other participating parties. Listener waits for other subscribers.

@@ -11,9 +11,6 @@ At the moment this project **does not** adhere to
 
 ### Breaking
 - In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
-- In [1436](https://github.com/entropyxyz/entropy-core/pull/1436) rust is downgraded to version 1.86
-  as a temporary measure until we upgrade sp-io. This changelog entry can be deleted when we revert
-  to using stable.
 
 ### Added
 - Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
@@ -24,6 +21,7 @@ At the moment this project **does not** adhere to
 - Remove deadlines in OCW ([#1411](https://github.com/entropyxyz/entropy-core/pull/1411))
 - Bump synedrion to 0.3.0 and use manul for protocol session loop ([#1392](https://github.com/entropyxyz/entropy-core/pull/1392))
 - Only read from the entropy-tss key-value store following a reboot ([#1429](https://github.com/entropyxyz/entropy-core/pull/1429))
+- Update substrate to polkadot stable2503-4 ([#1439](https://github.com/entropyxyz/entropy-core/pull/1439))
 
 ## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 

@@ -15,6 +15,7 @@
 
 //! Simple client for Entropy.
 //! Used in integration tests and for the test-cli
+#![allow(clippy::result_large_err)]
 use crate::{
     chain_api::{
         entropy::{
@@ -65,7 +66,7 @@ use sp_core::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     utils::{AccountId32 as SubxtAccountId32, H256},
-    Config, OnlineClient,
+    OnlineClient,
 };
 
 pub const VERIFYING_KEY_LENGTH: usize = entropy_shared::VERIFICATION_KEY_LENGTH as usize;
@@ -222,7 +223,7 @@ pub async fn store_program(
     auxiliary_data_interface: Vec<u8>,
     oracle_data_pointers: Vec<Vec<u8>>,
     version_number: u8,
-) -> Result<<EntropyConfig as Config>::Hash, ClientError> {
+) -> Result<H256, ClientError> {
     let set_program_tx = entropy::tx().programs().set_program(
         program,
         configuration_interface,
@@ -263,7 +264,7 @@ pub async fn remove_program(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     deployer_pair: &sr25519::Pair,
-    program_hash: <EntropyConfig as Config>::Hash,
+    program_hash: H256,
 ) -> Result<(), ClientError> {
     let remove_program_tx = entropy::tx().programs().remove_program(program_hash);
     let in_block =

@@ -39,7 +39,7 @@ use ethers_core::{
 use k256::ecdsa::VerifyingKey;
 use serial_test::serial;
 use sp_core::Pair;
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
 const GOERLI_CHAIN_ID: u64 = 5;
@@ -56,12 +56,12 @@ async fn integration_test_sign_eth_tx() {
     do_jump_start(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        AccountKeyring::Alice.pair(),
+        Keyring::Alice.pair(),
     )
     .await;
 
-    let account_owner = AccountKeyring::Ferdie.pair();
-    let signature_request_author = AccountKeyring::One;
+    let account_owner = Keyring::Ferdie.pair();
+    let signature_request_author = Keyring::One;
 
     // Store a program
     let program_pointer = test_client::store_program(

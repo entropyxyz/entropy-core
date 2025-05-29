@@ -132,13 +132,13 @@ impl pallet_balances::Config for Test {
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-
     type MaxLocks = MaxLocks;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeFreezeReason;
+    type DoneSlashHandler = ();
     type WeightInfo = ();
 }
 
@@ -264,14 +264,6 @@ parameter_types! {
   pub const MaxPeerDataEncodingSize: u32 = 1_000;
 }
 
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
-where
-    RuntimeCall: From<C>,
-{
-    type Extrinsic = TestXt<RuntimeCall, ()>;
-    type OverarchingCall = RuntimeCall;
-}
-
 const THRESHOLDS: [sp_npos_elections::VoteWeight; 9] =
     [10, 20, 30, 40, 50, 60, 1_000, 2_000, 10_000];
 
@@ -303,11 +295,13 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
     type MaxValidators = ConstU32<1000>;
 }
 
+#[derive_impl(pallet_staking::config_preludes::TestDefaultConfig)]
 impl pallet_staking::Config for Test {
     type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type BondingDuration = BondingDuration;
     type Currency = Balances;
+    type OldCurrency = Balances;
     type CurrencyBalance = Balance;
     type CurrencyToVote = ();
     type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
@@ -320,7 +314,6 @@ impl pallet_staking::Config for Test {
     type MaxUnlockingChunks = ConstU32<32>;
     type NextNewSession = Session;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
-    type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy<3>;
     type Reward = ();
     type RewardRemainder = ();
     type RuntimeEvent = RuntimeEvent;
@@ -356,6 +349,7 @@ impl pallet_session::Config for Test {
     type ShouldEndSession = TestShouldEndSession;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
+    type DisablingStrategy = ();
     type WeightInfo = ();
 }
 
@@ -474,6 +468,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let pallet_balances = pallet_balances::GenesisConfig::<Test> {
         balances: (1..=9).map(|i| if i == 9 { (i, 200) } else { (i, 100) }).collect::<Vec<_>>(),
+        dev_accounts: Default::default(),
     };
     let pallet_staking_extension = pallet_staking_extension::GenesisConfig::<Test> {
         // (ValidatorID, (AccountId, X25519PublicKey, TssServerURL, VerifyingKey))

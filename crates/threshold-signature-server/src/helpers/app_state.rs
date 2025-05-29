@@ -19,6 +19,7 @@ use crate::{
     launch::Configuration,
     signing_client::ListenerState,
 };
+use entropy_client::substrate::PairSigner;
 use entropy_kvdb::kv_manager::{helpers::serialize as key_serialize, KvManager};
 use entropy_protocol::KeyShareWithAuxInfo;
 use entropy_shared::{X25519PublicKey, NETWORK_PARENT_KEY, NEXT_NETWORK_PARENT_KEY};
@@ -30,8 +31,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 use subxt::{
-    backend::legacy::LegacyRpcMethods, tx::PairSigner, utils::AccountId32 as SubxtAccountId32,
-    OnlineClient,
+    backend::legacy::LegacyRpcMethods, utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
 use thiserror::Error;
 use x25519_dalek::StaticSecret;
@@ -398,8 +398,8 @@ impl AppState {
     }
 
     /// Get a [PairSigner] for submitting extrinsics with subxt
-    pub fn signer(&self) -> PairSigner<EntropyConfig, sr25519::Pair> {
-        PairSigner::<EntropyConfig, sr25519::Pair>::new(self.pair.clone())
+    pub fn signer(&self) -> PairSigner {
+        PairSigner::new(self.pair.clone())
     }
 
     /// Get the [AccountId32]

@@ -88,13 +88,13 @@ impl pallet_balances::Config for Test {
     type ExistentialDeposit = ExistentialDeposit;
     type FreezeIdentifier = ();
     type MaxFreezes = ();
-
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeFreezeReason;
+    type DoneSlashHandler = ();
     type WeightInfo = ();
 }
 
@@ -138,6 +138,7 @@ impl pallet_session::Config for Test {
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;
+    type DisablingStrategy = ();
     type WeightInfo = ();
 }
 

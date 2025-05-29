@@ -55,7 +55,16 @@ pub use weights::WeightInfo;
 
 /// Describes which service a given quote or accepted measurement relates to
 #[derive(
-    Clone, Encode, Decode, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize, TypeInfo,
+    Clone,
+    Encode,
+    Decode,
+    Debug,
+    Eq,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    TypeInfo,
+    DecodeWithMemTracking,
 )]
 #[repr(u32)]
 #[non_exhaustive]
@@ -130,7 +139,17 @@ pub mod module {
     }
 
     /// Signer info for the next reshare
-    #[derive(Clone, Encode, Decode, Eq, PartialEqNoBound, RuntimeDebug, TypeInfo, Default)]
+    #[derive(
+        Clone,
+        Encode,
+        Decode,
+        Eq,
+        PartialEqNoBound,
+        RuntimeDebug,
+        TypeInfo,
+        Default,
+        DecodeWithMemTracking,
+    )]
     pub struct SignersSize {
         /// Next threshold amount
         pub threshold: u8,

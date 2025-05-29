@@ -19,7 +19,7 @@ pub mod errors;
 
 use entropy_kvdb::kv_manager::value::{KvValue, PartyInfo};
 use serde::{Deserialize, Serialize};
-use subxt::ext::sp_runtime::AccountId32;
+use subxt::utils::AccountId32;
 
 pub use self::errors::*;
 

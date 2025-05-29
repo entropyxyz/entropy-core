@@ -32,7 +32,7 @@ use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
 use k256::ecdsa::VerifyingKey;
 use serial_test::serial;
 use sp_core::Pair;
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
 // FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
@@ -50,13 +50,13 @@ async fn integration_test_register_sign() {
     do_jump_start(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        AccountKeyring::Alice.pair(),
+        Keyring::Alice.pair(),
     )
     .await;
 
     // Now register an account
-    let account_owner = AccountKeyring::Ferdie.pair();
-    let signature_request_author = AccountKeyring::One;
+    let account_owner = Keyring::Ferdie.pair();
+    let signature_request_author = Keyring::One;
 
     // Store a program
     let program_pointer = test_client::store_program(

@@ -112,13 +112,13 @@ pub mod pallet {
     /// Endpoint where a threshold server can be reached at
     pub type TssServerURL = Vec<u8>;
 
-    /// The balance type of this pallet.
-    pub type BalanceOf<T> = <<T as pallet_staking::Config>::Currency as Currency<
-        <T as frame_system::Config>::AccountId,
-    >>::Balance;
+    // The balance type of this pallet.
+    pub type BalanceOf<T> = <T as pallet_staking::Config>::CurrencyBalance;
 
     /// Information about a threshold server
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct ServerInfo<AccountId> {
         pub tss_account: AccountId,
@@ -129,7 +129,9 @@ pub mod pallet {
 
     /// Information about a threshold server in the process of joining
     /// This becomes a [ServerInfo] when an attestation has been verified
-    #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+    #[derive(
+        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct JoiningServerInfo<AccountId> {
         pub tss_account: AccountId,

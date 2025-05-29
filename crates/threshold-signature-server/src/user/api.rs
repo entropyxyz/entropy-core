@@ -22,7 +22,7 @@ use axum::{
     Json,
 };
 use base64::prelude::{Engine, BASE64_STANDARD};
-use entropy_client::substrate::get_registered_details;
+use entropy_client::substrate::{get_registered_details, PairSigner};
 use entropy_kvdb::kv_manager::KvManager;
 use entropy_programs_runtime::SignatureRequest;
 use entropy_protocol::SigningSessionInfo;
@@ -30,13 +30,13 @@ use entropy_shared::{HashingAlgorithm, OcwMessageDkg, NETWORK_PARENT_KEY};
 use futures::{channel::mpsc, future::join_all, StreamExt};
 use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::{AccountId32, Ss58Codec};
+use sp_core::{
+    crypto::{AccountId32, Ss58Codec},
+    sr25519::Signature,
+    Pair,
+};
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    ext::sp_core::{sr25519, sr25519::Signature, Pair},
-    tx::PairSigner,
-    utils::AccountId32 as SubxtAccountId32,
-    OnlineClient,
+    backend::legacy::LegacyRpcMethods, utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
 
 use super::UserErr;
@@ -378,7 +378,7 @@ pub async fn sign_tx(
 async fn handle_protocol_errors(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner,
     error: ProtocolErr,
 ) -> Result<(), String> {
     let peers_to_report: Vec<SubxtAccountId32> = match &error {
@@ -518,7 +518,7 @@ async fn setup_dkg(
 pub async fn confirm_jump_start(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    signer: &PairSigner<EntropyConfig, sr25519::Pair>,
+    signer: &PairSigner,
     verifying_key: Vec<u8>,
     nonce: u32,
 ) -> Result<(), UserErr> {

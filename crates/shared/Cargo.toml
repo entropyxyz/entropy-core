@@ -13,24 +13,32 @@ codec       ={ package="parity-scale-codec", version="3.0.0", default-features=f
 scale-info  ={ version='2.11.6', default-features=false, features=['derive'] }
 serde       ={ version="1.0", default-features=false, features=["derive"] }
 serde_derive="1.0.147"
-strum       ="0.27.1"
-strum_macros="0.27.1"
+strum       ={ version="0.27.1", optional=true }
+strum_macros={ version="0.27.1", optional=true }
 blake2      ={ version="0.10.4", default-features=false }
 
-sp-runtime ={ version="39.0.1", default-features=false, optional=true, features=["serde"] }
+sp-runtime ={ version="41.1.0", default-features=false, optional=true, features=["serde"] }
 sp-std     ={ version="14.0.0", default-features=false }
 lazy_static={ version="1.5.0", features=["spin_no_std"] }
 hex-literal="1.0.0"
-sp-core    ={ version="34.0.0", default-features=false }
-subxt      ={ version="0.38.0", default-features=false, optional=true }
+sp-core    ={ version="36.1.0", default-features=false }
+subxt      ={ version="0.42.0", default-features=false, optional=true }
 tdx-quote  ="0.0.3"
 
 [features]
-default    =["std"]
-std        =["codec/std", "scale-info/std", "serde/std", "sp-runtime/std", "sp-std/std"]
-wasm       =["codec/std", "scale-info/std", "serde/std", "sp-std/std"]
+default=["std"]
+std=[
+  "codec/std",
+  "scale-info/std",
+  "serde/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "strum",
+  "strum_macros",
+]
+wasm=["codec/std", "scale-info/std", "serde/std", "sp-std/std"]
 wasm-no-std=["sp-runtime"]
 user-native=["dep:subxt", "subxt/native"]
-user-wasm  =["dep:subxt", "subxt/web"]
+user-wasm=["dep:subxt", "subxt/web"]
 # Enables non-mock TDX quote verification
 production=[]

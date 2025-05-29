@@ -55,7 +55,7 @@ use k256::ecdsa::VerifyingKey;
 use parity_scale_codec::Encode;
 use serial_test::serial;
 use sp_core::Pair;
-use sp_keyring::AccountKeyring;
+use sp_keyring::sr25519::Keyring;
 use std::collections::HashSet;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 
@@ -74,8 +74,8 @@ async fn test_reshare_basic() {
             .await;
     let api = get_api(&context[0].ws_url).await.unwrap();
     let rpc = get_rpc(&context[0].ws_url).await.unwrap();
-    let alice_stash = AccountKeyring::AliceStash;
-    let dave_stash = AccountKeyring::DaveStash;
+    let alice_stash = Keyring::AliceStash;
+    let dave_stash = Keyring::DaveStash;
     let client = reqwest::Client::new();
 
     // Get current signers
@@ -99,7 +99,7 @@ async fn test_reshare_basic() {
         assert!(key_share.is_some());
     }
     next_signers.remove(0);
-    let binding = dave_stash.to_account_id().into();
+    let binding = AccountId32(dave_stash.public().0);
     next_signers.push(&binding);
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number + 1;
@@ -153,8 +153,8 @@ async fn test_reshare_basic() {
     // but by the time we have stored a program and registered, the rotation should have happened
 
     // Now test signing a message with the new keyshare set
-    let account_owner = AccountKeyring::Ferdie.pair();
-    let signature_request_author = AccountKeyring::One;
+    let account_owner = Keyring::Ferdie.pair();
+    let signature_request_author = Keyring::One;
     // Store a program
     let program_pointer = test_client::store_program(
         &api,
@@ -219,7 +219,7 @@ async fn test_reshare_basic() {
     let key_share_before_2 = get_all_keys(signers).await;
 
     next_signers.remove(0);
-    let binding = alice_stash.to_account_id().into();
+    let binding = AccountId32(alice_stash.public().0);
     next_signers.push(&binding);
 
     let storage_address_next_signers = entropy::storage().staking_extension().next_signers();
@@ -377,8 +377,8 @@ async fn test_reshare_validation_fail() {
     initialize_test_logger().await;
     clean_tests();
 
-    let dave = AccountKeyring::Dave;
-    let alice = AccountKeyring::Alice;
+    let dave = Keyring::Dave;
+    let alice = Keyring::Alice;
 
     let cxt = &test_node_process_testing_state(ChainSpecType::Integration, true).await[0];
     let api = get_api(&cxt.ws_url).await.unwrap();
@@ -438,7 +438,7 @@ async fn test_reshare_validation_fail_not_in_reshare() {
     initialize_test_logger().await;
     clean_tests();
 
-    let alice = AccountKeyring::Alice;
+    let alice = Keyring::Alice;
     let cxt = test_context_stationary().await;
     let api = get_api(&cxt.node_proc.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.node_proc.ws_url).await.unwrap();
@@ -509,13 +509,13 @@ async fn test_deletes_key() {
     initialize_test_logger().await;
     clean_tests();
 
-    let dave = AccountKeyring::Dave;
+    let dave = Keyring::Dave;
     let app_state = setup_client().await;
 
     put_keyshares_in_state(ValidatorName::Alice, &app_state).await;
 
     let is_proper_signer_result =
-        is_signer_or_delete_parent_key(&dave.to_account_id().into(), vec![], &app_state)
+        is_signer_or_delete_parent_key(&AccountId32(dave.public().0), vec![], &app_state)
             .await
             .unwrap();
     assert!(!is_proper_signer_result);

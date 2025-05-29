@@ -10,6 +10,8 @@ allow=[
   "BSD-2-Clause",
   "BSD-3-Clause",
   "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "GPL-3.0",
   "GPL-3.0 WITH Classpath-exception-2.0", # For Substrate crates
   "ISC",
   "MIT",
@@ -46,8 +48,6 @@ exceptions=[
 
   # These are the only crates using these licenses, put them here instead of globally allowing
   # them
-  { allow=["OpenSSL"], name="ring" },
-  { allow=["Unicode-DFS-2016"], name="unicode-ident" },
   { allow=["Zlib"], name="const_format" },
   { allow=["Zlib"], name="const_format_proc_macros" },
 ]
