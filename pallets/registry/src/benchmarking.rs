@@ -270,9 +270,7 @@ mod benchmarks {
         let program = vec![0u8];
         let configuration_schema = vec![1u8];
         let auxiliary_data_schema = vec![2u8];
-        let derivation_path =
-            bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count))
-                .unwrap();
+        let derivation_path = vec![3u8];
         let oracle_data_pointers: OraclePointers<T> =
             BoundedVec::try_from([vec![3u8]].to_vec()).unwrap();
         let program_hash = T::Hashing::hash(&program);
@@ -356,10 +354,7 @@ mod benchmarks {
             program_config: vec![],
         }])
         .unwrap();
-
-        let derivation_path =
-            bip32::DerivationPath::from_str(&scale_info::prelude::format!("m/0/{}", count))
-                .unwrap();
+        let derivation_path = vec![3u8];
 
         let sig_req_account: T::AccountId = whitelisted_caller();
         let balance =
