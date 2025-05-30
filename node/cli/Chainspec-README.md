@@ -28,6 +28,61 @@ https://github.com/entropyxyz/entropy-core/blob/master/node/cli/test-chainspec-i
 
 This object includes the following fields:
 
+## Initial Authorities - `initial_authorities`
+
+These are the public account IDs for the various accounts and 'session keys' belonging to the initial
+validator set which will be present in the first session.
+
+This must be an array of objects, which have the following fields:
+
+- `stash`: The stash account ID, as a ss58-encoded string. This holds staked funds.
+- `controller`: The controller account ID, as a ss58-encoded string. Sends staking-related
+  extrinsics.
+- `grandpa`: The GRANDPA account ID, as a ss58-encoded string. For finality.
+- `babe`: The BABE account ID, as a ss58-encoded string. For the block production mechanism.
+- `im_online`: The ImOnline account ID, as a ss58-encoded string. For tracking responsiveness.
+- `authority_discovery`: The authority discovery account ID, as a ss58-encoded string. For finding other
+  validators.
+
+For an explantation of what these are for, see ['Session keys' on the Polkadot Wiki](https://wiki.polkadot.network/learn/learn-cryptography/#session-keys).
+
+```json
+    "initial_authorities": [
+        {
+            "stash": "5FbwUrncUnFpa7wQKrxexXpEGZzM7ivDHwJNFQUQmjY38Cco",
+            "controller": "5GC6HbDfosvHUuCDkr8nAG81LBFNMgToMRfnFpa7GFD4td7q",
+            "grandpa": "5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK",
+            "babe": "5F6kuqyMq38QPJhMjfUsoF5o8EjSkdPXKdQeAiAqEdGgFQdY",
+            "im_online": "5GbrYiuSkFAKh2BE5WR8in76WRFWpN2oZ9tGzfJ9TZqSLnvd",
+            "authority_discovery": "5H4KA7kqNxEQUStzDmjC1w1311ZGaTC1RE2m7riQa4j8FAND"
+        },
+        {
+            "stash": "5He4vcqwSEoJSDMDBVmWE7n9HmGs81rMNzviGY6uzL8RWYPu",
+            "controller": "5GWBLjvgQucinSSf5WvEDVhLRkBMCwMFavmwirfomw4RPaMV",
+            "grandpa": "5DNVknZup4smom1tGmo1G4QXkzY7EU4aMjcekGES9CtkRQLr",
+            "babe": "5CHzj2XgRDXzSHZWQtWVcoWsYprEtUiLzJFiKhXZZzKih1qk",
+            "im_online": "5CwEFpcmgxqp69H9LG2BWb8nkQSst59WZy7ihXum49Hc8wDK",
+            "authority_discovery": "5EqpxZBuooBFWWv8871fKYJR9h7F4DFCVgZ539gPUF8gkbKp"
+        },
+        {
+            "stash": "5Cca9Cv3giBxcG934caj6Tk2NWqRXK2nKFQ7zQhLT1xSx82Z",
+            "controller": "5H4NWR22bsQ6XuvjVcAnP7isutFrEXrnQ7sXGBzRNSzrfcGt",
+            "grandpa": "5ELT9DsaGzwgZpMYsshQojhixkKDaG12CKtGbSc1kYTazrQQ",
+            "babe": "5GNRmLL5iE2kwHU5aAKamZgB8Y2ZjN4hxf2BRGnbsE4VUGwG",
+            "im_online": "5HNeUG6K22VLNnCStbHW6KRAg3z6ybMoDy1VYbk8V1xUiG9t",
+            "authority_discovery": "5GGard7xFFyRGFH1jRUYZfKmWALgkUFrYgh21gBQVCUjKrGn"
+        },
+        {
+            "stash": "5GLPy6NDacLpKUdJ6U3bSiKFRGGrqLhpudwvaFFTnNXLpeE3",
+            "controller": "5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo",
+            "grandpa": "5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs",
+            "babe": "5EEuKvYG9cwTPTLHnrACGGBKXQKvyDLHnuVyW7cQU2Mdif6a",
+            "im_online": "5FhJeoatmY44TPP4oFyykS68cp92owtQW61yQ2itMUXC5brA",
+            "authority_discovery": "5EX1CwbxF8BWq16FW1PYz9PM24Z41TSD1gVWzrxwWWoKp3y6"
+        }
+    ],
+```
+
 ## Threshold signature server details - `tss_details`
 
 This should be given as an object mapping HTTP endpoint (hostname / IP address and port, which no
