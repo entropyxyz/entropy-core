@@ -31,7 +31,7 @@ use pallet_session::{historical as pallet_session_historical, ShouldEndSession};
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
-    testing::{TestXt, UintAuthorityId},
+    testing::UintAuthorityId,
     traits::{BlakeTwo256, ConvertInto, IdentityLookup, OpaqueKeys, Zero},
     BoundedVec, BuildStorage, KeyTypeId, Perbill,
 };

@@ -327,14 +327,8 @@ pub async fn sign_tx(
         request_author,
     };
 
-    let derivation_path = if let Some(path) = user_details.derivation_path {
-        let decoded_path = String::decode(&mut path.as_ref())?;
-        let path = bip32::DerivationPath::from_str(&decoded_path)?;
-
-        Some(path)
-    } else {
-        None
-    };
+    let decoded_path = String::decode(&mut user_details.derivation_path.as_ref())?;
+    let derivation_path = bip32::DerivationPath::from_str(&decoded_path)?;
 
     let (mut response_tx, response_rx) = mpsc::channel(1);
 

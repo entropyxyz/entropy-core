@@ -44,7 +44,7 @@ pub async fn do_signing(
     app_state: &AppState,
     signing_session_info: SigningSessionInfo,
     request_limit: u32,
-    derivation_path: Option<bip32::DerivationPath>,
+    derivation_path: bip32::DerivationPath,
 ) -> Result<RecoverableSignature, ProtocolErr> {
     tracing::debug!("Preparing to perform signing");
 

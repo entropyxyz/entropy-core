@@ -127,7 +127,7 @@ pub mod pallet {
         pub programs_data: BoundedVec<ProgramInstance<T>, T::MaxProgramHashes>,
         pub program_modification_account: T::AccountId,
         /// The SCALE encoded BIP-32 `DerivationPath` used to register this account.
-        pub derivation_path: Option<Vec<u8>>,
+        pub derivation_path: Vec<u8>,
         pub version_number: u8,
     }
 
@@ -438,7 +438,7 @@ pub mod pallet {
                 RegisteredInfo {
                     programs_data,
                     program_modification_account: program_modification_account.clone(),
-                    derivation_path: Some(inner_path.encode()),
+                    derivation_path: inner_path.encode(),
                     version_number: T::KeyVersionNumber::get(),
                 },
             );
