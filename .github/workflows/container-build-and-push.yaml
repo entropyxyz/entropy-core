@@ -113,12 +113,6 @@ jobs:
           for platform in linux_amd64 linux_arm64; do
             cp ${dirname}/${platform}/usr/local/bin/${package} ${artifact_dir}/${package}_${refname}_${platform}
           done
-      - name: Create genesis runtime bytecode artifact
-        if: inputs.docker_build_arg_package == 'entropy'
-        run: |
-          ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}_${{ inputs.git_ref_basename }}_linux_amd64 \
-            build-spec --chain testnet-blank \
-              > ${{ runner.temp }}/artifacts/${{ inputs.docker_build_arg_package }}-chain-spec-${{ inputs.git_ref_basename }}-${{ github.sha }}.json
       - name: Upload ${{ inputs.docker_build_arg_package }} binary artifact
         uses: actions/upload-artifact@v4
         with:
