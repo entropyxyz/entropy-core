@@ -1,4 +1,38 @@
 {
+    "initial_authorities": [
+        {
+            "stash": "5FbwUrncUnFpa7wQKrxexXpEGZzM7ivDHwJNFQUQmjY38Cco",
+            "controller": "5GC6HbDfosvHUuCDkr8nAG81LBFNMgToMRfnFpa7GFD4td7q",
+            "grandpa": "5E1buCEBSvt1fssmxjfF4ZD28Q7iAyVf6sVZpi8oDHyQLwSK",
+            "babe": "5F6kuqyMq38QPJhMjfUsoF5o8EjSkdPXKdQeAiAqEdGgFQdY",
+            "im_online": "5GbrYiuSkFAKh2BE5WR8in76WRFWpN2oZ9tGzfJ9TZqSLnvd",
+            "authority_discovery": "5H4KA7kqNxEQUStzDmjC1w1311ZGaTC1RE2m7riQa4j8FAND"
+        },
+        {
+            "stash": "5He4vcqwSEoJSDMDBVmWE7n9HmGs81rMNzviGY6uzL8RWYPu",
+            "controller": "5GWBLjvgQucinSSf5WvEDVhLRkBMCwMFavmwirfomw4RPaMV",
+            "grandpa": "5DNVknZup4smom1tGmo1G4QXkzY7EU4aMjcekGES9CtkRQLr",
+            "babe": "5CHzj2XgRDXzSHZWQtWVcoWsYprEtUiLzJFiKhXZZzKih1qk",
+            "im_online": "5CwEFpcmgxqp69H9LG2BWb8nkQSst59WZy7ihXum49Hc8wDK",
+            "authority_discovery": "5EqpxZBuooBFWWv8871fKYJR9h7F4DFCVgZ539gPUF8gkbKp"
+        },
+        {
+            "stash": "5Cca9Cv3giBxcG934caj6Tk2NWqRXK2nKFQ7zQhLT1xSx82Z",
+            "controller": "5H4NWR22bsQ6XuvjVcAnP7isutFrEXrnQ7sXGBzRNSzrfcGt",
+            "grandpa": "5ELT9DsaGzwgZpMYsshQojhixkKDaG12CKtGbSc1kYTazrQQ",
+            "babe": "5GNRmLL5iE2kwHU5aAKamZgB8Y2ZjN4hxf2BRGnbsE4VUGwG",
+            "im_online": "5HNeUG6K22VLNnCStbHW6KRAg3z6ybMoDy1VYbk8V1xUiG9t",
+            "authority_discovery": "5GGard7xFFyRGFH1jRUYZfKmWALgkUFrYgh21gBQVCUjKrGn"
+        },
+        {
+            "stash": "5GLPy6NDacLpKUdJ6U3bSiKFRGGrqLhpudwvaFFTnNXLpeE3",
+            "controller": "5HLBgTCNugSig3oCpfogq3L7x1UDuAiZWpuSmzpHuiQr6RRo",
+            "grandpa": "5G5mruyipeqWb3cnsL1nfEdaYToK8nvGcq9Cm2xweRJzMBzs",
+            "babe": "5EEuKvYG9cwTPTLHnrACGGBKXQKvyDLHnuVyW7cQU2Mdif6a",
+            "im_online": "5FhJeoatmY44TPP4oFyykS68cp92owtQW61yQ2itMUXC5brA",
+            "authority_discovery": "5EX1CwbxF8BWq16FW1PYz9PM24Z41TSD1gVWzrxwWWoKp3y6"
+        }
+    ],
     "tss_details": {
         "127.0.0.1:3001": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
         "127.0.0.1:3002": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
