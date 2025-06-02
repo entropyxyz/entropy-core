@@ -73,6 +73,9 @@ runtime
   `--chain testnet` when starting `entropy`) was removed and replaced with a custom build function.
   If `--chain some-filename-ending-with-chainspec-inputs.json` is passed, the testnet chainspec will
   be built from special parameters given in that json file.
+- In [#1449](https://github.com/entropyxyz/entropy-core/pull/1449) the `entropy-tss --password-file`
+  option was removed. This option previously had no effect - but now if it is given an error will be
+  reported.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -87,6 +90,7 @@ runtime
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
 - Database encryption key backup / recovery feature for entropy-tss [(#1249)](https://github.com/entropyxyz/entropy-core/pull/1249)
 - Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
+- Add initial authorities to testnet chainspec inputs [(#1451)](https://github.com/entropyxyz/entropy-core/pull/1451)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
@@ -105,6 +109,7 @@ runtime
 - Include Provisioning Certification Key (PCK) in the entropy-tss `/info` HTTP route output ([#1357](https://github.com/entropyxyz/entropy-core/pull/1357))
 - Change entropy-tss storage location for TDX production builds ([#1361](https://github.com/entropyxyz/entropy-core/pull/1361))
 - Add v1 to all endpoints ([#1377](https://github.com/entropyxyz/entropy-core/pull/1377))
+- Remove password file option from entropy-tss ([#1449](https://github.com/entropyxyz/entropy-core/pull/1449))
 
 ### Fixed
 

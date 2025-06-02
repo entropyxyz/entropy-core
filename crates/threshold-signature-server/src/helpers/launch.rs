@@ -240,10 +240,6 @@ pub struct StartupArgs {
     /// The configuration settings around logging.
     #[clap(flatten)]
     pub logger: crate::helpers::logger::Instrumentation,
-
-    /// The path to a password file
-    #[arg(short = 'f', long = "password-file")]
-    pub password_file: Option<PathBuf>,
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {
