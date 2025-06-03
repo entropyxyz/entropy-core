@@ -409,7 +409,10 @@ pub fn testnet_genesis_config(
     // stakers: all validators and nominators.
     //
     // The validators assigned here must match those in the Session genesis config.
-    let mut rng = rand::thread_rng();
+    use rand::{seq::SliceRandom, Rng, SeedableRng};
+    use rand_chacha::ChaCha8Rng;
+
+    let mut rng = ChaCha8Rng::from_seed(root_key.as_ref());
     let stakers = initial_authorities
         .iter()
         .map(|x| {
@@ -421,7 +424,6 @@ pub fn testnet_genesis_config(
             )
         })
         .chain(initial_nominators.iter().map(|x| {
-            use rand::{seq::SliceRandom, Rng};
             let limit = (MaxNominations::get() as usize).min(initial_authorities.len());
             let count = rng.gen::<usize>() % limit;
             let nominations = initial_authorities
