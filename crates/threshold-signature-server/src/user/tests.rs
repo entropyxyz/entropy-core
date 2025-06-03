@@ -2198,13 +2198,15 @@ async fn test_validate_jump_start_fail_repeated() {
     let block_number = 2;
 
     run_to_block(&rpc, block_number - 1).await;
-    let _result =
+    let in_block =
         submit_transaction_with_pair(&api, &rpc, &alice.pair(), &jump_start_request, None)
             .await
             .unwrap();
+    let result_event = in_block.find_first::<entropy::registry::events::StartedNetworkJumpStart>().unwrap();
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
     run_to_block(&rpc, block_number + 1).await;
+    std::thread::sleep(std::time::Duration::from_secs(1));
 
     let jump_start_progress_query = entropy::storage().registry().jumpstart_dkg(block_number);
     let jump_start_progress =
