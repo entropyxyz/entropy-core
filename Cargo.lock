@@ -2889,6 +2889,7 @@ dependencies = [
  "parity-scale-codec",
  "project-root",
  "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "sc-authority-discovery",
  "sc-basic-authorship",
  "sc-chain-spec",
