@@ -42,7 +42,6 @@ use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{AccountId32, BoundedVec, Perbill};
-use std::collections::HashMap;
 
 /// The AccountID of a Threshold Signature server. This is to meant to be registered on-chain.
 type TssAccountId = sp_runtime::AccountId32;
@@ -59,7 +58,7 @@ pub struct TestnetChainSpecInputs {
     pub initial_authorities: Option<Vec<InitialAuthority>>,
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
-    pub tss_details: HashMap<String, TssPublicKeys>,
+    pub tss_details: Vec<(String, TssPublicKeys)>,
     /// The accepted TDX measurement values from the current entropy-tss VM images, given as
     /// hex-encoded strings (32 bytes / 64 characters).
     ///
@@ -351,10 +350,12 @@ pub fn testnet_blank_config() -> Result<ChainSpec, String> {
         provisioning_certification_key: BoundedVec::try_from([0; 32].to_vec())
             .expect("[0; 32] is 32 bytes"),
     };
-    inputs.tss_details.insert("127.0.0.1:3001".to_string(), tss_node.clone());
-    inputs.tss_details.insert("127.0.0.1:3002".to_string(), tss_node.clone());
-    inputs.tss_details.insert("127.0.0.1:3003".to_string(), tss_node.clone());
-    inputs.tss_details.insert("127.0.0.1:3004".to_string(), tss_node);
+    inputs.tss_details = vec![
+        ("127.0.0.1:3001".to_string(), tss_node.clone()),
+        ("127.0.0.1:3002".to_string(), tss_node.clone()),
+        ("127.0.0.1:3003".to_string(), tss_node.clone()),
+        ("127.0.0.1:3004".to_string(), tss_node),
+    ];
 
     testnet_config(inputs)
 }
@@ -409,7 +410,10 @@ pub fn testnet_genesis_config(
     // stakers: all validators and nominators.
     //
     // The validators assigned here must match those in the Session genesis config.
-    let mut rng = rand::thread_rng();
+    use rand::{seq::SliceRandom, Rng, SeedableRng};
+    use rand_chacha::ChaCha8Rng;
+
+    let mut rng = ChaCha8Rng::from_seed(*root_key.as_ref());
     let stakers = initial_authorities
         .iter()
         .map(|x| {
@@ -421,7 +425,6 @@ pub fn testnet_genesis_config(
             )
         })
         .chain(initial_nominators.iter().map(|x| {
-            use rand::{seq::SliceRandom, Rng};
             let limit = (MaxNominations::get() as usize).min(initial_authorities.len());
             let count = rng.gen::<usize>() % limit;
             let nominations = initial_authorities
