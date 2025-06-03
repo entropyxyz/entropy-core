@@ -29,7 +29,7 @@ use pallet_session::historical as pallet_session_historical;
 use sp_core::H256;
 use sp_runtime::{
     curve::PiecewiseLinear,
-    testing::{TestXt, UintAuthorityId},
+    testing::UintAuthorityId,
     traits::{BlakeTwo256, ConvertInto, IdentityLookup},
     BoundedVec, BuildStorage, Perbill,
 };

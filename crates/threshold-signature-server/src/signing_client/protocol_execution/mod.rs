@@ -64,18 +64,13 @@ impl<'a> ThresholdSigningService<'a> {
     pub async fn get_sign_context(
         &self,
         sign_init: SignInit,
-        derivation_path: Option<bip32::DerivationPath>,
+        derivation_path: bip32::DerivationPath,
     ) -> Result<SignContext, ProtocolErr> {
         tracing::debug!("Getting signing context");
 
         let (key_share, aux_info) = self.network_key_share.clone();
 
-        let key_share = if let Some(path) = derivation_path {
-            key_share.derive_bip32(&path)?
-        } else {
-            // TODO #1444 - this should never happen
-            key_share
-        };
+        let key_share = key_share.derive_bip32(&derivation_path)?;
 
         Ok(SignContext::new(sign_init, key_share, aux_info))
     }
