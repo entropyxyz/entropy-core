@@ -2203,7 +2203,8 @@ async fn test_validate_jump_start_fail_repeated() {
         submit_transaction_with_pair(&api, &rpc, &alice.pair(), &jump_start_request, None)
             .await
             .unwrap();
-    let result_event = in_block.find_first::<entropy::registry::events::StartedNetworkJumpStart>().unwrap();
+    let result_event =
+        in_block.find_first::<entropy::registry::events::StartedNetworkJumpStart>().unwrap();
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
     run_to_block(&rpc, block_number + 1).await;
@@ -2216,11 +2217,10 @@ async fn test_validate_jump_start_fail_repeated() {
         .jump_start_status;
 
     let query_block = match jump_start_status {
-        JumpStartStatus::InProgress(block_number) => {
-           Ok(block_number)
-        },
-        _ => { Err("Jumpstart not in progress") },
-    }.unwrap();
+        JumpStartStatus::InProgress(block_number) => Ok(block_number),
+        _ => Err("Jumpstart not in progress"),
+    }
+    .unwrap();
 
     let jump_start_progress_query = entropy::storage().registry().jumpstart_dkg(query_block);
     let jump_start_progress =
