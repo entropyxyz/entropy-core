@@ -33,7 +33,7 @@ futures="0.3"
 tokio  ={ version="1.44", features=["macros", "fs", "rt-multi-thread", "io-util", "process", "sync"] }
 
 # HTTP
-reqwest={ version="0.12.12", features=["json", "stream"] }
+reqwest={ version="0.12.18", features=["json", "stream"] }
 axum   ={ version="0.8.4", features=["ws"] }
 
 # Substrate
@@ -57,7 +57,7 @@ entropy-programs-runtime="0.11.0"
 tracing                 ="0.1.41"
 tracing-subscriber      ={ version="0.3.19", features=["env-filter", "json"] }
 tracing-loki            ="0.2"
-tower-http              ={ version="0.6.4", features=["trace", "cors"] }
+tower-http              ={ version="0.6.5", features=["trace", "cors"] }
 tracing-bunyan-formatter="0.3.10"
 uuid                    ={ version="1.16.0", features=["v4"] }
 
