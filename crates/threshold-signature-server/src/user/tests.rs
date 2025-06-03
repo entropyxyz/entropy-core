@@ -36,6 +36,7 @@ use entropy_testing_utils::{
     chain_api::{
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec as OtherBoundedVec,
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance as OtherProgramInstance,
+        entropy::runtime_types::pallet_staking_extension::pallet::JumpStartStatus,
     },
     constants::{
         AUXILARY_DATA_SHOULD_SUCCEED, BOB_STASH_ADDRESS, CHARLIE_STASH_ADDRESS, FAUCET_PROGRAM,
@@ -2195,7 +2196,7 @@ async fn test_validate_jump_start_fail_repeated() {
         AppState::new(configuration.clone(), kv_store.clone(), sr25519_pair, x25519_secret).await;
 
     let jump_start_request = entropy::tx().registry().jump_start_network();
-    let block_number = 2;
+    let block_number = 3;
 
     run_to_block(&rpc, block_number - 1).await;
     let in_block =
@@ -2206,9 +2207,22 @@ async fn test_validate_jump_start_fail_repeated() {
     // manipulates cache to get to repeated data error
     app_state.cache.write_to_block_numbers(BlockNumberFields::NewUser, block_number).unwrap();
     run_to_block(&rpc, block_number + 1).await;
-    std::thread::sleep(std::time::Duration::from_secs(1));
 
-    let jump_start_progress_query = entropy::storage().registry().jumpstart_dkg(block_number);
+    let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
+    let jump_start_status = query_chain(&api, &rpc, jump_start_status_query.clone(), None)
+        .await
+        .unwrap()
+        .unwrap()
+        .jump_start_status;
+
+    let query_block = match jump_start_status {
+        JumpStartStatus::InProgress(block_number) => {
+           Ok(block_number)
+        },
+        _ => { Err("Jumpstart not in progress") },
+    }.unwrap();
+
+    let jump_start_progress_query = entropy::storage().registry().jumpstart_dkg(query_block);
     let jump_start_progress =
         query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
     let validators_info: Vec<_> = jump_start_progress.into_iter().map(|v| v.0).collect();
