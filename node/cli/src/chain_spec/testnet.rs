@@ -412,7 +412,7 @@ pub fn testnet_genesis_config(
     use rand::{seq::SliceRandom, Rng, SeedableRng};
     use rand_chacha::ChaCha8Rng;
 
-    let mut rng = ChaCha8Rng::from_seed(root_key.as_ref());
+    let mut rng = ChaCha8Rng::from_seed(*root_key.as_ref());
     let stakers = initial_authorities
         .iter()
         .map(|x| {
