@@ -59,7 +59,7 @@ pub struct TestnetChainSpecInputs {
     pub initial_authorities: Option<Vec<InitialAuthority>>,
     /// A map of hostname / socket address to [TssPublicKeys] of the TSS servers
     /// [TssPublicKeys] is the output type returned from the TSS server `/info` http route
-    pub tss_details: HashMap<String, TssPublicKeys>,
+    pub tss_details: Vec<(String, TssPublicKeys)>,
     /// The accepted TDX measurement values from the current entropy-tss VM images, given as
     /// hex-encoded strings (32 bytes / 64 characters).
     ///
@@ -351,10 +351,12 @@ pub fn testnet_blank_config() -> Result<ChainSpec, String> {
         provisioning_certification_key: BoundedVec::try_from([0; 32].to_vec())
             .expect("[0; 32] is 32 bytes"),
     };
-    inputs.tss_details.insert("127.0.0.1:3001".to_string(), tss_node.clone());
-    inputs.tss_details.insert("127.0.0.1:3002".to_string(), tss_node.clone());
-    inputs.tss_details.insert("127.0.0.1:3003".to_string(), tss_node.clone());
-    inputs.tss_details.insert("127.0.0.1:3004".to_string(), tss_node);
+    inputs.tss_details = vec![
+        ("127.0.0.1:3001".to_string(), tss_node.clone()),
+        ("127.0.0.1:3002".to_string(), tss_node.clone()),
+        ("127.0.0.1:3003".to_string(), tss_node.clone()),
+        ("127.0.0.1:3004".to_string(), tss_node),
+    ];
 
     testnet_config(inputs)
 }
