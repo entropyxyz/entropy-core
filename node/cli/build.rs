@@ -19,4 +19,29 @@ fn main() {
     generate_cargo_keys();
 
     rerun_if_git_head_changed();
+
+    // Read testnet endowed accounts from file at compile time
+    let testnet_accounts_file = "data/testnet/testnet-accounts.json";
+    let json_str = fs::read_to_string(testnet_accounts_file)
+        .expect(format!("Failed to read {testnet_accounts_file}"));
+    let accounts_json: Vec<serde_json::Value> = serde_json::from_str(&json_str)
+        .expect(format!("Failed to parse {testnet_accounts_file} as JSON"));
+
+    let num_accounts = accounts_json.len();
+
+    let accounts: Vec<&str> =
+        accounts_json.into_iter().map(|account| json["address"].as_str().unwrap()).collect();
+
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let dest_path = Path::new(&out_dir).join("endowed_testnet_accounts.rs");
+
+    fs::write(
+        &dest_path,
+        format!(
+            r#"
+            pub static ENDOWED_TESTNET_ACCOUNTS: [&str, {num_accounts}] = {accounts:?};
+            "#
+        ),
+    )
+    .unwrap();
 }

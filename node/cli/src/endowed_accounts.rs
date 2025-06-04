@@ -19,6 +19,8 @@ use entropy_runtime::AccountId;
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
 
+include!(concat!(env!("OUT_DIR"), "/endowed_testnet_accounts.rs"));
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddressStruct {
     address: String,
@@ -49,4 +51,15 @@ pub fn endowed_accounts_dev() -> Vec<AccountId> {
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
         crate::chain_spec::tss_account_id::DAVE.clone(),
     ]
+}
+
+pub fn endowed_accounts_testnet() -> Vec<AccountId> {
+    ENDOWED_TESTNET_ACCOUNTS
+        .iter()
+        .map(|account_id| {
+            AccountId::from_string(account_id).unwrap_or_else(|_| {
+                panic!("failed to convert a testnet_address address: {:?}", address)
+            })
+        })
+        .collect()
 }
