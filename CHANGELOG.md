@@ -55,6 +55,10 @@ runtime
   and the network key will be lost.
 - In [#1377](https://github.com/entropyxyz/entropy-core/pull/1377) all endpoints except for the
   healthz in the TSS had a /v1 added to them.
+- In [#1424](https://github.com/entropyxyz/entropy-core/pull/1424) the `testnet` chainspec (given by
+  `--chain testnet` when starting `entropy`) was removed and replaced with a custom build function.
+  If `--chain some-filename-ending-with-chainspec-inputs.json` is passed, the testnet chainspec will
+  be built from special parameters given in that json file.
 
 ### Added
 - In [#1128](https://github.com/entropyxyz/entropy-core/pull/1128) an `/info` route was added to `entropy-tss`
@@ -69,6 +73,8 @@ runtime
 - Add cli options for adding validator [(#1242)](https://github.com/entropyxyz/entropy-core/pull/1242)
 - Database encryption key backup / recovery feature for entropy-tss [(#1249)](https://github.com/entropyxyz/entropy-core/pull/1249)
 - Add no hash option [(#1266)](https://github.com/entropyxyz/entropy-core/pull/1266)
+- Template testnet chainspec artifact ([#1442](https://github.com/entropyxyz/entropy-core/pull/1442))
+- Add initial authorities to testnet chainspec inputs [(#1451)](https://github.com/entropyxyz/entropy-core/pull/1451)
 
 ### Changed
 - Use correct key rotation endpoint in OCW ([#1104](https://github.com/entropyxyz/entropy-core/pull/1104))
