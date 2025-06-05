@@ -29,6 +29,7 @@ lazy_static     ={ version="1.5.0", features=["spin_no_std"] }
 log             ="0.4.27"
 pallet-im-online={ version="39.1.0" }
 rand            ="0.8.5"
+rand_chacha     ={ version="0.3", optional=true }
 serde           ={ version="1.0.219", features=["derive"] }
 serde_json      ='1.0.140'
 hex             ={ version="0.4.3", optional=true }
@@ -114,7 +115,7 @@ sp-tracing={ version="17.1.0" }
 
 [features]
 default=["cli"]
-cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb", "hex"]
+cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb", "hex", "rand_chacha"]
 runtime-benchmarks=[
   "entropy-runtime/runtime-benchmarks",
   "frame-benchmarking-cli/runtime-benchmarks",
