@@ -1,6 +1,6 @@
 [package]
 name      ='pallet-registry'
-version   ='0.4.0-rc.3'
+version   ='0.4.0-rc.4'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -29,12 +29,12 @@ sp-core           ={ version="29.0.0", default-features=false }
 sp-runtime        ={ version="32.0.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 
-entropy-shared={ version="0.4.0-rc.3", path="../../crates/shared", features=[
+entropy-shared={ version="0.4.0-rc.4", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
-pallet-programs={ version="0.4.0-rc.3", path="../programs", default-features=false }
-pallet-staking-extension={ version="0.4.0-rc.3", path="../staking", default-features=false }
-pallet-parameters={ version="0.4.0-rc.3", path="../parameters", default-features=false }
+pallet-programs={ version="0.4.0-rc.4", path="../programs", default-features=false }
+pallet-staking-extension={ version="0.4.0-rc.4", path="../staking", default-features=false }
+pallet-parameters={ version="0.4.0-rc.4", path="../parameters", default-features=false }
 
 [dev-dependencies]
 frame-election-provider-support={ version="29.0.0", default-features=false }
@@ -45,8 +45,8 @@ pallet-timestamp               ={ version="28.0.0", default-features=false }
 sp-io                          ={ version="31.0.0", default-features=false }
 sp-npos-elections              ={ version="27.0.0", default-features=false }
 sp-staking                     ={ version="27.0.0", default-features=false }
-pallet-oracle                  ={ version='0.4.0-rc.3', path='../oracle', default-features=false }
-pallet-slashing                ={ version="0.4.0-rc.3", path="../slashing", default-features=false }
+pallet-oracle                  ={ version='0.4.0-rc.4', path='../oracle', default-features=false }
+pallet-slashing                ={ version="0.4.0-rc.4", path="../slashing", default-features=false }
 
 [features]
 
