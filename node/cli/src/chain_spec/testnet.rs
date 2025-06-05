@@ -13,9 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::chain_spec::{
-    get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
-    MEASUREMENT_VALUE_MOCK_QUOTE,
+use crate::{
+    chain_spec::{
+        get_account_id_from_seed, provisioning_certification_key, ChainSpec, MeasurementValues,
+        MEASUREMENT_VALUE_MOCK_QUOTE,
+    },
+    endowed_accounts::endowed_accounts_testnet,
 };
 
 use entropy_runtime::{
@@ -445,6 +448,7 @@ pub fn testnet_genesis_config(
         "balances": BalancesConfig {
             balances: endowed_accounts
                         .iter()
+                        .chain(endowed_accounts_testnet().iter())
                         .cloned()
                         .map(|x| (x, ENDOWMENT))
                         .unique()

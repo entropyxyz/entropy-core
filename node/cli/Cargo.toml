@@ -101,7 +101,9 @@ pallet-staking-extension={ version="0.4.0-rc.4", path="../../pallets/staking" }
 project-root="0.2.2"
 
 [build-dependencies]
-clap={ version="4.5.35", optional=true }
+clap      ={ version="4.5.35", optional=true }
+serde     ={ version="1.0.219", features=["derive"] }
+serde_json='1.0.140'
 
 pallet-balances             ={ version="29.0.0" }
 substrate-build-script-utils={ version="11.0.0" }
