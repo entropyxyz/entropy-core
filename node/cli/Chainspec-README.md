@@ -85,9 +85,9 @@ For an explantation of what these are for, see ['Session keys' on the Polkadot W
 
 ## Threshold signature server details - `tss_details`
 
-This should be given as an object mapping HTTP endpoint (hostname / IP address and port, which no
-scheme - meaning without the 'http://' part), given as a string, to a `TssPublicKeys` object. This
-object is the output of the `/info` TSS HTTP route, and has the following fields:
+This should be given as an array of arrays containing the HTTP endpoint (hostname / IP address and
+port, with no scheme - meaning without the 'http://' part), given as a string, and a `TssPublicKeys`
+object. This object is the output of the `/info` TSS HTTP route, and has the following fields:
 
 - `ready` Boolean. Describes whether the node is ready to begin protocol sessions. This not relevant
   in this context and is not included in the chainspec.
@@ -97,12 +97,12 @@ object is the output of the `/info` TSS HTTP route, and has the following fields
 
 Example:
 ```JSON
-"tss_details": {
-        "127.0.0.1:3001": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
-        "127.0.0.1:3002": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
-        "127.0.0.1:3003": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]},
-        "127.0.0.1:3004": {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}
-    },
+"tss_details": [
+        ["127.0.0.1:3001", {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}],
+        ["127.0.0.1:3002", {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}],
+        ["127.0.0.1:3003", {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}],
+        ["127.0.0.1:3004", {"ready":false,"tss_account":"5Dy7r8pTEoJJDGRrebQvFyWWfKCpTJiXxz7NxbKeh8zXE7Vk","x25519_public_key":[40,170,149,217,225,231,193,134,157,146,161,94,118,146,134,201,179,206,106,186,35,6,93,138,104,203,205,68,208,90,255,7],"provisioning_certification_key":[2,35,153,56,144,219,98,192,9,186,39,114,167,154,75,24,93,39,159,234,180,105,135,89,110,203,179,93,192,164,177,214,78]}]
+    ],
 ```
 
 ## Accepted TDX measurement values - `accepted_measurement_values` (optional)
