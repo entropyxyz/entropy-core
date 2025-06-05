@@ -137,6 +137,9 @@ impl TestNodeProcessBuilder {
         if let Some(authority) = self.authority {
             let authority = format!("{authority:?}");
             let arg = format!("--{}", authority.as_str().to_lowercase());
+            if authority.as_str().to_lowercase() == "alice" {
+                cmd.arg("--node-key=0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d");
+            }
             cmd.arg(arg);
         }
 

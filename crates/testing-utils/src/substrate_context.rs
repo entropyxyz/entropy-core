@@ -119,7 +119,7 @@ pub async fn test_node_process_testing_state(
     force_authoring: bool,
 ) -> Vec<TestNodeProcess<EntropyConfig>> {
     let alice_bootnode = Some(
-        "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWM7EoKJfwgzAR1nAVmYRuuFq2f3GpJPLrdfhQaRsKjn38"
+        "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWMrQiZJKkbkZrb7NfkF3u2cu1i5js3tuC3LTYYHfoVbyE"
             .to_string(),
     );
     let result =
