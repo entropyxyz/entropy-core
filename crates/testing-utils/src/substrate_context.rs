@@ -74,6 +74,7 @@ pub async fn test_node_process_with(
         force_authoring,
         bootnode,
         tss_server_endpoint,
+        None,
     )
     .with_authority(key)
     .scan_for_open_ports()
@@ -87,15 +88,22 @@ pub async fn test_node(
     chain_type: String,
     force_authoring: bool,
     bootnode: Option<String>,
+    node_key: Option<String>,
 ) -> TestNodeProcess<EntropyConfig> {
     let path = get_path();
     let path = path.to_str().expect("Path should've been checked to be valid earlier.");
 
-    let proc =
-        TestNodeProcess::<EntropyConfig>::build(path, chain_type, force_authoring, bootnode, None)
-            .with_authority(key)
-            .spawn::<EntropyConfig>()
-            .await;
+    let proc = TestNodeProcess::<EntropyConfig>::build(
+        path,
+        chain_type,
+        force_authoring,
+        bootnode,
+        None,
+        node_key,
+    )
+    .with_authority(key)
+    .spawn::<EntropyConfig>()
+    .await;
     proc.unwrap()
 }
 
@@ -104,11 +112,11 @@ pub async fn test_node_process() -> TestNodeProcess<EntropyConfig> {
 }
 
 pub async fn test_node_process_stationary() -> TestNodeProcess<EntropyConfig> {
-    test_node(Keyring::Alice, "--dev".to_string(), false, None).await
+    test_node(Keyring::Alice, "--dev".to_string(), false, None, None).await
 }
 
 pub async fn test_node_process_stationary_local() -> TestNodeProcess<EntropyConfig> {
-    test_node(Keyring::Alice, "--chain=testnet-local".to_string(), false, None).await
+    test_node(Keyring::Alice, "--chain=testnet-local".to_string(), false, None, None).await
 }
 
 /// Tests chain with test state in chain config.
@@ -118,13 +126,21 @@ pub async fn test_node_process_testing_state(
     chain_spec_type: ChainSpecType,
     force_authoring: bool,
 ) -> Vec<TestNodeProcess<EntropyConfig>> {
+    // boot node is generated with node key for determinisim
     let alice_bootnode = Some(
         "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWMrQiZJKkbkZrb7NfkF3u2cu1i5js3tuC3LTYYHfoVbyE"
             .to_string(),
     );
-    let result =
-        test_node(Keyring::Alice, format!("--chain={}", chain_spec_type), force_authoring, None)
-            .await;
+    let alice_node_key =
+        Some("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d".to_string());
+    let result = test_node(
+        Keyring::Alice,
+        format!("--chain={}", chain_spec_type),
+        force_authoring,
+        None,
+        alice_node_key,
+    )
+    .await;
     let result_bob = test_node_process_with(
         Keyring::Bob,
         format!("--chain={}", chain_spec_type),

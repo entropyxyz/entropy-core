@@ -51,11 +51,19 @@ where
         force_authoring: bool,
         bootnode: Option<String>,
         threshold_url: Option<String>,
+        node_key: Option<String>,
     ) -> TestNodeProcessBuilder
     where
         S: AsRef<OsStr> + Clone,
     {
-        TestNodeProcessBuilder::new(program, chain_type, force_authoring, bootnode, threshold_url)
+        TestNodeProcessBuilder::new(
+            program,
+            chain_type,
+            force_authoring,
+            bootnode,
+            threshold_url,
+            node_key,
+        )
     }
 
     /// Attempt to kill the running substrate process.
@@ -84,6 +92,7 @@ pub struct TestNodeProcessBuilder {
     force_authoring: bool,
     bootnode: Option<String>,
     tss_server_endpoint: Option<String>,
+    node_key: Option<String>,
 }
 
 impl TestNodeProcessBuilder {
@@ -93,6 +102,7 @@ impl TestNodeProcessBuilder {
         force_authoring: bool,
         bootnode: Option<String>,
         tss_server_endpoint: Option<String>,
+        node_key: Option<String>,
     ) -> TestNodeProcessBuilder
     where
         P: AsRef<OsStr>,
@@ -105,6 +115,7 @@ impl TestNodeProcessBuilder {
             force_authoring,
             bootnode,
             tss_server_endpoint,
+            node_key,
         }
     }
 
@@ -137,10 +148,14 @@ impl TestNodeProcessBuilder {
         if let Some(authority) = self.authority {
             let authority = format!("{authority:?}");
             let arg = format!("--{}", authority.as_str().to_lowercase());
-            if authority.as_str().to_lowercase() == "alice" {
-                cmd.arg("--node-key=0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d");
-            }
             cmd.arg(arg);
+        }
+
+        if let Some(node_key) = &self.node_key {
+            let arg = format!("--node-key={}", node_key.as_str());
+            cmd.arg(arg);
+        } else {
+            cmd.arg("--unsafe-force-node-key-generation");
         }
 
         if let Some(bootnode) = &self.bootnode {
