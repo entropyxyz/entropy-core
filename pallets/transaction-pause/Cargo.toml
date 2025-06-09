@@ -19,7 +19,7 @@ sp-runtime        ={ version="41.1.0", default-features=false }
 sp-std            ={ version="14.0.0", default-features=false }
 
 [dev-dependencies]
-smallvec="1.15.0"
+smallvec="1.15.1"
 
 pallet-balances={ version="41.1.0" }
 pallet-oracle  ={ version='0.4.0-rc.1', path='../oracle', default-features=false }
