@@ -41,12 +41,10 @@ sp-core           ={ version="31.0.0", default-features=false }
 sp-keyring        ="34.0.0"
 
 # Entropy
-entropy-shared={ version="0.4.0", path="../shared", features=["wasm-no-std"] }
-entropy-kvdb={ version="0.4.0", path="../kvdb", default-features=false }
+entropy-shared  ={ version="0.4.0", path="../shared", features=["wasm-no-std"] }
+entropy-kvdb    ={ version="0.4.0", path="../kvdb", default-features=false }
 entropy-protocol={ version="0.4.0", path="../protocol", features=["server"] }
-entropy-client={ version="0.4.0", path="../client", default-features=false, features=[
-  "native",
-] }
+entropy-client  ={ version="0.4.0", path="../client", default-features=false, features=["native"] }
 
 # Programs
 entropy-programs-runtime="0.11.0"
