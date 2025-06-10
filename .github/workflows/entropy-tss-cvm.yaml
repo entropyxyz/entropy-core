@@ -1,0 +1,33 @@
+---
+name: Build entropy-tss CVM image
+
+permissions:
+  actions: write
+  contents: read
+
+on:
+  workflow_call:
+
+jobs:
+  entropy-tss-cvm-build:
+    runs-on: core-build-runner
+    timeout-minutes: 90
+    steps:
+      - name: Checkout yocto build scripts
+        uses: actions/checkout@v4
+        with: repository: 'entropyxyz/yocto-build'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+
+      - name: Build
+        run: |
+          make image-base CVM_SERVICE_SRC_REV=${{ github.sha }} CVM_SERVICE_SRC_BRANCH=${{ github.ref_name }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+        name: images
+        path: /home/runner/work/yocto-build/yocto-build/reproducible-build/artifacts-base
