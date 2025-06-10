@@ -19,7 +19,7 @@ name='entropy'
 [dependencies]
 
 # Third-party dependencies
-clap            ={ version="4.5.39", features=["derive"], optional=true }
+clap            ={ version="4.5.40", features=["derive"], optional=true }
 codec           ={ package="parity-scale-codec", version="3.0.0" }
 futures         ="0.3.31"
 hex-literal     ="1.0.0"
@@ -103,7 +103,7 @@ pallet-staking-extension={ version="0.4.0-rc.1", path="../../pallets/staking" }
 pallet-parameters={ version="0.4.0-rc.1", path="../../pallets/parameters" }
 
 [build-dependencies]
-clap={ version="4.5.39", optional=true }
+clap={ version="4.5.40", optional=true }
 
 pallet-balances             ={ version="41.1.0" }
 substrate-build-script-utils={ version="11.0.0" }
