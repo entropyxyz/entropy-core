@@ -1,6 +1,7 @@
 # Crates
 
-This directory contains the [Threshold Signature Server](https://github.com/entropyxyz/entropy-core/tree/master/crates/threshold-signature-server) and some utility crates related to it:
+This directory contains the [Threshold Signature Server](https://github.com/entropyxyz/entropy-core/tree/master/crates/threshold-signature-server)
+and some utility crates related to it:
 
 - [`shared`](https://github.com/entropyxyz/entropy-core/tree/master/crates/shared) - Common types shared by the chain node and TSS server
 - [`kvdb`](https://github.com/entropyxyz/entropy-core/tree/master/crates/kvdb) - An encrypted key-value datastore
