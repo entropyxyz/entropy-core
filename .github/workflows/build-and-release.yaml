@@ -18,7 +18,7 @@ jobs:
 
   git-ref-basename:
     uses: ./.github/workflows/git-ref-basename.yaml
-  
+
   test-e2e-reshare:
     runs-on: core-build-runner
     steps:
@@ -55,6 +55,9 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_CI_TOKEN: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
+
+  build-entropy-tss-cvm-image:
+      uses: ./.github/workflows/entropy-tss-cvm.yaml
 
   release:
     name: Publish new release
