@@ -1,6 +1,6 @@
 [package]
 name      ="pallet-attestation"
-version   ="0.4.0-rc.4"
+version   ="0.4.0"
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -23,11 +23,11 @@ sp-std            ={ version="14.0.0", default-features=false }
 pallet-session    ={ version="29.0.0", default-features=false, optional=true }
 rand_chacha       ={ version="0.3", default-features=false }
 
-pallet-parameters={ version="0.4.0-rc.4", path="../parameters", default-features=false }
-entropy-shared={ version="0.4.0-rc.4", path="../../crates/shared", features=[
+pallet-parameters={ version="0.4.0", path="../parameters", default-features=false }
+entropy-shared={ version="0.4.0", path="../../crates/shared", features=[
   "wasm-no-std",
 ], default-features=false }
-pallet-staking-extension={ version="0.4.0-rc.4", path="../staking", default-features=false }
+pallet-staking-extension={ version="0.4.0", path="../staking", default-features=false }
 tdx-quote="0.0.3"
 
 [dev-dependencies]
@@ -42,7 +42,7 @@ pallet-staking-reward-curve    ={ version="11.0.0" }
 tdx-quote                      ={ version="0.0.3", features=["mock"] }
 rand_core                      ="0.6.4"
 
-pallet-slashing={ version="0.4.0-rc.4", path="../slashing", default-features=false }
+pallet-slashing={ version="0.4.0", path="../slashing", default-features=false }
 
 [features]
 default=['std']
