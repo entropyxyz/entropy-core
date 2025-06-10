@@ -45,6 +45,7 @@ jobs:
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
 
   build-entropy-tss:
+    if: "contains(github.ref_name, 'non-TDX')"
     uses: ./.github/workflows/container-build-and-push.yaml
     needs:
       - git-ref-basename
@@ -57,6 +58,7 @@ jobs:
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
 
   build-entropy-tss-cvm-image:
+      if: "!contains(github.ref_name, 'non-TDX')"
       uses: ./.github/workflows/entropy-tss-cvm.yaml
 
   release:
