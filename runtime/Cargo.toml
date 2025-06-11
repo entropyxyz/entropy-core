@@ -206,7 +206,6 @@ runtime-benchmarks=[
   "pallet-bounties/runtime-benchmarks",
   "pallet-collective/runtime-benchmarks",
   "pallet-democracy/runtime-benchmarks",
-  "pallet-delegated-staking/runtime-benchmarks",
   "pallet-election-provider-multi-phase/runtime-benchmarks",
   "pallet-election-provider-support-benchmarking/runtime-benchmarks",
   "pallet-elections-phragmen/runtime-benchmarks",

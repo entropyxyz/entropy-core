@@ -1718,7 +1718,6 @@ mod benches {
       [pallet_collective, Council]
       [pallet_programs, Programs]
       [pallet_democracy, Democracy]
-      [pallet_delegated_staking, DelegatedStaking]
       [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
       [pallet_staking_extension, StakingExtension]
