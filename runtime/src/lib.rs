@@ -1495,6 +1495,22 @@ impl pallet_nomination_pools::Config for Runtime {
 }
 
 parameter_types! {
+    pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
+    pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+}
+
+impl pallet_delegated_staking::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type PalletId = DelegatedStakingPalletId;
+    type Currency = Balances;
+    // slashes are sent to the treasury.
+    type OnSlash = ResolveTo<TreasuryAccount, Balances>;
+    type SlashRewardFraction = SlashRewardFraction;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type CoreStaking = Staking;
+}
+
+parameter_types! {
     /// This is intentionally low for testing.
     ///
     /// I'm not entirely sure what a good ballpark for this would be in production though.
@@ -1616,6 +1632,7 @@ construct_runtime!(
     Offences: pallet_offences = 35,
     Historical: pallet_session_historical = 36,
     Identity: pallet_identity = 38,
+    DelegatedStaking: pallet_delegated_staking = 39,
 
     Recovery: pallet_recovery = 40,
     Vesting: pallet_vesting = 41,
@@ -1703,6 +1720,7 @@ mod benches {
       [pallet_collective, Council]
       [pallet_programs, Programs]
       [pallet_democracy, Democracy]
+      [pallet_delegated_staking, DelegatedStaking]
       [frame_election_provider_support, EPSBench::<Runtime>]
       [pallet_elections_phragmen, Elections]
       [pallet_staking_extension, StakingExtension]

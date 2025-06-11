@@ -64,6 +64,7 @@ pallet-balances                              ={ version="41.1.0", default-featur
 pallet-bounties                              ={ version="39.0.0", default-features=false }
 pallet-collective                            ={ version="40.1.0", default-features=false }
 pallet-democracy                             ={ version="40.1.0", default-features=false }
+pallet-delegated-staking                     ={ version="7.0.0", default-features=false }
 pallet-election-provider-multi-phase         ={ version="39.1.0", default-features=false }
 pallet-election-provider-support-benchmarking={ version="39.0.0", default-features=false, optional=true }
 pallet-elections-phragmen                    ={ version="41.1.0", default-features=false }
@@ -136,6 +137,7 @@ std=[
   "pallet-bounties/std",
   "pallet-collective/std",
   "pallet-democracy/std",
+  "pallet-delegated-staking/std",
   "pallet-election-provider-multi-phase/std",
   "pallet-elections-phragmen/std",
   "pallet-grandpa/std",
@@ -204,6 +206,7 @@ runtime-benchmarks=[
   "pallet-bounties/runtime-benchmarks",
   "pallet-collective/runtime-benchmarks",
   "pallet-democracy/runtime-benchmarks",
+  "pallet-delegated-staking/runtime-benchmarks",
   "pallet-election-provider-multi-phase/runtime-benchmarks",
   "pallet-election-provider-support-benchmarking/runtime-benchmarks",
   "pallet-elections-phragmen/runtime-benchmarks",
@@ -252,6 +255,7 @@ try-runtime=[
   "pallet-bounties/try-runtime",
   "pallet-collective/try-runtime",
   "pallet-democracy/try-runtime",
+  "pallet-delegated-staking/try-runtime",
   "pallet-election-provider-multi-phase/try-runtime",
   "pallet-elections-phragmen/try-runtime",
   "pallet-grandpa/try-runtime",
