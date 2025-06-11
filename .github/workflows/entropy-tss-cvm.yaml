@@ -27,9 +27,10 @@ jobs:
       - name: Build
         run: |
           make image-base CVM_SERVICE_SRC_REV=${{ github.sha }} CVM_SERVICE_SRC_BRANCH=peg/release-pipeline-build-cvm
+          ls -l
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tss-cvm-image
-          path: /home/runner/work/yocto-build/yocto-build/reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
+          path: ./reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz

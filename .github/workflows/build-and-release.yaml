@@ -89,7 +89,7 @@ jobs:
             {entropy,entropy-tss}_${{ needs.git-ref-basename.outputs.git_ref_basename }}/*
 
   release-TDX:
-    name: Publish new release
+    name: Publish new TDX release
     if: github.event_name != 'schedule'
     needs:
       - git-ref-basename
@@ -116,4 +116,3 @@ jobs:
             --verify-tag "${{ github.ref_name }}" \
             entropy_${{ needs.git-ref-basename.outputs.git_ref_basename }}/* \
             tss-cvm-image/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
-
