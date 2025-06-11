@@ -1486,9 +1486,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type RewardCounter = FixedU128;
     type RuntimeEvent = RuntimeEvent;
     type U256ToBalance = U256ToBalance;
-    // TODO: https://github.com/entropyxyz/entropy-core/issues/1453
-    #[allow(deprecated)]
-    type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
+    type StakeAdapter = pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
     type AdminOrigin = EnsureRoot<AccountId>;
     type Filter = Nothing;
     type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Runtime>;
