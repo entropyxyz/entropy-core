@@ -32,4 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: image-${{ github.sha}}
-          path: /home/runner/work/yocto-build/yocto-build/reproducible-build/artifacts-base
+          path: /home/runner/work/yocto-build/yocto-build/reproducible-build/artifacts-base/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
