@@ -1486,12 +1486,27 @@ impl pallet_nomination_pools::Config for Runtime {
     type RewardCounter = FixedU128;
     type RuntimeEvent = RuntimeEvent;
     type U256ToBalance = U256ToBalance;
-    // TODO: https://github.com/entropyxyz/entropy-core/issues/1453
-    #[allow(deprecated)]
-    type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
+    type StakeAdapter =
+        pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
     type AdminOrigin = EnsureRoot<AccountId>;
     type Filter = Nothing;
     type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
+    pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+}
+
+impl pallet_delegated_staking::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type PalletId = DelegatedStakingPalletId;
+    type Currency = Balances;
+    // slashes are sent to the treasury.
+    type OnSlash = ResolveTo<TreasuryAccount, Balances>;
+    type SlashRewardFraction = SlashRewardFraction;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type CoreStaking = Staking;
 }
 
 parameter_types! {
@@ -1616,6 +1631,7 @@ construct_runtime!(
     Offences: pallet_offences = 35,
     Historical: pallet_session_historical = 36,
     Identity: pallet_identity = 38,
+    DelegatedStaking: pallet_delegated_staking = 39,
 
     Recovery: pallet_recovery = 40,
     Vesting: pallet_vesting = 41,
