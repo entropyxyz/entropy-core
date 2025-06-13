@@ -28,7 +28,7 @@ jobs:
           echo "Branches containing $GITHUB_SHA:"
           echo "$branches"
 
-          branch_name=$(echo "$branches" | head -n 1 | sed 's|.*/||' | xargs)
+          branch_name=$(echo "$branches" | head -n 1 | sed 's|^[^/]*/||' | xargs)
 
           echo "First matching branch name: $branch_name"
           echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
