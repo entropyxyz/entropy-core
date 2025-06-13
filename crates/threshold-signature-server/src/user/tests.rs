@@ -2229,7 +2229,7 @@ async fn test_validate_jump_start_fail_repeated() {
     dbg!(block_number);
     dbg!(query_block);
 
-    let mut ocw_message = OcwMessageDkg { validators_info, block_number };
+    let mut ocw_message = OcwMessageDkg { validators_info, block_number: query_block };
     let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
         .await
         .map_err(|e| e.to_string());
