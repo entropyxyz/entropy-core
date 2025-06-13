@@ -26,7 +26,7 @@ jobs:
 
       - name: Build
         run: |
-          make image-base CVM_SERVICE_SRC_REV=${{ github.sha }} CVM_SERVICE_SRC_BRANCH=peg/release-pipeline-build-cvm
+          make image-base CVM_SERVICE_SRC_REV=${{ github.sha }}
           ls -l
 
       - name: Upload build artifacts
