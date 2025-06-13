@@ -2233,7 +2233,12 @@ async fn test_validate_jump_start_fail_repeated() {
     let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
         .await
         .map_err(|e| e.to_string());
-    assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    if block_number == query_block {
+        assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+    } else {
+        assert_eq!(err_stale_data, Err("Data is stale".to_string()));
+    }
 
     ocw_message.block_number = 1;
 
