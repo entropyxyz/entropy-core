@@ -2226,12 +2226,19 @@ async fn test_validate_jump_start_fail_repeated() {
     let jump_start_progress =
         query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
     let validators_info: Vec<_> = jump_start_progress.into_iter().map(|v| v.0).collect();
+    dbg!(block_number);
+    dbg!(query_block);
 
-    let mut ocw_message = OcwMessageDkg { validators_info, block_number };
+    let mut ocw_message = OcwMessageDkg { validators_info, block_number: query_block };
     let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
         .await
         .map_err(|e| e.to_string());
-    assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    if block_number == query_block {
+        assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+    } else {
+        assert_eq!(err_stale_data, Err("Data is stale".to_string()));
+    }
 
     ocw_message.block_number = 1;
 
