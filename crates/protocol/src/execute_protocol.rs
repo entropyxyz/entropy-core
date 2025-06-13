@@ -43,7 +43,7 @@ use crate::{
     EntropySessionParameters, KeyParams, KeyShareWithAuxInfo, PartyId, SessionId, Subsession,
 };
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, time::Duration};
 
 /// For incoming protocol messages
 pub type ChannelIn = mpsc::Receiver<ProtocolMessage>;
@@ -204,14 +204,17 @@ pub async fn execute_dkg(
     threshold_accounts: Vec<AccountId32>,
     threshold: usize,
 ) -> Result<KeyShareWithAuxInfo, ProtocolExecutionErr> {
-    tracing::debug!("Executing DKG");
-
     let party_ids: BTreeSet<PartyId> =
         threshold_accounts.iter().cloned().map(PartyId::new).collect();
 
     let pair = PairWrapper(threshold_pair.clone());
 
     let my_party_id = PartyId::new(AccountId32(threshold_pair.public().0));
+
+    tracing::debug!(
+        "Executing DKG among {} parties. This party: {my_party_id:?}, session_id: {session_id:?}",
+        party_ids.len()
+    );
 
     let session_id_hash = session_id.blake2(Some(Subsession::KeyInit))?;
     let (key_init_parties, includes_me) =
@@ -227,9 +230,15 @@ pub async fn execute_dkg(
             entry_point,
         )?;
 
+        tracing::info!(
+            "Starting key init protocol. This party: {my_party_id:?}, session_id: {session_id:?}"
+        );
+
         let (init_keyshare, chans) = execute_protocol_generic(chans, session).await?;
 
-        tracing::info!("Finished key init protocol");
+        tracing::info!(
+            "Finished key init protocol. This party: {my_party_id:?}, session_id: {session_id:?}"
+        );
 
         // Send verifying key
         let verifying_key = init_keyshare.verifying_key();
@@ -294,31 +303,44 @@ pub async fn execute_dkg(
 
     let session = Session::<_, EntropySessionParameters>::new(
         &mut OsRng,
-        manul_session_id,
+        manul_session_id.clone(),
         pair.clone(),
         entry_point,
     )?;
 
+    tracing::info!(
+        "Starting reshare protocol. This party: {my_party_id:?}, session_id: {session_id:?}, manul_session_id: {manul_session_id:?}"
+    );
     let (new_key_share_option, chans) = execute_protocol_generic(chans, session).await?;
 
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
-    tracing::info!("Finished reshare protocol");
+    tracing::info!(
+        "Finished reshare protocol. This party: {my_party_id:?}, session_id: {session_id:?}, manul_session_id: {manul_session_id:?}"
+    );
 
+    // tracing::debug!("SLEEP 5. This party: {my_party_id:?}");
+    // let _ = tokio::time::sleep(Duration::from_secs(5)).await;
+    // tracing::debug!("WOKE. This party: {my_party_id:?}");
+    tracing::warn!("YIELDING. This party: {my_party_id:?}");
+    tokio::task::yield_now().await;
+    tracing::warn!("YIELDED. This party: {my_party_id:?}");
     // Now run the aux gen protocol to get AuxInfo
     let entry_point = AuxGen::new(party_ids)?;
 
     let session_id_hash = session_id.blake2(Some(Subsession::AuxGen))?;
-
+    let aux_gen_session_id =
+        ManulSessionId::from_seed::<EntropySessionParameters>(session_id_hash.as_slice());
     let session = Session::<_, EntropySessionParameters>::new(
         &mut OsRng,
-        ManulSessionId::from_seed::<EntropySessionParameters>(session_id_hash.as_slice()),
+        aux_gen_session_id.clone(),
         pair.clone(),
         entry_point,
     )?;
 
+    tracing::info!("Starting aux gen protocol. This party: {my_party_id:?}, session_id: {session_id:?}, aux_gen_session_id: {aux_gen_session_id:?}");
     let (aux_info, _) = execute_protocol_generic(chans, session).await?;
-    tracing::info!("Finished aux gen protocol");
+    tracing::info!("Finished aux gen protocol. This party: {my_party_id:?}, session_id: {session_id:?}, aux_gen_session_id: {aux_gen_session_id:?}");
 
     Ok((new_key_share, aux_info))
 }

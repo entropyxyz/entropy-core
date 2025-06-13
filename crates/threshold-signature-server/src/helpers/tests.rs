@@ -54,6 +54,7 @@ use subxt::{
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
 use tokio::sync::OnceCell;
+use tracing::error;
 
 /// A shared reference to the logger used for tests.
 ///
@@ -324,26 +325,35 @@ pub async fn do_jump_start(
     run_to_block(rpc, block_number + 1).await;
 
     let jump_start_status_query = entropy::storage().staking_extension().jump_start_progress();
-    let mut jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
-        .await
-        .unwrap()
-        .unwrap()
-        .jump_start_status;
+    let started = std::time::Instant::now();
+    let mut jump_start_status =
+        query_chain(api, rpc, jump_start_status_query.clone(), None).await.unwrap().unwrap();
+    // .unwrap()
+    // .jump_start_status;
     let mut i = 0;
-    while format!("{:?}", jump_start_status) != format!("{:?}", JumpStartStatus::Done) {
+    while format!("{:?}", jump_start_status.jump_start_status)
+        != format!("{:?}", JumpStartStatus::Done)
+    {
         tokio::time::sleep(Duration::from_secs(1)).await;
-        jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
-            .await
-            .unwrap()
-            .unwrap()
-            .jump_start_status;
+        jump_start_status =
+            query_chain(api, rpc, jump_start_status_query.clone(), None).await.unwrap().unwrap();
+        // .unwrap()
+        // .jump_start_status;
         i += 1;
         if i > 75 {
+            error!(
+                "Jump start did not complete in time. Current status: {jump_start_status:?}, elapsed: {}sec, i: {i}",
+                started.elapsed().as_secs()
+            );
             panic!("Jump start failed");
         }
     }
 
-    assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
+    assert_eq!(
+        format!("{:?}", jump_start_status.jump_start_status),
+        format!("{:?}", JumpStartStatus::Done),
+        "Expected Done, got {jump_start_status:?}"
+    );
 }
 
 /// Submit a jumpstart extrinsic
