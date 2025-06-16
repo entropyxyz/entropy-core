@@ -41,7 +41,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'entropyxyz/yocto-build'
-          ref: 'peg/allow-setting-src-rev'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
