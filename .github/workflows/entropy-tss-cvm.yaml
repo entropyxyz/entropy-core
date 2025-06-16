@@ -9,8 +9,32 @@ on:
   workflow_call:
 
 jobs:
+  get-branch-name:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.extract.outputs.branch_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get the name of a branch which contains the current commit
+        id: extract
+        run: |
+          # Get all remote branches that contain the current commit
+          branches=$(git branch -r --contains $GITHUB_SHA)
+
+          echo "Branches containing $GITHUB_SHA:"
+          echo "$branches"
+
+          branch_name=$(echo "$branches" | head -n 1 | sed 's|^[^/]*/||' | xargs)
+
+          echo "First matching branch name: $branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
   entropy-tss-cvm-build:
     runs-on: core-build-runner
+    needs: get-branch-name
     timeout-minutes: 90
     steps:
       - name: Checkout yocto build scripts
@@ -26,8 +50,7 @@ jobs:
 
       - name: Build
         run: |
-          make image-base CVM_SERVICE_SRC_REV=${{ github.sha }} CVM_SERVICE_SRC_BRANCH=peg/release-pipeline-build-cvm
-          ls -l
+          make image-base CVM_SERVICE_SRC_REV=${{ github.sha }} CVM_SERVICE_SRC_BRANCH=${{ needs.get-branch-name.outputs.branch_name }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
