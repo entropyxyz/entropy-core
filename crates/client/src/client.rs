@@ -27,7 +27,7 @@ use crate::{
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
-                pallet_staking_extension::pallet::JoiningServerInfo,
+                pallet_staking_extension::pallet::ServerInfo,
                 sp_arithmetic::per_things::Perbill,
                 sp_authority_discovery, sp_consensus_babe, sp_consensus_grandpa,
             },
@@ -613,20 +613,19 @@ pub async fn declare_validate(
     tss_account: String,
     x25519_public_key: String,
     endpoint: String,
-    quote: Vec<u8>,
+    tdx_quote: Vec<u8>,
 ) -> Result<ValidatorCandidateAccepted, ClientError> {
     let tss_account = SubxtAccountId32::from_str(&tss_account)
         .map_err(|e| ClientError::FromSs58(e.to_string()))?;
     let x25519_public_key = hex::decode(x25519_public_key)?
         .try_into()
         .map_err(|_| ClientError::Conversion("Error converting x25519_public_key"))?;
-    let joining_server_info =
-        JoiningServerInfo { tss_account, x25519_public_key, endpoint: endpoint.into() };
+    let server_info =
+        ServerInfo { tss_account, x25519_public_key, endpoint: endpoint.into(), tdx_quote };
 
     let validator_prefs = ValidatorPrefs { commission: Perbill(comission), blocked };
 
-    let validate_request =
-        entropy::tx().staking_extension().validate(validator_prefs, joining_server_info, quote);
+    let validate_request = entropy::tx().staking_extension().validate(validator_prefs, server_info);
     let in_block = submit_transaction_with_pair(api, rpc, &signer, &validate_request, None).await?;
     let result_event =
         in_block.find_first::<ValidatorCandidateAccepted>()?.ok_or(SubstrateError::NoEvent)?;
