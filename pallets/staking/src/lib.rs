@@ -429,11 +429,12 @@ pub mod pallet {
                     >>::verify_quote(
                         &server_info.tss_account.clone(),
                         server_info.x25519_public_key,
-                        quote,
+                        quote.clone(),
                         QuoteContext::ChangeEndpoint,
                     )?;
 
                     server_info.endpoint.clone_from(&endpoint);
+                    server_info.tdx_quote = quote;
 
                     Ok(())
                 } else {

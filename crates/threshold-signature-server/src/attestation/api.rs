@@ -64,7 +64,7 @@ pub async fn get_attest(
 #[cfg(not(feature = "production"))]
 pub async fn create_quote(
     nonce: [u8; 32],
-    tss_account: SubxtAccountId32,
+    tss_account: subxt::utils::AccountId32,
     x25519_secret: &StaticSecret,
     context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {

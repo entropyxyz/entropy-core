@@ -115,7 +115,7 @@ sp-tracing={ version="17.1.0" }
 
 [features]
 default=["cli"]
-cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb", "hex", "rand_chacha"]
+cli=["clap", "frame-benchmarking-cli", "sc-cli", "sc-service/rocksdb", "hex", "rand_chacha", "entropy-shared/test-quotes"]
 runtime-benchmarks=[
   "entropy-runtime/runtime-benchmarks",
   "frame-benchmarking-cli/runtime-benchmarks",

@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
-    MeasurementValues,
+    get_account_id_from_seed, mock_measurement_values, tss_account_id, tss_x25519_public_key,
+    ChainSpec, MeasurementValues,
 };
 
 use entropy_runtime::{
@@ -26,9 +26,11 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    types::TssPublicKeys, BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey,
-    DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
-    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
+    attestation::{create_test_quote, QuoteContext},
+    types::TssPublicKeys,
+    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
+    TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -239,19 +241,29 @@ pub fn testnet_local_config() -> crate::chain_spec::ChainSpec {
 }
 
 pub fn testnet_local_initial_tss_servers(
-) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, BoundedVecEncodedVerifyingKey)> {
+) -> Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, Vec<u8>)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_x25519_public_key::ALICE,
         "alice-tss-server:3001".to_string(),
-        provisioning_certification_key::ALICE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::ALICE.clone(),
+            tss_x25519_public_key::ALICE,
+            QuoteContext::Validate,
+        ),
     );
 
     let bob = (
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_x25519_public_key::BOB,
         "bob-tss-server:3002".to_string(),
-        provisioning_certification_key::BOB.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::BOB.clone(),
+            tss_x25519_public_key::BOB,
+            QuoteContext::Validate,
+        ),
     );
 
     vec![alice, bob]
@@ -292,9 +304,7 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
     let tss_details = inputs
         .tss_details
         .into_iter()
-        .map(|(host, tss)| {
-            (tss.tss_account, tss.x25519_public_key, host, tss.provisioning_certification_key)
-        })
+        .map(|(host, tss)| (tss.tss_account, tss.x25519_public_key, host, tss.tdx_quote))
         .collect();
 
     let measurement_values = if let Some(values) = inputs.accepted_measurement_values {
@@ -347,8 +357,7 @@ pub fn testnet_blank_config() -> Result<ChainSpec, String> {
         ready: false,
         tss_account: AccountId32::new([0; 32]),
         x25519_public_key: [0; 32],
-        provisioning_certification_key: BoundedVec::try_from([0; 32].to_vec())
-            .expect("[0; 32] is 32 bytes"),
+        tdx_quote: Vec::new(),
     };
     inputs.tss_details = vec![
         ("127.0.0.1:3001".to_string(), tss_node.clone()),
@@ -372,12 +381,7 @@ pub fn testnet_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    initial_tss_servers: Vec<(
-        TssAccountId,
-        TssX25519PublicKey,
-        TssEndpoint,
-        BoundedVecEncodedVerifyingKey,
-    )>,
+    initial_tss_servers: Vec<(TssAccountId, TssX25519PublicKey, TssEndpoint, Vec<u8>)>,
     accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
     mut endowed_accounts: Vec<AccountId>,
 ) -> serde_json::Value {

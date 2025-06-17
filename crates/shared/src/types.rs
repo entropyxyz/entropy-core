@@ -116,6 +116,6 @@ pub struct TssPublicKeys {
     pub tss_account: sp_runtime::AccountId32,
     /// The public encryption key
     pub x25519_public_key: X25519PublicKey,
-    /// The Provisioning Certification Key used in TDX quotes
-    pub provisioning_certification_key: BoundedVecEncodedVerifyingKey,
+    /// A TDX quote
+    pub tdx_quote: Vec<u8>,
 }
