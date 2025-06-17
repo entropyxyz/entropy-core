@@ -304,6 +304,7 @@ pub async fn execute_dkg(
     let new_key_share =
         new_key_share_option.ok_or(ProtocolExecutionErr::NoOutputFromReshareProtocol)?;
     tracing::info!("Finished reshare protocol");
+    tokio::task::yield_now().await;
 
     // Now run the aux gen protocol to get AuxInfo
     let entry_point = AuxGen::new(party_ids)?;
