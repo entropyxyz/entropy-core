@@ -120,7 +120,7 @@ pub struct QuoteContextQuery {
     /// The context in which the requested quote will be used.
     ///
     /// Must be one of `validate`, `change_endpoint`, `change_threshold_accounts`.
-    /// Eg: `http://17.0.0.1:3001/attest?context=validate`
+    /// Eg: `http://127.0.0.1:3001/attest?context=validate`
     context: String,
 }
 

@@ -262,12 +262,6 @@ mod benchamrks {
             quote,
         );
 
-        // let provisioning_certification_key = if cfg!(test) {
-        //     BoundedVec::default()
-        // } else {
-        //     MOCK_PCK_DERIVED_FROM_NULL_ARRAY.to_vec().try_into().unwrap()
-        // };
-
         let server_info = ServerInfo {
             endpoint: b"http://localhost:3001".to_vec(),
             tss_account: new_threshold.clone(),

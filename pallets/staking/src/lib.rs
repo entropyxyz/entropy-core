@@ -124,6 +124,7 @@ pub mod pallet {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
+        /// The most recent TDX quote provided
         pub tdx_quote: Vec<u8>,
     }
 

@@ -220,6 +220,9 @@ pub fn compute_quote_measurement(quote: &tdx_quote::Quote) -> [u8; 32] {
     hasher.finalize().into()
 }
 
+/// Create a mock quote to be used in test / dev network genesis config
+/// This is almost the same as the mock quote generation function in entropy-tss
+/// but uses [sp_runtime::AccountId32] rather than `subxt::utils::AccountId32`
 #[cfg(feature = "test-quotes")]
 pub fn create_test_quote(
     nonce: [u8; 32],
