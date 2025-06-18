@@ -23,7 +23,6 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as Forest;
 
-
 const NULL_ARR: [u8; 32] = [0; 32];
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
@@ -63,7 +62,6 @@ mod benchmarks {
         };
 
         assert_last_event::<T>(Event::<T>::TreeAdded { tree_account: caller, server_info }.into());
-
     }
     impl_benchmark_test_suite!(Forest, crate::mock::new_test_ext(), crate::mock::Test);
 }
