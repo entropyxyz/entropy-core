@@ -14,8 +14,6 @@ pub trait WeightInfo {
 /// Weights for pallet_oracle using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-    /// Storage: `Forest::ApiBoxes` (r:1 w:1)
-	/// Proof: `Forest::ApiBoxes` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	fn add_tree() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
@@ -30,8 +28,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    	/// Storage: `Forest::ApiBoxes` (r:1 w:1)
-	/// Proof: `Forest::ApiBoxes` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	fn add_tree() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
