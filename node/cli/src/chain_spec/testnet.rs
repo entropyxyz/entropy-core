@@ -304,8 +304,12 @@ pub fn testnet_config(inputs: TestnetChainSpecInputs) -> Result<ChainSpec, Strin
     let tss_details = inputs
         .tss_details
         .into_iter()
-        .map(|(host, tss)| (tss.tss_account, tss.x25519_public_key, host, tss.tdx_quote))
-        .collect();
+        .map(|(host, tss)| {
+            let tdx_quote = hex::decode(&tss.tdx_quote)
+                .map_err(|_| "TDX Quote must be valid hex".to_string())?;
+            Ok((tss.tss_account, tss.x25519_public_key, host, tdx_quote))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
 
     let measurement_values = if let Some(values) = inputs.accepted_measurement_values {
         let tss_values = values
@@ -357,7 +361,7 @@ pub fn testnet_blank_config() -> Result<ChainSpec, String> {
         ready: false,
         tss_account: AccountId32::new([0; 32]),
         x25519_public_key: [0; 32],
-        tdx_quote: Vec::new(),
+        tdx_quote: String::new(),
     };
     inputs.tss_details = vec![
         ("127.0.0.1:3001".to_string(), tss_node.clone()),

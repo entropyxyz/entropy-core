@@ -82,7 +82,6 @@ async fn info_test() {
     let client = reqwest::Client::new();
     let response = client.get("http://127.0.0.1:3001/v1/info").send().await.unwrap();
     let public_keys: TssPublicKeys = response.json().await.unwrap();
-
     let (_, _, x25519_secret) = get_signer_and_x25519_secret(DEFAULT_ALICE_MNEMONIC).unwrap();
     assert_eq!(
         public_keys,
@@ -90,14 +89,16 @@ async fn info_test() {
             tss_account: TSS_ACCOUNTS[0].0.into(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             ready: true,
-            tdx_quote: create_quote(
-                [0; 32],
-                TSS_ACCOUNTS[0].clone(),
-                &x25519_secret,
-                QuoteContext::Validate,
+            tdx_quote: hex::encode(
+                create_quote(
+                    [0; 32],
+                    TSS_ACCOUNTS[0].clone(),
+                    &x25519_secret,
+                    QuoteContext::Validate,
+                )
+                .await
+                .unwrap()
             )
-            .await
-            .unwrap()
         }
     );
     clean_tests();

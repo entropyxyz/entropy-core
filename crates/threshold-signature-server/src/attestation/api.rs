@@ -68,10 +68,6 @@ pub async fn create_quote(
     context: QuoteContext,
 ) -> Result<Vec<u8>, AttestationErr> {
     use rand::{rngs::StdRng, SeedableRng};
-    use rand_core::OsRng;
-
-    // In the real thing this is the key used in the quoting enclave
-    let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
 
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
@@ -81,6 +77,9 @@ pub async fn create_quote(
     // This is generated deterministically from TSS account id
     let mut pck_seeder = StdRng::from_seed(tss_account.0);
     let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
+
+    // In the real thing this is the key used in the quoting enclave
+    let signing_key = tdx_quote::SigningKey::random(&mut pck_seeder);
 
     let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key())?.to_vec();
     let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded)

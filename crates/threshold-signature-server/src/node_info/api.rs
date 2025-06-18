@@ -84,12 +84,14 @@ pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKey
         ready: app_state.cache.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
         tss_account: app_state.account_id(),
-        tdx_quote: create_quote(
-            [0; 32],
-            app_state.subxt_account_id(),
-            &app_state.x25519_secret,
-            QuoteContext::Validate,
-        )
-        .await?,
+        tdx_quote: hex::encode(
+            create_quote(
+                [0; 32],
+                app_state.subxt_account_id(),
+                &app_state.x25519_secret,
+                QuoteContext::Validate,
+            )
+            .await?,
+        ),
     }))
 }
