@@ -8,15 +8,15 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for pallet_oracle.
 pub trait WeightInfo {
-    fn add_box() -> Weight;
+    fn add_tree() -> Weight;
 }
 
 /// Weights for pallet_oracle using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-    /// Storage: `Outtie::ApiBoxes` (r:1 w:1)
-	/// Proof: `Outtie::ApiBoxes` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn add_box() -> Weight {
+    /// Storage: `Forest::ApiBoxes` (r:1 w:1)
+	/// Proof: `Forest::ApiBoxes` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn add_tree() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `3541`
@@ -30,9 +30,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    	/// Storage: `Outtie::ApiBoxes` (r:1 w:1)
-	/// Proof: `Outtie::ApiBoxes` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn add_box() -> Weight {
+    	/// Storage: `Forest::ApiBoxes` (r:1 w:1)
+	/// Proof: `Forest::ApiBoxes` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn add_tree() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `3541`

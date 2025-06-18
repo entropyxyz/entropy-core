@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Mocks for the outtie pallet.
+//! Mocks for the forest pallet.
 
 #![cfg(test)]
 use entropy_shared::attestation::QuoteContext;
@@ -32,7 +32,7 @@ use super::*;
 
 pub type AccountId = u128;
 
-use crate as pallet_outtie;
+use crate as pallet_forest;
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Test {
@@ -158,7 +158,7 @@ construct_runtime!(
   pub enum Test
   {
     System: frame_system,
-    Outtie: pallet_outtie,
+    Forest: pallet_forest,
     Session: pallet_session,
 
   }
