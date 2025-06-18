@@ -60,5 +60,7 @@ async fn test_get_attest() {
     let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
 
     let on_chain_quote = Quote::from_bytes(&server_info.tdx_quote).unwrap();
-    on_chain_quote.verify_with_pck(&provisioning_certification_keypair.verifying_key()).unwrap();
+    assert!(on_chain_quote
+        .verify_with_pck(&provisioning_certification_keypair.verifying_key())
+        .is_ok());
 }
