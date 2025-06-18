@@ -149,7 +149,7 @@ async fn test_change_threshold_accounts() {
         one.into(),
         AccountId32(tss_public_key.0),
         *x25519_public_key.as_bytes(),
-        quote,
+        quote.clone(),
     )
     .await
     .unwrap();
@@ -164,7 +164,7 @@ async fn test_change_threshold_accounts() {
                     tss_account: AccountId32(tss_public_key.0),
                     x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
-                    provisioning_certification_key: BoundedVec(encoded_pck),
+                    tdx_quote: quote,
                 }
             )
         )

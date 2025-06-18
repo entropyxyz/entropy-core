@@ -14,8 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use crate::{attestation::api::create_quote, node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
-use entropy_client::QuoteContext;
-use entropy_shared::types::{HashingAlgorithm, TssPublicKeys};
+use entropy_shared::{
+    attestation::QuoteContext,
+    types::{HashingAlgorithm, TssPublicKeys},
+};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 

@@ -231,13 +231,13 @@ pub fn create_test_quote(
 
     let mut seeder = StdRng::from_seed(tss_account.clone().into());
 
+    // This is generated deterministically from TSS account id
+    let pck = tdx_quote::SigningKey::random(&mut seeder);
+
     // In the real thing this is the key used in the quoting enclave
     let signing_key = tdx_quote::SigningKey::random(&mut seeder);
 
     let input_data = QuoteInputData::new(tss_account, x25519_public_key, nonce, context);
-
-    // This is generated deterministically from TSS account id
-    let pck = tdx_quote::SigningKey::random(&mut seeder);
 
     let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
     tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded).as_bytes().to_vec()

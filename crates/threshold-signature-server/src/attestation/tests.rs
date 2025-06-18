@@ -21,11 +21,13 @@ use crate::{
 };
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
-    constants::BOB_STASH_ADDRESS, substrate_context::test_node_process_stationary,
+    constants::{BOB_STASH_ADDRESS, TSS_ACCOUNTS},
+    substrate_context::test_node_process_stationary,
 };
+use rand::{rngs::StdRng, SeedableRng};
 use serial_test::serial;
 use subxt::utils::AccountId32;
-use tdx_quote::{decode_verifying_key, Quote};
+use tdx_quote::Quote;
 
 #[tokio::test]
 #[serial]
@@ -48,13 +50,15 @@ async fn test_get_attest() {
         .unwrap();
     let quote = Quote::from_bytes(&quote_bytes).unwrap();
 
+    let mut pck_seeder = StdRng::from_seed(TSS_ACCOUNTS[1].0);
+    let provisioning_certification_keypair = tdx_quote::SigningKey::random(&mut pck_seeder);
+
+    assert!(quote.verify_with_pck(&provisioning_certification_keypair.verifying_key()).is_ok());
+
     let query =
         entropy::storage().staking_extension().threshold_servers(&AccountId32(BOB_STASH_ADDRESS.0));
     let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
 
-    let provisioning_certification_key =
-        decode_verifying_key(&server_info.provisioning_certification_key.0.try_into().unwrap())
-            .unwrap();
-
-    assert!(quote.verify_with_pck(&provisioning_certification_key).is_ok())
+    let on_chain_quote = Quote::from_bytes(&server_info.tdx_quote).unwrap();
+    on_chain_quote.verify_with_pck(&provisioning_certification_keypair.verifying_key()).unwrap();
 }
