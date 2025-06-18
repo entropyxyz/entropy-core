@@ -43,5 +43,5 @@ user-native=["dep:subxt", "subxt/native"]
 user-wasm=["dep:subxt", "subxt/web"]
 # Enables non-mock TDX quote verification
 production=[]
-# Adds functionality to build test quotes for genesis config
+# Adds functionality to build test quotes for dev/test network genesis config
 test-quotes=["tdx-quote/mock", "dep:rand", "dep:subxt", "subxt/native", "dep:sp-runtime"]
