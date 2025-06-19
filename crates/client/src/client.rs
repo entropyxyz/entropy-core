@@ -50,7 +50,7 @@ pub use crate::{
 };
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
 pub use entropy_shared::{
-    attestation::{verify_pck_certificate_chain, QuoteContext},
+    attestation::{verify_pck_certificate_chain, QuoteContext, QuoteInputData},
     HashingAlgorithm,
 };
 use parity_scale_codec::Decode;
@@ -674,6 +674,14 @@ pub async fn verify_tss_nodes_attestations(
             .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
         let _pck = verify_pck_certificate_chain(&quote)
             .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+
+        let quote_input_data = QuoteInputData(quote.report_input_data());
+
+        if !quote_input_data
+            .verify_with_unknown_context(server_info.tss_account.0, server_info.x25519_public_key)
+        {
+            return Err(ClientError::QuoteGet("Bad quote input data".to_string()));
+        }
     }
     Ok(())
 }

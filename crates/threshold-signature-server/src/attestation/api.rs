@@ -14,12 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::errors::{AttestationErr, QuoteMeasurementErr},
-    chain_api::{
-        entropy::{self, runtime_types::pallet_parameters::SupportedCvmServices},
-        get_api, get_rpc, EntropyConfig,
-    },
-    helpers::substrate::query_chain,
+    attestation::errors::AttestationErr,
+    chain_api::{get_api, get_rpc},
     AppState,
 };
 use axum::{
@@ -27,12 +23,8 @@ use axum::{
     http::StatusCode,
 };
 use entropy_client::user::request_attestation;
-use entropy_shared::attestation::{
-    compute_quote_measurement, QuoteContext, QuoteInputData, VerifyQuoteError,
-};
+use entropy_shared::attestation::{QuoteContext, QuoteInputData};
 use serde::Deserialize;
-use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
-use tdx_quote::Quote;
 use x25519_dalek::StaticSecret;
 
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
@@ -71,8 +63,7 @@ pub async fn create_quote(
 
     let public_key = x25519_dalek::PublicKey::from(x25519_secret);
 
-    let input_data =
-        QuoteInputData::new(tss_account.clone(), *public_key.as_bytes(), nonce, context);
+    let input_data = QuoteInputData::new(tss_account.0, *public_key.as_bytes(), nonce, context);
 
     // This is generated deterministically from TSS account id
     let mut pck_seeder = StdRng::from_seed(tss_account.0);
@@ -133,28 +124,4 @@ impl QuoteContextQuery {
             _ => Err(AttestationErr::UnknownContext),
         }
     }
-}
-
-/// Check build-time measurement matches a current-supported release of entropy-tss
-/// This differs slightly from the attestation pallet implementation because here we don't have direct
-/// access to the parameters pallet - we need to make a query
-pub async fn check_quote_measurement(
-    api: &OnlineClient<EntropyConfig>,
-    rpc: &LegacyRpcMethods<EntropyConfig>,
-    quote: &Quote,
-) -> Result<(), QuoteMeasurementErr> {
-    let measurement_value = compute_quote_measurement(quote).to_vec();
-    let query = entropy::storage()
-        .parameters()
-        .accepted_measurement_values(SupportedCvmServices::EntropyTss);
-    let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
-        .await?
-        .ok_or(QuoteMeasurementErr::NoMeasurementValues)?
-        .into_iter()
-        .map(|v| v.0)
-        .collect();
-    if !accepted_measurement_values.contains(&measurement_value) {
-        return Err(VerifyQuoteError::BadMeasurementValue.into());
-    };
-    Ok(())
 }

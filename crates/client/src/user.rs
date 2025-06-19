@@ -14,13 +14,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //! User interaction related
 use crate::{
-    chain_api::{entropy, EntropyConfig},
+    chain_api::{
+        entropy::{self, runtime_types::pallet_parameters::SupportedCvmServices},
+        EntropyConfig,
+    },
+    errors::QuoteMeasurementErr,
     substrate::{query_chain, submit_transaction_with_pair},
 };
-use entropy_shared::{user::ValidatorInfo, BlockNumber, HashingAlgorithm};
+use entropy_shared::{
+    attestation::{compute_quote_measurement, VerifyQuoteError},
+    user::ValidatorInfo,
+    BlockNumber, HashingAlgorithm,
+};
 use serde::{Deserialize, Serialize};
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use subxt::{backend::legacy::LegacyRpcMethods, OnlineClient};
+use tdx_quote::Quote;
 
 pub use crate::errors::{AttestationRequestError, SubgroupGetError};
 
@@ -174,4 +183,28 @@ pub async fn request_attestation(
     let nonce = result_event.0.try_into().map_err(|_| AttestationRequestError::BadNonce)?;
 
     Ok(nonce)
+}
+
+/// Check build-time measurement matches a current-supported release of entropy-tss
+/// This differs slightly from the attestation pallet implementation because here we don't have direct
+/// access to the parameters pallet - we need to make a query
+pub async fn check_quote_measurement(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    quote: &Quote,
+) -> Result<(), QuoteMeasurementErr> {
+    let measurement_value = compute_quote_measurement(quote).to_vec();
+    let query = entropy::storage()
+        .parameters()
+        .accepted_measurement_values(SupportedCvmServices::EntropyTss);
+    let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
+        .await?
+        .ok_or(QuoteMeasurementErr::NoMeasurementValues)?
+        .into_iter()
+        .map(|v| v.0)
+        .collect();
+    if !accepted_measurement_values.contains(&measurement_value) {
+        return Err(VerifyQuoteError::BadMeasurementValue.into());
+    };
+    Ok(())
 }

@@ -14,14 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::api::{check_quote_measurement, create_quote},
-    backup_provider::errors::BackupProviderError,
-    chain_api::entropy,
-    validation::EncryptedSignedMessage,
-    AppState, EntropyConfig, SubxtAccountId32,
+    attestation::api::create_quote, backup_provider::errors::BackupProviderError,
+    chain_api::entropy, validation::EncryptedSignedMessage, AppState, EntropyConfig,
+    SubxtAccountId32,
 };
 use axum::{extract::State, Json};
-use entropy_client::substrate::query_chain;
+use entropy_client::{substrate::query_chain, user::check_quote_measurement};
 use entropy_shared::{
     attestation::{verify_pck_certificate_chain, QuoteContext, QuoteInputData},
     user::ValidatorInfo,
@@ -249,7 +247,7 @@ pub async fn recover_encryption_key(
     };
 
     let expected_input_data = QuoteInputData::new(
-        key_request.tss_account.clone(),
+        key_request.tss_account.0,
         key_request.response_key,
         nonce,
         QuoteContext::EncryptionKeyRecoveryRequest,

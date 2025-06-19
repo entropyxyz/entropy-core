@@ -31,7 +31,7 @@ use rand::{
     SeedableRng,
 };
 use serial_test::serial;
-use sp_core::{sr25519, Pair};
+use sp_core::Pair;
 use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
@@ -54,12 +54,15 @@ async fn test_change_endpoint() {
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        let public_key = sr25519::Public::from(tss_account_id.0);
 
-        let input_data =
-            QuoteInputData::new(public_key, x25519_public_key, nonce, QuoteContext::ChangeEndpoint);
+        let input_data = QuoteInputData::new(
+            tss_account_id.0,
+            x25519_public_key,
+            nonce,
+            QuoteContext::ChangeEndpoint,
+        );
 
-        let mut pck_seeder = StdRng::from_seed(public_key.0);
+        let mut pck_seeder = StdRng::from_seed(tss_account_id.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
         let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
 
@@ -130,7 +133,7 @@ async fn test_change_threshold_accounts() {
 
     let quote = {
         let input_data = QuoteInputData::new(
-            tss_public_key,
+            tss_public_key.0,
             *x25519_public_key.as_bytes(),
             nonce,
             QuoteContext::ChangeThresholdAccounts,
@@ -382,7 +385,7 @@ async fn test_set_session_key_and_declare_validate() {
 
     let quote = {
         let input_data = QuoteInputData::new(
-            tss_public_key,
+            tss_public_key.0,
             *x25519_public_key.as_bytes(),
             nonce,
             QuoteContext::Validate,

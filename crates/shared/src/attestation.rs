@@ -31,14 +31,14 @@ pub const MEASUREMENT_VALUE_MOCK_QUOTE: [u8; 32] = [
 pub struct QuoteInputData(pub [u8; 64]);
 
 impl QuoteInputData {
-    pub fn new<T: Encode>(
-        tss_account_id: T,
+    pub fn new(
+        tss_account_id: [u8; 32],
         x25519_public_key: X25519PublicKey,
         nonce: [u8; 32],
         context: QuoteContext,
     ) -> Self {
         let mut hasher = Blake2s256::new();
-        hasher.update(tss_account_id.encode());
+        hasher.update(tss_account_id);
         hasher.update(x25519_public_key);
         hasher.update(context.encode());
         let hashed_input: [u8; 32] = hasher.finalize().into();
@@ -51,14 +51,16 @@ impl QuoteInputData {
     }
 
     /// Verify quote input data for which we do not know the nonce
-    pub fn verify<T: Encode>(
+    /// Note that this is not as strong as verifying a fresh quote, but allows independent
+    /// verification of on-chain quotes
+    pub fn verify(
         &self,
-        tss_account_id: T,
+        tss_account_id: [u8; 32],
         x25519_public_key: X25519PublicKey,
         context: QuoteContext,
     ) -> bool {
         let mut hasher = Blake2s256::new();
-        hasher.update(tss_account_id.encode());
+        hasher.update(tss_account_id);
         hasher.update(x25519_public_key);
         hasher.update(context.encode());
         let hashed_input: [u8; 32] = hasher.finalize().into();
@@ -67,19 +69,19 @@ impl QuoteInputData {
     }
 
     /// Verify quote input data from TSS `ServerInfo` where exact context is not known
-    pub fn verify_with_unknown_context<T: Encode>(
+    pub fn verify_with_unknown_context(
         &self,
-        tss_account_id: T,
+        tss_account_id: [u8; 32],
         x25519_public_key: X25519PublicKey,
     ) -> bool {
-        let contexts = vec![
+        let contexts = [
             QuoteContext::Validate,
             QuoteContext::ChangeEndpoint,
             QuoteContext::ChangeThresholdAccounts,
         ];
 
         for context in contexts {
-            if self.verify(&tss_account_id, x25519_public_key, context) {
+            if self.verify(tss_account_id, x25519_public_key, context) {
                 return true;
             }
         }
@@ -281,7 +283,7 @@ pub fn create_test_quote(
     // In the real thing this is the key used in the quoting enclave
     let signing_key = tdx_quote::SigningKey::random(&mut seeder);
 
-    let input_data = QuoteInputData::new(tss_account, x25519_public_key, nonce, context);
+    let input_data = QuoteInputData::new(tss_account.into(), x25519_public_key, nonce, context);
 
     let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
     tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded).as_bytes().to_vec()

@@ -146,3 +146,14 @@ pub enum ClientError {
     #[error("subxt rpc error: {0}")]
     SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
 }
+
+/// Error when checking quote measurement value
+#[derive(Debug, Error)]
+pub enum QuoteMeasurementErr {
+    #[error("Substrate: {0}")]
+    SubstrateClient(#[from] SubstrateError),
+    #[error("Could not get accepted measurement values from on-chain parameters")]
+    NoMeasurementValues,
+    #[error("Quote verification: {0}")]
+    Kv(#[from] entropy_shared::attestation::VerifyQuoteError),
+}
