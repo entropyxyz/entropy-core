@@ -81,6 +81,7 @@ pub async fn get_validators_not_signer_for_relay(
                         .ok_or_else(|| {
                             SubgroupGetError::ChainFetch("threshold_servers query error")
                         })?;
+
                     Ok(ValidatorInfo {
                         x25519_public_key: server_info.x25519_public_key,
                         ip_address: std::str::from_utf8(&server_info.endpoint)?.to_string(),

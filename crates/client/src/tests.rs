@@ -16,7 +16,7 @@ use crate::{
     change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
     remove_program, request_attestation, set_session_keys, store_program,
     substrate::query_chain,
-    update_programs,
+    update_programs, verify_tss_nodes_attestations,
 };
 
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
@@ -421,4 +421,15 @@ async fn test_set_session_key_and_declare_validate() {
             )
         )
     );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_verify_tss_nodes_attestations() {
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    verify_tss_nodes_attestations(&api, &rpc).await.unwrap();
 }

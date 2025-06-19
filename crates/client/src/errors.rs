@@ -71,8 +71,6 @@ pub enum AttestationRequestError {
 pub enum ClientError {
     #[error("Substrate: {0}")]
     Substrate(#[from] SubstrateError),
-    #[error("Error relating to private mode")]
-    PrivateMode,
     #[error("Cannot get block number")]
     BlockNumber,
     #[error("Cannot get block hash")]

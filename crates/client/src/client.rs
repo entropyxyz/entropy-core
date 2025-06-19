@@ -49,7 +49,10 @@ pub use crate::{
     errors::{ClientError, SubstrateError},
 };
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
-pub use entropy_shared::{attestation::QuoteContext, HashingAlgorithm};
+pub use entropy_shared::{
+    attestation::{verify_pck_certificate_chain, QuoteContext},
+    HashingAlgorithm,
+};
 use parity_scale_codec::Decode;
 use rand::Rng;
 use std::str::FromStr;
@@ -649,4 +652,28 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
         im_online: IMONPublic(im_online),
         authority_discovery: sp_authority_discovery::app::Public(authority_discovery),
     })
+}
+
+/// Verify TDX quotes of all TSS nodes
+pub async fn verify_tss_nodes_attestations(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(), ClientError> {
+    let validators_query = entropy::storage().session().validators();
+    let validators = query_chain(api, rpc, validators_query, None)
+        .await?
+        .ok_or_else(|| ClientError::NoServerInfo)?;
+
+    for validator in validators {
+        let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
+        let server_info = query_chain(&api, &rpc, server_info_query, None)
+            .await?
+            .ok_or_else(|| ClientError::NoServerInfo)?;
+
+        let quote = tdx_quote::Quote::from_bytes(&server_info.tdx_quote)
+            .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+        let _pck = verify_pck_certificate_chain(&quote)
+            .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+    }
+    Ok(())
 }
