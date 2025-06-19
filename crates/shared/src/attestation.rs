@@ -15,7 +15,7 @@
 //! TDX attestion related shared types and functions
 
 use crate::X25519PublicKey;
-use blake2::{Blake2b, Blake2b512, Digest};
+use blake2::{Blake2b, Blake2s256, Digest};
 use codec::{Decode, Encode};
 
 /// The acceptable TDX measurement value for non-production chainspecs.
@@ -37,12 +37,53 @@ impl QuoteInputData {
         nonce: [u8; 32],
         context: QuoteContext,
     ) -> Self {
-        let mut hasher = Blake2b512::new();
+        let mut hasher = Blake2s256::new();
         hasher.update(tss_account_id.encode());
         hasher.update(x25519_public_key);
-        hasher.update(nonce);
         hasher.update(context.encode());
-        Self(hasher.finalize().into())
+        let hashed_input: [u8; 32] = hasher.finalize().into();
+
+        let mut output = [0u8; 64];
+        output[..32].copy_from_slice(&hashed_input);
+        output[32..].copy_from_slice(&nonce);
+
+        Self(output)
+    }
+
+    /// Verify quote input data for which we do not know the nonce
+    pub fn verify<T: Encode>(
+        &self,
+        tss_account_id: T,
+        x25519_public_key: X25519PublicKey,
+        context: QuoteContext,
+    ) -> bool {
+        let mut hasher = Blake2s256::new();
+        hasher.update(tss_account_id.encode());
+        hasher.update(x25519_public_key);
+        hasher.update(context.encode());
+        let hashed_input: [u8; 32] = hasher.finalize().into();
+
+        hashed_input == self.0[..33]
+    }
+
+    /// Verify quote input data from TSS `ServerInfo` where exact context is not known
+    pub fn verify_with_unknown_context<T: Encode>(
+        &self,
+        tss_account_id: T,
+        x25519_public_key: X25519PublicKey,
+    ) -> bool {
+        let contexts = vec![
+            QuoteContext::Validate,
+            QuoteContext::ChangeEndpoint,
+            QuoteContext::ChangeThresholdAccounts,
+        ];
+
+        for context in contexts {
+            if self.verify(&tss_account_id, x25519_public_key, context) {
+                return true;
+            }
+        }
+        false
     }
 }
 
