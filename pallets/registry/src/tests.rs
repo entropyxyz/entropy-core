@@ -62,19 +62,19 @@ fn it_tests_get_validators_info() {
             tss_account: 3,
             x25519_public_key: NULL_ARR,
             endpoint: vec![10],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            tdx_quote: Vec::new(),
         };
         let server_info_2 = ServerInfo {
             tss_account: 4,
             x25519_public_key: NULL_ARR,
             endpoint: vec![11],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            tdx_quote: Vec::new(),
         };
         let server_info_3 = ServerInfo {
             tss_account: 7,
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
-            provisioning_certification_key: BoundedVec::with_max_capacity(),
+            tdx_quote: Vec::new(),
         };
 
         assert_eq!(result_1, vec![server_info_1, server_info_2, server_info_3]);

@@ -38,8 +38,6 @@ pub enum AttestationErr {
     QuoteGeneration(String),
     #[error("Cannot encode verifying key: {0}")]
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
-    #[error("Verifying key is not 33 bytes long")]
-    BadVerifyingKeyLength,
     #[error("Kv error: {0}")]
     Kv(#[from] entropy_kvdb::kv_manager::error::KvError),
     #[error("Attestation request: {0}")]
@@ -61,15 +59,4 @@ impl IntoResponse for AttestationErr {
         let body = format!("{self}").into_bytes();
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
     }
-}
-
-/// Error when checking quote measurement value
-#[derive(Debug, Error)]
-pub enum QuoteMeasurementErr {
-    #[error("Substrate: {0}")]
-    SubstrateClient(#[from] entropy_client::substrate::SubstrateError),
-    #[error("Could not get accepted measurement values from on-chain parameters")]
-    NoMeasurementValues,
-    #[error("Quote verification: {0}")]
-    Kv(#[from] entropy_shared::attestation::VerifyQuoteError),
 }

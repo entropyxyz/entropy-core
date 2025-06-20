@@ -21,6 +21,7 @@ sp-core       ={ version="36.1.0", default-features=false, features=["full_crypt
 tracing       ="0.1.41"
 rand          ={ version="0.8", default-features=false }
 anyhow        ="1.0.98"
+tdx-quote     ="0.0.3"
 
 # Present when "full-client" feature is active
 blake2            ={ version="0.10.4", optional=true }
@@ -67,3 +68,5 @@ full-client=[
 ]
 full-client-native=["full-client", "entropy-protocol/server"]
 full-client-wasm=["full-client", "entropy-protocol/wasm", "dep:js-sys"]
+# Causes TDX quotes to be verified
+production=["entropy-shared/production"]

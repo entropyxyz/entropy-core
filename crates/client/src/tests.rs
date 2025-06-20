@@ -16,7 +16,7 @@ use crate::{
     change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
     remove_program, request_attestation, set_session_keys, store_program,
     substrate::query_chain,
-    update_programs,
+    update_programs, verify_tss_nodes_attestations,
 };
 
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
@@ -31,7 +31,7 @@ use rand::{
     SeedableRng,
 };
 use serial_test::serial;
-use sp_core::{sr25519, Pair};
+use sp_core::Pair;
 use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
@@ -54,12 +54,15 @@ async fn test_change_endpoint() {
 
     let quote = {
         let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
-        let public_key = sr25519::Public::from(tss_account_id.0);
 
-        let input_data =
-            QuoteInputData::new(public_key, x25519_public_key, nonce, QuoteContext::ChangeEndpoint);
+        let input_data = QuoteInputData::new(
+            tss_account_id,
+            x25519_public_key,
+            nonce,
+            QuoteContext::ChangeEndpoint,
+        );
 
-        let mut pck_seeder = StdRng::from_seed(public_key.0);
+        let mut pck_seeder = StdRng::from_seed(tss_account_id.0);
         let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
         let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
 
@@ -130,7 +133,7 @@ async fn test_change_threshold_accounts() {
 
     let quote = {
         let input_data = QuoteInputData::new(
-            tss_public_key,
+            tss_public_key.0,
             *x25519_public_key.as_bytes(),
             nonce,
             QuoteContext::ChangeThresholdAccounts,
@@ -149,7 +152,7 @@ async fn test_change_threshold_accounts() {
         one.into(),
         AccountId32(tss_public_key.0),
         *x25519_public_key.as_bytes(),
-        quote,
+        quote.clone(),
     )
     .await
     .unwrap();
@@ -164,7 +167,7 @@ async fn test_change_threshold_accounts() {
                     tss_account: AccountId32(tss_public_key.0),
                     x25519_public_key: *x25519_public_key.as_bytes(),
                     endpoint: "127.0.0.1:3001".as_bytes().to_vec(),
-                    provisioning_certification_key: BoundedVec(encoded_pck),
+                    tdx_quote: quote,
                 }
             )
         )
@@ -421,4 +424,15 @@ async fn test_set_session_key_and_declare_validate() {
             )
         )
     );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_verify_tss_nodes_attestations() {
+    let substrate_context = test_context_stationary().await;
+
+    let api = get_api(&substrate_context.node_proc.ws_url).await.unwrap();
+    let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
+
+    verify_tss_nodes_attestations(&api, &rpc).await.unwrap();
 }

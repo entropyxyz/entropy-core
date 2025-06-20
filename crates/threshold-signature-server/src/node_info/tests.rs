@@ -14,12 +14,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::api::get_pck,
+    attestation::api::create_quote,
+    get_signer_and_x25519_secret,
     helpers::tests::{initialize_test_logger, setup_client},
+    launch::DEFAULT_ALICE_MNEMONIC,
     node_info::api::{BuildDetails, VersionDetails},
 };
 use entropy_kvdb::clean_tests;
-use entropy_shared::types::{HashingAlgorithm, TssPublicKeys};
+use entropy_shared::{
+    attestation::QuoteContext,
+    types::{HashingAlgorithm, TssPublicKeys},
+};
 use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
 use serial_test::serial;
 
@@ -77,13 +82,23 @@ async fn info_test() {
     let client = reqwest::Client::new();
     let response = client.get("http://127.0.0.1:3001/v1/info").send().await.unwrap();
     let public_keys: TssPublicKeys = response.json().await.unwrap();
+    let (_, _, x25519_secret) = get_signer_and_x25519_secret(DEFAULT_ALICE_MNEMONIC).unwrap();
     assert_eq!(
         public_keys,
         TssPublicKeys {
             tss_account: TSS_ACCOUNTS[0].0.into(),
             x25519_public_key: X25519_PUBLIC_KEYS[0],
             ready: true,
-            provisioning_certification_key: get_pck(TSS_ACCOUNTS[0].clone()).unwrap(),
+            tdx_quote: hex::encode(
+                create_quote(
+                    [0; 32],
+                    TSS_ACCOUNTS[0].clone(),
+                    &x25519_secret,
+                    QuoteContext::Validate,
+                )
+                .await
+                .unwrap()
+            )
         }
     );
     clean_tests();

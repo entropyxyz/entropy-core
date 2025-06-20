@@ -55,7 +55,7 @@ pub fn add_validators<T: Config>(
         tss_account: account,
         x25519_public_key: NULL_ARR,
         endpoint: vec![20],
-        provisioning_certification_key: BoundedVec::with_max_capacity(),
+        tdx_quote: Vec::new(),
     };
     for validator in &validators {
         <ThresholdServers<T>>::insert(validator, server_info.clone());

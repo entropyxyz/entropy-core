@@ -65,7 +65,7 @@ pub enum BackupProviderError {
     #[error("Node has started fresh and not yet successfully set up")]
     NotReady,
     #[error("Quote measurement: {0}")]
-    QuoteMeasurement(#[from] crate::attestation::errors::QuoteMeasurementErr),
+    QuoteMeasurement(#[from] entropy_client::errors::QuoteMeasurementErr),
     #[error("Timed out waiting to be connected to chain")]
     NotConnectedToChain,
     #[error("Application State Error: {0}")]

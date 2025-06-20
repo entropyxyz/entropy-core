@@ -12,9 +12,12 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use crate::{attestation::api::get_pck, node_info::errors::GetInfoError, AppState};
+use crate::{attestation::api::create_quote, node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
-use entropy_shared::types::{HashingAlgorithm, TssPublicKeys};
+use entropy_shared::{
+    attestation::QuoteContext,
+    types::{HashingAlgorithm, TssPublicKeys},
+};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
@@ -81,6 +84,14 @@ pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKey
         ready: app_state.cache.is_ready(),
         x25519_public_key: app_state.x25519_public_key(),
         tss_account: app_state.account_id(),
-        provisioning_certification_key: get_pck(app_state.subxt_account_id())?,
+        tdx_quote: hex::encode(
+            create_quote(
+                [0; 32],
+                app_state.subxt_account_id(),
+                &app_state.x25519_secret,
+                QuoteContext::Validate,
+            )
+            .await?,
+        ),
     }))
 }
