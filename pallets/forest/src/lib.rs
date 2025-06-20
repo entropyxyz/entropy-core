@@ -167,10 +167,7 @@ pub mod module {
                 Error::<T>::EndpointTooLong
             );
 
-            ensure!(
-                !ApiTrees::<T>::contains_key(&tree_account),
-                Error::<T>::TreeAccountAlreadyExists
-            );
+            ensure!(!Trees::<T>::contains_key(&tree_account), Error::<T>::TreeAccountAlreadyExists);
 
             let provisioning_certification_key =
                 <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(

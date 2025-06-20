@@ -45,8 +45,8 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_forest`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_forest::WeightInfo for WeightInfo<T> {
-	/// Storage: `Forest::ApiTrees` (r:1 w:1)
-	/// Proof: `Forest::ApiTrees` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Forest::Trees` (r:1 w:1)
+	/// Proof: `Forest::Trees` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Attestation::PendingAttestations` (r:1 w:1)
 	/// Proof: `Attestation::PendingAttestations` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Parameters::AcceptedMeasurementValues` (r:1 w:0)

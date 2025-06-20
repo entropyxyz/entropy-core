@@ -53,7 +53,7 @@ mod benchmarks {
         #[extrinsic_call]
         _(RawOrigin::Signed(caller.clone()), joining_server_info.clone(), quote);
 
-        let tree_info = ApiTrees::<T>::get(caller.clone()).unwrap();
+        let tree_info = Trees::<T>::get(caller.clone()).unwrap();
 
         let server_info = ForestServerInfo {
             endpoint: joining_server_info.endpoint,
