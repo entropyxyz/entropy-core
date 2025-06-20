@@ -34,13 +34,16 @@ use crate::{
         },
         EntropyConfig,
     },
-    client::entropy::staking::events::Bonded,
-    client::entropy::staking_extension::events::{
-        EndpointChanged, ThresholdAccountChanged, ValidatorCandidateAccepted,
+    client::entropy::{
+        staking::events::Bonded,
+        staking_extension::events::{
+            EndpointChanged, ThresholdAccountChanged, ValidatorCandidateAccepted,
+        },
     },
     substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
     user::{
-        self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
+        self, check_quote_measurement, get_all_signers_from_chain,
+        get_validators_not_signer_for_relay, UserSignatureRequest,
     },
     Hasher,
 };
@@ -654,7 +657,10 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
     })
 }
 
-/// Verify TDX quotes of all TSS nodes
+/// Verify TDX quotes of all TSS nodes - this allows clients to independently verify the
+/// authenticity of all TSS nodes in the validator set, without needing to get them to
+/// generate fresh quotes. Since we want signing to happen quickly, this should be called
+/// periodicaslly rather than at the point of signing.
 pub async fn verify_tss_nodes_attestations(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
@@ -672,16 +678,21 @@ pub async fn verify_tss_nodes_attestations(
 
         let quote = tdx_quote::Quote::from_bytes(&server_info.tdx_quote)
             .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+
+        // Verify the certificate chain
         let _pck = verify_pck_certificate_chain(&quote)
             .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
 
+        // Make sure quote input data matches
         let quote_input_data = QuoteInputData(quote.report_input_data());
-
         if !quote_input_data
             .verify_with_unknown_context(server_info.tss_account.0, server_info.x25519_public_key)
         {
             return Err(ClientError::QuoteGet("Bad quote input data".to_string()));
         }
+
+        // Check measurement
+        check_quote_measurement(api, rpc, &quote).await?;
     }
     Ok(())
 }

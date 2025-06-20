@@ -31,14 +31,14 @@ pub const MEASUREMENT_VALUE_MOCK_QUOTE: [u8; 32] = [
 pub struct QuoteInputData(pub [u8; 64]);
 
 impl QuoteInputData {
-    pub fn new(
-        tss_account_id: [u8; 32],
+    pub fn new<T: Encode>(
+        tss_account_id: T,
         x25519_public_key: X25519PublicKey,
         nonce: [u8; 32],
         context: QuoteContext,
     ) -> Self {
         let mut hasher = Blake2s256::new();
-        hasher.update(tss_account_id);
+        hasher.update(tss_account_id.encode());
         hasher.update(x25519_public_key);
         hasher.update(context.encode());
         let hashed_input: [u8; 32] = hasher.finalize().into();
@@ -53,25 +53,25 @@ impl QuoteInputData {
     /// Verify quote input data for which we do not know the nonce
     /// Note that this is not as strong as verifying a fresh quote, but allows independent
     /// verification of on-chain quotes
-    pub fn verify(
+    pub fn verify<T: Encode>(
         &self,
-        tss_account_id: [u8; 32],
+        tss_account_id: T,
         x25519_public_key: X25519PublicKey,
         context: QuoteContext,
     ) -> bool {
         let mut hasher = Blake2s256::new();
-        hasher.update(tss_account_id);
+        hasher.update(tss_account_id.encode());
         hasher.update(x25519_public_key);
         hasher.update(context.encode());
         let hashed_input: [u8; 32] = hasher.finalize().into();
 
-        hashed_input == self.0[..33]
+        hashed_input == self.0[..32]
     }
 
     /// Verify quote input data from TSS `ServerInfo` where exact context is not known
-    pub fn verify_with_unknown_context(
+    pub fn verify_with_unknown_context<T: Encode + Clone>(
         &self,
-        tss_account_id: [u8; 32],
+        tss_account_id: T,
         x25519_public_key: X25519PublicKey,
     ) -> bool {
         let contexts = [
@@ -81,7 +81,7 @@ impl QuoteInputData {
         ];
 
         for context in contexts {
-            if self.verify(tss_account_id, x25519_public_key, context) {
+            if self.verify(tss_account_id.clone(), x25519_public_key, context) {
                 return true;
             }
         }

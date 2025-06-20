@@ -145,6 +145,8 @@ pub enum ClientError {
     StripPrefix,
     #[error("subxt rpc error: {0}")]
     SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
+    #[error("Unable to successfully check TDX Quote measurement: {0}")]
+    QuoteMeasurement(#[from] QuoteMeasurementErr),
 }
 
 /// Error when checking quote measurement value
