@@ -283,7 +283,7 @@ pub fn create_test_quote(
     // In the real thing this is the key used in the quoting enclave
     let signing_key = tdx_quote::SigningKey::random(&mut seeder);
 
-    let input_data = QuoteInputData::new(tss_account.into(), x25519_public_key, nonce, context);
+    let input_data = QuoteInputData::new(tss_account, x25519_public_key, nonce, context);
 
     let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
     tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded).as_bytes().to_vec()
