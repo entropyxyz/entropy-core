@@ -672,7 +672,7 @@ pub async fn verify_tss_nodes_attestations(
 
     for validator in validators {
         let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
-        let server_info = query_chain(&api, &rpc, server_info_query, None)
+        let server_info = query_chain(api, rpc, server_info_query, None)
             .await?
             .ok_or_else(|| ClientError::NoServerInfo)?;
 

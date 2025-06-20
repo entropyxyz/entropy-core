@@ -385,7 +385,7 @@ async fn test_set_session_key_and_declare_validate() {
 
     let quote = {
         let input_data = QuoteInputData::new(
-            tss_public_key.0,
+            tss_public_key,
             *x25519_public_key.as_bytes(),
             nonce,
             QuoteContext::Validate,
