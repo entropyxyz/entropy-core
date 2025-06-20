@@ -660,7 +660,7 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
 /// Verify TDX quotes of all TSS nodes - this allows clients to independently verify the
 /// authenticity of all TSS nodes in the validator set, without needing to get them to
 /// generate fresh quotes. Since we want signing to happen quickly, this should be called
-/// periodicaslly rather than at the point of signing.
+/// periodically rather than at the point of signing.
 pub async fn verify_tss_nodes_attestations(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
