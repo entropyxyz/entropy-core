@@ -3109,6 +3109,7 @@ dependencies = [
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
  "pallet-elections-phragmen",
+ "pallet-forest",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -3120,7 +3121,6 @@ dependencies = [
  "pallet-offences",
  "pallet-offences-benchmarking",
  "pallet-oracle",
- "pallet-outtie",
  "pallet-parameters",
  "pallet-preimage",
  "pallet-programs",
@@ -7791,6 +7791,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-forest"
+version = "0.4.0-rc.1"
+dependencies = [
+ "entropy-shared",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-session",
+ "parity-scale-codec",
+ "rand 0.8.5",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+ "tdx-quote",
+]
+
+[[package]]
 name = "pallet-grandpa"
 version = "40.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7988,27 +8009,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-outtie"
-version = "0.4.0-rc.1"
-dependencies = [
- "entropy-shared",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-session",
- "parity-scale-codec",
- "rand 0.8.5",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-staking",
- "sp-std",
- "tdx-quote",
 ]
 
 [[package]]
