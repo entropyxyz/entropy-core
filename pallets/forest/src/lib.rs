@@ -83,10 +83,10 @@ pub mod module {
         pub provisioning_certification_key: VerifyingKey,
     }
 
-    /// API tree signing account => Server Info
+    /// Tree signing account => Server Info
     #[pallet::storage]
-    #[pallet::getter(fn get_api_trees)]
-    pub type ApiTrees<T: Config> =
+    #[pallet::getter(fn get_trees)]
+    pub type Trees<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, ForestServerInfo, OptionQuery>;
 
     #[pallet::error]
@@ -187,7 +187,7 @@ pub mod module {
                 provisioning_certification_key,
             };
 
-            ApiTrees::<T>::insert(&tree_account, server_info.clone());
+            Trees::<T>::insert(&tree_account, server_info.clone());
 
             Self::deposit_event(Event::TreeAdded { tree_account, server_info });
 
