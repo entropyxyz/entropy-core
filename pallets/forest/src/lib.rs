@@ -70,6 +70,7 @@ pub mod module {
     pub struct ForestServerInfo {
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: Vec<u8>,
+        /// The TDX quote provided when declaring the tree to the chain
         pub tdx_quote: Vec<u8>,
     }
 
