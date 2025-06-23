@@ -124,19 +124,8 @@ pub mod pallet {
         pub tss_account: AccountId,
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: TssServerURL,
-        pub provisioning_certification_key: VerifyingKey,
-    }
-
-    /// Information about a threshold server in the process of joining
-    /// This becomes a [ServerInfo] when an attestation has been verified
-    #[derive(
-        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
-    )]
-    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct JoiningServerInfo<AccountId> {
-        pub tss_account: AccountId,
-        pub x25519_public_key: X25519PublicKey,
-        pub endpoint: TssServerURL,
+        /// The most recent TDX quote provided
+        pub tdx_quote: Vec<u8>,
     }
 
     /// Info that is requiered to do a proactive refresh
@@ -250,7 +239,7 @@ pub mod pallet {
     /// A type used to simplify the genesis configuration definition.
     pub type ThresholdServersConfig<T> = (
         <T as pallet_session::Config>::ValidatorId,
-        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL, VerifyingKey),
+        (<T as frame_system::Config>::AccountId, X25519PublicKey, TssServerURL, Vec<u8>),
     );
 
     #[pallet::genesis_config]
@@ -278,7 +267,7 @@ pub mod pallet {
                     tss_account: server_info_tuple.0.clone(),
                     x25519_public_key: server_info_tuple.1,
                     endpoint: server_info_tuple.2.clone(),
-                    provisioning_certification_key: server_info_tuple.3.clone(),
+                    tdx_quote: server_info_tuple.3.clone(),
                 };
 
                 ThresholdServers::<T>::insert(validator_stash, server_info.clone());
@@ -441,11 +430,12 @@ pub mod pallet {
                     >>::verify_quote(
                         &server_info.tss_account.clone(),
                         server_info.x25519_public_key,
-                        quote,
+                        quote.clone(),
                         QuoteContext::ChangeEndpoint,
                     )?;
 
                     server_info.endpoint.clone_from(&endpoint);
+                    server_info.tdx_quote = quote;
 
                     Ok(())
                 } else {
@@ -501,17 +491,17 @@ pub mod pallet {
                     if let Some(server_info) = maybe_server_info {
                         // Before we modify the `server_info`, we want to check that the validator is
                         // still running TDX hardware.
-                        let provisioning_certification_key =
+                        let _provisioning_certification_key =
                             <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
                                 &tss_account.clone(),
                                 x25519_public_key,
-                                quote,
+                                quote.clone(),
                                 QuoteContext::ChangeThresholdAccounts,
                             )?;
 
                         server_info.tss_account = tss_account;
                         server_info.x25519_public_key = x25519_public_key;
-                        server_info.provisioning_certification_key = provisioning_certification_key;
+                        server_info.tdx_quote = quote;
 
                         ThresholdToStash::<T>::insert(&server_info.tss_account, &validator_id);
 
@@ -621,36 +611,28 @@ pub mod pallet {
         pub fn validate(
             origin: OriginFor<T>,
             prefs: ValidatorPrefs,
-            joining_server_info: JoiningServerInfo<T::AccountId>,
-            quote: Vec<u8>,
+            server_info: ServerInfo<T::AccountId>,
         ) -> DispatchResult {
             let who = ensure_signed(origin.clone())?;
 
             ensure!(
-                joining_server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
 
             ensure!(
-                !ThresholdToStash::<T>::contains_key(&joining_server_info.tss_account),
+                !ThresholdToStash::<T>::contains_key(&server_info.tss_account),
                 Error::<T>::TssAccountAlreadyExists
             );
 
-            let provisioning_certification_key =
+            let _provisioning_certification_key =
                 <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
-                    &joining_server_info.tss_account.clone(),
-                    joining_server_info.x25519_public_key,
-                    quote,
+                    &server_info.tss_account.clone(),
+                    server_info.x25519_public_key,
+                    server_info.tdx_quote.clone(),
                     QuoteContext::Validate,
                 )
                 .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
-
-            let server_info = ServerInfo::<T::AccountId> {
-                tss_account: joining_server_info.tss_account,
-                x25519_public_key: joining_server_info.x25519_public_key,
-                endpoint: joining_server_info.endpoint,
-                provisioning_certification_key,
-            };
 
             pallet_staking::Pallet::<T>::validate(origin, prefs)?;
 

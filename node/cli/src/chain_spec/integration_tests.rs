@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
+    get_account_id_from_seed, mock_measurement_values, tss_account_id, tss_x25519_public_key,
+    ChainSpec,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -26,6 +27,7 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
+    attestation::{create_test_quote, QuoteContext},
     DAVE_VERIFYING_KEY, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH,
     DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, PREGENERATED_NETWORK_VERIFYING_KEY,
     SIGNER_THRESHOLD, TOTAL_SIGNERS,
@@ -170,7 +172,12 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::ALICE.clone(),
                         crate::chain_spec::tss_x25519_public_key::ALICE,
                         "127.0.0.1:3001".as_bytes().to_vec(),
-                        provisioning_certification_key::ALICE.clone(),
+                        create_test_quote(
+                            [0; 32],
+                            tss_account_id::ALICE.clone(),
+                            tss_x25519_public_key::ALICE,
+                            QuoteContext::Validate,
+                        ),
                     ),
                 ),
                 (
@@ -179,7 +186,12 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::BOB.clone(),
                         crate::chain_spec::tss_x25519_public_key::BOB,
                         "127.0.0.1:3002".as_bytes().to_vec(),
-                        provisioning_certification_key::BOB.clone(),
+                        create_test_quote(
+                            [0; 32],
+                            tss_account_id::BOB.clone(),
+                            tss_x25519_public_key::BOB,
+                            QuoteContext::Validate,
+                        ),
                     ),
                 ),
                 (
@@ -188,7 +200,12 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::CHARLIE.clone(),
                         crate::chain_spec::tss_x25519_public_key::CHARLIE,
                         "127.0.0.1:3003".as_bytes().to_vec(),
-                        provisioning_certification_key::CHARLIE.clone(),
+                        create_test_quote(
+                            [0; 32],
+                            tss_account_id::CHARLIE.clone(),
+                            tss_x25519_public_key::CHARLIE,
+                            QuoteContext::Validate,
+                        ),
                     ),
                 ),
                 (
@@ -197,7 +214,12 @@ pub fn integration_tests_genesis_config(
                         crate::chain_spec::tss_account_id::DAVE.clone(),
                         crate::chain_spec::tss_x25519_public_key::DAVE,
                         "127.0.0.1:3004".as_bytes().to_vec(),
-                        provisioning_certification_key::DAVE.clone(),
+                        create_test_quote(
+                            [0; 32],
+                            tss_account_id::DAVE.clone(),
+                            tss_x25519_public_key::DAVE,
+                            QuoteContext::Validate,
+                        ),
                     ),
                 ),
             ],

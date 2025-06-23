@@ -27,20 +27,23 @@ use crate::{
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
-                pallet_staking_extension::pallet::JoiningServerInfo,
+                pallet_staking_extension::pallet::ServerInfo,
                 sp_arithmetic::per_things::Perbill,
                 sp_authority_discovery, sp_consensus_babe, sp_consensus_grandpa,
             },
         },
         EntropyConfig,
     },
-    client::entropy::staking::events::Bonded,
-    client::entropy::staking_extension::events::{
-        EndpointChanged, ThresholdAccountChanged, ValidatorCandidateAccepted,
+    client::entropy::{
+        staking::events::Bonded,
+        staking_extension::events::{
+            EndpointChanged, ThresholdAccountChanged, ValidatorCandidateAccepted,
+        },
     },
     substrate::{get_registered_details, query_chain, submit_transaction_with_pair},
     user::{
-        self, get_all_signers_from_chain, get_validators_not_signer_for_relay, UserSignatureRequest,
+        self, check_quote_measurement, get_all_signers_from_chain,
+        get_validators_not_signer_for_relay, UserSignatureRequest,
     },
     Hasher,
 };
@@ -49,7 +52,10 @@ pub use crate::{
     errors::{ClientError, SubstrateError},
 };
 pub use entropy_protocol::{sign_and_encrypt::EncryptedSignedMessage, KeyParams};
-pub use entropy_shared::{attestation::QuoteContext, HashingAlgorithm};
+pub use entropy_shared::{
+    attestation::{verify_pck_certificate_chain, QuoteContext, QuoteInputData},
+    HashingAlgorithm,
+};
 use parity_scale_codec::Decode;
 use rand::Rng;
 use std::str::FromStr;
@@ -613,20 +619,19 @@ pub async fn declare_validate(
     tss_account: String,
     x25519_public_key: String,
     endpoint: String,
-    quote: Vec<u8>,
+    tdx_quote: Vec<u8>,
 ) -> Result<ValidatorCandidateAccepted, ClientError> {
     let tss_account = SubxtAccountId32::from_str(&tss_account)
         .map_err(|e| ClientError::FromSs58(e.to_string()))?;
     let x25519_public_key = hex::decode(x25519_public_key)?
         .try_into()
         .map_err(|_| ClientError::Conversion("Error converting x25519_public_key"))?;
-    let joining_server_info =
-        JoiningServerInfo { tss_account, x25519_public_key, endpoint: endpoint.into() };
+    let server_info =
+        ServerInfo { tss_account, x25519_public_key, endpoint: endpoint.into(), tdx_quote };
 
     let validator_prefs = ValidatorPrefs { commission: Perbill(comission), blocked };
 
-    let validate_request =
-        entropy::tx().staking_extension().validate(validator_prefs, joining_server_info, quote);
+    let validate_request = entropy::tx().staking_extension().validate(validator_prefs, server_info);
     let in_block = submit_transaction_with_pair(api, rpc, &signer, &validate_request, None).await?;
     let result_event =
         in_block.find_first::<ValidatorCandidateAccepted>()?.ok_or(SubstrateError::NoEvent)?;
@@ -650,4 +655,44 @@ pub fn deconstruct_session_keys(session_keys: Vec<u8>) -> Result<SessionKeys, Cl
         im_online: IMONPublic(im_online),
         authority_discovery: sp_authority_discovery::app::Public(authority_discovery),
     })
+}
+
+/// Verify TDX quotes of all TSS nodes - this allows clients to independently verify the
+/// authenticity of all TSS nodes in the validator set, without needing to get them to
+/// generate fresh quotes. Since we want signing to happen quickly, this should be called
+/// periodically rather than at the point of signing.
+pub async fn verify_tss_nodes_attestations(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<(), ClientError> {
+    let validators_query = entropy::storage().session().validators();
+    let validators = query_chain(api, rpc, validators_query, None)
+        .await?
+        .ok_or_else(|| ClientError::NoServerInfo)?;
+
+    for validator in validators {
+        let server_info_query = entropy::storage().staking_extension().threshold_servers(validator);
+        let server_info = query_chain(api, rpc, server_info_query, None)
+            .await?
+            .ok_or_else(|| ClientError::NoServerInfo)?;
+
+        let quote = tdx_quote::Quote::from_bytes(&server_info.tdx_quote)
+            .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+
+        // Verify the certificate chain
+        let _pck = verify_pck_certificate_chain(&quote)
+            .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+
+        // Make sure quote input data matches
+        let quote_input_data = QuoteInputData(quote.report_input_data());
+        if !quote_input_data
+            .verify_with_unknown_context(server_info.tss_account.0, server_info.x25519_public_key)
+        {
+            return Err(ClientError::QuoteGet("Bad quote input data".to_string()));
+        }
+
+        // Check measurement
+        check_quote_measurement(api, rpc, &quote).await?;
+    }
+    Ok(())
 }

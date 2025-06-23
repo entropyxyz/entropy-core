@@ -11,6 +11,12 @@ At the moment this project **does not** adhere to
 
 ### Breaking
 - In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
+- In ([#1480](https://github.com/entropyxyz/entropy-core/pull/1480)) full TDX quotes for TSS nodes
+  are now stored on-chain instead of only the Provisioning Certification Key. This breaks the format
+  of the staking extension pallet's `ServerInfo` struct. The output of the TSS server's `/info`
+  route has also changed to include a full quote rather than only the PCK, and likewise the custom
+  chainspec inputs also expect to have a full quote rather than a PCK for each TSS node. In practice
+  this means you can continue to use the output from `/info` directly as a chainspec input.
 
 ### Added
 - Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))

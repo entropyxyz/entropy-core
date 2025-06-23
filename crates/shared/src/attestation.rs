@@ -15,7 +15,7 @@
 //! TDX attestion related shared types and functions
 
 use crate::X25519PublicKey;
-use blake2::{Blake2b, Blake2b512, Digest};
+use blake2::{Blake2b, Blake2s256, Digest};
 use codec::{Decode, Encode};
 
 /// The acceptable TDX measurement value for non-production chainspecs.
@@ -37,12 +37,55 @@ impl QuoteInputData {
         nonce: [u8; 32],
         context: QuoteContext,
     ) -> Self {
-        let mut hasher = Blake2b512::new();
+        let mut hasher = Blake2s256::new();
         hasher.update(tss_account_id.encode());
         hasher.update(x25519_public_key);
-        hasher.update(nonce);
         hasher.update(context.encode());
-        Self(hasher.finalize().into())
+        let hashed_input: [u8; 32] = hasher.finalize().into();
+
+        let mut output = [0u8; 64];
+        output[..32].copy_from_slice(&hashed_input);
+        output[32..].copy_from_slice(&nonce);
+
+        Self(output)
+    }
+
+    /// Verify quote input data for which we do not know the nonce
+    /// Note that this is not as strong as verifying a fresh quote, but allows independent
+    /// verification of on-chain quotes
+    pub fn verify<T: Encode>(
+        &self,
+        tss_account_id: T,
+        x25519_public_key: X25519PublicKey,
+        context: QuoteContext,
+    ) -> bool {
+        let mut hasher = Blake2s256::new();
+        hasher.update(tss_account_id.encode());
+        hasher.update(x25519_public_key);
+        hasher.update(context.encode());
+        let hashed_input: [u8; 32] = hasher.finalize().into();
+
+        hashed_input == self.0[..32]
+    }
+
+    /// Verify quote input data from TSS `ServerInfo` where exact context is not known
+    pub fn verify_with_unknown_context<T: Encode + Clone>(
+        &self,
+        tss_account_id: T,
+        x25519_public_key: X25519PublicKey,
+    ) -> bool {
+        let contexts = [
+            QuoteContext::Validate,
+            QuoteContext::ChangeEndpoint,
+            QuoteContext::ChangeThresholdAccounts,
+        ];
+
+        for context in contexts {
+            if self.verify(tss_account_id.clone(), x25519_public_key, context) {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -218,4 +261,30 @@ pub fn compute_quote_measurement(quote: &tdx_quote::Quote) -> [u8; 32] {
     hasher.update(quote.rtmr2());
     hasher.update(quote.rtmr3());
     hasher.finalize().into()
+}
+
+/// Create a mock quote to be used in test / dev network genesis config
+/// This is almost the same as the mock quote generation function in entropy-tss
+/// but uses [sp_runtime::AccountId32] rather than `subxt::utils::AccountId32`
+#[cfg(feature = "test-quotes")]
+pub fn create_test_quote(
+    nonce: [u8; 32],
+    tss_account: sp_runtime::AccountId32,
+    x25519_public_key: [u8; 32],
+    context: QuoteContext,
+) -> Vec<u8> {
+    use rand::{rngs::StdRng, SeedableRng};
+
+    let mut seeder = StdRng::from_seed(tss_account.clone().into());
+
+    // This is generated deterministically from TSS account id
+    let pck = tdx_quote::SigningKey::random(&mut seeder);
+
+    // In the real thing this is the key used in the quoting enclave
+    let signing_key = tdx_quote::SigningKey::random(&mut seeder);
+
+    let input_data = QuoteInputData::new(tss_account, x25519_public_key, nonce, context);
+
+    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap().to_vec();
+    tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded).as_bytes().to_vec()
 }
