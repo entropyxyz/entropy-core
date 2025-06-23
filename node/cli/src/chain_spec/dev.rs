@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::chain_spec::{
-    get_account_id_from_seed, mock_measurement_values, provisioning_certification_key, ChainSpec,
-    MeasurementValues,
+    get_account_id_from_seed, mock_measurement_values, tss_account_id, tss_x25519_public_key,
+    ChainSpec, MeasurementValues,
 };
 use crate::endowed_accounts::endowed_accounts_dev;
 
@@ -27,9 +27,10 @@ use entropy_runtime::{
 };
 use entropy_runtime::{AccountId, Balance};
 use entropy_shared::{
-    BoundedVecEncodedVerifyingKey, X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE,
-    DEVICE_KEY_CONFIG_TYPE, DEVICE_KEY_HASH, DEVICE_KEY_PROXY,
-    INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD, TOTAL_SIGNERS,
+    attestation::{create_test_quote, QuoteContext},
+    X25519PublicKey as TssX25519PublicKey, DEVICE_KEY_AUX_DATA_TYPE, DEVICE_KEY_CONFIG_TYPE,
+    DEVICE_KEY_HASH, DEVICE_KEY_PROXY, INITIAL_MAX_INSTRUCTIONS_PER_PROGRAM, SIGNER_THRESHOLD,
+    TOTAL_SIGNERS,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use itertools::Itertools;
@@ -42,66 +43,106 @@ use sp_core::{sr25519, ByteArray};
 use sp_runtime::Perbill;
 
 pub fn devnet_four_node_initial_tss_servers(
-) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, BoundedVecEncodedVerifyingKey)> {
+) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, Vec<u8>)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_x25519_public_key::ALICE,
         "127.0.0.1:3001".to_string(),
-        provisioning_certification_key::ALICE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::ALICE.clone(),
+            tss_x25519_public_key::ALICE,
+            QuoteContext::Validate,
+        ),
     );
 
     let bob = (
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_x25519_public_key::BOB,
         "127.0.0.1:3002".to_string(),
-        provisioning_certification_key::BOB.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::BOB.clone(),
+            tss_x25519_public_key::BOB,
+            QuoteContext::Validate,
+        ),
     );
 
     let charlie = (
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
         crate::chain_spec::tss_x25519_public_key::CHARLIE,
         "127.0.0.1:3003".to_string(),
-        provisioning_certification_key::CHARLIE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::CHARLIE.clone(),
+            tss_x25519_public_key::CHARLIE,
+            QuoteContext::Validate,
+        ),
     );
 
     let dave = (
         crate::chain_spec::tss_account_id::DAVE.clone(),
         crate::chain_spec::tss_x25519_public_key::DAVE,
         "127.0.0.1:3004".to_string(),
-        provisioning_certification_key::DAVE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::DAVE.clone(),
+            tss_x25519_public_key::DAVE,
+            QuoteContext::Validate,
+        ),
     );
 
     vec![alice, bob, charlie, dave]
 }
 
 pub fn devnet_local_docker_four_node_initial_tss_servers(
-) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, BoundedVecEncodedVerifyingKey)> {
+) -> Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, Vec<u8>)> {
     let alice = (
         crate::chain_spec::tss_account_id::ALICE.clone(),
         crate::chain_spec::tss_x25519_public_key::ALICE,
         "alice-tss-server:3001".to_string(),
-        provisioning_certification_key::ALICE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::ALICE.clone(),
+            tss_x25519_public_key::ALICE,
+            QuoteContext::Validate,
+        ),
     );
 
     let bob = (
         crate::chain_spec::tss_account_id::BOB.clone(),
         crate::chain_spec::tss_x25519_public_key::BOB,
         "bob-tss-server:3002".to_string(),
-        provisioning_certification_key::BOB.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::BOB.clone(),
+            tss_x25519_public_key::BOB,
+            QuoteContext::Validate,
+        ),
     );
 
     let charlie = (
         crate::chain_spec::tss_account_id::CHARLIE.clone(),
         crate::chain_spec::tss_x25519_public_key::CHARLIE,
         "charlie-tss-server:3003".to_string(),
-        provisioning_certification_key::CHARLIE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::CHARLIE.clone(),
+            tss_x25519_public_key::CHARLIE,
+            QuoteContext::Validate,
+        ),
     );
 
     let dave = (
         crate::chain_spec::tss_account_id::DAVE.clone(),
         crate::chain_spec::tss_x25519_public_key::DAVE,
         "dave-tss-server:3004".to_string(),
-        provisioning_certification_key::DAVE.clone(),
+        create_test_quote(
+            [0; 32],
+            tss_account_id::DAVE.clone(),
+            tss_x25519_public_key::DAVE,
+            QuoteContext::Validate,
+        ),
     );
 
     vec![alice, bob, charlie, dave]
@@ -169,12 +210,7 @@ pub fn development_genesis_config(
     )>,
     initial_nominators: Vec<AccountId>,
     root_key: AccountId,
-    initial_tss_servers: Vec<(
-        sp_runtime::AccountId32,
-        TssX25519PublicKey,
-        String,
-        BoundedVecEncodedVerifyingKey,
-    )>,
+    initial_tss_servers: Vec<(sp_runtime::AccountId32, TssX25519PublicKey, String, Vec<u8>)>,
     accepted_measurement_values: Option<Vec<(SupportedCvmServices, MeasurementValues)>>,
 ) -> serde_json::Value {
     // Note that any endowed_accounts added here will be included in the `elections` and
