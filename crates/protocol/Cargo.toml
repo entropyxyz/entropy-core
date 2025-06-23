@@ -38,7 +38,7 @@ manul                        ={ version="0.2.1", features=["tokio"] }
 
 # Used only with the `server` feature to implement the WsConnection trait
 axum             ={ version="0.8.4", features=["ws"], optional=true }
-tokio-tungstenite={ version="0.26.2", optional=true }
+tokio-tungstenite={ version="0.27.0", optional=true }
 
 # Used only with the `wasm` feature
 gloo-net            ={ version="0.6.0", default-features=false, features=["websocket"], optional=true }
@@ -54,7 +54,7 @@ tracing-subscriber  ={ version="0.3.19", features=["env-filter"] }
 serial_test="3.2.0"
 sp-keyring ="41.0.0"
 anyhow     ="1.0.98"
-num_cpus   ="1.16.0"
+num_cpus   ="1.17.0"
 
 [features]
 default=["server"]

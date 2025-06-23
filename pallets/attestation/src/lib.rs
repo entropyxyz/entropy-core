@@ -236,7 +236,7 @@ pub mod pallet {
 
             // Select the service depending on the quote context
             let cvm_service = match context {
-                QuoteContext::OuttieAddBox => SupportedCvmServices::ApiKeyService,
+                QuoteContext::ForestAddTree => SupportedCvmServices::ApiKeyService,
                 _ => SupportedCvmServices::EntropyTss,
             };
 

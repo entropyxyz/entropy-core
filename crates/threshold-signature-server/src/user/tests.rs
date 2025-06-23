@@ -1275,7 +1275,6 @@ async fn test_program_with_config() {
 // FIXME (#1119): This fails intermittently and needs to be addressed. For now we ignore it since
 // it's producing false negatives on our CI runs.
 #[tokio::test]
-#[ignore]
 #[serial]
 async fn test_jumpstart_network() {
     initialize_test_logger().await;
@@ -2227,11 +2226,16 @@ async fn test_validate_jump_start_fail_repeated() {
         query_chain(&api, &rpc, jump_start_progress_query, None).await.unwrap().unwrap();
     let validators_info: Vec<_> = jump_start_progress.into_iter().map(|v| v.0).collect();
 
-    let mut ocw_message = OcwMessageDkg { validators_info, block_number };
+    let mut ocw_message = OcwMessageDkg { validators_info, block_number: query_block };
     let err_stale_data = validate_jump_start(&ocw_message, &api, &rpc, &app_state.cache)
         .await
         .map_err(|e| e.to_string());
-    assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+
+    if block_number == query_block {
+        assert_eq!(err_stale_data, Err("Data is repeated".to_string()));
+    } else {
+        assert_eq!(err_stale_data, Err("Data is stale".to_string()));
+    }
 
     ocw_message.block_number = 1;
 

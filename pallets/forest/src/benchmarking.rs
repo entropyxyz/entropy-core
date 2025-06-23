@@ -21,7 +21,7 @@ use sp_std::vec;
 
 use super::*;
 #[allow(unused)]
-use crate::Pallet as Outtie;
+use crate::Pallet as Forest;
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -37,31 +37,33 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 mod benchmarks {
     use super::*;
     #[benchmark]
-    fn add_box() {
+    fn add_tree() {
         let caller: T::AccountId = whitelisted_caller();
         let x25519_public_key = NULL_ARR;
         let endpoint = vec![];
 
-        let joining_server_info = JoiningOuttieServerInfo { x25519_public_key, endpoint };
+        let joining_server_info = JoiningForestServerInfo { x25519_public_key, endpoint };
 
         let quote = prepare_attestation_for_validate::<T>(
             caller.clone(),
             x25519_public_key,
-            QuoteContext::OuttieAddBox,
+            QuoteContext::ForestAddTree,
         );
 
         #[extrinsic_call]
         _(RawOrigin::Signed(caller.clone()), joining_server_info.clone(), quote);
 
-        let server_info = OuttieServerInfo {
+        let tree_info = Trees::<T>::get(caller.clone()).unwrap();
+
+        let server_info = ForestServerInfo {
             endpoint: joining_server_info.endpoint,
             x25519_public_key: joining_server_info.x25519_public_key,
-            provisioning_certification_key: BoundedVec::new(),
+            provisioning_certification_key: tree_info.provisioning_certification_key,
         };
 
-        assert_last_event::<T>(Event::<T>::BoxAdded { box_account: caller, server_info }.into());
+        assert_last_event::<T>(Event::<T>::TreeAdded { tree_account: caller, server_info }.into());
     }
-    impl_benchmark_test_suite!(Outtie, crate::mock::new_test_ext(), crate::mock::Test);
+    impl_benchmark_test_suite!(Forest, crate::mock::new_test_ext(), crate::mock::Test);
 }
 
 // TODO deduplicate from staking extension pallet benchmarking

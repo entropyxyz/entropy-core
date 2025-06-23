@@ -101,8 +101,8 @@ pub enum QuoteContext {
     ChangeThresholdAccounts,
     /// To be used when requesting to recover an encryption key
     EncryptionKeyRecoveryRequest,
-    /// To be used in the outtie pallet `add_box` extrinsic
-    OuttieAddBox,
+    /// To be used in the forest pallet `add_tree` extrinsic
+    ForestAddTree,
 }
 
 #[cfg(feature = "std")]
@@ -116,7 +116,7 @@ impl std::fmt::Display for QuoteContext {
             QuoteContext::EncryptionKeyRecoveryRequest => {
                 write!(f, "encryption_key_recovery_request")
             },
-            QuoteContext::OuttieAddBox => write!(f, "outtie_add_box"),
+            QuoteContext::ForestAddTree => write!(f, "forest_add_tree"),
         }
     }
 }
