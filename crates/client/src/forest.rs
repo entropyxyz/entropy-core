@@ -6,6 +6,9 @@ use crate::{
     request_attestation,
     substrate::{query_chain, submit_transaction_with_pair},
 };
+use entropy_shared::{
+    attestation::{QuoteContext},
+};
 use backoff::ExponentialBackoff;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
@@ -30,7 +33,7 @@ pub async fn delcare_to_chain(
 
     let nonce = request_attestation(api, rpc, pair).await?;
     let quote =
-        create_quote(nonce, AccountId32(pair.public().0), server_info.x25519_public_key).await?;
+        create_quote(nonce, AccountId32(pair.public().0), &server_info.x25519_public_key, QuoteContext::ForestAddTree).await?;
 
     let add_tree_call = entropy::tx().forest().add_tree(server_info, quote);
     let add_tree = || async {

@@ -4,22 +4,23 @@ use entropy_shared::{
     BoundedVecEncodedVerifyingKey,
 };
 use subxt::utils::AccountId32;
+use x25519_dalek::StaticSecret;
 
 /// Create a mock quote for testing on non-TDX hardware
 #[cfg(not(feature = "production"))]
 pub async fn create_quote(
     nonce: [u8; 32],
     account_id: AccountId32,
-    x25519_public_key: [u8; 32],
+    x25519_public_key: &[u8; 32],
+    context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
-    let context = QuoteContext::ForestAddTree;
     use rand::{rngs::StdRng, SeedableRng};
     use rand_core::OsRng;
 
     // In the real thing this is the key used in the quoting enclave
     let signing_key = tdx_quote::SigningKey::random(&mut OsRng);
 
-    let input_data = QuoteInputData::new(account_id.clone(), x25519_public_key, nonce, context);
+    let input_data = QuoteInputData::new(account_id.clone(), *x25519_public_key, nonce, context);
 
     // This is generated deterministically from account id
     let mut pck_seeder = StdRng::from_seed(account_id.0);
@@ -38,9 +39,8 @@ pub async fn create_quote(
     nonce: [u8; 32],
     account_id: AccountId32,
     x25519_public_key: [u8; 32],
+    context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
-    let context = QuoteContext::ForestAddTree;
-
     let input_data = QuoteInputData::new(account_id, x25519_public_key, nonce, context);
 
     Ok(configfs_tsm::create_quote(input_data.0)

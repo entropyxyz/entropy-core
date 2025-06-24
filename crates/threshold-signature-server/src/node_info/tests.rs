@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    attestation::api::create_quote,
     get_signer_and_x25519_secret,
     helpers::tests::{initialize_test_logger, setup_client},
     launch::DEFAULT_ALICE_MNEMONIC,
@@ -25,6 +24,7 @@ use entropy_shared::{
     attestation::QuoteContext,
     types::{HashingAlgorithm, TssPublicKeys},
 };
+use entropy_client::attestation::create_quote;
 use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
 use serial_test::serial;
 
@@ -83,6 +83,7 @@ async fn info_test() {
     let response = client.get("http://127.0.0.1:3001/v1/info").send().await.unwrap();
     let public_keys: TssPublicKeys = response.json().await.unwrap();
     let (_, _, x25519_secret) = get_signer_and_x25519_secret(DEFAULT_ALICE_MNEMONIC).unwrap();
+    let x25519_public_key = x25519_dalek::PublicKey::from(x25519_secret);
     assert_eq!(
         public_keys,
         TssPublicKeys {
@@ -93,7 +94,7 @@ async fn info_test() {
                 create_quote(
                     [0; 32],
                     TSS_ACCOUNTS[0].clone(),
-                    &x25519_secret,
+                    &x25519_public_key,
                     QuoteContext::Validate,
                 )
                 .await

@@ -12,7 +12,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use crate::{attestation::api::create_quote, node_info::errors::GetInfoError, AppState};
+use crate::{node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
 use entropy_shared::{
     attestation::QuoteContext,
@@ -20,6 +20,8 @@ use entropy_shared::{
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
+use entropy_client::attestation::create_quote;
+use x25519_dalek::StaticSecret;
 
 /// Version information - the output of the `/version` HTTP endpoint
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -88,7 +90,7 @@ pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKey
             create_quote(
                 [0; 32],
                 app_state.subxt_account_id(),
-                &app_state.x25519_secret,
+                &x25519_dalek::PublicKey::from(app_state.x25519_secret),
                 QuoteContext::Validate,
             )
             .await?,
