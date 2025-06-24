@@ -16,6 +16,7 @@
 //! Since the TSS server communicates with the chain node, this is also a dependency of entropy-tss.
 pub mod chain_api;
 pub mod errors;
+pub mod forest;
 pub mod substrate;
 pub mod user;
 pub mod util;
