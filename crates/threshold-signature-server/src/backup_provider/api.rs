@@ -19,7 +19,10 @@ use crate::{
     SubxtAccountId32,
 };
 use axum::{extract::State, Json};
-use entropy_client::{substrate::query_chain, user::check_quote_measurement};
+use entropy_client::{
+    chain_api::entropy::runtime_types::pallet_parameters::SupportedCvmServices,
+    substrate::query_chain, user::check_quote_measurement,
+};
 use entropy_shared::{
     attestation::{verify_pck_certificate_chain, QuoteContext, QuoteInputData},
     user::ValidatorInfo,
@@ -257,7 +260,7 @@ pub async fn recover_encryption_key(
     }
 
     let (api, rpc) = app_state.get_api_rpc().await?;
-    check_quote_measurement(&api, &rpc, &quote).await?;
+    check_quote_measurement(&api, &rpc, &quote, SupportedCvmServices::EntropyTss).await?;
 
     let _pck = verify_pck_certificate_chain(&quote)?;
 
