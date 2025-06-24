@@ -7,6 +7,7 @@ use crate::{
                 bounded_collections::bounded_vec::BoundedVec,
                 pallet_registry::pallet::ProgramInstance,
                 pallet_staking_extension::pallet::ServerInfo,
+                pallet_forest::module::JoiningForestServerInfo,
             },
             staking::events as staking_events,
             staking_extension::events,
@@ -16,7 +17,8 @@ use crate::{
     change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
     remove_program, request_attestation, set_session_keys, store_program,
     substrate::query_chain,
-    update_programs, verify_tss_nodes_attestations,
+    update_programs, verify_tss_nodes_attestations, 
+    forest::delcare_to_chain,
 };
 
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
@@ -24,14 +26,14 @@ use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
-    test_node_process_testing_state, ChainSpecType,
+    test_node_process_testing_state, ChainSpecType, test_node_process,
 };
 use rand::{
     rngs::{OsRng, StdRng},
     SeedableRng,
 };
 use serial_test::serial;
-use sp_core::Pair;
+use sp_core::{Pair, sr25519};
 use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
@@ -435,4 +437,54 @@ async fn test_verify_tss_nodes_attestations() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     verify_tss_nodes_attestations(&api, &rpc).await.unwrap();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_declare() {
+    let alice = Keyring::Alice;
+    let cxt = test_node_process().await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+
+    let endpoint: Vec<u8> = "test".into();
+    let x25519_public_key = [0; 32];
+    let server_info = JoiningForestServerInfo {
+        endpoint: endpoint.clone(),
+        x25519_public_key: x25519_public_key.clone(),
+    };
+
+    let result = delcare_to_chain(&api, &rpc, server_info, &alice.pair(), None).await;
+    // Alice has funds should not time out and register to chain
+    assert!(result.is_ok());
+
+    // let servers = get_api_key_servers(&api, &rpc).await.unwrap();
+    // let (account_id, server) = servers.iter().next().unwrap();
+    // assert_eq!(account_id.0, alice.pair().public().0);
+    // assert_eq!(endpoint, server.endpoint);
+    // assert_eq!(x25519_public_key, server.x25519_public_key);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_declare_times_out() {
+    let cxt = test_node_process().await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let (pair, _seed) = sr25519::Pair::generate();
+
+    let server_info = JoiningForestServerInfo {
+        endpoint: "test".into(),
+        x25519_public_key: [0u8; 32],
+    };
+
+    let result = delcare_to_chain(&api, &rpc, server_info, &pair, None).await;
+
+    // Random pair does not have funds and should give an error
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("User error: Invalid Transaction (1010)")
+    );
 }

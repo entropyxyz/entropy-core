@@ -151,6 +151,8 @@ pub enum ClientError {
     TimedOut,
     #[error("No event following extrinsic submission")]
     NoEvent,
+    #[error("Cannot encode verifying key: {0}")]
+    EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
 }
 
 /// Error when checking quote measurement value

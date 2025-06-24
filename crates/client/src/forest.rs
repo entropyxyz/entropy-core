@@ -1,5 +1,6 @@
 use crate::chain_api::entropy::runtime_types::pallet_forest::module::JoiningForestServerInfo;
 use crate::{
+    attestation::create_quote,
     chain_api::{entropy, EntropyConfig},
     errors::{ClientError, SubstrateError},
     request_attestation,
@@ -8,7 +9,9 @@ use crate::{
 use backoff::ExponentialBackoff;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
-use subxt::{blocks::ExtrinsicEvents, OnlineClient, backend::legacy::LegacyRpcMethods};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, blocks::ExtrinsicEvents, utils::AccountId32, OnlineClient,
+};
 
 /// Declares an itself to the chain by calling add box to the forest pallet
 /// Will log and backoff if account does not have funds, assumption is that
@@ -26,14 +29,10 @@ pub async fn delcare_to_chain(
     let backoff = if cfg!(test) { create_test_backoff() } else { ExponentialBackoff::default() };
 
     let nonce = request_attestation(api, rpc, pair).await?;
-    // let quote = create_quote(
-    //     nonce,
-    //     SubxtAccountId32(pair.public().0),
-    //     server_info.x25519_public_key,
-    // )
-    // .await?;
-    // TODO fix quite
-    let add_tree_call = entropy::tx().forest().add_tree(server_info, vec![]);
+    let quote =
+        create_quote(nonce, AccountId32(pair.public().0), server_info.x25519_public_key).await?;
+
+    let add_tree_call = entropy::tx().forest().add_tree(server_info, quote);
     let add_tree = || async {
         println!(
             "attempted to make add_tree tx, If failed probably add funds to {:?}",
