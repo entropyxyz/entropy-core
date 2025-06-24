@@ -716,9 +716,11 @@ pub async fn verify_tree_quote(
 
     // Make sure quote input data matches
     let quote_input_data = QuoteInputData(quote.report_input_data());
-    if !quote_input_data
-        .verify_with_unknown_context(service_account_id, server_info.x25519_public_key)
-    {
+    if !quote_input_data.verify(
+        service_account_id,
+        server_info.x25519_public_key,
+        QuoteContext::ForestAddTree,
+    ) {
         return Err(ClientError::QuoteGet("Bad quote input data".to_string()));
     }
 
