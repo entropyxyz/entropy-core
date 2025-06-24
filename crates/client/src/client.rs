@@ -703,7 +703,7 @@ pub async fn verify_tss_nodes_attestations(
 pub async fn verify_tree_quote(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    server_info: ForestServerInfo,
+    server_info: &ForestServerInfo,
     service_account_id: [u8; 32],
     cvm_service_type: SupportedCvmServices,
 ) -> Result<(), ClientError> {
