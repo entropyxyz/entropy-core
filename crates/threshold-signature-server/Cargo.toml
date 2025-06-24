@@ -89,7 +89,7 @@ lazy_static ="1.5.0"
 blake3      ="1.8.2"
 ethers-core ="2.0.14"
 schnorrkel  ={ version="0.11.4", default-features=false, features=["std"] }
-schemars    ={ version="0.8.22" }
+schemars    ={ version="1.0.0" }
 subxt-signer="0.42.1"
 tdx-quote   ={ version="0.0.3", features=["mock"] }
 
