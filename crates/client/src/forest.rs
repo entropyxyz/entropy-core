@@ -1,4 +1,4 @@
-use crate::chain_api::entropy::runtime_types::pallet_forest::module::JoiningForestServerInfo;
+use crate::chain_api::entropy::runtime_types::pallet_forest::module::{JoiningForestServerInfo, ForestServerInfo};
 use crate::{
     attestation::create_quote,
     chain_api::{entropy, EntropyConfig},
@@ -57,4 +57,24 @@ fn create_test_backoff() -> ExponentialBackoff {
     backoff.initial_interval = Duration::from_millis(50);
     backoff.max_interval = Duration::from_millis(500);
     backoff
+}
+
+
+// Get all available API key servers from the chain
+pub async fn get_api_key_servers(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+) -> Result<Vec<(AccountId32, ForestServerInfo)>, ClientError> {
+    let block_hash = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or(ClientError::BlockHash)?;
+    let storage_address = entropy::storage().forest().trees_iter();
+    let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
+    let mut servers = Vec::new();
+    while let Some(Ok(kv)) = iter.next().await {
+        let key: [u8; 32] = kv.key_bytes[kv.key_bytes.len() - 32..].try_into()?;
+        servers.push((key.into(), kv.value))
+    }
+    Ok(servers)
 }

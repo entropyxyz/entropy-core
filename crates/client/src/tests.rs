@@ -18,7 +18,7 @@ use crate::{
     remove_program, request_attestation, set_session_keys, store_program,
     substrate::query_chain,
     update_programs, verify_tss_nodes_attestations, 
-    forest::delcare_to_chain,
+    forest::{delcare_to_chain, get_api_key_servers},
 };
 
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
@@ -458,11 +458,11 @@ async fn test_declare() {
     // Alice has funds should not time out and register to chain
     assert!(result.is_ok());
 
-    // let servers = get_api_key_servers(&api, &rpc).await.unwrap();
-    // let (account_id, server) = servers.iter().next().unwrap();
-    // assert_eq!(account_id.0, alice.pair().public().0);
-    // assert_eq!(endpoint, server.endpoint);
-    // assert_eq!(x25519_public_key, server.x25519_public_key);
+    let servers = get_api_key_servers(&api, &rpc).await.unwrap();
+    let (account_id, server) = servers.iter().next().unwrap();
+    assert_eq!(account_id.0, alice.pair().public().0);
+    assert_eq!(endpoint, server.endpoint);
+    assert_eq!(x25519_public_key, server.x25519_public_key);
 }
 
 #[tokio::test]
