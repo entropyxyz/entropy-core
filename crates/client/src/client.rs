@@ -23,7 +23,9 @@ use crate::{
             runtime_types::{
                 bounded_collections::bounded_vec::BoundedVec,
                 entropy_runtime::SessionKeys,
+                pallet_forest::module::ForestServerInfo,
                 pallet_im_online::sr25519::app_sr25519::Public as IMONPublic,
+                pallet_parameters::SupportedCvmServices,
                 pallet_programs::pallet::ProgramInfo,
                 pallet_registry::pallet::{ProgramInstance, RegisteredInfo},
                 pallet_staking::{RewardDestination, ValidatorPrefs},
@@ -692,7 +694,37 @@ pub async fn verify_tss_nodes_attestations(
         }
 
         // Check measurement
-        check_quote_measurement(api, rpc, &quote).await?;
+        check_quote_measurement(api, rpc, &quote, SupportedCvmServices::EntropyTss).await?;
     }
+    Ok(())
+}
+
+/// Given a [ForestServerInfo] verify that the tree is running the desired serivce
+pub async fn verify_tree_quote(
+    api: &OnlineClient<EntropyConfig>,
+    rpc: &LegacyRpcMethods<EntropyConfig>,
+    server_info: &ForestServerInfo,
+    service_account_id: [u8; 32],
+    cvm_service_type: SupportedCvmServices,
+) -> Result<(), ClientError> {
+    let quote = tdx_quote::Quote::from_bytes(&server_info.tdx_quote)
+        .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+
+    // Verify the certificate chain
+    let _pck = verify_pck_certificate_chain(&quote)
+        .map_err(|err| ClientError::QuoteGet(err.to_string()))?;
+
+    // Make sure quote input data matches
+    let quote_input_data = QuoteInputData(quote.report_input_data());
+    if !quote_input_data.verify(
+        service_account_id,
+        server_info.x25519_public_key,
+        QuoteContext::ForestAddTree,
+    ) {
+        return Err(ClientError::QuoteGet("Bad quote input data".to_string()));
+    }
+
+    // Check measurement
+    check_quote_measurement(api, rpc, &quote, cvm_service_type).await?;
     Ok(())
 }

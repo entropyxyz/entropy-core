@@ -18,7 +18,7 @@
 #![cfg(test)]
 
 use super::*;
-use crate::JoiningForestServerInfo;
+use crate::ForestServerInfo;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 
@@ -27,28 +27,29 @@ const NULL_ARR: [u8; 32] = [0; 32];
 #[test]
 fn add_tree() {
     new_test_ext().execute_with(|| {
-        let mut server_info =
-            JoiningForestServerInfo { x25519_public_key: NULL_ARR, endpoint: vec![20] };
+        let mut server_info = ForestServerInfo {
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            tdx_quote: VALID_QUOTE.to_vec(),
+        };
 
-        assert_ok!(Forest::add_tree(
-            RuntimeOrigin::signed(1),
-            server_info.clone(),
-            VALID_QUOTE.to_vec()
-        ));
+        assert_ok!(Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone(),));
 
         assert_noop!(
-            Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone(), VALID_QUOTE.to_vec()),
+            Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone()),
             Error::<Test>::TreeAccountAlreadyExists
         );
 
+        server_info.tdx_quote = INVALID_QUOTE.to_vec();
         assert_noop!(
-            Forest::add_tree(RuntimeOrigin::signed(2), server_info.clone(), INVALID_QUOTE.to_vec()),
+            Forest::add_tree(RuntimeOrigin::signed(2), server_info.clone()),
             Error::<Test>::BadQuote
         );
 
+        server_info.tdx_quote = VALID_QUOTE.to_vec();
         server_info.endpoint = [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec();
         assert_noop!(
-            Forest::add_tree(RuntimeOrigin::signed(3), server_info, VALID_QUOTE.to_vec()),
+            Forest::add_tree(RuntimeOrigin::signed(3), server_info),
             Error::<Test>::EndpointTooLong
         );
     });
