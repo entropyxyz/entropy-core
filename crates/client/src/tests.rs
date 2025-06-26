@@ -7,33 +7,32 @@ use crate::{
                 bounded_collections::bounded_vec::BoundedVec,
                 pallet_registry::pallet::ProgramInstance,
                 pallet_staking_extension::pallet::ServerInfo,
-                pallet_forest::module::JoiningForestServerInfo,
             },
             staking::events as staking_events,
             staking_extension::events,
         },
         get_api, get_rpc,
     },
-    change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
-    remove_program, request_attestation, set_session_keys, store_program,
+    change_endpoint, change_threshold_accounts, declare_validate,
+    forest::{declare_to_chain, get_api_key_servers},
+    get_oracle_headings, register, remove_program, request_attestation, set_session_keys,
+    store_program,
     substrate::query_chain,
-    update_programs, verify_tss_nodes_attestations, 
-    forest::{delcare_to_chain, get_api_key_servers},
+    update_programs, verify_tss_nodes_attestations,
 };
-
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
-    test_node_process_testing_state, ChainSpecType, test_node_process,
+    test_node_process, test_node_process_testing_state, ChainSpecType,
 };
 use rand::{
     rngs::{OsRng, StdRng},
     SeedableRng,
 };
 use serial_test::serial;
-use sp_core::{Pair, sr25519};
+use sp_core::{sr25519, Pair};
 use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
@@ -447,21 +446,19 @@ async fn test_declare() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
 
-    let endpoint: Vec<u8> = "test".into();
+    let endpoint = "test".to_string();
     let x25519_public_key = [0; 32];
-    let server_info = JoiningForestServerInfo {
-        endpoint: endpoint.clone(),
-        x25519_public_key: x25519_public_key.clone(),
-    };
 
-    let result = delcare_to_chain(&api, &rpc, server_info, &alice.pair(), None).await;
+    let result =
+        declare_to_chain(&api, &rpc, endpoint.clone(), x25519_public_key, &alice.pair(), None)
+            .await;
     // Alice has funds should not time out and register to chain
     assert!(result.is_ok());
 
     let servers = get_api_key_servers(&api, &rpc).await.unwrap();
     let (account_id, server) = servers.iter().next().unwrap();
     assert_eq!(account_id.0, alice.pair().public().0);
-    assert_eq!(endpoint, server.endpoint);
+    assert_eq!(endpoint, String::from_utf8(server.endpoint.clone()).unwrap());
     assert_eq!(x25519_public_key, server.x25519_public_key);
 }
 
@@ -473,18 +470,11 @@ async fn test_declare_times_out() {
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let (pair, _seed) = sr25519::Pair::generate();
 
-    let server_info = JoiningForestServerInfo {
-        endpoint: "test".into(),
-        x25519_public_key: [0u8; 32],
-    };
+    let endpoint = "test".to_string();
+    let x25519_public_key = [0; 32];
 
-    let result = delcare_to_chain(&api, &rpc, server_info, &pair, None).await;
+    let result = declare_to_chain(&api, &rpc, endpoint, x25519_public_key, &pair, None).await;
 
     // Random pair does not have funds and should give an error
-    assert!(
-        result
-            .unwrap_err()
-            .to_string()
-            .contains("User error: Invalid Transaction (1010)")
-    );
+    assert!(result.unwrap_err().to_string().contains("User error: Invalid Transaction (1010)"));
 }

@@ -1,4 +1,4 @@
-use crate::chain_api::entropy::runtime_types::pallet_forest::module::{JoiningForestServerInfo, ForestServerInfo};
+use crate::chain_api::entropy::runtime_types::pallet_forest::module::ForestServerInfo;
 use crate::{
     attestation::create_quote,
     chain_api::{entropy, EntropyConfig},
@@ -6,10 +6,8 @@ use crate::{
     request_attestation,
     substrate::{query_chain, submit_transaction_with_pair},
 };
-use entropy_shared::{
-    attestation::{QuoteContext},
-};
 use backoff::ExponentialBackoff;
+use entropy_shared::attestation::QuoteContext;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
 use subxt::{
@@ -19,10 +17,11 @@ use subxt::{
 /// Declares an itself to the chain by calling add box to the forest pallet
 /// Will log and backoff if account does not have funds, assumption is that
 /// deployer will see this and fund the account to complete the spin up process
-pub async fn delcare_to_chain(
+pub async fn declare_to_chain(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-    server_info: JoiningForestServerInfo,
+    endpoint: String,
+    x25519_public_key: [u8; 32],
     pair: &sr25519::Pair,
     nonce_option: Option<u32>,
 ) -> Result<(), ClientError> {
@@ -32,10 +31,17 @@ pub async fn delcare_to_chain(
     let backoff = if cfg!(test) { create_test_backoff() } else { ExponentialBackoff::default() };
 
     let nonce = request_attestation(api, rpc, pair).await?;
-    let quote =
-        create_quote(nonce, AccountId32(pair.public().0), &server_info.x25519_public_key, QuoteContext::ForestAddTree).await?;
+    let tdx_quote = create_quote(
+        nonce,
+        AccountId32(pair.public().0),
+        &x25519_public_key,
+        QuoteContext::ForestAddTree,
+    )
+    .await?;
 
-    let add_tree_call = entropy::tx().forest().add_tree(server_info, quote);
+    let server_info = ForestServerInfo { endpoint: endpoint.into(), x25519_public_key, tdx_quote };
+
+    let add_tree_call = entropy::tx().forest().add_tree(server_info);
     let add_tree = || async {
         println!(
             "attempted to make add_tree tx, If failed probably add funds to {:?}",
@@ -62,16 +68,12 @@ fn create_test_backoff() -> ExponentialBackoff {
     backoff
 }
 
-
 // Get all available API key servers from the chain
 pub async fn get_api_key_servers(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Result<Vec<(AccountId32, ForestServerInfo)>, ClientError> {
-    let block_hash = rpc
-        .chain_get_block_hash(None)
-        .await?
-        .ok_or(ClientError::BlockHash)?;
+    let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
     let storage_address = entropy::storage().forest().trees_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
     let mut servers = Vec::new();
