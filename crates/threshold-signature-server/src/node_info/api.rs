@@ -90,7 +90,7 @@ pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKey
             create_quote(
                 [0; 32],
                 app_state.subxt_account_id(),
-                &x25519_dalek::PublicKey::from(app_state.x25519_secret),
+                &app_state.x25519_public_key(),
                 QuoteContext::Validate,
             )
             .await?,

@@ -43,9 +43,8 @@ pub async fn get_attest(
     let nonce = request_attestation(&api, &rpc, &app_state.pair).await?;
 
     let context = context_querystring.as_quote_context()?;
-    let public_key = x25519_dalek::PublicKey::from(&app_state.x25519_secret);
     let quote =
-        create_quote(nonce, app_state.subxt_account_id(), &public_key.to_bytes(), context)
+        create_quote(nonce, app_state.subxt_account_id(), &app_state.x25519_public_key(), context)
             .await?;
 
     Ok((StatusCode::OK, quote))
