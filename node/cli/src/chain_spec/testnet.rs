@@ -15,9 +15,8 @@
 
 use crate::{
     chain_spec::{
-        get_account_id_from_seed, mock_measurement_values, provisioning_certification_key,
-        tss_account_id, tss_x25519_public_key, ChainSpec, MeasurementValues,
-        MEASUREMENT_VALUE_MOCK_QUOTE,
+        get_account_id_from_seed, mock_measurement_values, tss_account_id, tss_x25519_public_key,
+        ChainSpec, MeasurementValues,
     },
     endowed_accounts::endowed_accounts_testnet,
 };
