@@ -62,16 +62,6 @@ pub mod module {
         type AttestationHandler: AttestationHandler<Self::AccountId>;
     }
 
-    /// Information about a joining Forest server
-    #[derive(
-        Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
-    )]
-    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct JoiningForestServerInfo {
-        pub x25519_public_key: X25519PublicKey,
-        pub endpoint: Vec<u8>,
-    }
-
     /// Information about an Forest server
     #[derive(
         Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, DecodeWithMemTracking, TypeInfo,
@@ -80,7 +70,8 @@ pub mod module {
     pub struct ForestServerInfo {
         pub x25519_public_key: X25519PublicKey,
         pub endpoint: Vec<u8>,
-        pub provisioning_certification_key: VerifyingKey,
+        /// The TDX quote provided when declaring the tree to the chain
+        pub tdx_quote: Vec<u8>,
     }
 
     /// Tree signing account => Server Info
@@ -155,34 +146,24 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::add_tree())]
-        pub fn add_tree(
-            origin: OriginFor<T>,
-            joining_server_info: JoiningForestServerInfo,
-            quote: Vec<u8>,
-        ) -> DispatchResult {
+        pub fn add_tree(origin: OriginFor<T>, server_info: ForestServerInfo) -> DispatchResult {
             let tree_account = ensure_signed(origin.clone())?;
 
             ensure!(
-                joining_server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
+                server_info.endpoint.len() as u32 <= T::MaxEndpointLength::get(),
                 Error::<T>::EndpointTooLong
             );
 
             ensure!(!Trees::<T>::contains_key(&tree_account), Error::<T>::TreeAccountAlreadyExists);
 
-            let provisioning_certification_key =
+            let _provisioning_certification_key =
                 <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
                     &tree_account,
-                    joining_server_info.x25519_public_key,
-                    quote,
+                    server_info.x25519_public_key,
+                    server_info.tdx_quote.clone(),
                     QuoteContext::ForestAddTree,
                 )
                 .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
-
-            let server_info = ForestServerInfo {
-                x25519_public_key: joining_server_info.x25519_public_key,
-                endpoint: joining_server_info.endpoint,
-                provisioning_certification_key,
-            };
 
             Trees::<T>::insert(&tree_account, server_info.clone());
 

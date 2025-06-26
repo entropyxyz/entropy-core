@@ -192,11 +192,11 @@ pub async fn check_quote_measurement(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
     quote: &Quote,
+    cvm_service_type: SupportedCvmServices,
 ) -> Result<(), QuoteMeasurementErr> {
     let measurement_value = compute_quote_measurement(quote).to_vec();
-    let query = entropy::storage()
-        .parameters()
-        .accepted_measurement_values(SupportedCvmServices::EntropyTss);
+    let query = entropy::storage().parameters().accepted_measurement_values(cvm_service_type);
+
     let accepted_measurement_values: Vec<_> = query_chain(api, rpc, query, None)
         .await?
         .ok_or(QuoteMeasurementErr::NoMeasurementValues)?
