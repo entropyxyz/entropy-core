@@ -49,7 +49,7 @@ entropy-testing-utils={ path="../testing-utils" }
 
 [features]
 default=["native", "full-client-native"]
-native =["entropy-shared/std", "entropy-shared/user-native", "subxt/native", "full-client"]
+native =["entropy-shared/std", "entropy-shared/user-native", "subxt/native"]
 wasm   =["entropy-shared/wasm", "entropy-shared/user-wasm", "subxt/web"]
 
 # This adds full client functionality. It is behind a feature flag because it is not needed by

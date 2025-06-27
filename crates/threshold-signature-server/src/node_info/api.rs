@@ -15,10 +15,7 @@
 use crate::{node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
 use entropy_client::util::{get_node_info, ServerPublicKeys};
-use entropy_shared::{
-    attestation::QuoteContext,
-    types::{HashingAlgorithm},
-};
+use entropy_shared::{attestation::QuoteContext, types::HashingAlgorithm};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
