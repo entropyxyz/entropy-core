@@ -46,7 +46,7 @@ pub async fn declare_to_chain(
             pair.public().to_ss58check()
         );
         let in_block =
-            submit_transaction_with_pair(api, rpc, &pair, &add_tree_call, nonce_option).await?;
+            submit_transaction_with_pair(api, rpc, pair, &add_tree_call, nonce_option).await?;
         let _result_event = in_block
             .find_first::<entropy::forest::events::TreeAdded>()
             .map_err(|_| SubstrateError::NoEvent)?
@@ -59,11 +59,12 @@ pub async fn declare_to_chain(
 }
 
 fn create_test_backoff() -> ExponentialBackoff {
-    let mut backoff = ExponentialBackoff::default();
-    backoff.max_elapsed_time = Some(Duration::from_secs(5));
-    backoff.initial_interval = Duration::from_millis(50);
-    backoff.max_interval = Duration::from_millis(500);
-    backoff
+    ExponentialBackoff {
+        max_elapsed_time: Some(Duration::from_secs(5)),
+        initial_interval: Duration::from_millis(50),
+        max_interval: Duration::from_millis(500),
+        ..Default::default()
+    }
 }
 
 // Get all available API key servers from the chain

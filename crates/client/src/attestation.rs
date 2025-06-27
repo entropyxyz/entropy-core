@@ -76,6 +76,7 @@ pub fn get_pck(_account_id: AccountId32) -> Result<BoundedVecEncodedVerifyingKey
 /// Get our Provisioning Certification Key (PCK)
 /// In mock mode, this is derived from the TSS account ID
 #[cfg(not(feature = "production"))]
+#[allow(clippy::result_large_err)]
 pub fn get_pck(account_id: AccountId32) -> Result<BoundedVecEncodedVerifyingKey, ClientError> {
     use rand::{rngs::StdRng, SeedableRng};
 
