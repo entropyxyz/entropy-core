@@ -14,14 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    backup_provider::errors::BackupProviderError,
-    chain_api::entropy, validation::EncryptedSignedMessage, AppState, EntropyConfig,
-    SubxtAccountId32,
+    backup_provider::errors::BackupProviderError, chain_api::entropy,
+    validation::EncryptedSignedMessage, AppState, EntropyConfig, SubxtAccountId32,
 };
 use axum::{extract::State, Json};
 use entropy_client::{
+    attestation::create_quote,
     chain_api::entropy::runtime_types::pallet_parameters::SupportedCvmServices,
-    substrate::query_chain, user::check_quote_measurement, attestation::create_quote
+    substrate::query_chain, user::check_quote_measurement,
 };
 use entropy_shared::{
     attestation::{verify_pck_certificate_chain, QuoteContext, QuoteInputData},

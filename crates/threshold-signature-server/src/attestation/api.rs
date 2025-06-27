@@ -22,7 +22,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
 };
-use entropy_client::{user::request_attestation, attestation::create_quote};
+use entropy_client::{attestation::create_quote, user::request_attestation};
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
 use serde::Deserialize;
 use x25519_dalek::StaticSecret;

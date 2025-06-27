@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use crate::{node_info::errors::GetInfoError, AppState};
 use axum::{extract::State, Json};
+use entropy_client::util::{get_node_info, ServerPublicKeys};
 use entropy_shared::{
     attestation::QuoteContext,
     types::{HashingAlgorithm, TssPublicKeys},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use entropy_client::attestation::create_quote;
 use x25519_dalek::StaticSecret;
 
 /// Version information - the output of the `/version` HTTP endpoint
@@ -81,19 +81,14 @@ pub async fn hashes() -> Json<Vec<HashingAlgorithm>> {
 
 /// Returns the TS server's public keys and HTTP endpoint
 #[tracing::instrument(skip_all)]
-pub async fn info(State(app_state): State<AppState>) -> Result<Json<TssPublicKeys>, GetInfoError> {
-    Ok(Json(TssPublicKeys {
-        ready: app_state.cache.is_ready(),
-        x25519_public_key: app_state.x25519_public_key(),
-        tss_account: app_state.account_id(),
-        tdx_quote: hex::encode(
-            create_quote(
-                [0; 32],
-                app_state.subxt_account_id(),
-                &app_state.x25519_public_key(),
-                QuoteContext::Validate,
-            )
-            .await?,
-        ),
-    }))
+pub async fn info(
+    State(app_state): State<AppState>,
+) -> Result<Json<ServerPublicKeys>, GetInfoError> {
+    Ok(get_node_info(
+        Some(app_state.cache.is_ready()),
+        app_state.x25519_public_key(),
+        app_state.subxt_account_id(),
+        QuoteContext::Validate,
+    )
+    .await?)
 }

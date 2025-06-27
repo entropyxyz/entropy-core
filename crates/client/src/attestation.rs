@@ -4,7 +4,6 @@ use entropy_shared::{
     BoundedVecEncodedVerifyingKey,
 };
 use subxt::utils::AccountId32;
-use x25519_dalek::StaticSecret;
 
 /// Create a mock quote for testing on non-TDX hardware
 #[cfg(not(feature = "production"))]

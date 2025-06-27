@@ -19,12 +19,13 @@ use crate::{
     launch::DEFAULT_ALICE_MNEMONIC,
     node_info::api::{BuildDetails, VersionDetails},
 };
+use entropy_client::attestation::create_quote;
+use entropy_client::util::ServerPublicKeys;
 use entropy_kvdb::clean_tests;
 use entropy_shared::{
     attestation::QuoteContext,
     types::{HashingAlgorithm, TssPublicKeys},
 };
-use entropy_client::attestation::create_quote;
 use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
 use serial_test::serial;
 
@@ -78,29 +79,15 @@ async fn hashes_test() {
 async fn info_test() {
     clean_tests();
     initialize_test_logger().await;
-    setup_client().await;
+    let app_state = setup_client().await;
     let client = reqwest::Client::new();
     let response = client.get("http://127.0.0.1:3001/v1/info").send().await.unwrap();
-    let public_keys: TssPublicKeys = response.json().await.unwrap();
+    let public_keys: ServerPublicKeys = response.json().await.unwrap();
     let (_, _, x25519_secret) = get_signer_and_x25519_secret(DEFAULT_ALICE_MNEMONIC).unwrap();
-    let x25519_public_key = x25519_dalek::PublicKey::from(x25519_secret);
-    assert_eq!(
-        public_keys,
-        TssPublicKeys {
-            tss_account: TSS_ACCOUNTS[0].0.into(),
-            x25519_public_key: X25519_PUBLIC_KEYS[0],
-            ready: true,
-            tdx_quote: hex::encode(
-                create_quote(
-                    [0; 32],
-                    TSS_ACCOUNTS[0].clone(),
-                    &x25519_public_key,
-                    QuoteContext::Validate,
-                )
-                .await
-                .unwrap()
-            )
-        }
-    );
+
+    assert_eq!(public_keys.account_id, app_state.subxt_account_id());
+    assert_eq!(public_keys.x25519_public_key, app_state.x25519_public_key());
+    assert_eq!(public_keys.ready, Some(app_state.cache.is_ready()));
+
     clean_tests();
 }

@@ -3,7 +3,7 @@ use crate::{
     attestation::create_quote,
     chain_api::{entropy, EntropyConfig},
     errors::{ClientError, SubstrateError},
-    request_attestation,
+    user::request_attestation,
     substrate::{query_chain, submit_transaction_with_pair},
 };
 use backoff::ExponentialBackoff;
