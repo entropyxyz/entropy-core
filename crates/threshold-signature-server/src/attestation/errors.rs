@@ -27,6 +27,8 @@ pub enum AttestationErr {
     GenericSubstrate(#[from] subxt::error::Error),
     #[error("User Error: {0}")]
     UserErr(#[from] crate::user::UserErr),
+    #[error("Client Error: {0}")]
+    ClientError(#[from] entropy_client::errors::ClientError),
     #[error("Input must be 32 bytes: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
     #[error("Substrate: {0}")]

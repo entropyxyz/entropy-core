@@ -25,6 +25,8 @@ pub enum GetInfoError {
     User(#[from] crate::user::errors::UserErr),
     #[error("Could not get Provisioning Certification Key: {0}")]
     Attestation(#[from] crate::attestation::errors::AttestationErr),
+    #[error("Client Error: {0}")]
+    ClientError(#[from] entropy_client::errors::ClientError),
 }
 
 impl IntoResponse for GetInfoError {

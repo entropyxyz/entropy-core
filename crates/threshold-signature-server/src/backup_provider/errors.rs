@@ -74,6 +74,8 @@ pub enum BackupProviderError {
     FailedToRetrieveNonce(String),
     #[error("Failed to retrieve encryption key from backup provider during recovery: {0}")]
     FailedToRetrieveKey(String),
+    #[error("Client Error: {0}")]
+    ClientError(#[from] entropy_client::errors::ClientError),
 }
 
 impl IntoResponse for BackupProviderError {
