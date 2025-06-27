@@ -1,4 +1,5 @@
 use crate::{
+    attestation::create_quote,
     bond_account,
     chain_api::{
         entropy::{
@@ -18,9 +19,9 @@ use crate::{
     get_oracle_headings, register, remove_program, request_attestation, set_session_keys,
     store_program,
     substrate::query_chain,
-    update_programs, verify_tss_nodes_attestations,
+    update_programs,
     util::{get_node_info, ServerPublicKeys},
-    attestation::create_quote,
+    verify_tss_nodes_attestations,
 };
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
@@ -486,13 +487,11 @@ async fn test_declare_times_out() {
 async fn test_get_node_info() {
     let x25519_public_key = X25519_PUBLIC_KEYS[0];
     let account_id = TSS_ACCOUNTS[0].clone();
-    let result = get_node_info(
-        Some(true),
-        x25519_public_key,
-        account_id.clone(),
-        QuoteContext::Validate,
-    ).await.unwrap();
-    
+    let result =
+        get_node_info(Some(true), x25519_public_key, account_id.clone(), QuoteContext::Validate)
+            .await
+            .unwrap();
+
     assert_eq!(result.0.account_id, account_id.clone());
     assert_eq!(result.0.x25519_public_key, x25519_public_key.clone());
     assert_eq!(result.0.ready, Some(true));

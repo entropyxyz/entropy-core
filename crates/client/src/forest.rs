@@ -3,16 +3,14 @@ use crate::{
     attestation::create_quote,
     chain_api::{entropy, EntropyConfig},
     errors::{ClientError, SubstrateError},
+    substrate::submit_transaction_with_pair,
     user::request_attestation,
-    substrate::{submit_transaction_with_pair},
 };
 use backoff::ExponentialBackoff;
 use entropy_shared::attestation::QuoteContext;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
-use subxt::{
-    backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient,
-};
+use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
 
 /// Declares an itself to the chain by calling add box to the forest pallet
 /// Will log and backoff if account does not have funds, assumption is that

@@ -21,7 +21,7 @@ sp-core       ={ version="36.1.0", default-features=false, features=["full_crypt
 tracing       ="0.1.41"
 rand          ={ version="0.8", default-features=false }
 anyhow        ="1.0.98"
-tdx-quote     = { version="0.0.3", features=["mock"] }
+tdx-quote     ={ version="0.0.3", features=["mock"] }
 
 # Present when "full-client" feature is active
 blake2            ={ version="0.10.4", optional=true }
@@ -35,12 +35,12 @@ synedrion         ={ version="0.3.0", optional=true, features=["k256"] }
 hex               ={ version="0.4.3", optional=true }
 parity-scale-codec={ version="3.7.2", default-features=false, optional=true }
 k256              ={ version="0.13", default-features=false, features=["ecdsa"], optional=true }
-axum   ={ version="0.8.4" }
+axum              ={ version="0.8.4" }
 
 # Only for the browser
-js-sys={ version="0.3.74", optional=true }
-tokio ={ version="1.44", features=["time"] }
-backoff            ={ version="0.4.0", features=["tokio"] }
+js-sys ={ version="0.3.74", optional=true }
+tokio  ={ version="1.44", features=["time"] }
+backoff={ version="0.4.0", features=["tokio"] }
 
 [dev-dependencies]
 serial_test          ="3.2.0"
