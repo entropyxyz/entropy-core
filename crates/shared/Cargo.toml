@@ -24,7 +24,7 @@ hex-literal="1.0.0"
 sp-core    ={ version="36.1.0", default-features=false }
 subxt      ={ version="0.42.0", default-features=false, optional=true }
 tdx-quote  ="0.0.3"
-rand       ={ version="0.8.5", optional=true }
+rand       ={ version="0.9.1", optional=true }
 
 [features]
 default=["std"]
