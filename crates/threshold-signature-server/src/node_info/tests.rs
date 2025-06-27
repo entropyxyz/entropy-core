@@ -14,19 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    get_signer_and_x25519_secret,
     helpers::tests::{initialize_test_logger, setup_client},
-    launch::DEFAULT_ALICE_MNEMONIC,
     node_info::api::{BuildDetails, VersionDetails},
 };
-use entropy_client::attestation::create_quote;
 use entropy_client::util::ServerPublicKeys;
 use entropy_kvdb::clean_tests;
-use entropy_shared::{
-    attestation::QuoteContext,
-    types::{HashingAlgorithm, TssPublicKeys},
-};
-use entropy_testing_utils::constants::{TSS_ACCOUNTS, X25519_PUBLIC_KEYS};
+use entropy_shared::types::HashingAlgorithm;
 use serial_test::serial;
 
 #[tokio::test]
@@ -83,7 +76,6 @@ async fn info_test() {
     let client = reqwest::Client::new();
     let response = client.get("http://127.0.0.1:3001/v1/info").send().await.unwrap();
     let public_keys: ServerPublicKeys = response.json().await.unwrap();
-    let (_, _, x25519_secret) = get_signer_and_x25519_secret(DEFAULT_ALICE_MNEMONIC).unwrap();
 
     assert_eq!(public_keys.account_id, app_state.subxt_account_id());
     assert_eq!(public_keys.x25519_public_key, app_state.x25519_public_key());

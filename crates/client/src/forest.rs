@@ -4,14 +4,14 @@ use crate::{
     chain_api::{entropy, EntropyConfig},
     errors::{ClientError, SubstrateError},
     user::request_attestation,
-    substrate::{query_chain, submit_transaction_with_pair},
+    substrate::{submit_transaction_with_pair},
 };
 use backoff::ExponentialBackoff;
 use entropy_shared::attestation::QuoteContext;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
 use subxt::{
-    backend::legacy::LegacyRpcMethods, blocks::ExtrinsicEvents, utils::AccountId32, OnlineClient,
+    backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient,
 };
 
 /// Declares an itself to the chain by calling add box to the forest pallet

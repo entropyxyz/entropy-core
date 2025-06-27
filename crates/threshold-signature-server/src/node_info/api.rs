@@ -17,11 +17,10 @@ use axum::{extract::State, Json};
 use entropy_client::util::{get_node_info, ServerPublicKeys};
 use entropy_shared::{
     attestation::QuoteContext,
-    types::{HashingAlgorithm, TssPublicKeys},
+    types::{HashingAlgorithm},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use x25519_dalek::StaticSecret;
 
 /// Version information - the output of the `/version` HTTP endpoint
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

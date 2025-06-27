@@ -23,9 +23,8 @@ use axum::{
     http::StatusCode,
 };
 use entropy_client::{attestation::create_quote, user::request_attestation};
-use entropy_shared::attestation::{QuoteContext, QuoteInputData};
+use entropy_shared::attestation::QuoteContext;
 use serde::Deserialize;
-use x25519_dalek::StaticSecret;
 
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
 /// body.
