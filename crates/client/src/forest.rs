@@ -6,13 +6,13 @@ use crate::{
     substrate::submit_transaction_with_pair,
     user::request_attestation,
 };
+use axum::Json;
 use backoff::ExponentialBackoff;
 use entropy_shared::{attestation::QuoteContext, X25519PublicKey};
+use serde::{Deserialize, Serialize};
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
-use axum::Json;
-use serde::{Serialize, Deserialize};
 
 /// Declares an itself to the chain by calling add box to the forest pallet
 /// Will log and backoff if account does not have funds, assumption is that

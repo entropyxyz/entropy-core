@@ -71,4 +71,4 @@ full-client-native=["full-client", "entropy-protocol/server"]
 full-client-wasm=["full-client", "entropy-protocol/wasm", "dep:js-sys"]
 # Causes TDX quotes to be verified
 production=["entropy-shared/production"]
-server=["axum"]
+server    =["axum"]
