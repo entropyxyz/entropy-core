@@ -34,7 +34,7 @@ impl std::fmt::Display for Logger {
             Logger::Pretty => "pretty",
             Logger::Json => "json",
         };
-        write!(f, "{}", logger)
+        write!(f, "{logger}")
     }
 }
 

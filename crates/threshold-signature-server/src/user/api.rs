@@ -404,7 +404,7 @@ async fn handle_protocol_errors(
         if let Err(tx_error) =
             submit_transaction(api, rpc, signer, &report_unstable_peer_tx, None).await
         {
-            failed_reports.push(format!("{}", tx_error));
+            failed_reports.push(format!("{tx_error}"));
         }
     }
 
