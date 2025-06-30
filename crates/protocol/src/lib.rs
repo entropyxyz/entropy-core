@@ -110,7 +110,7 @@ impl TryFrom<String> for PartyId {
         let bytes = hex::decode(s).map_err(|err| format!("{err}"))?;
         let len = bytes.len();
         let arr: [u8; 32] =
-            bytes.try_into().map_err(|_err| format!("Invalid party ID length: {}", len))?;
+            bytes.try_into().map_err(|_err| format!("Invalid party ID length: {len}"))?;
         let acc = arr.into();
         Ok(Self(acc))
     }
@@ -266,7 +266,7 @@ impl SessionId {
         let mut hasher = Blake2s256::new();
         hasher.update(bincode::serialize(self)?);
         if let Some(session) = sub_session {
-            hasher.update(format!("{:?}", session).as_bytes());
+            hasher.update(format!("{session:?}").as_bytes());
         }
         Ok(hasher.finalize().into())
     }
