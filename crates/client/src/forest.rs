@@ -58,6 +58,7 @@ pub async fn declare_to_chain(
     Ok(())
 }
 
+#[cfg(test)]
 fn create_test_backoff() -> ExponentialBackoff {
     ExponentialBackoff {
         max_elapsed_time: Some(Duration::from_secs(5)),
