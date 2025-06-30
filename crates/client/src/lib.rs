@@ -14,9 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //! A client for the Entropy chain node and Entropy TSS Server.
 //! Since the TSS server communicates with the chain node, this is also a dependency of entropy-tss.
+#[cfg(feature = "server")]
 pub mod attestation;
 pub mod chain_api;
 pub mod errors;
+#[cfg(feature = "server")]
 pub mod forest;
 pub mod substrate;
 pub mod user;

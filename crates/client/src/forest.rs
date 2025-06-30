@@ -7,10 +7,12 @@ use crate::{
     user::request_attestation,
 };
 use backoff::ExponentialBackoff;
-use entropy_shared::attestation::QuoteContext;
+use entropy_shared::{attestation::QuoteContext, X25519PublicKey};
 use sp_core::{crypto::Ss58Codec, sr25519, Pair};
 use std::time::Duration;
 use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
+use axum::Json;
+use serde::{Serialize, Deserialize};
 
 /// Declares an itself to the chain by calling add box to the forest pallet
 /// Will log and backoff if account does not have funds, assumption is that
@@ -58,7 +60,6 @@ pub async fn declare_to_chain(
     Ok(())
 }
 
-#[cfg(test)]
 fn create_test_backoff() -> ExponentialBackoff {
     ExponentialBackoff {
         max_elapsed_time: Some(Duration::from_secs(5)),
@@ -82,4 +83,33 @@ pub async fn get_api_key_servers(
         servers.push((key.into(), kv.value))
     }
     Ok(servers)
+}
+
+/// Public signing and encryption keys associated with a server
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+pub struct ServerPublicKeys {
+    /// The account ID
+    pub account_id: AccountId32,
+    /// The public encryption key
+    pub x25519_public_key: X25519PublicKey,
+    /// A hex-encoded TDX quote to show that the server is running the desired service
+    pub tdx_quote: String,
+    /// An option if supported if the node is ready (not all nodes support this option)
+    pub ready: Option<bool>,
+}
+
+pub async fn get_node_info(
+    ready: Option<bool>,
+    x25519_public_key: [u8; 32],
+    account_id: AccountId32,
+    quote_context: QuoteContext,
+) -> Result<Json<ServerPublicKeys>, ClientError> {
+    Ok(Json(ServerPublicKeys {
+        ready,
+        x25519_public_key,
+        account_id: account_id.clone(),
+        tdx_quote: hex::encode(
+            create_quote([0; 32], account_id, &x25519_public_key, quote_context).await?,
+        ),
+    }))
 }

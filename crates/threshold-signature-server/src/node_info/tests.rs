@@ -17,7 +17,7 @@ use crate::{
     helpers::tests::{initialize_test_logger, setup_client},
     node_info::api::{BuildDetails, VersionDetails},
 };
-use entropy_client::util::ServerPublicKeys;
+use entropy_client::forest::ServerPublicKeys;
 use entropy_kvdb::clean_tests;
 use entropy_shared::types::HashingAlgorithm;
 use serial_test::serial;

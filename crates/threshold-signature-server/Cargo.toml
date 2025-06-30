@@ -47,7 +47,7 @@ entropy-shared={ version="0.4.0-rc.1", path="../shared", features=["wasm-no-std"
 entropy-kvdb={ version="0.4.0-rc.1", path="../kvdb", default-features=false }
 entropy-protocol={ version="0.4.0-rc.1", path="../protocol", features=["server"] }
 entropy-client={ version="0.4.0-rc.1", path="../client", default-features=false, features=[
-  "native",
+  "native", "server"
 ] }
 
 # Programs

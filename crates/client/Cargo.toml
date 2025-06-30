@@ -35,7 +35,7 @@ synedrion         ={ version="0.3.0", optional=true, features=["k256"] }
 hex               ={ version="0.4.3", optional=true }
 parity-scale-codec={ version="3.7.2", default-features=false, optional=true }
 k256              ={ version="0.13", default-features=false, features=["ecdsa"], optional=true }
-axum              ={ version="0.8.4" }
+axum              ={ version="0.8.4", optional=true }
 
 # Only for the browser
 js-sys ={ version="0.3.74", optional=true }
@@ -71,3 +71,4 @@ full-client-native=["full-client", "entropy-protocol/server"]
 full-client-wasm=["full-client", "entropy-protocol/wasm", "dep:js-sys"]
 # Causes TDX quotes to be verified
 production=["entropy-shared/production"]
+server=["axum"]
