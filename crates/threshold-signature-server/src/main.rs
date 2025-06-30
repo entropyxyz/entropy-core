@@ -21,8 +21,8 @@ use clap::Parser;
 use entropy_tss::{
     app,
     launch::{
-        get_block_number_and_setup_latest_block_number, setup_kv_store, Configuration, StartupArgs,
-        ValidatorName,
+        get_block_number_and_setup_latest_block_number, setup_kv_store,
+        wait_for_chain_endpoint_to_be_set, Configuration, StartupArgs, ValidatorName,
     },
     AppState,
 };
@@ -39,7 +39,18 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Sending logs to Loki server at `{}`", &args.logger.loki_endpoint);
     }
 
-    let configuration = Configuration::new(args.chain_endpoint);
+    let addr = SocketAddr::from_str(&args.threshold_url)
+        .map_err(|_| anyhow!("Failed to parse threshold url"))?;
+
+    let chain_endpoint = if cfg!(feature = "production") {
+        // In production mode, chain endpoint is set by an HTTP request
+        wait_for_chain_endpoint_to_be_set(addr).await?
+    } else {
+        // Otherwise, a command line argument
+        args.chain_endpoint
+    };
+
+    let configuration = Configuration::new(chain_endpoint);
     tracing::info!("Connecting to Substrate node at: `{}`", &configuration.endpoint);
 
     let mut validator_name = None;
@@ -84,8 +95,6 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    let addr = SocketAddr::from_str(&args.threshold_url)
-        .map_err(|_| anyhow!("Failed to parse threshold url"))?;
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|_| anyhow!("Unable to bind to given server address"))?;

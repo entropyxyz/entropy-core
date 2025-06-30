@@ -17,7 +17,9 @@
 
 use std::{
     fs,
+    net::SocketAddr,
     path::PathBuf,
+    sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -26,11 +28,18 @@ use crate::{
         get_key_provider_details, make_key_backup, request_recover_encryption_key,
     },
     chain_api::{entropy, get_api, get_rpc},
+    health::api::healthz,
     helpers::{
         app_state::BlockNumberFields, substrate::query_chain,
         validator::get_signer_and_x25519_secret,
     },
     AppState,
+};
+use axum::{
+    extract::State,
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
 };
 use clap::Parser;
 use entropy_client::substrate::SubstrateError;
@@ -436,4 +445,63 @@ async fn recover_db(
         .map_err(|_| anyhow::anyhow!("sr25519 seed from db is not 32 bytes"))?;
     let pair = sr25519::Pair::from_seed(&sr25519_seed);
     Ok((kv_manager, pair, x25519_secret.into(), None))
+}
+
+/// Waits for the operator to set the chain endpoint by hitting `/v1/set_chain_endpoint`
+pub async fn wait_for_chain_endpoint_to_be_set(addr: SocketAddr) -> anyhow::Result<String> {
+    // Channel to stop the server
+    let (shutdown_signal_tx, mut shutdown_signal_rx) = tokio::sync::mpsc::channel(1);
+
+    let app_state =
+        ConfigurationAppState { shutdown_signal_tx, chain_endpoint: Default::default() };
+
+    // Stop signal handler
+    let shutdown_signal = async move {
+        shutdown_signal_rx.recv().await;
+    };
+
+    let app = Router::new()
+        .route("/v1/set_chain_endpoint", post(set_chain_endpoint))
+        .route("/healthz", get(healthz))
+        .with_state(app_state.clone());
+
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .map_err(|_| anyhow::anyhow!("Unable to bind to given server address"))?;
+
+    tracing::info!(
+        r#"Please set chain endpoint, eg:
+      curl -X POST http://localhost:3001/v1/set_chain_endpoint \
+        -H "Content-Type: text/plain" \
+        --data 'ws://chain-endpoint:9944'"#
+    );
+
+    axum::serve(listener, app).with_graceful_shutdown(shutdown_signal).await?;
+
+    let endpoint = {
+        let endpoint = app_state.chain_endpoint.lock().unwrap();
+        endpoint.clone().ok_or(anyhow::anyhow!("No chain endpoint"))?
+    };
+    Ok(endpoint)
+}
+
+/// State used for handling the chain endpoint configuration
+#[derive(Clone)]
+struct ConfigurationAppState {
+    pub shutdown_signal_tx: tokio::sync::mpsc::Sender<()>,
+    pub chain_endpoint: Arc<Mutex<Option<String>>>,
+}
+
+/// Handler for POST `/set_chain_endpoint`
+async fn set_chain_endpoint(
+    State(app_state): State<ConfigurationAppState>,
+    body: String,
+) -> impl IntoResponse {
+    {
+        let mut endpoint = app_state.chain_endpoint.lock().unwrap();
+        *endpoint = Some(body);
+    }
+    let _ = app_state.shutdown_signal_tx.send(()).await;
+
+    axum::http::StatusCode::OK
 }
