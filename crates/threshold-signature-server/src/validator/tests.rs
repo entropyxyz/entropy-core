@@ -360,8 +360,7 @@ async fn test_reshare_none_called() {
 
     let client = reqwest::Client::new();
 
-    for i in 0..validator_ports.len() {
-    for validator_port in &validator_ports
+    for validator_port in &validator_ports {
         let response = client
             .post(format!("http://127.0.0.1:{}/v1/rotate_network_key", validator_port))
             .send()
@@ -499,9 +498,8 @@ async fn test_check_balance_for_fees() {
     .unwrap();
     assert!(!result_2);
 
-    let _ = check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE)
-        .await
-        .unwrap();
+    let _ =
+        check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE).await.unwrap();
 }
 
 #[tokio::test]
