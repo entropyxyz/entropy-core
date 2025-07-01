@@ -59,7 +59,7 @@ pub fn endowed_accounts_testnet() -> Vec<AccountId> {
         .iter()
         .map(|account_id| {
             AccountId::from_str(account_id).unwrap_or_else(|_| {
-                panic!("Failed to convert an endowed account ID: {:?}", account_id)
+                panic!("Failed to convert an endowed account ID: {account_id:?}")
             })
         })
         .collect()

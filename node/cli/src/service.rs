@@ -366,29 +366,29 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"propagation",
-                &format!("{}/v1/generate_network_key", endpoint).into_bytes(),
+                &format!("{endpoint}/v1/generate_network_key").into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"refresh",
-                &format!("{}/v1/signer/proactive_refresh", endpoint).into_bytes(),
+                &format!("{endpoint}/v1/signer/proactive_refresh").into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"reshare_validators",
-                &format!("{}/v1/validator/reshare", endpoint).into_bytes(),
+                &format!("{endpoint}/v1/validator/reshare").into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"rotate_network_key",
-                &format!("{}/v1/rotate_network_key", endpoint).into_bytes(),
+                &format!("{endpoint}/v1/rotate_network_key").into_bytes(),
             );
             offchain_db.local_storage_set(
                 sp_core::offchain::StorageKind::PERSISTENT,
                 b"attest",
-                &format!("{}/v1/attest", endpoint).into_bytes(),
+                &format!("{endpoint}/v1/attest").into_bytes(),
             );
-            log::info!("Threshold Signing Sever (TSS) location changed to {}", endpoint);
+            log::info!("Threshold Signing Sever (TSS) location changed to {endpoint}");
         }
     }
 
@@ -420,9 +420,8 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
         match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench, role.is_authority()) {
             Err(err) if role.is_authority() => {
                 log::warn!(
-				"⚠️  The hardware does not meet the minimal requirements {} for role 'Authority' find out more at:\n\
-				https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware",
-				err
+				"⚠️  The hardware does not meet the minimal requirements {err} for role 'Authority' find out more at:\n\
+				https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware"
 			);
             },
             _ => {},
