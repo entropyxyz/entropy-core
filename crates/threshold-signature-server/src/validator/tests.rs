@@ -362,7 +362,7 @@ async fn test_reshare_none_called() {
 
     for validator_port in &validator_ports {
         let response = client
-            .post(format!("http://127.0.0.1:{}/v1/rotate_network_key", validator_port))
+            .post(format!("http://127.0.0.1:{validator_port}/v1/rotate_network_key"))
             .send()
             .await
             .unwrap();
