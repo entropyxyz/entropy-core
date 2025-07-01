@@ -280,8 +280,7 @@ impl Cache {
     ) -> Result<Vec<subxt::utils::AccountId32>, AppStateError> {
         self.listener_state.unsubscribed_peers(session_id).map_err(|_| {
             AppStateError::SessionError(format!(
-                "Unable to get unsubscribed peers for `SessionId` {:?}",
-                session_id,
+                "Unable to get unsubscribed peers for `SessionId` {session_id:?}",
             ))
         })
     }

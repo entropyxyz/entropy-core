@@ -53,14 +53,14 @@ async fn test_get_attest() {
     let mut pck_seeder = StdRng::from_seed(TSS_ACCOUNTS[1].0);
     let provisioning_certification_keypair = tdx_quote::SigningKey::random(&mut pck_seeder);
 
-    assert!(quote.verify_with_pck(&provisioning_certification_keypair.verifying_key()).is_ok());
+    assert!(quote.verify_with_pck(provisioning_certification_keypair.verifying_key()).is_ok());
 
     let query =
-        entropy::storage().staking_extension().threshold_servers(&AccountId32(BOB_STASH_ADDRESS.0));
+        entropy::storage().staking_extension().threshold_servers(AccountId32(BOB_STASH_ADDRESS.0));
     let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
 
     let on_chain_quote = Quote::from_bytes(&server_info.tdx_quote).unwrap();
     assert!(on_chain_quote
-        .verify_with_pck(&provisioning_certification_keypair.verifying_key())
+        .verify_with_pck(provisioning_certification_keypair.verifying_key())
         .is_ok());
 }

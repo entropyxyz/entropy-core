@@ -421,7 +421,7 @@ pub mod pallet {
             // For a V1 of this flow it's fine, but we'll need to think about a better solution
             // down the line.
             let count = Registered::<T>::count();
-            let inner_path = scale_info::prelude::format!("m/0/{}", count);
+            let inner_path = scale_info::prelude::format!("m/0/{count}");
             let path = bip32::DerivationPath::from_str(&inner_path)
                 .map_err(|_| Error::<T>::InvalidBip32DerivationPath)?;
             let child_verifying_key = network_verifying_key

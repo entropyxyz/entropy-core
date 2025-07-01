@@ -223,8 +223,7 @@ pub async fn put_keyshares_in_state(validator_name: ValidatorName, app_state: &A
     let key_share = {
         let project_root = project_root::get_project_root().expect("Error obtaining project root.");
         let file_path = project_root.join(format!(
-            "crates/testing-utils/keyshares/production/keyshare-held-by-{}.keyshare",
-            validator_name
+            "crates/testing-utils/keyshares/production/keyshare-held-by-{validator_name}.keyshare"
         ));
         let key_share_bytes = std::fs::read(file_path).unwrap();
         entropy_kvdb::kv_manager::helpers::deserialize(&key_share_bytes).unwrap()
@@ -261,7 +260,7 @@ pub async fn unsafe_get_network_keyshare(
     port: u32,
 ) -> Option<entropy_protocol::KeyShareWithAuxInfo> {
     let get_result = client
-        .get(format!("http://127.0.0.1:{}/unsafe/get_network_keyshare", port))
+        .get(format!("http://127.0.0.1:{port}/unsafe/get_network_keyshare"))
         .send()
         .await
         .unwrap();
@@ -330,7 +329,7 @@ pub async fn do_jump_start(
         .unwrap()
         .jump_start_status;
     let mut i = 0;
-    while format!("{:?}", jump_start_status) != format!("{:?}", JumpStartStatus::Done) {
+    while format!("{jump_start_status:?}") != format!("{:?}", JumpStartStatus::Done) {
         tokio::time::sleep(Duration::from_secs(1)).await;
         jump_start_status = query_chain(api, rpc, jump_start_status_query.clone(), None)
             .await
@@ -343,7 +342,7 @@ pub async fn do_jump_start(
         }
     }
 
-    assert_eq!(format!("{:?}", jump_start_status), format!("{:?}", JumpStartStatus::Done));
+    assert_eq!(format!("{jump_start_status:?}"), format!("{:?}", JumpStartStatus::Done));
 }
 
 /// Submit a jumpstart extrinsic

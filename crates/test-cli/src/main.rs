@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     match run_command(cli, None, None, None, None, None).await {
         Ok(output) => {
             if json_ouput {
-                println!("{}", output);
+                println!("{output}");
             } else {
                 println!("Success: {}", output.green());
                 println!("{}", format!("That took {:?}", now.elapsed()).yellow());
