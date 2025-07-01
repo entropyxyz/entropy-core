@@ -42,13 +42,12 @@ fn get_path() -> Box<std::path::Path> {
 
         let mut binary_path =
             project_root::get_project_root().expect("Error obtaining project root.");
-        binary_path.push(format!("target/{}/entropy", build_type));
+        binary_path.push(format!("target/{build_type}/entropy"));
         let binary_path = binary_path.as_path();
 
         let error_msg = format!(
-         "Missing `entropy` binary, please build it in `{}` mode before running test suite (e.g \
-         `cargo build -p entropy [--release]`)",
-          build_type
+         "Missing `entropy` binary, please build it in `{build_type}` mode before running test suite (e.g \
+         `cargo build -p entropy [--release]`)"
         );
 
         assert!(binary_path.try_exists().expect(&error_msg), "{}", error_msg);
@@ -135,7 +134,7 @@ pub async fn test_node_process_testing_state(
         Some("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d".to_string());
     let result = test_node(
         Keyring::Alice,
-        format!("--chain={}", chain_spec_type),
+        format!("--chain={chain_spec_type}"),
         force_authoring,
         None,
         alice_node_key,
@@ -143,7 +142,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_bob = test_node_process_with(
         Keyring::Bob,
-        format!("--chain={}", chain_spec_type),
+        format!("--chain={chain_spec_type}"),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://127.0.0.1:3002".into()),
@@ -151,7 +150,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_charlie = test_node_process_with(
         Keyring::Charlie,
-        format!("--chain={}", chain_spec_type),
+        format!("--chain={chain_spec_type}"),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://127.0.0.1:3003".into()),
@@ -159,7 +158,7 @@ pub async fn test_node_process_testing_state(
     .await;
     let result_dave = test_node_process_with(
         Keyring::Dave,
-        format!("--chain={}", chain_spec_type),
+        format!("--chain={chain_spec_type}"),
         force_authoring,
         alice_bootnode.clone(),
         Some("http://127.0.0.1:3004".into()),
