@@ -293,7 +293,7 @@ pub async fn run_command(
             if cli.json {
                 Ok(serde_json::to_string_pretty(&verifying_key)?)
             } else {
-                Ok(format!("Verifying key: {},\n{:?}", verifying_key, registered_info))
+                Ok(format!("Verifying key: {verifying_key},\n{registered_info:?}"))
             }
         },
         CliCommand::Sign { signature_verifying_key, message, auxilary_data, mnemonic_option } => {
@@ -324,7 +324,7 @@ pub async fn run_command(
             if cli.json {
                 Ok(serde_json::to_string_pretty(&recoverable_signature)?)
             } else {
-                Ok(format!("Message signed: {:?}", recoverable_signature))
+                Ok(format!("Message signed: {recoverable_signature:?}"))
             }
         },
         CliCommand::StoreProgram {
@@ -520,7 +520,7 @@ pub async fn run_command(
 
             let result_event =
                 get_quote_and_change_endpoint(&api, &rpc, user_keypair, new_endpoint).await?;
-            cli.log(format!("Event result: {:?}", result_event));
+            cli.log(format!("Event result: {result_event:?}"));
 
             if cli.json {
                 Ok("{}".to_string())
@@ -548,7 +548,7 @@ pub async fn run_command(
                 new_x25519_public_key,
             )
             .await?;
-            cli.log(format!("Event result: {:?}", result_event));
+            cli.log(format!("Event result: {result_event:?}"));
 
             if cli.json {
                 Ok("{}".to_string())
@@ -580,7 +580,7 @@ pub async fn run_command(
             if cli.json {
                 Ok("{}".to_string())
             } else {
-                Ok(format!("Succesfully written quote to {}", output_filename))
+                Ok(format!("Succesfully written quote to {output_filename}"))
             }
         },
         CliCommand::BondAccount { amount, reward_destination, mnemonic_option } => {
@@ -590,7 +590,7 @@ pub async fn run_command(
 
             let result_event =
                 bond_account(&api, &rpc, signer, amount, reward_destination_account).await?;
-            cli.log(format!("Event result: {:?}", result_event));
+            cli.log(format!("Event result: {result_event:?}"));
 
             if cli.json {
                 Ok("{}".to_string())
@@ -633,7 +633,7 @@ pub async fn run_command(
             )
             .await?;
 
-            cli.log(format!("Event result: {:?}", result_event));
+            cli.log(format!("Event result: {result_event:?}"));
 
             if cli.json {
                 Ok("{}".to_string())
