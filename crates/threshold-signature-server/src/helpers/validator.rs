@@ -15,6 +15,7 @@
 
 //! Utilites relating to [crate::validator]
 use bip39::{Language, Mnemonic};
+use entropy_client::substrate::PairSigner;
 use hkdf::Hkdf;
 use sha2::Sha256;
 use sp_core::{sr25519, Pair};
