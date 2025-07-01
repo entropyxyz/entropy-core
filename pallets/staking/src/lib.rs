@@ -940,9 +940,7 @@ pub mod pallet {
                     },
                     Err(why) => {
                         log::warn!(
-                            "Error splitting validators, Session: {:?}, reason: {:?}",
-                            new_index,
-                            why
+                            "Error splitting validators, Session: {new_index:?}, reason: {why:?}"
                         )
                     },
                 }
