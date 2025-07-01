@@ -537,7 +537,7 @@ pub async fn get_tdx_quote(
     quote_context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
     let response =
-        reqwest::get(format!("http://{}/v1/attest?context={}", tss_endpoint, quote_context))
+        reqwest::get(format!("http://{tss_endpoint}/v1/attest?context={quote_context}"))
             .await?;
     if response.status() != reqwest::StatusCode::OK {
         return Err(ClientError::QuoteGet(response.text().await?));
