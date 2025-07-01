@@ -269,8 +269,7 @@ pub async fn get_channels(
         Err(e) => {
             let unsubscribed_peers = state.unsubscribed_peers(session_id).map_err(|_| {
                 ProtocolErr::SessionError(format!(
-                    "Unable to get unsubscribed peers for `SessionId` {:?}",
-                    session_id,
+                    "Unable to get unsubscribed peers for `SessionId` {session_id:?}",
                 ))
             })?;
             Err(ProtocolErr::Timeout { source: e, inactive_peers: unsubscribed_peers })
