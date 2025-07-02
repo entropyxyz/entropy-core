@@ -356,13 +356,13 @@ async fn test_reshare_none_called() {
     let (_validator_ips, _validator_ids) =
         spawn_testing_validators(crate::helpers::tests::ChainSpecType::Integration).await;
 
-    let validator_ports = vec![3001, 3002, 3003, 3004];
+    let validator_ports = [3001, 3002, 3003, 3004];
 
     let client = reqwest::Client::new();
 
-    for i in 0..validator_ports.len() {
+    for validator_port in &validator_ports {
         let response = client
-            .post(format!("http://127.0.0.1:{}/v1/rotate_network_key", validator_ports[i]))
+            .post(format!("http://127.0.0.1:{validator_port}/v1/rotate_network_key"))
             .send()
             .await
             .unwrap();
@@ -498,9 +498,8 @@ async fn test_check_balance_for_fees() {
     .unwrap();
     assert!(!result_2);
 
-    let _ = check_balance_for_fees(&api, &rpc, (&RANDOM_ACCOUNT).to_string(), MIN_BALANCE)
-        .await
-        .unwrap();
+    let _ =
+        check_balance_for_fees(&api, &rpc, RANDOM_ACCOUNT.to_string(), MIN_BALANCE).await.unwrap();
 }
 
 #[tokio::test]
@@ -544,11 +543,11 @@ pub async fn get_current_signers(
     rpc: &LegacyRpcMethods<EntropyConfig>,
 ) -> Vec<ServerInfo<AccountId32>> {
     let signer_query = entropy::storage().staking_extension().signers();
-    let signer_stash_accounts = query_chain(&api, &rpc, signer_query, None).await.unwrap().unwrap();
+    let signer_stash_accounts = query_chain(api, rpc, signer_query, None).await.unwrap().unwrap();
     let mut signers = Vec::new();
     for signer in signer_stash_accounts.iter() {
         let query = entropy::storage().staking_extension().threshold_servers(signer);
-        let server_info = query_chain(&api, &rpc, query, None).await.unwrap().unwrap();
+        let server_info = query_chain(api, rpc, query, None).await.unwrap().unwrap();
         signers.push(server_info);
     }
     signers

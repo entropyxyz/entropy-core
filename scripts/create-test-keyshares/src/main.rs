@@ -63,9 +63,9 @@ async fn main() {
 async fn write_keyshares(base_path: PathBuf, keyshares_and_names: Vec<(Vec<u8>, ValidatorName)>) {
     for (keyshare, name) in keyshares_and_names {
         let mut filepath = base_path.clone();
-        let filename = format!("keyshare-held-by-{}.keyshare", name);
+        let filename = format!("keyshare-held-by-{name}.keyshare");
         filepath.push(filename);
-        println!("Writing keyshare file: {:?}", filepath);
+        println!("Writing keyshare file: {filepath:?}");
         std::fs::write(filepath, keyshare).unwrap();
     }
 }

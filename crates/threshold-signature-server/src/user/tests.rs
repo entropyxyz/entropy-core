@@ -751,7 +751,7 @@ async fn test_request_limit_are_updated_during_signing() {
     // Next we check request limiter increases
     let mock_client = reqwest::Client::new();
 
-    let unsafe_get = UnsafeQuery::new(hex::encode(verifying_key.to_vec()), vec![]).to_json();
+    let unsafe_get = UnsafeQuery::new(hex::encode(verifying_key), vec![]).to_json();
 
     let get_response = mock_client
         .post(format!("http://{}/unsafe/read_from_request_limit", validators_info[0].ip_address))
@@ -774,10 +774,8 @@ async fn test_request_limit_are_updated_during_signing() {
     // to reset block and give us 6 seconds to hit rate limit
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
 
-    let unsafe_put = UnsafeRequestLimitQuery {
-        key: hex::encode(verifying_key.to_vec()),
-        value: request_limit + 1u32,
-    };
+    let unsafe_put =
+        UnsafeRequestLimitQuery { key: hex::encode(verifying_key), value: request_limit + 1u32 };
 
     // reduce race condition by increasing block number so request limit mapping does not nuke
     let unsafe_put_block_number =
@@ -1205,7 +1203,7 @@ async fn test_program_with_config() {
     let (verifying_key, _registered_info) = test_client::register(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        one.clone().into(), // This is our program modification account
+        one.into(),                       // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
@@ -1373,7 +1371,7 @@ async fn test_compute_hash() {
         &rpc,
         &HashingAlgorithm::Custom(0),
         10000000u64,
-        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &[ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         PREIMAGE_SHOULD_SUCCEED,
     )
     .await
@@ -1392,7 +1390,7 @@ async fn test_compute_hash() {
         &rpc,
         &HashingAlgorithm::Identity,
         10000000u64,
-        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &[ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         &no_hash,
     )
     .await
@@ -1406,7 +1404,7 @@ async fn test_compute_hash() {
         &rpc,
         &HashingAlgorithm::Identity,
         10000000u64,
-        &vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
+        &[ProgramInstance { program_pointer: program_hash, program_config: vec![] }],
         &no_hash_too_long,
     )
     .await;
@@ -1504,7 +1502,7 @@ async fn test_fail_infinite_program() {
     let (verifying_key, _registered_info) = test_client::register(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        one.clone().into(), // This is our program modification account
+        one.into(),                       // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
@@ -1582,7 +1580,7 @@ async fn test_oracle_program() {
     let (verifying_key, _registered_info) = test_client::register(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        one.clone().into(), // This is our program modification account
+        one.into(),                       // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
@@ -1675,7 +1673,7 @@ async fn test_device_key_proxy() {
     let (verifying_key, _registered_info) = test_client::register(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        one.clone().into(), // This is our program modification account
+        one.into(),                       // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
@@ -1742,7 +1740,7 @@ async fn test_device_key_proxy() {
     };
 
     let auxilary_data = Some(vec![Some(hex::encode(
-        &serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
+        serde_json::to_string(&aux_data_json_sr25519.clone()).unwrap(),
     ))]);
 
     // Now we'll send off a signature request using the new program with auxilary data
@@ -1833,7 +1831,7 @@ async fn test_faucet() {
     let (verifying_key, _registered_info) = test_client::register(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        one.clone().into(), // This is our program modification account
+        one.into(),                       // This is our program modification account
         subxtAccountId32(two.public().0), // This is our signature request account
         BoundedVec(vec![ProgramInstance { program_pointer: program_hash, program_config: vec![] }]),
     )
@@ -1867,7 +1865,7 @@ async fn test_faucet() {
     update_programs(
         &spawn_results.chain_connection.api,
         &spawn_results.chain_connection.rpc,
-        verifying_key.clone().try_into().unwrap(),
+        verifying_key,
         &two.pair(),
         OtherBoundedVec(vec![OtherProgramInstance {
             program_pointer: program_hash,
@@ -1903,7 +1901,7 @@ async fn test_faucet() {
     let mut signature_request = UserSignatureRequest {
         message: hex::encode(partial.signer_payload()),
         auxilary_data: Some(vec![Some(hex::encode(
-            &serde_json::to_string(&aux_data.clone()).unwrap(),
+            serde_json::to_string(&aux_data.clone()).unwrap(),
         ))]),
         block_number: spawn_results
             .chain_connection
@@ -1929,7 +1927,7 @@ async fn test_faucet() {
 
     // take signed tx and repack it into a submitable tx
     let submittable_extrinsic = partial.sign_with_account_and_signature(
-        &verfiying_key_account.clone().into(),
+        &verfiying_key_account.clone(),
         &MultiSignature::Ecdsa(decoded_sig.try_into().unwrap()),
     );
     let account = subxtAccountId32::from_str(&aux_data.string_account_id).unwrap();
@@ -2034,10 +2032,7 @@ async fn test_registration_flow() {
     )
     .await;
 
-    assert!(
-        matches!(registration_request, Ok(_)),
-        "We expect our registration request to succeed."
-    );
+    assert!(registration_request.is_ok(), "We expect our registration request to succeed.");
 
     let entropy::registry::events::AccountRegistered(
         _actual_signature_request_account,
@@ -2056,7 +2051,7 @@ async fn test_registration_flow() {
     .await;
 
     assert!(
-        matches!(registered_info, Ok(_)),
+        registered_info.is_ok(),
         "We expect that the verifying key we got back matches registration entry in storage."
     );
 
@@ -2106,7 +2101,7 @@ async fn test_increment_or_wipe_request_limit() {
     assert!(request_limit_check(
         &rpc,
         &app_state.cache,
-        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        hex::encode(DAVE_VERIFYING_KEY),
         request_limit
     )
     .await
@@ -2116,21 +2111,17 @@ async fn test_increment_or_wipe_request_limit() {
     for _ in 0..request_limit {
         increment_or_wipe_request_limit(
             &app_state.cache,
-            hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+            hex::encode(DAVE_VERIFYING_KEY),
             request_limit,
         )
         .await
         .unwrap();
     }
     // should now fail
-    let err_too_many_requests = request_limit_check(
-        &rpc,
-        &app_state.cache,
-        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
-        request_limit,
-    )
-    .await
-    .map_err(|e| e.to_string());
+    let err_too_many_requests =
+        request_limit_check(&rpc, &app_state.cache, hex::encode(DAVE_VERIFYING_KEY), request_limit)
+            .await
+            .map_err(|e| e.to_string());
     assert_eq!(err_too_many_requests, Err("Too many requests - wait a block".to_string()));
 
     let block_number = rpc.chain_get_header(None).await.unwrap().unwrap().number;
@@ -2140,7 +2131,7 @@ async fn test_increment_or_wipe_request_limit() {
     assert!(request_limit_check(
         &rpc,
         &app_state.cache,
-        hex::encode(DAVE_VERIFYING_KEY.to_vec()),
+        hex::encode(DAVE_VERIFYING_KEY),
         request_limit
     )
     .await
@@ -2346,7 +2337,7 @@ pub async fn validator_name_to_relayer_info(
         .staking_extension()
         .threshold_servers(subxtAccountId32(stash_address.public().0));
     let server_info =
-        query_chain(&api, &rpc, threshold_address_query, block_hash).await.unwrap().unwrap();
+        query_chain(api, rpc, threshold_address_query, block_hash).await.unwrap().unwrap();
     (
         (
             std::str::from_utf8(&server_info.endpoint).unwrap().to_string(),

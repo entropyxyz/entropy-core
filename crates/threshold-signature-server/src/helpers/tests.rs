@@ -260,7 +260,7 @@ pub async fn unsafe_get_network_keyshare(
     port: u32,
 ) -> Option<entropy_protocol::KeyShareWithAuxInfo> {
     let get_result = client
-        .get(format!("http://127.0.0.1:{}/unsafe/get_network_keyshare", port))
+        .get(format!("http://127.0.0.1:{port}/unsafe/get_network_keyshare"))
         .send()
         .await
         .unwrap();
