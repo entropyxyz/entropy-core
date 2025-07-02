@@ -13,25 +13,26 @@ use crate::{
         },
         get_api, get_rpc,
     },
-    change_endpoint, change_threshold_accounts, declare_validate, get_oracle_headings, register,
-    remove_program, request_attestation, set_session_keys, store_program,
+    change_endpoint, change_threshold_accounts, declare_validate,
+    forest::{declare_to_chain, get_api_key_servers, get_node_info},
+    get_oracle_headings, register, remove_program, request_attestation, set_session_keys,
+    store_program,
     substrate::query_chain,
     update_programs, verify_tss_nodes_attestations,
 };
-
 use entropy_shared::attestation::{QuoteContext, QuoteInputData};
 use entropy_testing_utils::{
     constants::{TEST_PROGRAM_WASM_BYTECODE, TSS_ACCOUNTS, X25519_PUBLIC_KEYS},
     helpers::{encode_verifying_key, spawn_tss_nodes_and_start_chain},
     substrate_context::test_context_stationary,
-    test_node_process_testing_state, ChainSpecType,
+    test_node_process, test_node_process_testing_state, ChainSpecType,
 };
 use rand::{
     rngs::{OsRng, StdRng},
     SeedableRng,
 };
 use serial_test::serial;
-use sp_core::Pair;
+use sp_core::{sr25519, Pair};
 use sp_keyring::sr25519::Keyring;
 use subxt::utils::AccountId32;
 
@@ -435,4 +436,60 @@ async fn test_verify_tss_nodes_attestations() {
     let rpc = get_rpc(&substrate_context.node_proc.ws_url).await.unwrap();
 
     verify_tss_nodes_attestations(&api, &rpc).await.unwrap();
+}
+
+#[tokio::test]
+#[serial]
+async fn test_declare() {
+    let alice = Keyring::Alice;
+    let cxt = test_node_process().await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+
+    let endpoint = "test".to_string();
+    let x25519_public_key = [0; 32];
+
+    let result =
+        declare_to_chain(&api, &rpc, endpoint.clone(), x25519_public_key, &alice.pair(), None)
+            .await;
+    // Alice has funds should not time out and register to chain
+    assert!(result.is_ok());
+
+    let servers = get_api_key_servers(&api, &rpc).await.unwrap();
+    let (account_id, server) = servers.iter().next().unwrap();
+    assert_eq!(account_id.0, alice.pair().public().0);
+    assert_eq!(endpoint, String::from_utf8(server.endpoint.clone()).unwrap());
+    assert_eq!(x25519_public_key, server.x25519_public_key);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_declare_times_out() {
+    let cxt = test_node_process().await;
+    let api = get_api(&cxt.ws_url).await.unwrap();
+    let rpc = get_rpc(&cxt.ws_url).await.unwrap();
+    let (pair, _seed) = sr25519::Pair::generate();
+
+    let endpoint = "test".to_string();
+    let x25519_public_key = [0; 32];
+
+    let result = declare_to_chain(&api, &rpc, endpoint, x25519_public_key, &pair, None).await;
+
+    // Random pair does not have funds and should give an error
+    assert!(result.unwrap_err().to_string().contains("User error: Invalid Transaction (1010)"));
+}
+
+#[tokio::test]
+#[serial]
+async fn test_get_node_info() {
+    let x25519_public_key = X25519_PUBLIC_KEYS[0];
+    let account_id = TSS_ACCOUNTS[0].clone();
+    let result =
+        get_node_info(Some(true), x25519_public_key, account_id.clone(), QuoteContext::Validate)
+            .await
+            .unwrap();
+
+    assert_eq!(result.0.account_id, account_id.clone());
+    assert_eq!(result.0.x25519_public_key, x25519_public_key.clone());
+    assert_eq!(result.0.ready, Some(true));
 }

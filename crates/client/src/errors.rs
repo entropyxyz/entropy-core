@@ -147,6 +147,12 @@ pub enum ClientError {
     SubxtRpcError(#[from] subxt::ext::subxt_rpcs::Error),
     #[error("Unable to successfully check TDX Quote measurement: {0}")]
     QuoteMeasurement(#[from] QuoteMeasurementErr),
+    #[error("Timed out trying to declare to chain")]
+    TimedOut,
+    #[error("No event following extrinsic submission")]
+    NoEvent,
+    #[error("Cannot encode verifying key: {0}")]
+    EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
 }
 
 /// Error when checking quote measurement value

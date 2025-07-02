@@ -22,10 +22,9 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
 };
-use entropy_client::user::request_attestation;
-use entropy_shared::attestation::{QuoteContext, QuoteInputData};
+use entropy_client::{attestation::create_quote, user::request_attestation};
+use entropy_shared::attestation::QuoteContext;
 use serde::Deserialize;
-use x25519_dalek::StaticSecret;
 
 /// Retrieve a quote by requesting a nonce from the chain and return the quote in the HTTP response
 /// body.
@@ -43,66 +42,11 @@ pub async fn get_attest(
     let nonce = request_attestation(&api, &rpc, &app_state.pair).await?;
 
     let context = context_querystring.as_quote_context()?;
-
     let quote =
-        create_quote(nonce, app_state.subxt_account_id(), &app_state.x25519_secret, context)
+        create_quote(nonce, app_state.subxt_account_id(), &app_state.x25519_public_key(), context)
             .await?;
 
     Ok((StatusCode::OK, quote))
-}
-
-/// Create a mock quote for testing on non-TDX hardware
-#[cfg(not(feature = "production"))]
-pub async fn create_quote(
-    nonce: [u8; 32],
-    tss_account: subxt::utils::AccountId32,
-    x25519_secret: &StaticSecret,
-    context: QuoteContext,
-) -> Result<Vec<u8>, AttestationErr> {
-    use rand::{rngs::StdRng, SeedableRng};
-
-    let public_key = x25519_dalek::PublicKey::from(x25519_secret);
-
-    let input_data = QuoteInputData::new(tss_account.0, *public_key.as_bytes(), nonce, context);
-
-    // This is generated deterministically from TSS account id
-    let mut pck_seeder = StdRng::from_seed(tss_account.0);
-    let pck = tdx_quote::SigningKey::random(&mut pck_seeder);
-
-    // In the real thing this is the key used in the quoting enclave
-    let signing_key = tdx_quote::SigningKey::random(&mut pck_seeder);
-
-    let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key())?.to_vec();
-    let quote = tdx_quote::Quote::mock(signing_key.clone(), pck, input_data.0, pck_encoded)
-        .as_bytes()
-        .to_vec();
-    Ok(quote)
-}
-
-/// Create a TDX quote in production
-#[cfg(feature = "production")]
-pub async fn create_quote(
-    nonce: [u8; 32],
-    tss_account: SubxtAccountId32,
-    x25519_secret: &StaticSecret,
-    context: QuoteContext,
-) -> Result<Vec<u8>, AttestationErr> {
-    let public_key = x25519_dalek::PublicKey::from(x25519_secret);
-
-    let input_data = QuoteInputData::new(tss_account, *public_key.as_bytes(), nonce, context);
-
-    Ok(configfs_tsm::create_quote(input_data.0)
-        .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?)
-}
-
-/// Get the measurement value from this build by generating a quote.
-/// This is used by the `/version` HTTP route to display measurement details of the current build.
-#[cfg(feature = "production")]
-pub fn get_measurement_value() -> Result<[u8; 32], AttestationErr> {
-    let quote_raw = configfs_tsm::create_quote([0; 64])
-        .map_err(|e| AttestationErr::QuoteGeneration(format!("{:?}", e)))?;
-    let quote = Quote::from_bytes(&quote_raw)?;
-    Ok(compute_quote_measurement(&quote))
 }
 
 /// Querystring for the GET `/attest` endpoint
