@@ -3052,7 +3052,7 @@ dependencies = [
  "gloo-net",
  "hex",
  "hpke-rs",
- "hpke-rs-crypto",
+ "hpke-rs-crypto 0.3.0",
  "hpke-rs-rust-crypto",
  "js-sys",
  "k256",
@@ -4850,7 +4850,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e11bd4ee27b79fa1820e72ef8489cc729c87299ec3f7f52b8fc8dcb87cb2d485"
 dependencies = [
- "hpke-rs-crypto",
+ "hpke-rs-crypto 0.2.0",
  "log",
  "zeroize",
 ]
@@ -4865,6 +4865,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hpke-rs-crypto"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d51ffd304e06803f90f2e56a24a6910f19b8516f842d7b72a436c51026279876"
+dependencies = [
+ "rand_core 0.9.3",
+]
+
+[[package]]
 name = "hpke-rs-rust-crypto"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4873,7 +4882,7 @@ dependencies = [
  "aes-gcm",
  "chacha20poly1305 0.10.1",
  "hkdf",
- "hpke-rs-crypto",
+ "hpke-rs-crypto 0.2.0",
  "p256",
  "p384",
  "rand_chacha 0.3.1",
