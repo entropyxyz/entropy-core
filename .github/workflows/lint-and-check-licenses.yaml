@@ -18,6 +18,8 @@ jobs:
           cargo fmt --check
           taplo fmt --check
           cargo clippy -- -D warnings
+          cargo check -p entropy-client --tests -F "production"
+          cargo check -p entropy-runtime --tests -F "production"
   check-licenses:
     runs-on: ubuntu-22.04
     steps:
