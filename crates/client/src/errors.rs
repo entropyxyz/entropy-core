@@ -66,7 +66,7 @@ pub enum AttestationRequestError {
     BadNonce,
 }
 
-#[cfg(feature = "full-client")]
+#[cfg(any(feature = "full-client", feature = "server"))]
 #[derive(Debug, Error)]
 pub enum ClientError {
     #[error("Substrate: {0}")]
