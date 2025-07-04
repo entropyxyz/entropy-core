@@ -1,6 +1,6 @@
 [package]
 name      ="pallet-transaction-pause"
-version   ='0.4.0-rc.1'
+version   ='0.5.0-rc.1'
 authors   =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage  ='https://entropy.xyz/'
 license   ='AGPL-3.0-or-later'
@@ -22,11 +22,11 @@ sp-std            ={ version="14.0.0", default-features=false }
 smallvec="1.15.1"
 
 pallet-balances={ version="41.1.0" }
-pallet-oracle  ={ version='0.4.0-rc.1', path='../oracle', default-features=false }
+pallet-oracle  ={ version='0.5.0-rc.1', path='../oracle', default-features=false }
 sp-core        ={ version="36.1.0" }
 sp-io          ={ version="40.0.1" }
 
-pallet-programs={ version="0.4.0-rc.1", default-features=false, path="../programs" }
+pallet-programs={ version="0.5.0-rc.1", default-features=false, path="../programs" }
 
 [features]
 default=["std"]
