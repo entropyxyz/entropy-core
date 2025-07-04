@@ -1,6 +1,6 @@
 [package]
 name       ="entropy-tss"
-version    ="0.4.0-rc.1"
+version    ="0.5.0-rc.1"
 authors    =['Entropy Cryptography <engineering@entropy.xyz>']
 homepage   ='https://entropy.xyz/'
 description='Entropy threshold signature scheme (TSS) server'
@@ -43,10 +43,10 @@ sp-core           ={ version="36.1.0", default-features=false }
 sp-keyring        ="41.0.0"
 
 # Entropy
-entropy-shared={ version="0.4.0-rc.1", path="../shared", features=["wasm-no-std"] }
-entropy-kvdb={ version="0.4.0-rc.1", path="../kvdb", default-features=false }
-entropy-protocol={ version="0.4.0-rc.1", path="../protocol", features=["server"] }
-entropy-client={ version="0.4.0-rc.1", path="../client", default-features=false, features=[
+entropy-shared={ version="0.5.0-rc.1", path="../shared", features=["wasm-no-std"] }
+entropy-kvdb={ version="0.5.0-rc.1", path="../kvdb", default-features=false }
+entropy-protocol={ version="0.5.0-rc.1", path="../protocol", features=["server"] }
+entropy-client={ version="0.5.0-rc.1", path="../client", default-features=false, features=[
   "native",
   "server",
 ] }
