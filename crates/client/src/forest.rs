@@ -1,7 +1,7 @@
 use crate::chain_api::entropy::runtime_types::pallet_forest::module::ForestServerInfo;
 use crate::{
     attestation::create_quote,
-    chain_api::{entropy, EntropyConfig},
+    chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     errors::{ClientError, SubstrateError},
     substrate::submit_transaction_with_pair,
     user::request_attestation,
@@ -10,9 +10,15 @@ use axum::Json;
 use backoff::ExponentialBackoff;
 use entropy_shared::{attestation::QuoteContext, X25519PublicKey};
 use serde::{Deserialize, Serialize};
-use sp_core::{crypto::Ss58Codec, sr25519, Pair};
+use sp_core::{
+    crypto::{AccountId32, Ss58Codec},
+    sr25519, Pair,
+};
 use std::time::Duration;
-use subxt::{backend::legacy::LegacyRpcMethods, utils::AccountId32, OnlineClient};
+use subxt::{
+    backend::legacy::LegacyRpcMethods, utils::AccountId32 as SubxtAccountId32, OnlineClient,
+};
+use x25519_dalek::StaticSecret;
 
 /// Declares an itself to the chain by calling add box to the forest pallet
 /// Will log and backoff if account does not have funds, assumption is that
@@ -33,7 +39,7 @@ pub async fn declare_to_chain(
     let nonce = request_attestation(api, rpc, pair).await?;
     let tdx_quote = create_quote(
         nonce,
-        AccountId32(pair.public().0),
+        SubxtAccountId32(pair.public().0),
         &x25519_public_key,
         QuoteContext::ForestAddTree,
     )
@@ -73,7 +79,7 @@ fn create_test_backoff() -> ExponentialBackoff {
 pub async fn get_api_key_servers(
     api: &OnlineClient<EntropyConfig>,
     rpc: &LegacyRpcMethods<EntropyConfig>,
-) -> Result<Vec<(AccountId32, ForestServerInfo)>, ClientError> {
+) -> Result<Vec<(SubxtAccountId32, ForestServerInfo)>, ClientError> {
     let block_hash = rpc.chain_get_block_hash(None).await?.ok_or(ClientError::BlockHash)?;
     let storage_address = entropy::storage().forest().trees_iter();
     let mut iter = api.storage().at(block_hash).iter(storage_address).await?;
@@ -89,7 +95,7 @@ pub async fn get_api_key_servers(
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct ServerPublicKeys {
     /// The account ID
-    pub account_id: AccountId32,
+    pub account_id: SubxtAccountId32,
     /// The public encryption key
     pub x25519_public_key: X25519PublicKey,
     /// A hex-encoded TDX quote to show that the server is running the desired service
@@ -101,7 +107,7 @@ pub struct ServerPublicKeys {
 pub async fn get_node_info(
     ready: Option<bool>,
     x25519_public_key: [u8; 32],
-    account_id: AccountId32,
+    account_id: SubxtAccountId32,
     quote_context: QuoteContext,
 ) -> Result<Json<ServerPublicKeys>, ClientError> {
     Ok(Json(ServerPublicKeys {
@@ -112,4 +118,61 @@ pub async fn get_node_info(
             create_quote([0; 32], account_id, &x25519_public_key, quote_context).await?,
         ),
     }))
+}
+
+// Tree state for Trees
+pub struct TreeState {
+    /// Keypair for box id account
+    pub pair: sr25519::Pair,
+    /// Secret encryption key
+    pub x25519_secret: StaticSecret,
+    /// Configuation containing the chain endpoint
+    pub configuration: Configuration,
+}
+
+impl TreeState {
+    /// Setup TreeState with given secret keys
+    pub fn new(
+        configuration: Configuration,
+        pair: sr25519::Pair,
+        x25519_secret: StaticSecret,
+    ) -> Self {
+        Self { pair, x25519_secret, configuration }
+    }
+
+    /// Convenience function to get chain api and rpc
+    pub async fn get_api_rpc(
+        &self,
+    ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), ClientError> {
+        Ok((
+            get_api(&self.configuration.endpoint).await?,
+            get_rpc(&self.configuration.endpoint).await?,
+        ))
+    }
+
+    /// Get the [AccountId32]
+    pub fn account_id(&self) -> AccountId32 {
+        AccountId32::new(self.pair.public().0)
+    }
+
+    /// Get the subxt account ID
+    pub fn subxt_account_id(&self) -> SubxtAccountId32 {
+        SubxtAccountId32(self.pair.public().0)
+    }
+
+    /// Get the x25519 public key
+    pub fn x25519_public_key(&self) -> [u8; 32] {
+        x25519_dalek::PublicKey::from(&self.x25519_secret).to_bytes()
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Configuration {
+    pub endpoint: String,
+}
+
+impl Configuration {
+    pub fn new(endpoint: String) -> Configuration {
+        Configuration { endpoint }
+    }
 }
