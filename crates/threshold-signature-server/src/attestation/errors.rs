@@ -36,8 +36,6 @@ pub enum AttestationErr {
     #[error("Could not decode message: {0}")]
     Codec(#[from] parity_scale_codec::Error),
     #[cfg(feature = "production")]
-    #[error("Quote generation: {0}")]
-    QuoteGeneration(String),
     #[error("Cannot encode verifying key: {0}")]
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
     #[error("Kv error: {0}")]
