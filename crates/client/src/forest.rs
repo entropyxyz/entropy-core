@@ -120,10 +120,11 @@ pub async fn get_node_info(
     }))
 }
 
-/// Tree state for Trees
+/// A Tree state for Trees.
+/// All trees need to maintain at least this information in their app state
 #[derive(Clone)]
 pub struct TreeState {
-    /// Keypair for box id account
+    /// Keypair for tree id account
     pub pair: sr25519::Pair,
     /// Secret encryption key
     pub x25519_secret: StaticSecret,
@@ -141,7 +142,7 @@ impl TreeState {
         Self { pair, x25519_secret, configuration }
     }
 
-    /// Convenience function to get chain api and rpc
+    /// Convenience function to get Entropy client and Legacy RPC client
     pub async fn get_api_rpc(
         &self,
     ) -> Result<(OnlineClient<EntropyConfig>, LegacyRpcMethods<EntropyConfig>), ClientError> {
@@ -151,7 +152,7 @@ impl TreeState {
         ))
     }
 
-    /// Get the [AccountId32]
+    /// Get the [`AccountId32`]
     pub fn account_id(&self) -> AccountId32 {
         AccountId32::new(self.pair.public().0)
     }
