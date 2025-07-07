@@ -63,10 +63,10 @@ pub async fn submit_transaction<Call: Payload, S: Signer<EntropyConfig>>(
             TxStatus::Error { message }
             | TxStatus::Invalid { message }
             | TxStatus::Dropped { message } => {
-                // Handle any errors:
+                // Handle any errors
                 return Err(SubstrateError::BadEvent(message));
             },
-            // Continue otherwise:
+            // Continue otherwise
             _ => continue,
         };
     }
