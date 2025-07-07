@@ -120,7 +120,7 @@ pub async fn get_node_info(
     }))
 }
 
-// Tree state for Trees
+/// Tree state for Trees
 #[derive(Clone)]
 pub struct TreeState {
     /// Keypair for box id account
@@ -167,6 +167,7 @@ impl TreeState {
     }
 }
 
+/// Configuration for chain endpoint
 #[derive(Clone)]
 pub struct Configuration {
     pub endpoint: String,
