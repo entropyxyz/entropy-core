@@ -132,7 +132,7 @@ pub struct TreeState {
 }
 
 impl TreeState {
-    /// Setup TreeState with given secret keys
+    /// Setup [`TreeState`] with given secret keys
     pub fn new(
         configuration: Configuration,
         pair: sr25519::Pair,
