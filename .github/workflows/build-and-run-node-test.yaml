@@ -52,7 +52,6 @@ jobs:
           yarn
           cd ../../..
       - name: Run `cargo build && cargo test`
-        if: needs.code-paths-changed.outputs.run_tests == 'true'
         run: |
           pushd node
           cargo build --all-targets --release -j $(nproc)
