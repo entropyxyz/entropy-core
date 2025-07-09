@@ -46,7 +46,7 @@ pub struct Instrumentation {
         long,
         default_value_t = Default::default(),
     )]
-    pub(crate) logger: Logger,
+    pub logger: Logger,
 
     /// Whether or not logs should be sent to a Loki server.
     #[clap(long)]

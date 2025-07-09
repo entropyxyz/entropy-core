@@ -12,25 +12,12 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-//! A client for the Entropy chain node and Entropy TSS Server.
-//! Since the TSS server communicates with the chain node, this is also a dependency of entropy-tss.
-#[cfg(feature = "server")]
-pub mod attestation;
-pub mod chain_api;
-pub mod errors;
-#[cfg(feature = "server")]
-pub mod forest;
-#[cfg(feature = "server")]
-pub mod logger;
-pub mod substrate;
-pub mod user;
-pub mod util;
-pub use util::Hasher;
 
-#[cfg(test)]
-mod tests;
+use std::error::Error;
+use vergen::EmitBuilder;
 
-#[cfg(feature = "full-client")]
-pub mod client;
-#[cfg(feature = "full-client")]
-pub use client::*;
+fn main() -> Result<(), Box<dyn Error>> {
+    // Emit the instructions
+    EmitBuilder::builder().all_git().emit()?;
+    Ok(())
+}

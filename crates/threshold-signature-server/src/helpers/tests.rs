@@ -35,13 +35,15 @@ use crate::{
             setup_kv_store, setup_latest_block_number, Configuration, ValidatorName,
             DEFAULT_ENDPOINT,
         },
-        logger::{Instrumentation, Logger},
         substrate::submit_transaction,
     },
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
-use entropy_client::substrate::{query_chain, PairSigner};
+use entropy_client::{
+    logger::{Instrumentation, Logger},
+    substrate::{query_chain, PairSigner},
+};
 use entropy_kvdb::{get_db_path, BuildType};
 use entropy_protocol::PartyId;
 #[cfg(test)]
