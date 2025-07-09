@@ -41,7 +41,6 @@ use crate::{
 };
 use axum::{routing::IntoMakeService, Router};
 use entropy_client::{
-    logger::{Instrumentation, Logger},
     substrate::{query_chain, PairSigner},
 };
 use entropy_kvdb::{get_db_path, BuildType};
@@ -55,21 +54,7 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, config::substrate::H256,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
-use tokio::sync::OnceCell;
 
-/// A shared reference to the logger used for tests.
-///
-/// Since this only needs to be initialized once for the whole test suite we define it as a
-/// async-friendly static.
-pub static LOGGER: OnceCell<()> = OnceCell::const_new();
-
-/// Initialize the global logger used in tests.
-///
-/// The logger will only be initialized once, even if this function is called multiple times.
-pub async fn initialize_test_logger() {
-    let instrumentation = Instrumentation { logger: Logger::Pretty, ..Default::default() };
-    *LOGGER.get_or_init(|| instrumentation.setup()).await
-}
 
 pub async fn setup_client() -> AppState {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());

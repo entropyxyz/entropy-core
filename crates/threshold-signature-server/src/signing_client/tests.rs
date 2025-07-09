@@ -17,7 +17,7 @@ use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
     helpers::tests::{
-        initialize_test_logger, setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
+        setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
     },
 };
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
@@ -27,6 +27,7 @@ use entropy_testing_utils::{
     substrate_context::{test_node_process_stationary_local, test_node_process_testing_state},
     ChainSpecType,
 };
+use entropy_client::logger::initialize_test_logger;
 use futures::future::join_all;
 use parity_scale_codec::Encode;
 use serial_test::serial;

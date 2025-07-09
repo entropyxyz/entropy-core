@@ -21,7 +21,7 @@ use crate::{
         request_recover_encryption_key, BackupProviderDetails,
     },
     helpers::{
-        tests::initialize_test_logger, validator::get_signer_and_x25519_secret_from_mnemonic,
+        validator::get_signer_and_x25519_secret_from_mnemonic,
     },
     launch::{development_mnemonic, ValidatorName},
 };
@@ -32,6 +32,7 @@ use entropy_testing_utils::{
     helpers::spawn_tss_nodes_and_start_chain,
     ChainSpecType,
 };
+use entropy_client::logger::initialize_test_logger;
 use serial_test::serial;
 
 /// This tests the whole process of selecting and using a backup provider

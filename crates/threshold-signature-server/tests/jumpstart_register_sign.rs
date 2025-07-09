@@ -19,6 +19,8 @@ use entropy_client::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     client as test_client, Hasher,
+    logger::initialize_test_logger,
+
 };
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
@@ -28,7 +30,7 @@ use entropy_testing_utils::{
     helpers::spawn_tss_nodes_and_start_chain,
     ChainSpecType,
 };
-use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
+use entropy_tss::helpers::tests::{do_jump_start};
 use k256::ecdsa::VerifyingKey;
 use serial_test::serial;
 use sp_core::Pair;

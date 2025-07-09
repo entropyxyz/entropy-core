@@ -17,6 +17,7 @@
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
+use tokio::sync::OnceCell;
 
 /// The log output format that the application should use.
 #[derive(clap::ValueEnum, Clone, Default, Debug)]
@@ -110,4 +111,18 @@ impl Instrumentation {
 
         registry.with(layers).init();
     }
+}
+
+/// A shared reference to the logger used for tests.
+///
+/// Since this only needs to be initialized once for the whole test suite we define it as a
+/// async-friendly static.
+pub static LOGGER: OnceCell<()> = OnceCell::const_new();
+
+/// Initialize the global logger used in tests.
+///
+/// The logger will only be initialized once, even if this function is called multiple times.
+pub async fn initialize_test_logger() {
+    let instrumentation = Instrumentation { logger: Logger::Pretty, ..Default::default() };
+    *LOGGER.get_or_init(|| instrumentation.setup()).await
 }

@@ -19,6 +19,8 @@ use entropy_client::{
         entropy::runtime_types::pallet_registry::pallet::ProgramInstance,
     },
     client as test_client, Hasher,
+    logger::initialize_test_logger,
+
 };
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{decode_verifying_key, RecoverableSignature};
@@ -27,7 +29,7 @@ use entropy_testing_utils::{
     helpers::spawn_tss_nodes_and_start_chain,
     ChainSpecType,
 };
-use entropy_tss::helpers::tests::{do_jump_start, initialize_test_logger};
+use entropy_tss::helpers::tests::{do_jump_start};
 use ethers_core::{
     abi::ethabi::ethereum_types::{H160, H256},
     types::{RecoveryMessage, Transaction, TransactionRequest, U256},

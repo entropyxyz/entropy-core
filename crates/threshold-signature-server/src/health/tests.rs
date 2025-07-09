@@ -17,7 +17,8 @@ use axum::http::StatusCode;
 use entropy_kvdb::clean_tests;
 use serial_test::serial;
 
-use crate::helpers::tests::{initialize_test_logger, setup_client};
+use crate::helpers::tests::{setup_client};
+use entropy_client::logger::initialize_test_logger;
 
 #[tokio::test]
 #[serial]

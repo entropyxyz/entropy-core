@@ -17,7 +17,7 @@ use crate::{
     helpers::{
         app_state::BlockNumberFields,
         tests::{
-            call_set_storage, get_port, initialize_test_logger, put_keyshares_in_state,
+            call_set_storage, get_port, put_keyshares_in_state,
             run_to_block, setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
         },
     },
@@ -25,8 +25,8 @@ use crate::{
     validator::api::{is_signer_or_delete_parent_key, prune_old_holders, validate_new_reshare},
     EntropyConfig,
 };
-use entropy_client::{self as test_client};
 use entropy_client::{
+    self as test_client,
     chain_api::{
         entropy,
         entropy::runtime_types::bounded_collections::bounded_vec::BoundedVec,
@@ -40,6 +40,7 @@ use entropy_client::{
     },
     substrate::query_chain,
     Hasher,
+    logger::initialize_test_logger,
 };
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use entropy_shared::{OcwMessageReshare, MIN_BALANCE};

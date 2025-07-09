@@ -15,10 +15,11 @@
 
 use entropy_kvdb::clean_tests;
 use serial_test::serial;
+use entropy_client::logger::initialize_test_logger;
 
 use crate::{
     helpers::tests::{
-        initialize_test_logger, put_keyshares_in_state, setup_client, unsafe_get_network_keyshare,
+        put_keyshares_in_state, setup_client, unsafe_get_network_keyshare,
     },
     launch::ValidatorName,
 };
