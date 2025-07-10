@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Utilities related to logging
+use tokio::sync::OnceCell;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
-use tokio::sync::OnceCell;
 
 /// The log output format that the application should use.
 #[derive(clap::ValueEnum, Clone, Default, Debug)]

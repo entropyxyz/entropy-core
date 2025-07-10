@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    helpers::tests::{setup_client},
+    helpers::tests::setup_client,
     node_info::api::{BuildDetails, VersionDetails},
 };
 use entropy_client::{forest::ServerPublicKeys, logger::initialize_test_logger};

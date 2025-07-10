@@ -18,9 +18,9 @@ use base64::prelude::{Engine, BASE64_STANDARD};
 use entropy_client::{
     client as test_client,
     client::update_programs,
-    substrate::{submit_transaction_with_pair, PairSigner, get_registered_details},
+    logger::initialize_test_logger,
+    substrate::{get_registered_details, submit_transaction_with_pair, PairSigner},
     user::{get_all_signers_from_chain, UserSignatureRequest},
-    logger::initialize_test_logger
 };
 use entropy_kvdb::clean_tests;
 use entropy_protocol::{
@@ -87,8 +87,8 @@ use crate::{
         signing::Hasher,
         substrate::{get_oracle_data, get_signers_from_chain, query_chain, submit_transaction},
         tests::{
-            do_jump_start, get_port, run_to_block, setup_client,
-            spawn_testing_validators, store_program_and_register, unsafe_get_network_keyshare,
+            do_jump_start, get_port, run_to_block, setup_client, spawn_testing_validators,
+            store_program_and_register, unsafe_get_network_keyshare,
         },
         user::compute_hash,
         validator::get_signer_and_x25519_secret_from_mnemonic,

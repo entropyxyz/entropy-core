@@ -17,8 +17,8 @@ use crate::{
     helpers::{
         app_state::BlockNumberFields,
         tests::{
-            call_set_storage, get_port, put_keyshares_in_state,
-            run_to_block, setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
+            call_set_storage, get_port, put_keyshares_in_state, run_to_block, setup_client,
+            spawn_testing_validators, unsafe_get_network_keyshare,
         },
     },
     launch::ValidatorName,
@@ -38,9 +38,9 @@ use entropy_client::{
         },
         get_api, get_rpc,
     },
+    logger::initialize_test_logger,
     substrate::query_chain,
     Hasher,
-    logger::initialize_test_logger,
 };
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use entropy_shared::{OcwMessageReshare, MIN_BALANCE};

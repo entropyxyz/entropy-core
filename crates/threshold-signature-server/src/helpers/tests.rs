@@ -40,9 +40,7 @@ use crate::{
     AppState,
 };
 use axum::{routing::IntoMakeService, Router};
-use entropy_client::{
-    substrate::{query_chain, PairSigner},
-};
+use entropy_client::substrate::{query_chain, PairSigner};
 use entropy_kvdb::{get_db_path, BuildType};
 use entropy_protocol::PartyId;
 #[cfg(test)]
@@ -54,7 +52,6 @@ use subxt::{
     backend::legacy::LegacyRpcMethods, config::substrate::H256,
     utils::AccountId32 as SubxtAccountId32, OnlineClient,
 };
-
 
 pub async fn setup_client() -> AppState {
     let configuration = Configuration::new(DEFAULT_ENDPOINT.to_string());

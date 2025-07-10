@@ -13,14 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use entropy_client::logger::initialize_test_logger;
 use entropy_kvdb::clean_tests;
 use serial_test::serial;
-use entropy_client::logger::initialize_test_logger;
 
 use crate::{
-    helpers::tests::{
-        put_keyshares_in_state, setup_client, unsafe_get_network_keyshare,
-    },
+    helpers::tests::{put_keyshares_in_state, setup_client, unsafe_get_network_keyshare},
     launch::ValidatorName,
 };
 
