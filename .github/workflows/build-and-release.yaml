@@ -18,7 +18,7 @@ jobs:
 
   git-ref-basename:
     uses: ./.github/workflows/git-ref-basename.yaml
-  
+
   test-e2e-reshare:
     runs-on: core-build-runner
     steps:
@@ -45,6 +45,7 @@ jobs:
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
 
   build-entropy-tss:
+    if: "contains(github.ref_name, 'non-TDX')"
     uses: ./.github/workflows/container-build-and-push.yaml
     needs:
       - git-ref-basename
@@ -56,7 +57,11 @@ jobs:
       DOCKER_HUB_CI_TOKEN: ${{ secrets.DOCKER_HUB_CI_TOKEN }}
       CI_MACHINE_USER_TOKEN: ${{ secrets.CI_MACHINE_USER_TOKEN }}
 
-  release:
+  build-entropy-tss-cvm-image:
+      if: "!contains(github.ref_name, 'non-TDX')"
+      uses: ./.github/workflows/entropy-tss-cvm.yaml
+
+  release-non-TDX:
     name: Publish new release
     if: github.event_name != 'schedule'
     needs:
@@ -82,3 +87,32 @@ jobs:
             $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
             --verify-tag "${{ github.ref_name }}" \
             {entropy,entropy-tss}_${{ needs.git-ref-basename.outputs.git_ref_basename }}/*
+
+  release-TDX:
+    name: Publish new TDX release
+    if: github.event_name != 'schedule'
+    needs:
+      - git-ref-basename
+      - build-entropy
+      - build-entropy-tss-cvm-image
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "!*.dockerbuild"
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls
+          gh release create \
+            --draft \
+            --target "${{ github.sha }}" \
+            --title "${{ needs.build.outputs.git_ref_basename }}" \
+            $(echo ${{ github.ref_name }} | grep --quiet -E '^test|v[0-9]\.[0-9]\.[0-9]-' && echo '--prerelease') \
+            --verify-tag "${{ github.ref_name }}" \
+            entropy_${{ needs.git-ref-basename.outputs.git_ref_basename }}/* \
+            tss-cvm-image/core-image-minimal-tdx-gcp.rootfs.wic.tar.gz
