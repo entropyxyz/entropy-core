@@ -7,10 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.5.0...master)
+
+## [0.5.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...release/v0.5.0) - 2025-07-04
 
 ### Breaking
-- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
+- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated,
+  this could cause changes to the chainspec file as well requires a strategy for command line argument
+  `--public-addr` and for handling `node-key-generation`.
 - In ([#1480](https://github.com/entropyxyz/entropy-core/pull/1480)) full TDX quotes for TSS nodes
   are now stored on-chain instead of only the Provisioning Certification Key. This breaks the format
   of the staking extension pallet's `ServerInfo` struct. The output of the TSS server's `/info`
