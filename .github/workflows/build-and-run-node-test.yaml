@@ -54,11 +54,11 @@ jobs:
       - name: Run `cargo build && cargo test`
         run: |
           pushd node
+          cargo check --all-features -j $(nproc)
           cargo build --all-targets --release -j $(nproc)
           cargo test --all-targets --release
           yarn --cwd ../crates/protocol/nodejs-test test
           cargo test -p entropy-tss --release --features=test_helpers -F wasm_test test_wasm
-          cargo build --all-targets --release --features="server production" -j $(nproc)
       - name: Skip tests when no code changes have been made
         if: needs.code-paths-changed.outputs.run_tests == 'false'
         run: |
