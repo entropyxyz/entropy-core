@@ -55,12 +55,9 @@ entropy-client={ version="0.4.0-rc.1", path="../client", default-features=false,
 entropy-programs-runtime="0.11.0"
 
 # Logging
-tracing                 ="0.1.41"
-tracing-subscriber      ={ version="0.3.19", features=["env-filter", "json"] }
-tracing-loki            ="0.2"
-tower-http              ={ version="0.6.6", features=["trace", "cors"] }
-tracing-bunyan-formatter="0.3.10"
-uuid                    ={ version="1.16.0", features=["v4"] }
+tracing   ="0.1.41"
+tower-http={ version="0.6.6", features=["trace", "cors"] }
+uuid      ={ version="1.16.0", features=["v4"] }
 
 # Misc
 tokio-tungstenite="0.27.0"

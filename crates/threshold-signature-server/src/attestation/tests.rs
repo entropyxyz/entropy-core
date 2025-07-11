@@ -16,9 +16,10 @@ use crate::{
     chain_api::{entropy, get_api, get_rpc},
     helpers::{
         substrate::query_chain,
-        tests::{initialize_test_logger, spawn_testing_validators, ChainSpecType},
+        tests::{spawn_testing_validators, ChainSpecType},
     },
 };
+use entropy_client::logger::initialize_test_logger;
 use entropy_kvdb::clean_tests;
 use entropy_testing_utils::{
     constants::{BOB_STASH_ADDRESS, TSS_ACCOUNTS},

@@ -16,7 +16,6 @@
 //! Helper modules for various components of the TSS server
 pub mod app_state;
 pub mod launch;
-pub mod logger;
 pub mod signing;
 pub mod substrate;
 pub mod user;
