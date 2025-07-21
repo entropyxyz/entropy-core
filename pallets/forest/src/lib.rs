@@ -31,7 +31,7 @@ use sp_runtime::{
         Bounded, DispatchInfoOf, DispatchOriginOf, SignedExtension, TransactionExtension,
         ValidateResult,
     },
-    DispatchResult,
+    transaction_validity, DispatchResult,
 };
 use sp_std::{fmt::Debug, vec::Vec};
 #[cfg(test)]
@@ -182,7 +182,7 @@ pub mod module {
 
     #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Eq, PartialEq, TypeInfo)]
     #[scale_info(skip_type_params(T))]
-    pub struct ValidateAddTree<T: Config + Send + Sync>(PhantomData<T>);
+    pub struct ValidateAddTree<T: Config + Send + Sync>(pub PhantomData<T>);
 
     impl<T: Config + Send + Sync> core::fmt::Debug for ValidateAddTree<T> {
         fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
@@ -226,8 +226,14 @@ pub mod module {
             }
             // check for `add_tree`
             let validity = match call.is_sub_type() {
-                Some(Call::add_tree { .. }) => {
+                Some(Call::add_tree { server_info }) => {
                     sp_runtime::print("add_tree was received.");
+
+                    if server_info.endpoint.len() as u32 >= T::MaxEndpointLength::get() {
+                        return Err(TransactionValidityError::Invalid(
+                            (InvalidTransaction::Custom(0)),
+                        ));
+                    }
 
                     let valid_tx =
                         ValidTransaction { priority: Bounded::max_value(), ..Default::default() };

@@ -18,9 +18,15 @@
 #![cfg(test)]
 
 use super::*;
+use crate as pallet_forest;
 use crate::ForestServerInfo;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, dispatch::DispatchInfo};
 use mock::*;
+use sp_runtime::{
+    traits::{BlakeTwo256, DispatchTransaction, IdentityLookup},
+    transaction_validity::TransactionSource::External,
+    BuildStorage,
+};
 
 const NULL_ARR: [u8; 32] = [0; 32];
 
@@ -53,4 +59,54 @@ fn add_tree() {
             Error::<Test>::EndpointTooLong
         );
     });
+}
+
+#[test]
+fn signed_ext_validate_add_tree_works() {
+    new_test_ext().execute_with(|| {
+        let mut server_info = ForestServerInfo {
+            x25519_public_key: NULL_ARR,
+            endpoint: vec![20],
+            tdx_quote: VALID_QUOTE.to_vec(),
+        };
+
+        let mut call = pallet_forest::Call::add_tree { server_info: server_info.clone() }.into();
+        let info = DispatchInfo::default();
+
+        assert_eq!(
+            ValidateAddTree::<Test>(PhantomData)
+                .validate_only(Some(1).into(), &call, &info, 150, External, 0)
+                .unwrap()
+                .0
+                .priority,
+            u64::MAX,
+        );
+        // Errors tx too long
+        assert_eq!(
+            ValidateAddTree::<Test>(PhantomData)
+                .validate_only(Some(1).into(), &call, &info, 250, External, 0)
+                .unwrap_err(),
+            InvalidTransaction::ExhaustsResources.into(),
+        );
+
+        server_info.endpoint = [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec();
+        call = pallet_forest::Call::add_tree { server_info: server_info.clone() }.into();
+        // Errors endpoint too long
+        assert_eq!(
+            ValidateAddTree::<Test>(PhantomData)
+                .validate_only(Some(1).into(), &call, &info, 150, External, 0)
+                .unwrap_err(),
+            TransactionValidityError::Invalid(InvalidTransaction::Custom(0)),
+        );
+
+        // assert_ok!(Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone(),));
+
+        //  // Errors tree exists
+        //  assert_eq!(
+        //     ValidateAddTree::<Test>(PhantomData)
+        //         .validate_only(Some(1).into(), &call, &info, 150, External, 0)
+        //         .unwrap_err(),
+        //     InvalidTransaction::ExhaustsResources.into(),
+        // );
+    })
 }
