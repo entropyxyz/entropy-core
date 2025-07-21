@@ -102,6 +102,7 @@ entropy-shared={ version="0.4.0-rc.1", path="../../crates/shared", default-featu
 pallet-registry={ version="0.4.0-rc.1", path="../../pallets/registry" }
 pallet-staking-extension={ version="0.4.0-rc.1", path="../../pallets/staking" }
 pallet-parameters={ version="0.4.0-rc.1", path="../../pallets/parameters" }
+pallet-forest={ version="0.4.0-rc.1", path="../../pallets/forest" }
 
 [build-dependencies]
 clap      ={ version="4.5.40", optional=true }
