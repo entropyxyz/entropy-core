@@ -229,10 +229,19 @@ pub mod module {
                 Some(Call::add_tree { server_info }) => {
                     sp_runtime::print("add_tree was received.");
 
+                    // endpoint not too long
                     if server_info.endpoint.len() as u32 >= T::MaxEndpointLength::get() {
-                        return Err(TransactionValidityError::Invalid(
-                            (InvalidTransaction::Custom(0)),
-                        ));
+                        return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                            0,
+                        )));
+                    }
+
+                    // tree already exists
+                    // TODO: fix unwrap
+                    if Trees::<T>::contains_key(&origin.as_signer().unwrap()) {
+                        return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                            1,
+                        )));
                     }
 
                     let valid_tx =
