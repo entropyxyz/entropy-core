@@ -214,7 +214,7 @@ pub mod module {
             &self,
             origin: DispatchOriginOf<<T as frame_system::Config>::RuntimeCall>,
             call: &<T as frame_system::Config>::RuntimeCall,
-            _info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
+            info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
             len: usize,
             _self_implicit: Self::Implicit,
             _inherited_implication: &impl Encode,
@@ -237,16 +237,32 @@ pub mod module {
                     }
 
                     // tree already exists
-                    // TODO: fix unwrap
-                    if Trees::<T>::contains_key(&origin.as_signer().unwrap()) {
+                    if let Some(who) = origin.as_signer() {
+                        if Trees::<T>::contains_key(&origin.as_signer().unwrap()) {
+                            return Err(TransactionValidityError::Invalid(
+                                InvalidTransaction::Custom(1),
+                            ));
+                        }
+                        // Attestation check
+                        // TODO: make sure state change in verify_quote is not propgated till after call
+                        let result =  <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
+                            &who,
+                            server_info.x25519_public_key,
+                            server_info.tdx_quote.clone(),
+                            QuoteContext::ForestAddTree,
+                        );
+
+                        if result.is_err() {
+                            return Err(TransactionValidityError::Invalid(
+                                InvalidTransaction::Custom(2),
+                            ));
+                        }
+                    } else {
                         return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
-                            1,
+                            3,
                         )));
                     }
-
-                    let valid_tx =
-                        ValidTransaction { priority: Bounded::max_value(), ..Default::default() };
-                    valid_tx
+                    Default::default()
                 },
                 _ => Default::default(),
             };

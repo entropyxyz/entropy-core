@@ -71,15 +71,13 @@ fn signed_ext_validate_add_tree_works() {
         };
 
         let mut call = pallet_forest::Call::add_tree { server_info: server_info.clone() }.into();
-        let info = DispatchInfo::default();
+        let mut info = DispatchInfo::default();
 
         assert_eq!(
             ValidateAddTree::<Test>(PhantomData)
                 .validate_only(Some(1).into(), &call, &info, 150, External, 0)
-                .unwrap()
-                .0
-                .priority,
-            u64::MAX,
+                .is_ok(),
+            true
         );
         // Errors tx too long
         assert_eq!(
