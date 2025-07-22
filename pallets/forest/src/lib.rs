@@ -21,12 +21,19 @@ use entropy_shared::{
     attestation::{AttestationHandler, QuoteContext, VerifyQuoteError},
     X25519PublicKey, VERIFICATION_KEY_LENGTH,
 };
-use frame_support::pallet_prelude::*;
+use frame_support::{pallet_prelude::*, traits::IsSubType};
 use frame_system::pallet_prelude::*;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::DispatchResult;
-use sp_std::vec::Vec;
+use sp_runtime::{
+    impl_tx_ext_default,
+    traits::{
+        Bounded, DispatchInfoOf, DispatchOriginOf, SignedExtension, TransactionExtension,
+        ValidateResult,
+    },
+    transaction_validity, DispatchResult,
+};
+use sp_std::{fmt::Debug, vec::Vec};
 #[cfg(test)]
 mod mock;
 
@@ -145,7 +152,7 @@ pub mod module {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(1)]
-        #[pallet::weight(<T as Config>::WeightInfo::add_tree())]
+        #[pallet::weight((<T as Config>::WeightInfo::add_tree(), Pays::No))]
         pub fn add_tree(origin: OriginFor<T>, server_info: ForestServerInfo) -> DispatchResult {
             let tree_account = ensure_signed(origin.clone())?;
 
@@ -171,5 +178,96 @@ pub mod module {
 
             Ok(())
         }
+    }
+
+    #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Eq, PartialEq, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct ValidateAddTree<T: Config + Send + Sync>(pub PhantomData<T>);
+
+    impl<T: Config + Send + Sync> core::fmt::Debug for ValidateAddTree<T> {
+        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+            write!(f, "ValidateAddTree")
+        }
+    }
+
+    impl<T: Config + Send + Sync> ValidateAddTree<T>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+    {
+        #[allow(clippy::new_without_default)]
+        pub fn new() -> Self {
+            Self(sp_std::marker::PhantomData)
+        }
+    }
+
+    impl<T: Config + Send + Sync> TransactionExtension<<T as frame_system::Config>::RuntimeCall>
+        for ValidateAddTree<T>
+    where
+        <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+    {
+        const IDENTIFIER: &'static str = "ValidateAddTree";
+        type Implicit = ();
+        type Pre = ();
+        type Val = ();
+
+        fn validate(
+            &self,
+            origin: DispatchOriginOf<<T as frame_system::Config>::RuntimeCall>,
+            call: &<T as frame_system::Config>::RuntimeCall,
+            info: &DispatchInfoOf<<T as frame_system::Config>::RuntimeCall>,
+            len: usize,
+            _self_implicit: Self::Implicit,
+            _inherited_implication: &impl Encode,
+            _source: TransactionSource,
+        ) -> ValidateResult<Self::Val, <T as frame_system::Config>::RuntimeCall> {
+            // if the transaction is too big, just drop it.
+            if len > 200 {
+                return Err(InvalidTransaction::ExhaustsResources.into());
+            }
+            // check for `add_tree`
+            let validity = match call.is_sub_type() {
+                Some(Call::add_tree { server_info }) => {
+                    sp_runtime::print("add_tree was received.");
+
+                    // endpoint not too long
+                    if server_info.endpoint.len() as u32 >= T::MaxEndpointLength::get() {
+                        return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                            0,
+                        )));
+                    }
+
+                    // tree already exists
+                    if let Some(who) = origin.as_signer() {
+                        if Trees::<T>::contains_key(&origin.as_signer().unwrap()) {
+                            return Err(TransactionValidityError::Invalid(
+                                InvalidTransaction::Custom(1),
+                            ));
+                        }
+                        // Attestation check
+                        // TODO: make sure state change in verify_quote is not propgated till after call
+                        let result =  <T::AttestationHandler as entropy_shared::attestation::AttestationHandler<_>>::verify_quote(
+                            &who,
+                            server_info.x25519_public_key,
+                            server_info.tdx_quote.clone(),
+                            QuoteContext::ForestAddTree,
+                        );
+
+                        if result.is_err() {
+                            return Err(TransactionValidityError::Invalid(
+                                InvalidTransaction::Custom(2),
+                            ));
+                        }
+                    } else {
+                        return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                            3,
+                        )));
+                    }
+                    Default::default()
+                },
+                _ => Default::default(),
+            };
+            Ok((validity, (), origin))
+        }
+        impl_tx_ext_default!(<T as frame_system::Config>::RuntimeCall; weight prepare);
     }
 }

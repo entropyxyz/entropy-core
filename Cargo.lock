@@ -2880,6 +2880,7 @@ dependencies = [
  "lazy_static",
  "log",
  "pallet-balances",
+ "pallet-forest",
  "pallet-im-online",
  "pallet-parameters",
  "pallet-registry",
