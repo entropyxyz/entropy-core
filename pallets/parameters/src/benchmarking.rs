@@ -87,7 +87,7 @@ mod benchmarks {
                 vec![BoundedVec::try_from([0; 32].to_vec()).unwrap()],
             ),
             (
-                SupportedCvmServices::ApiKeyService,
+                SupportedCvmServices::TreeService,
                 vec![BoundedVec::try_from([1; 32].to_vec()).unwrap()],
             ),
         ];
