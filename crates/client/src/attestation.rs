@@ -5,7 +5,7 @@ use entropy_shared::{
 };
 use subxt::utils::AccountId32;
 
-/// Create a mock quote for testing on non-TDX hardware
+/// Create a mock TDX quote for testing on non-TDX hardware
 #[cfg(not(feature = "production"))]
 pub async fn create_quote(
     nonce: [u8; 32],
