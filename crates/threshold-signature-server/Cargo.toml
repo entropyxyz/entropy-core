@@ -47,7 +47,7 @@ entropy-shared={ version="0.5.0-rc.1", path="../shared", features=["wasm-no-std"
 entropy-kvdb={ version="0.5.0-rc.1", path="../kvdb", default-features=false }
 entropy-protocol={ version="0.5.0-rc.1", path="../protocol", features=["server"] }
 entropy-client={ version="0.5.0-rc.1", path="../client", default-features=false, features=[
-  "native",
+  "full-client-native",
   "server",
 ] }
 
@@ -100,7 +100,6 @@ tdx-quote   ={ version="0.0.3", features=["mock"] }
 # the process to succeed.
 #
 # See: https://github.com/rust-lang/cargo/issues/4242
-entropy-client       ={ path="../client", features=["full-client-native"] }
 entropy-protocol     ={ path="../protocol", features=["unsafe"] }
 entropy-testing-utils={ path="../testing-utils" }
 
