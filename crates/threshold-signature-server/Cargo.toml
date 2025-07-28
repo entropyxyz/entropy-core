@@ -79,7 +79,6 @@ sha2             ="0.10.9"
 hkdf             ="0.12.4"
 project-root     ={ version="0.2.2", optional=true }
 tdx-quote        ={ version="0.0.3", optional=true, features=["mock"] }
-configfs-tsm     ={ version="0.0.1", optional=true }
 
 [dev-dependencies]
 serial_test ="3.2.0"
@@ -113,7 +112,7 @@ default     =["std", "dep:tdx-quote"]
 std         =["sp-core/std"]
 test_helpers=["dep:project-root"]
 unsafe      =[]
-production  =["std", "dep:configfs-tsm", "entropy-shared/production"]
+production  =["std", "entropy-shared/production"]
 alice       =[]
 bob         =[]
 # Enable this feature to run the integration tests for the wasm API of entropy-protocol

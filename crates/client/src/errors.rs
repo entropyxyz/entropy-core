@@ -153,6 +153,10 @@ pub enum ClientError {
     NoEvent,
     #[error("Cannot encode verifying key: {0}")]
     EncodeVerifyingKey(#[from] tdx_quote::VerifyingKeyError),
+    #[error("Quote generation: {0}")]
+    QuoteGeneration(String),
+    #[error("Quote parse: {0}")]
+    QuoteParse(#[from] tdx_quote::QuoteParseError),
 }
 
 /// Error when checking quote measurement value
