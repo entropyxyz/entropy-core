@@ -15,7 +15,6 @@
 
 //! Utilites relating to [crate::validator]
 use bip39::{Language, Mnemonic};
-use entropy_client::substrate::PairSigner;
 use hkdf::Hkdf;
 use sha2::Sha256;
 use sp_core::{sr25519, Pair};
@@ -23,6 +22,9 @@ use x25519_dalek::StaticSecret;
 use zeroize::Zeroize;
 
 use crate::user::UserErr;
+
+#[cfg(any(test, feature = "test_helpers"))]
+use entropy_client::substrate::PairSigner;
 
 /// Constants used in the derivation path
 const KDF_SR25519: &[u8] = b"sr25519-threshold-account";
