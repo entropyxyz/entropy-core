@@ -37,10 +37,10 @@ pub async fn create_quote(
 pub async fn create_quote(
     nonce: [u8; 32],
     account_id: AccountId32,
-    x25519_public_key: [u8; 32],
+    x25519_public_key: &[u8; 32],
     context: QuoteContext,
 ) -> Result<Vec<u8>, ClientError> {
-    let input_data = QuoteInputData::new(account_id, x25519_public_key, nonce, context);
+    let input_data = QuoteInputData::new(account_id, *x25519_public_key, nonce, context);
 
     Ok(configfs_tsm::create_quote(input_data.0)
         .map_err(|e| ClientError::QuoteGeneration(format!("{:?}", e)))?)
