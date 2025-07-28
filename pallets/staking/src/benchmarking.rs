@@ -259,14 +259,14 @@ mod benchamrks {
             RawOrigin::Signed(_bonder.clone()),
             new_threshold.clone(),
             x25519_public_key.clone(),
-            quote,
+            quote.clone(),
         );
 
         let server_info = ServerInfo {
             endpoint: b"http://localhost:3001".to_vec(),
             tss_account: new_threshold.clone(),
-            x25519_public_key: NULL_ARR,
-            tdx_quote: NULL_ARR.to_vec(),
+            x25519_public_key: x25519_public_key.clone(),
+            tdx_quote: quote,
         };
 
         assert_last_event::<T>(Event::<T>::ThresholdAccountChanged(bonder, server_info).into());
