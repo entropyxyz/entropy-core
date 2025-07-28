@@ -47,7 +47,6 @@ backoff={ version="0.4.0", features=["tokio"] }
 hostname                ={ version="0.4", optional=true }
 tracing-subscriber      ={ version="0.3.19", features=["env-filter", "json"], optional=true }
 tracing-loki            ={ version="0.2", optional=true }
-tower-http              ={ version="0.6.6", features=["trace", "cors"], optional=true }
 tracing-bunyan-formatter={ version="0.3.10", optional=true }
 uuid                    ={ version="1.16.0", features=["v4"], optional=true }
 clap                    ={ version="4.5.40", features=["derive"], optional=true }
@@ -86,7 +85,6 @@ server=[
   "dep:hostname",
   "dep:tracing-subscriber",
   "dep:tracing-loki",
-  "dep:tower-http",
   "dep:tracing-bunyan-formatter",
   "dep:uuid",
   "dep:clap",

@@ -2977,7 +2977,6 @@ dependencies = [
  "tdx-quote",
  "thiserror 2.0.12",
  "tokio",
- "tower-http 0.6.6",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-loki",
