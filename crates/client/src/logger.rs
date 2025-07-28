@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Utilities related to logging
+use tokio::sync::OnceCell;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
@@ -46,7 +47,7 @@ pub struct Instrumentation {
         long,
         default_value_t = Default::default(),
     )]
-    pub(crate) logger: Logger,
+    pub logger: Logger,
 
     /// Whether or not logs should be sent to a Loki server.
     #[clap(long)]
@@ -110,4 +111,18 @@ impl Instrumentation {
 
         registry.with(layers).init();
     }
+}
+
+/// A shared reference to the logger used for tests.
+///
+/// Since this only needs to be initialized once for the whole test suite we define it as a
+/// async-friendly static.
+pub static LOGGER: OnceCell<()> = OnceCell::const_new();
+
+/// Initialize the global logger used in tests.
+///
+/// The logger will only be initialized once, even if this function is called multiple times.
+pub async fn initialize_test_logger() {
+    let instrumentation = Instrumentation { logger: Logger::Pretty, ..Default::default() };
+    *LOGGER.get_or_init(|| instrumentation.setup()).await
 }

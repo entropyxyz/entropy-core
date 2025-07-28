@@ -71,8 +71,8 @@ pub use weights::WeightInfo;
 pub enum SupportedCvmServices {
     /// Entropy Threshold Signature Server
     EntropyTss,
-    /// API key deployment service
-    ApiKeyService,
+    /// Tree service
+    TreeService,
 }
 
 #[frame_support::pallet]
@@ -265,7 +265,7 @@ pub mod module {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             AcceptedMeasurementValues::<T>::remove(SupportedCvmServices::EntropyTss);
-            AcceptedMeasurementValues::<T>::remove(SupportedCvmServices::ApiKeyService);
+            AcceptedMeasurementValues::<T>::remove(SupportedCvmServices::TreeService);
             for (supported_cvm_service, measurement_values) in accepted_measurement_values.clone() {
                 AcceptedMeasurementValues::<T>::insert(supported_cvm_service, measurement_values);
             }

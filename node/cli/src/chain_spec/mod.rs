@@ -231,7 +231,7 @@ pub fn mock_measurement_values() -> Vec<(SupportedCvmServices, MeasurementValues
             vec![BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap()],
         ),
         (
-            SupportedCvmServices::ApiKeyService,
+            SupportedCvmServices::TreeService,
             vec![BoundedVec::try_from(MEASUREMENT_VALUE_MOCK_QUOTE.to_vec()).unwrap()],
         ),
     ]

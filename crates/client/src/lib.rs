@@ -20,6 +20,8 @@ pub mod chain_api;
 pub mod errors;
 #[cfg(feature = "server")]
 pub mod forest;
+#[cfg(feature = "server")]
+pub mod logger;
 pub mod substrate;
 pub mod user;
 pub mod util;

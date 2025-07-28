@@ -146,7 +146,7 @@ fn accepted_measurement_values_changed() {
         );
 
         assert_eq!(
-            Parameters::accepted_measurement_values(SupportedCvmServices::ApiKeyService),
+            Parameters::accepted_measurement_values(SupportedCvmServices::TreeService),
             Some(initial_values),
             "Inital measurement values set"
         );
@@ -155,7 +155,7 @@ fn accepted_measurement_values_changed() {
             RuntimeOrigin::root(),
             vec![
                 (SupportedCvmServices::EntropyTss, new_value_tss.clone()),
-                (SupportedCvmServices::ApiKeyService, new_value_api_service.clone())
+                (SupportedCvmServices::TreeService, new_value_api_service.clone())
             ]
         ));
 
@@ -166,7 +166,7 @@ fn accepted_measurement_values_changed() {
         );
 
         assert_eq!(
-            Parameters::accepted_measurement_values(SupportedCvmServices::ApiKeyService),
+            Parameters::accepted_measurement_values(SupportedCvmServices::TreeService),
             Some(new_value_api_service),
             "Measurement values changed"
         );

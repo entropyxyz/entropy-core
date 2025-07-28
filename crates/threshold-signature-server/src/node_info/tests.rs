@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    helpers::tests::{initialize_test_logger, setup_client},
+    helpers::tests::setup_client,
     node_info::api::{BuildDetails, VersionDetails},
 };
-use entropy_client::forest::ServerPublicKeys;
+use entropy_client::{forest::ServerPublicKeys, logger::initialize_test_logger};
 use entropy_kvdb::clean_tests;
 use entropy_shared::types::HashingAlgorithm;
 use serial_test::serial;

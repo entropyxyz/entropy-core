@@ -16,10 +16,9 @@
 use super::api::validate_proactive_refresh;
 use crate::{
     chain_api::{get_api, get_rpc},
-    helpers::tests::{
-        initialize_test_logger, setup_client, spawn_testing_validators, unsafe_get_network_keyshare,
-    },
+    helpers::tests::{setup_client, spawn_testing_validators, unsafe_get_network_keyshare},
 };
+use entropy_client::logger::initialize_test_logger;
 use entropy_kvdb::{clean_tests, kv_manager::helpers::serialize};
 use entropy_shared::{constants::PREGENERATED_NETWORK_VERIFYING_KEY, OcwMessageProactiveRefresh};
 use entropy_testing_utils::{
