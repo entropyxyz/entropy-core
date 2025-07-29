@@ -490,7 +490,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         threshold: 2u8,
         accepted_measurement_values: vec![
             (SupportedCvmServices::EntropyTss, values.clone()),
-            (SupportedCvmServices::ApiKeyService, values),
+            (SupportedCvmServices::TreeService, values),
         ],
         _config: Default::default(),
     }

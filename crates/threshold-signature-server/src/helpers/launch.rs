@@ -33,7 +33,7 @@ use crate::{
     AppState,
 };
 use clap::Parser;
-use entropy_client::substrate::SubstrateError;
+use entropy_client::{logger, substrate::SubstrateError};
 use entropy_kvdb::{get_db_path, kv_manager::KvManager, BuildType};
 use rand::RngCore;
 use rand_core::OsRng;
@@ -239,7 +239,7 @@ pub struct StartupArgs {
 
     /// The configuration settings around logging.
     #[clap(flatten)]
-    pub logger: crate::helpers::logger::Instrumentation,
+    pub logger: logger::Instrumentation,
 }
 
 pub fn development_mnemonic(validator_name: &Option<ValidatorName>) -> bip39::Mnemonic {

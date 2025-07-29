@@ -20,11 +20,10 @@ use crate::{
         get_key_provider_details, make_key_backup, request_backup_encryption_key,
         request_recover_encryption_key, BackupProviderDetails,
     },
-    helpers::{
-        tests::initialize_test_logger, validator::get_signer_and_x25519_secret_from_mnemonic,
-    },
+    helpers::validator::get_signer_and_x25519_secret_from_mnemonic,
     launch::{development_mnemonic, ValidatorName},
 };
+use entropy_client::logger::initialize_test_logger;
 use entropy_kvdb::clean_tests;
 use entropy_shared::user::ValidatorInfo;
 use entropy_testing_utils::{
