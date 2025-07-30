@@ -133,7 +133,7 @@ pub mod pallet {
     pub type AttestationRequests<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, OptionQuery>;
 
-    /// The request limit a user can ask to a specific set of TSS in a block
+    /// Global Nonces to be used in attestations
     #[pallet::storage]
     #[pallet::getter(fn global_nonces)]
     pub type GlobalNonces<T: Config> = StorageValue<_, Vec<Nonce>, ValueQuery>;
