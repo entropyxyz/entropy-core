@@ -17,7 +17,7 @@ use crate::mock::*;
 use entropy_shared::attestation::{
     AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use rand_core::OsRng;
 
 const ATTESTEE: u64 = 0;
@@ -109,5 +109,26 @@ fn verify_quote_fails_with_mismatched_input_data() {
             ),
             VerifyQuoteError::IncorrectInputData,
         );
+    })
+}
+
+#[test]
+fn global_nonce_test() {
+    new_test_ext().execute_with(|| {
+        <Attestation as OnInitialize<u64>>::on_initialize(0);
+        let mut global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 1);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(1);
+        global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 2);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(3);
+        global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 3);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(4);
+        global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 3);
     })
 }

@@ -102,6 +102,24 @@ pub mod pallet {
         }
     }
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
+            let mut nonce = [0; 32];
+            Self::get_randomness().fill_bytes(&mut nonce[..]);
+            let mut nonces = GlobalNonces::<T>::get();
+            if nonces.len() >= 3 {
+                nonces.remove(0);
+            }
+            nonces.push(nonce);
+            GlobalNonces::<T>::put(nonces);
+
+            // TODO: fix
+            // T::WeightInfo::on_initialize()
+            0.into()
+        }
+    }
+
     /// A map of TSS Account ID to quote nonce for pending attestations
     #[pallet::storage]
     #[pallet::getter(fn pending_attestations)]
@@ -114,6 +132,11 @@ pub mod pallet {
     #[pallet::getter(fn attestation_requests)]
     pub type AttestationRequests<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, OptionQuery>;
+
+    /// The request limit a user can ask to a specific set of TSS in a block
+    #[pallet::storage]
+    #[pallet::getter(fn global_nonces)]
+    pub type GlobalNonces<T: Config> = StorageValue<_, Vec<Nonce>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
