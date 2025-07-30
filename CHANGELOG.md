@@ -7,10 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 At the moment this project **does not** adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...master)
+## [Unreleased](https://github.com/entropyxyz/entropy-core/compare/release/v0.5.0...master)
+
+## [0.5.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.4.0...release/v0.5.0) - 2025-07-04
 
 ### Breaking
-- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated, this could cause changes to the chainspec file as well requires a strategy for command line argument ```--public-addr``` and for handling ```node-key-generation```
+- In [#1387](https://github.com/entropyxyz/entropy-core/pull/1387/) the substrate version was updated,
+  this could cause changes to the chainspec file as well requires a strategy for command line argument
+  `--public-addr` and for handling `node-key-generation`.
 - In ([#1480](https://github.com/entropyxyz/entropy-core/pull/1480)) full TDX quotes for TSS nodes
   are now stored on-chain instead of only the Provisioning Certification Key. This breaks the format
   of the staking extension pallet's `ServerInfo` struct. The output of the TSS server's `/info`
@@ -19,8 +23,10 @@ At the moment this project **does not** adhere to
   this means you can continue to use the output from `/info` directly as a chainspec input.
 
 ### Added
-- Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
+- Add forest pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
 - Template testnet chainspec artifact ([#1442](https://github.com/entropyxyz/entropy-core/pull/1442))
+- Create forest helper functions ([#1488](https://github.com/entropyxyz/entropy-core/pull/1488))
+- Add pallet_delegated_staking ([#1475](https://github.com/entropyxyz/entropy-core/pull/1475))
 
 ### Changed
 - Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
@@ -30,6 +36,13 @@ At the moment this project **does not** adhere to
 - Update substrate to polkadot stable2503-4 ([#1439](https://github.com/entropyxyz/entropy-core/pull/1439))
 - Rename outtie to forest ([#1481](https://github.com/entropyxyz/entropy-core/pull/1481))
 - Store full tdx quote in ForestServerInfo ([#1484](https://github.com/entropyxyz/entropy-core/pull/1484))
+- Add endowed accounts - at compile time (cherry pick of #1466) ([#1487](https://github.com/entropyxyz/entropy-core/pull/1487))
+- Apply Davids suggestion to add a yield_now between reshare and aux gen in DKG ([#1476](https://github.com/entropyxyz/entropy-core/pull/1476))
+- Build entropy-tss CVM image in release workflow ([#1473](https://github.com/entropyxyz/entropy-core/pull/1473))
+- Make the chainspec generation from chainspec inputs be determinstic ([#1467](https://github.com/entropyxyz/entropy-core/pull/1467))
+- Remove option for derivation path ([#1455](https://github.com/entropyxyz/entropy-core/pull/1455))
+- Update benchmarks to V2 ([#1402](https://github.com/entropyxyz/entropy-core/pull/1402))
+- Use ss58 for loggings ([#1413](https://github.com/entropyxyz/entropy-core/pull/1413))
 
 ## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 
