@@ -135,6 +135,7 @@ pub trait AttestationHandler<AccountId> {
         x25519_public_key: X25519PublicKey,
         quote: Vec<u8>,
         context: QuoteContext,
+        nonce_option: Option<[u8; 32]>,
     ) -> Result<crate::BoundedVecEncodedVerifyingKey, VerifyQuoteError>;
 
     /// Indicate to the attestation handler that a quote is desired.
@@ -152,6 +153,7 @@ impl<AccountId> AttestationHandler<AccountId> for () {
         _x25519_public_key: X25519PublicKey,
         _quote: Vec<u8>,
         _context: QuoteContext,
+        _nonce_option: Option<[u8; 32]>,
     ) -> Result<crate::BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
         Ok(crate::BoundedVecEncodedVerifyingKey::try_from([0; 33].to_vec()).unwrap())
     }
@@ -183,6 +185,8 @@ pub enum VerifyQuoteError {
     PckCertificateBadPublicKey,
     /// Pck certificate could not be extracted from quote
     PckCertificateNoCertificate,
+    /// Nonce is not in the global nonce vector
+    NotGlobalNonce,
 }
 
 #[cfg(feature = "std")]
@@ -214,6 +218,9 @@ impl std::fmt::Display for VerifyQuoteError {
             },
             VerifyQuoteError::PckCertificateNoCertificate => {
                 write!(f, "PCK certificate could not be extracted from quote")
+            },
+            VerifyQuoteError::NotGlobalNonce => {
+                write!(f, "Nonce provided is not a chain created global nonce")
             },
         }
     }

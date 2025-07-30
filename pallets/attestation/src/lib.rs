@@ -114,9 +114,7 @@ pub mod pallet {
             nonces.push(nonce);
             GlobalNonces::<T>::put(nonces);
 
-            // TODO: fix
-            // T::WeightInfo::on_initialize()
-            0.into()
+            <T as Config>::WeightInfo::on_initialize()
         }
     }
 
@@ -236,11 +234,20 @@ pub mod pallet {
             x25519_public_key: entropy_shared::X25519PublicKey,
             quote: Vec<u8>,
             context: QuoteContext,
+            nonce_option: Option<Nonce>,
         ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
-            let nonce = PendingAttestations::<T>::get(attestee)
-                .ok_or(VerifyQuoteError::UnexpectedAttestation)?;
+            let nonce = if let Some(nonce) = nonce_option {
+                ensure!(
+                    GlobalNonces::<T>::get().contains(&nonce),
+                    VerifyQuoteError::NotGlobalNonce
+                );
+                nonce
+            } else {
+                PendingAttestations::<T>::get(attestee)
+                    .ok_or(VerifyQuoteError::UnexpectedAttestation)?
+            };
 
             // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| VerifyQuoteError::BadQuote)?;
