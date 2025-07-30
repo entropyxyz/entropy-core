@@ -46,6 +46,7 @@ services:
       - "--rpc-cors"
       - "all"
       - "--unsafe-rpc-external" # Intentional, for TSS's access.
+      - "--unsafe-force-node-key-generation" # Intentional - see #1513
       - "--node-key=0000000000000000000000000000000000000000000000000000000000000001"
       - "--tss-server-endpoint"
       - "http://alice-tss-server:3001"
@@ -82,6 +83,7 @@ services:
       - "--rpc-cors"
       - "all"
       - "--unsafe-rpc-external" # Intentional, for TSS's access.
+      - "--unsafe-force-node-key-generation" # Intentional - see #1513
       - "--bootnodes"
       - "/dns4/alice-chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "--tss-server-endpoint"
@@ -119,6 +121,7 @@ services:
       - "--rpc-cors"
       - "all"
       - "--unsafe-rpc-external" # Intentional, for TSS's access.
+      - "--unsafe-force-node-key-generation" # Intentional - see #1513
       - "--bootnodes"
       - "/dns4/alice-chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "--tss-server-endpoint"
@@ -156,6 +159,7 @@ services:
       - "--rpc-cors"
       - "all"
       - "--unsafe-rpc-external" # Intentional, for TSS's access.
+      - "--unsafe-force-node-key-generation" # Intentional - see #1513
       - "--bootnodes"
       - "/dns4/alice-chain-node/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "--tss-server-endpoint"
