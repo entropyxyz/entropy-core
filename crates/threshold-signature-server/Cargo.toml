@@ -108,7 +108,7 @@ default     =["std", "dep:tdx-quote"]
 std         =["sp-core/std"]
 test_helpers=["dep:project-root"]
 unsafe      =[]
-production  =["std", "entropy-shared/production"]
+production  =["std", "entropy-shared/production", "entropy-client/production"]
 alice       =[]
 bob         =[]
 # Enable this feature to run the integration tests for the wasm API of entropy-protocol
