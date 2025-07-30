@@ -23,8 +23,10 @@ At the moment this project **does not** adhere to
   this means you can continue to use the output from `/info` directly as a chainspec input.
 
 ### Added
-- Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
+- Add forest pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
 - Template testnet chainspec artifact ([#1442](https://github.com/entropyxyz/entropy-core/pull/1442))
+- Create forest helper functions ([#1488](https://github.com/entropyxyz/entropy-core/pull/1488))
+- Add pallet_delegated_staking ([#1475](https://github.com/entropyxyz/entropy-core/pull/1475))
 
 ### Changed
 - Update substrate to polkadot stable2409 ([#1387](https://github.com/entropyxyz/entropy-core/pull/1387))
@@ -34,6 +36,13 @@ At the moment this project **does not** adhere to
 - Update substrate to polkadot stable2503-4 ([#1439](https://github.com/entropyxyz/entropy-core/pull/1439))
 - Rename outtie to forest ([#1481](https://github.com/entropyxyz/entropy-core/pull/1481))
 - Store full tdx quote in ForestServerInfo ([#1484](https://github.com/entropyxyz/entropy-core/pull/1484))
+- Add endowed accounts - at compile time (cherry pick of #1466) ([#1487](https://github.com/entropyxyz/entropy-core/pull/1487))
+- Apply Davids suggestion to add a yield_now between reshare and aux gen in DKG ([#1476](https://github.com/entropyxyz/entropy-core/pull/1476))
+- Build entropy-tss CVM image in release workflow ([#1473](https://github.com/entropyxyz/entropy-core/pull/1473))
+- Make the chainspec generation from chainspec inputs be determinstic ([#1467](https://github.com/entropyxyz/entropy-core/pull/1467))
+- Remove option for derivation path ([#1455](https://github.com/entropyxyz/entropy-core/pull/1455))
+- Update benchmarks to V2 ([#1402](https://github.com/entropyxyz/entropy-core/pull/1402))
+- Use ss58 for loggings ([#1413](https://github.com/entropyxyz/entropy-core/pull/1413))
 
 ## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 
