@@ -60,9 +60,7 @@ fn verify_quote_works() {
 #[test]
 fn verify_quote_works_global_nonce() {
     new_test_ext().execute_with(|| {
-        // We start with an existing pending attestation at genesis - get its nonce
-        let nonce = Attestation::pending_attestations(ATTESTEE).unwrap();
-        assert_eq!(nonce, [0; 32]);
+        let nonce = [0; 32];
 
         let attestation_key = tdx_quote::SigningKey::random(&mut OsRng);
         let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();

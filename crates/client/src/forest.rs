@@ -35,8 +35,8 @@ pub async fn declare_to_chain(
     // This means if we do not get a connection within 15 minutes the process will terminate and the
     // keypair will be lost.
     let backoff = if cfg!(test) { create_test_backoff() } else { ExponentialBackoff::default() };
-
-    let nonce = request_attestation(api, rpc, pair).await?;
+    // TODO: grab from chain 
+    let nonce = [0; 32];
     let tdx_quote = create_quote(
         nonce,
         SubxtAccountId32(pair.public().0),
@@ -46,8 +46,7 @@ pub async fn declare_to_chain(
     .await?;
 
     let server_info = ForestServerInfo { endpoint: endpoint.into(), x25519_public_key, tdx_quote };
-
-    let add_tree_call = entropy::tx().forest().add_tree(server_info);
+    let add_tree_call = entropy::tx().forest().add_tree(server_info, nonce);
     let add_tree = || async {
         println!(
             "attempted to make add_tree tx, If failed probably add funds to {:?}",
