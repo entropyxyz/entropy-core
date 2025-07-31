@@ -49,7 +49,9 @@ impl SubstrateCli for Cli {
     }
 
     fn impl_version() -> String {
-        env!("SUBSTRATE_CLI_IMPL_VERSION").into()
+        let build_details =
+            if cfg!(feature = "production") { "TDX production build" } else { "Non-TDX build" };
+        format!("{} {}", env!("SUBSTRATE_CLI_IMPL_VERSION"), build_details)
     }
 
     fn description() -> String {
