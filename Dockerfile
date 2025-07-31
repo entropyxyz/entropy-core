@@ -14,6 +14,7 @@ ARG TARGETPLATFORM
 ARG PACKAGE
 ARG RUST_STABLE_VERSION
 ARG UBUNTU_VERSION
+ARG PRODUCTION
 
 # Prepare and cache build dependencies, to speed up subsequent runs.
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
