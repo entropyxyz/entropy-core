@@ -180,5 +180,14 @@ fn global_nonce_test() {
         <Attestation as OnInitialize<u64>>::on_initialize(4);
         global_nonces = Attestation::global_nonces();
         assert_eq!(global_nonces.len(), 3);
+
+        // test that first nonce is removed and new one gets pushed on the back (thus waiting three blocks)
+        let nonces = vec![[0; 32], [1; 32], [2; 32]];
+        GlobalNonces::<Test>::put(nonces);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(5);
+        global_nonces = Attestation::global_nonces();
+        dbg!(global_nonces.clone());
+        assert!(!global_nonces.contains(&[0u8; 32]));
     })
 }
