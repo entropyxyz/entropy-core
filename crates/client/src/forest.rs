@@ -3,8 +3,7 @@ use crate::{
     attestation::create_quote,
     chain_api::{entropy, get_api, get_rpc, EntropyConfig},
     errors::{ClientError, SubstrateError},
-    substrate::submit_transaction_with_pair,
-    user::request_attestation,
+    substrate::{query_chain, submit_transaction_with_pair},
 };
 use axum::Json;
 use backoff::ExponentialBackoff;
@@ -35,10 +34,14 @@ pub async fn declare_to_chain(
     // This means if we do not get a connection within 15 minutes the process will terminate and the
     // keypair will be lost.
     let backoff = if cfg!(test) { create_test_backoff() } else { ExponentialBackoff::default() };
-    // TODO: grab from chain 
-    let nonce = [0; 32];
+
+    let query = entropy::storage().attestation().global_nonces();
+    let global_nonces =
+        query_chain(api, rpc, query, None).await?.ok_or(ClientError::NoServerInfo)?;
+    let nonce = global_nonces.last().ok_or(ClientError::NoGlobalNonces)?;
+
     let tdx_quote = create_quote(
-        nonce,
+        *nonce,
         SubxtAccountId32(pair.public().0),
         &x25519_public_key,
         QuoteContext::ForestAddTree,
@@ -46,10 +49,10 @@ pub async fn declare_to_chain(
     .await?;
 
     let server_info = ForestServerInfo { endpoint: endpoint.into(), x25519_public_key, tdx_quote };
-    let add_tree_call = entropy::tx().forest().add_tree(server_info, nonce);
+    let add_tree_call = entropy::tx().forest().add_tree(server_info, *nonce);
     let add_tree = || async {
         println!(
-            "attempted to make add_tree tx, If failed probably add funds to {:?}",
+            "attempted to make add_tree tx, If failed. You probably need to add funds to {:?}",
             pair.public().to_ss58check()
         );
         let in_block =

@@ -157,6 +157,8 @@ pub enum ClientError {
     QuoteGeneration(String),
     #[error("Quote parse: {0}")]
     QuoteParse(#[from] tdx_quote::QuoteParseError),
+    #[error("Error getting global nonces")]
+    NoGlobalNonces,
 }
 
 /// Error when checking quote measurement value

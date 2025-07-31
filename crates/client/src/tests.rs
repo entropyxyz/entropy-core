@@ -11,7 +11,7 @@ use crate::{
             staking::events as staking_events,
             staking_extension::events,
         },
-        get_api, get_rpc,
+        get_api, get_rpc, EntropyConfig,
     },
     change_endpoint, change_threshold_accounts, declare_validate,
     forest::{declare_to_chain, get_api_key_servers, get_node_info},
@@ -34,6 +34,7 @@ use rand::{
 use serial_test::serial;
 use sp_core::{sr25519, Pair};
 use sp_keyring::sr25519::Keyring;
+use subxt::backend::legacy::LegacyRpcMethods;
 use subxt::utils::AccountId32;
 
 #[tokio::test]
@@ -445,7 +446,7 @@ async fn test_declare() {
     let cxt = test_node_process().await;
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
-
+    run_to_block(&rpc, 2).await;
     let endpoint = "test".to_string();
     let x25519_public_key = [0; 32];
 
@@ -469,14 +470,14 @@ async fn test_declare_times_out() {
     let api = get_api(&cxt.ws_url).await.unwrap();
     let rpc = get_rpc(&cxt.ws_url).await.unwrap();
     let (pair, _seed) = sr25519::Pair::generate();
+    run_to_block(&rpc, 2).await;
 
     let endpoint = "test".to_string();
     let x25519_public_key = [0; 32];
 
     let result = declare_to_chain(&api, &rpc, endpoint, x25519_public_key, &pair, None).await;
-
     // Random pair does not have funds and should give an error
-    assert!(result.unwrap_err().to_string().contains("User error: Invalid Transaction (1010)"));
+    assert_eq!(result.unwrap_err().to_string(), "Timed out trying to declare to chain");
 }
 
 #[tokio::test]
@@ -492,4 +493,11 @@ async fn test_get_node_info() {
     assert_eq!(result.0.account_id, account_id.clone());
     assert_eq!(result.0.x25519_public_key, x25519_public_key.clone());
     assert_eq!(result.0.ready, Some(true));
+}
+
+pub async fn run_to_block(rpc: &LegacyRpcMethods<EntropyConfig>, block_run: u32) {
+    let mut current_block = 0;
+    while current_block < block_run {
+        current_block = rpc.chain_get_header(None).await.unwrap().unwrap().number;
+    }
 }
