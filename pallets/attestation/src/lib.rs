@@ -102,6 +102,22 @@ pub mod pallet {
         }
     }
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
+            let mut nonce = [0; 32];
+            Self::get_randomness().fill_bytes(&mut nonce[..]);
+            let mut nonces = GlobalNonces::<T>::get();
+            if nonces.len() >= 3 {
+                nonces.remove(0);
+            }
+            nonces.push(nonce);
+            GlobalNonces::<T>::put(nonces);
+
+            <T as Config>::WeightInfo::on_initialize()
+        }
+    }
+
     /// A map of TSS Account ID to quote nonce for pending attestations
     #[pallet::storage]
     #[pallet::getter(fn pending_attestations)]
@@ -114,6 +130,11 @@ pub mod pallet {
     #[pallet::getter(fn attestation_requests)]
     pub type AttestationRequests<T: Config> =
         StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Vec<u8>>, OptionQuery>;
+
+    /// Global Nonces to be used in attestations
+    #[pallet::storage]
+    #[pallet::getter(fn global_nonces)]
+    pub type GlobalNonces<T: Config> = StorageValue<_, Vec<Nonce>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -213,11 +234,20 @@ pub mod pallet {
             x25519_public_key: entropy_shared::X25519PublicKey,
             quote: Vec<u8>,
             context: QuoteContext,
+            nonce_option: Option<Nonce>,
         ) -> Result<entropy_shared::BoundedVecEncodedVerifyingKey, VerifyQuoteError> {
             // Check that we were expecting a quote from this validator by getting the associated
             // nonce from PendingAttestations.
-            let nonce = PendingAttestations::<T>::get(attestee)
-                .ok_or(VerifyQuoteError::UnexpectedAttestation)?;
+            let nonce = if let Some(nonce) = nonce_option {
+                ensure!(
+                    GlobalNonces::<T>::get().contains(&nonce),
+                    VerifyQuoteError::NotGlobalNonce
+                );
+                nonce
+            } else {
+                PendingAttestations::<T>::get(attestee)
+                    .ok_or(VerifyQuoteError::UnexpectedAttestation)?
+            };
 
             // Parse the quote (which internally verifies the attestation key signature)
             let quote = Quote::from_bytes(&quote).map_err(|_| VerifyQuoteError::BadQuote)?;

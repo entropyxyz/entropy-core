@@ -334,6 +334,8 @@ pub mod pallet {
         PckCertificateBadPublicKey,
         /// Pck certificate could not be extracted from quote
         PckCertificateNoCertificate,
+        /// Nonce is not in the global nonce vector
+        NotGlobalNonce,
     }
 
     impl<T> From<VerifyQuoteError> for Error<T> {
@@ -356,6 +358,7 @@ pub mod pallet {
                     Error::<T>::PckCertificateNoCertificate
                 },
                 VerifyQuoteError::CannotDecodeVerifyingKey => Error::<T>::CannotDecodeVerifyingKey,
+                VerifyQuoteError::NotGlobalNonce => Error::<T>::NotGlobalNonce,
             }
         }
     }
@@ -432,6 +435,7 @@ pub mod pallet {
                         server_info.x25519_public_key,
                         quote.clone(),
                         QuoteContext::ChangeEndpoint,
+                        None,
                     )?;
 
                     server_info.endpoint.clone_from(&endpoint);
@@ -497,6 +501,7 @@ pub mod pallet {
                                 x25519_public_key,
                                 quote.clone(),
                                 QuoteContext::ChangeThresholdAccounts,
+                                None
                             )?;
 
                         server_info.tss_account = tss_account;
@@ -631,6 +636,7 @@ pub mod pallet {
                     server_info.x25519_public_key,
                     server_info.tdx_quote.clone(),
                     QuoteContext::Validate,
+                    None
                 )
                 .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
 

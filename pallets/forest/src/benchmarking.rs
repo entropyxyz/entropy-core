@@ -33,14 +33,17 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     assert_eq!(event, &system_event);
 }
 
-#[benchmarks]
+#[benchmarks(where T: pallet_attestation::Config)]
 mod benchmarks {
     use super::*;
     #[benchmark]
     fn add_tree() {
         let caller: T::AccountId = whitelisted_caller();
         let x25519_public_key = NULL_ARR;
+        let nonce = [0; 32];
         let endpoint = vec![];
+
+        <pallet_attestation::GlobalNonces<T>>::put(vec![nonce]);
 
         let tdx_quote = prepare_attestation_for_validate::<T>(
             caller.clone(),
@@ -51,7 +54,7 @@ mod benchmarks {
         let server_info = ForestServerInfo { x25519_public_key, endpoint, tdx_quote };
 
         #[extrinsic_call]
-        _(RawOrigin::Signed(caller.clone()), server_info.clone());
+        _(RawOrigin::Signed(caller.clone()), server_info.clone(), nonce);
 
         let _tree_info = Trees::<T>::get(caller.clone()).unwrap();
 

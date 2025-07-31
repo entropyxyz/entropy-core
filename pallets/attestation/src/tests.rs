@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::mock::*;
+use crate::{mock::*, GlobalNonces};
 use entropy_shared::attestation::{
     AttestationHandler, QuoteContext, QuoteInputData, VerifyQuoteError,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use rand_core::OsRng;
 
 const ATTESTEE: u64 = 0;
@@ -53,6 +53,54 @@ fn verify_quote_works() {
             x25519_public_key,
             quote.as_bytes().to_vec(),
             QuoteContext::Validate,
+            None,
+        ));
+    })
+}
+#[test]
+fn verify_quote_works_global_nonce() {
+    new_test_ext().execute_with(|| {
+        let nonce = [0; 32];
+
+        let attestation_key = tdx_quote::SigningKey::random(&mut OsRng);
+        let pck = tdx_quote::SigningKey::from_bytes(&PCK.into()).unwrap();
+        let pck_encoded = tdx_quote::encode_verifying_key(pck.verifying_key()).unwrap();
+
+        let x25519_public_key = [0; 32];
+
+        let input_data = QuoteInputData::new(
+            ATTESTEE, // TSS Account ID
+            x25519_public_key,
+            nonce,
+            QuoteContext::Validate,
+        );
+
+        let quote = tdx_quote::Quote::mock(
+            attestation_key.clone(),
+            pck,
+            input_data.0,
+            pck_encoded.to_vec(),
+        );
+        // not a global nonce so fails
+        assert_noop!(
+            Attestation::verify_quote(
+                &ATTESTEE,
+                x25519_public_key,
+                quote.as_bytes().to_vec(),
+                QuoteContext::Validate,
+                Some(nonce.clone()),
+            ),
+            VerifyQuoteError::NotGlobalNonce,
+        );
+
+        GlobalNonces::<Test>::put(vec![nonce.clone()]);
+
+        assert_ok!(Attestation::verify_quote(
+            &ATTESTEE,
+            x25519_public_key,
+            quote.as_bytes().to_vec(),
+            QuoteContext::Validate,
+            Some(nonce.clone()),
         ));
     })
 }
@@ -93,6 +141,7 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 x25519_public_key,
                 quote.as_bytes().to_vec(),
                 QuoteContext::Validate,
+                None,
             ),
             VerifyQuoteError::UnexpectedAttestation,
         );
@@ -106,8 +155,39 @@ fn verify_quote_fails_with_mismatched_input_data() {
                 mismatched_x25519_public_key,
                 quote.as_bytes().to_vec(),
                 QuoteContext::Validate,
+                None,
             ),
             VerifyQuoteError::IncorrectInputData,
         );
+    })
+}
+
+#[test]
+fn global_nonce_test() {
+    new_test_ext().execute_with(|| {
+        <Attestation as OnInitialize<u64>>::on_initialize(0);
+        let mut global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 1);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(1);
+        global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 2);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(3);
+        global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 3);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(4);
+        global_nonces = Attestation::global_nonces();
+        assert_eq!(global_nonces.len(), 3);
+
+        // test that first nonce is removed and new one gets pushed on the back (thus waiting three blocks)
+        let nonces = vec![[0; 32], [1; 32], [2; 32]];
+        GlobalNonces::<Test>::put(nonces);
+
+        <Attestation as OnInitialize<u64>>::on_initialize(5);
+        global_nonces = Attestation::global_nonces();
+        dbg!(global_nonces.clone());
+        assert!(!global_nonces.contains(&[0u8; 32]));
     })
 }

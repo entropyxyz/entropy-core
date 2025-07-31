@@ -124,6 +124,7 @@ impl entropy_shared::attestation::AttestationHandler<AccountId> for MockAttestat
         _x25519_public_key: entropy_shared::X25519PublicKey,
         quote: Vec<u8>,
         _context: QuoteContext,
+        _nonce_option: Option<[u8; 32]>,
     ) -> Result<
         entropy_shared::BoundedVecEncodedVerifyingKey,
         entropy_shared::attestation::VerifyQuoteError,

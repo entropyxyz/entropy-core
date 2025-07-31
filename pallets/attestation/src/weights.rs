@@ -45,6 +45,7 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
     fn attest() -> Weight;
 	fn request_attestation() -> Weight;
+	fn on_initialize() -> Weight;
 }
 
 /// Weight functions for `pallet_attestation`.
@@ -82,6 +83,22 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+		/// Storage: `Babe::NextRandomness` (r:1 w:0)
+	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Babe::EpochStart` (r:1 w:0)
+	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `Attestation::GlobalNonces` (r:1 w:1)
+	/// Proof: `Attestation::GlobalNonces` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn on_initialize() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `436`
+		//  Estimated: `1921`
+		// Minimum execution time: 9_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1921))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
 
 impl WeightInfo for () {
@@ -114,6 +131,22 @@ impl WeightInfo for () {
 		// Minimum execution time: 16_000_000 picoseconds.
 		Weight::from_parts(17_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 3850))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+		/// Storage: `Babe::NextRandomness` (r:1 w:0)
+	/// Proof: `Babe::NextRandomness` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `Babe::EpochStart` (r:1 w:0)
+	/// Proof: `Babe::EpochStart` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `Attestation::GlobalNonces` (r:1 w:1)
+	/// Proof: `Attestation::GlobalNonces` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	fn on_initialize() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `436`
+		//  Estimated: `1921`
+		// Minimum execution time: 9_000_000 picoseconds.
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1921))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}

@@ -27,29 +27,30 @@ const NULL_ARR: [u8; 32] = [0; 32];
 #[test]
 fn add_tree() {
     new_test_ext().execute_with(|| {
+        let nonce = [0; 32];
         let mut server_info = ForestServerInfo {
             x25519_public_key: NULL_ARR,
             endpoint: vec![20],
             tdx_quote: VALID_QUOTE.to_vec(),
         };
 
-        assert_ok!(Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone(),));
+        assert_ok!(Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone(), nonce));
 
         assert_noop!(
-            Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone()),
+            Forest::add_tree(RuntimeOrigin::signed(1), server_info.clone(), nonce),
             Error::<Test>::TreeAccountAlreadyExists
         );
 
         server_info.tdx_quote = INVALID_QUOTE.to_vec();
         assert_noop!(
-            Forest::add_tree(RuntimeOrigin::signed(2), server_info.clone()),
+            Forest::add_tree(RuntimeOrigin::signed(2), server_info.clone(), nonce),
             Error::<Test>::BadQuote
         );
 
         server_info.tdx_quote = VALID_QUOTE.to_vec();
         server_info.endpoint = [20; (crate::tests::MaxEndpointLength::get() + 1) as usize].to_vec();
         assert_noop!(
-            Forest::add_tree(RuntimeOrigin::signed(3), server_info),
+            Forest::add_tree(RuntimeOrigin::signed(3), server_info, nonce),
             Error::<Test>::EndpointTooLong
         );
     });

@@ -7805,6 +7805,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-attestation",
  "pallet-session",
  "parity-scale-codec",
  "rand 0.8.5",

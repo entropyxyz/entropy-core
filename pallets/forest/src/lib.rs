@@ -106,6 +106,8 @@ pub mod module {
         PckCertificateBadPublicKey,
         /// Pck certificate could not be extracted from quote
         PckCertificateNoCertificate,
+        /// Nonce is not in the global nonce vector
+        NotGlobalNonce,
     }
 
     impl<T> From<VerifyQuoteError> for Error<T> {
@@ -128,6 +130,7 @@ pub mod module {
                     Error::<T>::PckCertificateNoCertificate
                 },
                 VerifyQuoteError::CannotDecodeVerifyingKey => Error::<T>::CannotDecodeVerifyingKey,
+                VerifyQuoteError::NotGlobalNonce => Error::<T>::NotGlobalNonce,
             }
         }
     }
@@ -146,7 +149,11 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::add_tree())]
-        pub fn add_tree(origin: OriginFor<T>, server_info: ForestServerInfo) -> DispatchResult {
+        pub fn add_tree(
+            origin: OriginFor<T>,
+            server_info: ForestServerInfo,
+            nonce: [u8; 32],
+        ) -> DispatchResult {
             let tree_account = ensure_signed(origin.clone())?;
 
             ensure!(
@@ -162,6 +169,7 @@ pub mod module {
                     server_info.x25519_public_key,
                     server_info.tdx_quote.clone(),
                     QuoteContext::ForestAddTree,
+                    Some(nonce)
                 )
                 .map_err(<VerifyQuoteError as Into<Error<T>>>::into)?;
 

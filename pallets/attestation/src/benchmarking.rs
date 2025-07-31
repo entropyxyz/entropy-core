@@ -15,9 +15,10 @@
 
 use frame_benchmarking::v2::*;
 
+use super::*;
+use frame_support::traits::OnInitialize;
 use frame_system::{EventRecord, RawOrigin};
 
-use super::*;
 #[allow(unused)]
 use crate::Pallet as AttestationPallet;
 
@@ -54,6 +55,20 @@ mod benchmarks {
         _(RawOrigin::Signed(attestee.clone()));
         // We're expecting a pending attestation queued up
         assert!(<PendingAttestations<T>>::contains_key(attestee));
+    }
+
+    #[benchmark]
+    fn on_initialize() {
+        AttestationPallet::<T>::on_initialize(0u32.into());
+        AttestationPallet::<T>::on_initialize(1u32.into());
+        AttestationPallet::<T>::on_initialize(2u32.into());
+
+        #[block]
+        {
+            AttestationPallet::<T>::on_initialize(3u32.into());
+        }
+
+        assert_eq!(GlobalNonces::<T>::get().len(), 3);
     }
     impl_benchmark_test_suite!(AttestationPallet, crate::mock::new_test_ext(), crate::mock::Test);
 }
