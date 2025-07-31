@@ -17,6 +17,8 @@ At the moment this project **does not** adhere to
   route has also changed to include a full quote rather than only the PCK, and likewise the custom
   chainspec inputs also expect to have a full quote rather than a PCK for each TSS node. In practice
   this means you can continue to use the output from `/info` directly as a chainspec input.
+- In [#1518](https://github.com/entropyxyz/entropy-core/pull/1518) the output of the chain node
+  `--version` command line argument was changed to give additional build details.
 
 ### Added
 - Add outtie pallet ([#1418](https://github.com/entropyxyz/entropy-core/pull/1418))
@@ -30,6 +32,7 @@ At the moment this project **does not** adhere to
 - Update substrate to polkadot stable2503-4 ([#1439](https://github.com/entropyxyz/entropy-core/pull/1439))
 - Rename outtie to forest ([#1481](https://github.com/entropyxyz/entropy-core/pull/1481))
 - Store full tdx quote in ForestServerInfo ([#1484](https://github.com/entropyxyz/entropy-core/pull/1484))
+- Display build details with version ([#1518](https://github.com/entropyxyz/entropy-core/pull/1518))
 
 ## [0.4.0](https://github.com/entropyxyz/entropy-core/compare/release/v0.3.0...release/v0.4.0) - 2025-03-31
 
